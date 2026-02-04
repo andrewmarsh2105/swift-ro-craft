@@ -129,24 +129,26 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               Advisor
             </label>
             
-            {/* Recent advisors as chips */}
+            {/* Advisor chips from managed advisors */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {settings.recentAdvisors.slice(0, 4).map((name) => (
+              {settings.advisors.slice(0, 4).map((adv) => (
                 <Chip
-                  key={name}
-                  label={name.split(' ')[0]} // First name only
-                  selected={advisor === name}
-                  onSelect={() => setAdvisor(name)}
+                  key={adv.id}
+                  label={adv.name.split(' ')[0]} // First name only
+                  selected={advisor === adv.name}
+                  onSelect={() => setAdvisor(adv.name)}
                 />
               ))}
-              <Chip
-                label="More..."
-                onSelect={() => setShowAdvisorList(true)}
-              />
+              {settings.advisors.length > 0 && (
+                <Chip
+                  label="More..."
+                  onSelect={() => setShowAdvisorList(true)}
+                />
+              )}
             </div>
 
-            {/* Show selected advisor */}
-            {advisor && !settings.recentAdvisors.slice(0, 4).includes(advisor) && (
+            {/* Show selected advisor if not in first 4 */}
+            {advisor && !settings.advisors.slice(0, 4).find(a => a.name === advisor) && (
               <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl">
                 <span className="font-medium">{advisor}</span>
                 <button onClick={() => setAdvisor('')} className="ml-auto">
@@ -301,19 +303,19 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         title="Select Advisor"
       >
         <div className="p-4 space-y-2">
-          {settings.recentAdvisors.map((name) => (
+          {settings.advisors.map((adv) => (
             <button
-              key={name}
+              key={adv.id}
               onClick={() => {
-                setAdvisor(name);
+                setAdvisor(adv.name);
                 setShowAdvisorList(false);
               }}
               className={cn(
                 'w-full p-4 rounded-xl text-left font-medium tap-target touch-feedback',
-                advisor === name ? 'bg-primary text-primary-foreground' : 'bg-secondary'
+                advisor === adv.name ? 'bg-primary text-primary-foreground' : 'bg-secondary'
               )}
             >
-              {name}
+              {adv.name}
             </button>
           ))}
           

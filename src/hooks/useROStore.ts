@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType } from '@/types/ro';
+import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor } from '@/types/ro';
 
 // Sample data for demo
 const sampleROs: RepairOrder[] = [
@@ -68,8 +68,16 @@ const defaultPresets: Preset[] = [
   { id: '5', name: 'Recall', laborType: 'warranty', defaultHours: 1.0, workTemplate: 'Recall service performed' },
 ];
 
+const defaultAdvisors: Advisor[] = [
+  { id: '1', name: 'Mike Johnson' },
+  { id: '2', name: 'Sarah Williams' },
+  { id: '3', name: 'Tom Chen' },
+  { id: '4', name: 'Lisa Park' },
+];
+
 const defaultSettings: Settings = {
   recentAdvisors: ['Mike Johnson', 'Sarah Williams', 'Tom Chen', 'Lisa Park'],
+  advisors: defaultAdvisors,
   presets: defaultPresets,
   showDarkMode: false,
 };
@@ -131,6 +139,10 @@ export function useROStore() {
 
   const updatePresets = useCallback((presets: Preset[]) => {
     setSettings(prev => ({ ...prev, presets }));
+  }, []);
+
+  const updateAdvisors = useCallback((advisors: Advisor[]) => {
+    setSettings(prev => ({ ...prev, advisors }));
   }, []);
 
   // Summary calculations
@@ -202,6 +214,7 @@ export function useROStore() {
     duplicateRO,
     updateSettings,
     updatePresets,
+    updateAdvisors,
     getDaySummaries,
     getAdvisorSummaries,
     getWeekTotal,

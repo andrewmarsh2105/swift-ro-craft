@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X } from 'lucide-react';
+import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
-import type { Preset, LaborType } from '@/types/ro';
+import type { Preset, LaborType, Advisor } from '@/types/ro';
 import { cn } from '@/lib/utils';
 
 interface SettingsGroupProps {
@@ -100,10 +100,39 @@ function PresetItem({ preset, onEdit, onDelete }: PresetItemProps) {
   );
 }
 
+interface AdvisorItemProps {
+  advisor: Advisor;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
+  return (
+    <Reorder.Item
+      value={advisor}
+      className="bg-card p-4 rounded-xl flex items-center gap-3 touch-none"
+    >
+      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+      <User className="h-5 w-5 text-muted-foreground" />
+      <div className="flex-1 min-w-0">
+        <div className="font-medium truncate">{advisor.name}</div>
+      </div>
+      <button onClick={onEdit} className="p-2 tap-target touch-feedback">
+        <Pencil className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <button onClick={onDelete} className="p-2 tap-target touch-feedback text-destructive">
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </Reorder.Item>
+  );
+}
+
 export function SettingsTab() {
-  const { settings, updateSettings, updatePresets } = useRO();
+  const { settings, updateSettings, updatePresets, updateAdvisors } = useRO();
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
+  const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
+  const [editingAdvisor, setEditingAdvisor] = useState<Advisor | null>(null);
   const [darkMode, setDarkMode] = useState(false);
 
   // Preset form state
@@ -111,6 +140,9 @@ export function SettingsTab() {
   const [presetLaborType, setPresetLaborType] = useState<LaborType>('customer-pay');
   const [presetHours, setPresetHours] = useState('');
   const [presetTemplate, setPresetTemplate] = useState('');
+
+  // Advisor form state
+  const [advisorName, setAdvisorName] = useState('');
 
   const openPresetEditor = (preset?: Preset) => {
     if (preset) {
@@ -153,6 +185,41 @@ export function SettingsTab() {
 
   const handleReorder = (newOrder: Preset[]) => {
     updatePresets(newOrder);
+  };
+
+  // Advisor management
+  const openAdvisorEditor = (advisor?: Advisor) => {
+    if (advisor) {
+      setEditingAdvisor(advisor);
+      setAdvisorName(advisor.name);
+    } else {
+      setEditingAdvisor(null);
+      setAdvisorName('');
+    }
+    setShowAdvisorEditor(true);
+  };
+
+  const saveAdvisor = () => {
+    const newAdvisor: Advisor = {
+      id: editingAdvisor?.id || Date.now().toString(),
+      name: advisorName,
+    };
+
+    if (editingAdvisor) {
+      updateAdvisors(settings.advisors.map(a => a.id === editingAdvisor.id ? newAdvisor : a));
+    } else {
+      updateAdvisors([...settings.advisors, newAdvisor]);
+    }
+
+    setShowAdvisorEditor(false);
+  };
+
+  const deleteAdvisor = (id: string) => {
+    updateAdvisors(settings.advisors.filter(a => a.id !== id));
+  };
+
+  const handleAdvisorReorder = (newOrder: Advisor[]) => {
+    updateAdvisors(newOrder);
   };
 
   const toggleDarkMode = (enabled: boolean) => {
@@ -222,7 +289,36 @@ export function SettingsTab() {
           </Reorder.Group>
         </div>
 
-        {/* Data */}
+        {/* Advisors */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-4">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Advisors
+            </h3>
+            <button
+              onClick={() => openAdvisorEditor()}
+              className="p-2 tap-target touch-feedback text-primary"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
+
+          <Reorder.Group
+            axis="y"
+            values={settings.advisors}
+            onReorder={handleAdvisorReorder}
+            className="space-y-2"
+          >
+            {settings.advisors.map((advisor) => (
+              <AdvisorItem
+                key={advisor.id}
+                advisor={advisor}
+                onEdit={() => openAdvisorEditor(advisor)}
+                onDelete={() => deleteAdvisor(advisor.id)}
+              />
+            ))}
+          </Reorder.Group>
+        </div>
         <SettingsGroup title="Data">
           <SettingsRow
             label="Export All Data"
@@ -325,6 +421,51 @@ export function SettingsTab() {
               className={cn(
                 'flex-1 py-4 rounded-xl font-semibold tap-target touch-feedback',
                 presetName.trim()
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Advisor Editor Sheet */}
+      <BottomSheet
+        isOpen={showAdvisorEditor}
+        onClose={() => setShowAdvisorEditor(false)}
+        title={editingAdvisor ? 'Edit Advisor' : 'New Advisor'}
+      >
+        <div className="p-4 space-y-6">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Advisor Name
+            </label>
+            <input
+              type="text"
+              value={advisorName}
+              onChange={(e) => setAdvisorName(e.target.value)}
+              placeholder="e.g., Mike Johnson"
+              className="w-full h-12 px-4 bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setShowAdvisorEditor(false)}
+              className="flex-1 py-4 bg-secondary rounded-xl font-medium tap-target touch-feedback"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveAdvisor}
+              disabled={!advisorName.trim()}
+              className={cn(
+                'flex-1 py-4 rounded-xl font-semibold tap-target touch-feedback',
+                advisorName.trim()
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
               )}

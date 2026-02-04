@@ -37,9 +37,15 @@ export interface AdvisorSummary {
   roCount: number;
 }
 
+export interface Advisor {
+  id: string;
+  name: string;
+}
+
 export interface Settings {
   defaultAdvisor?: string;
   recentAdvisors: string[];
+  advisors: Advisor[];
   presets: Preset[];
   showDarkMode: boolean;
 }
