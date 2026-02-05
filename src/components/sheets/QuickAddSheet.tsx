@@ -1,12 +1,13 @@
-import { useState } from 'react';
-import { Camera, ChevronDown, ChevronUp, Mic, X, MoreHorizontal } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, ChevronDown, ChevronUp, Mic, X, ToggleLeft, ToggleRight, List, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { NumericInput } from '@/components/mobile/NumericInput';
 import { Chip } from '@/components/mobile/Chip';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
+import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
 import { useRO } from '@/contexts/ROContext';
-import type { LaborType, RepairOrder, Preset } from '@/types/ro';
+import type { LaborType, RepairOrder, Preset, ROLine } from '@/types/ro';
 import { cn } from '@/lib/utils';
 
 interface QuickAddSheetProps {
@@ -21,6 +22,9 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   
+  // Mode toggle - Lines Mode is default
+  const [isSimpleMode, setIsSimpleMode] = useState(editingRO?.isSimpleMode ?? false);
+  
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
@@ -28,7 +32,29 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
   const [workPerformed, setWorkPerformed] = useState(editingRO?.workPerformed || '');
   const [notes, setNotes] = useState(editingRO?.notes || '');
+  const [lines, setLines] = useState<ROLine[]>(editingRO?.lines || [createEmptyLine(1)]);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
+
+  // Reset form when opening/closing or when editingRO changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editingRO) {
+        setRoNumber(editingRO.roNumber);
+        setAdvisor(editingRO.advisor);
+        setPaidHours(editingRO.paidHours);
+        setLaborType(editingRO.laborType);
+        setWorkPerformed(editingRO.workPerformed);
+        setNotes(editingRO.notes || '');
+        setLines(editingRO.lines.length > 0 ? editingRO.lines : [createEmptyLine(1)]);
+        setIsSimpleMode(editingRO.isSimpleMode);
+      } else {
+        resetForm();
+      }
+    }
+  }, [isOpen, editingRO]);
+
+  // Calculate total hours from lines
+  const linesTotalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
 
   const resetForm = () => {
     setRoNumber('');
@@ -37,20 +63,29 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setLaborType('customer-pay');
     setWorkPerformed('');
     setNotes('');
+    setLines([createEmptyLine(1)]);
     setSelectedPresets([]);
     setShowMoreDetails(false);
+    setIsSimpleMode(false); // Default to Lines Mode
   };
 
   const handleSave = (addAnother: boolean = false) => {
+    // Build work performed from lines if not in simple mode
+    const computedWorkPerformed = isSimpleMode 
+      ? workPerformed 
+      : lines.map(l => l.description).filter(Boolean).join('\n');
+    
     const roData = {
       roNumber,
       advisor,
-      paidHours,
+      paidHours: isSimpleMode ? paidHours : linesTotalHours,
       laborType,
-      workPerformed,
+      workPerformed: computedWorkPerformed,
       notes,
       date: editingRO?.date || new Date().toISOString().split('T')[0],
       photos: editingRO?.photos,
+      lines: isSimpleMode ? [] : lines,
+      isSimpleMode,
     };
 
     if (editingRO) {
@@ -68,25 +103,48 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   };
 
   const handlePresetSelect = (preset: Preset) => {
-    if (selectedPresets.includes(preset.id)) {
-      setSelectedPresets(prev => prev.filter(id => id !== preset.id));
-      // Remove hours from this preset
-      if (preset.defaultHours) {
-        setPaidHours(prev => Math.max(0, prev - preset.defaultHours!));
-      }
-    } else {
-      setSelectedPresets(prev => [...prev, preset.id]);
-      setLaborType(preset.laborType);
-      if (preset.defaultHours) {
-        setPaidHours(prev => prev + preset.defaultHours!);
-      }
-      if (preset.workTemplate) {
-        setWorkPerformed(prev => prev ? `${prev}\n${preset.workTemplate}` : preset.workTemplate!);
+    if (isSimpleMode) {
+      // Simple mode behavior - toggle preset selection
+      if (selectedPresets.includes(preset.id)) {
+        setSelectedPresets(prev => prev.filter(id => id !== preset.id));
+        if (preset.defaultHours) {
+          setPaidHours(prev => Math.max(0, prev - preset.defaultHours!));
+        }
+      } else {
+        setSelectedPresets(prev => [...prev, preset.id]);
+        setLaborType(preset.laborType);
+        if (preset.defaultHours) {
+          setPaidHours(prev => prev + preset.defaultHours!);
+        }
+        if (preset.workTemplate) {
+          setWorkPerformed(prev => prev ? `${prev}\n${preset.workTemplate}` : preset.workTemplate!);
+        }
       }
     }
+    // In Lines Mode, presets are handled by LineItemEditor
   };
 
-  const isValid = roNumber.trim() !== '' && advisor.trim() !== '' && paidHours > 0;
+  const handleConvertToLines = () => {
+    // Convert simple mode to lines mode
+    if (paidHours > 0 || workPerformed) {
+      setLines([{
+        id: Date.now().toString(),
+        lineNo: 1,
+        description: workPerformed,
+        hoursPaid: paidHours,
+        laborType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }]);
+    } else {
+      setLines([createEmptyLine(1)]);
+    }
+    setIsSimpleMode(false);
+  };
+
+  const isValid = roNumber.trim() !== '' && 
+    advisor.trim() !== '' && 
+    (isSimpleMode ? paidHours > 0 : linesTotalHours > 0);
 
   return (
     <BottomSheet
@@ -107,6 +165,32 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             <Camera className="h-6 w-6" />
             Scan RO Photo
           </button>
+
+          {/* Mode Toggle */}
+          <div className="flex items-center justify-between p-3 bg-secondary rounded-xl">
+            <div className="flex items-center gap-2">
+              {isSimpleMode ? (
+                <Hash className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <List className="h-5 w-5 text-muted-foreground" />
+              )}
+              <span className="font-medium">
+                {isSimpleMode ? 'Simple Mode' : 'Lines Mode'}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                if (isSimpleMode) {
+                  handleConvertToLines();
+                } else {
+                  setIsSimpleMode(true);
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 bg-background rounded-lg text-sm font-medium tap-target touch-feedback"
+            >
+              {isSimpleMode ? 'Switch to Lines' : 'Switch to Simple'}
+            </button>
+          </div>
 
           {/* RO Number */}
           <div>
@@ -158,18 +242,10 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             )}
           </div>
 
-          {/* Paid Hours */}
-          <NumericInput
-            label="Paid Hours"
-            value={paidHours}
-            onChange={setPaidHours}
-            quickIncrements={[0.1, 0.2, 0.5]}
-          />
-
-          {/* Labor Type */}
+          {/* Labor Type - Always shown */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Labor Type
+              Default Labor Type
             </label>
             <SegmentedControl
               options={[
@@ -182,42 +258,65 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             />
           </div>
 
-          {/* Presets */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Quick Presets
-            </label>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-              {settings.presets.map((preset) => (
-                <Chip
-                  key={preset.id}
-                  label={preset.name}
-                  selected={selectedPresets.includes(preset.id)}
-                  onSelect={() => handlePresetSelect(preset)}
-                  className="whitespace-nowrap flex-shrink-0"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Work Performed */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Work Performed (optional)
-            </label>
-            <div className="relative">
-              <textarea
-                value={workPerformed}
-                onChange={(e) => setWorkPerformed(e.target.value)}
-                placeholder="Describe work performed..."
-                rows={2}
-                className="w-full p-4 pr-12 bg-secondary rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+          {/* Conditional content based on mode */}
+          {isSimpleMode ? (
+            <>
+              {/* Simple Mode: Single hours input */}
+              <NumericInput
+                label="Paid Hours"
+                value={paidHours}
+                onChange={setPaidHours}
+                quickIncrements={[0.1, 0.2, 0.5]}
               />
-              <button className="absolute right-3 top-3 p-2 text-muted-foreground touch-feedback">
-                <Mic className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
+
+              {/* Presets for simple mode */}
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Quick Presets
+                </label>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+                  {settings.presets.map((preset) => (
+                    <Chip
+                      key={preset.id}
+                      label={preset.name}
+                      selected={selectedPresets.includes(preset.id)}
+                      onSelect={() => handlePresetSelect(preset)}
+                      className="whitespace-nowrap flex-shrink-0"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Work Performed */}
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Work Performed (optional)
+                </label>
+                <div className="relative">
+                  <textarea
+                    value={workPerformed}
+                    onChange={(e) => setWorkPerformed(e.target.value)}
+                    placeholder="Describe work performed..."
+                    rows={2}
+                    className="w-full p-4 pr-12 bg-secondary rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button className="absolute right-3 top-3 p-2 text-muted-foreground touch-feedback">
+                    <Mic className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Lines Mode: Line Item Editor */}
+              <LineItemEditor
+                lines={lines}
+                onLinesChange={setLines}
+                presets={settings.presets}
+                showLaborType={false}
+              />
+            </>
+          )}
 
           {/* More Details Accordion */}
           <div className="border border-border rounded-xl overflow-hidden">

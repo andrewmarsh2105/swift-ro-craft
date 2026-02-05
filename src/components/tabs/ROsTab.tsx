@@ -23,6 +23,12 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProp
     day: 'numeric',
   });
 
+  // Calculate total hours from lines if available
+  const hasLines = ro.lines && ro.lines.length > 0;
+  const totalHours = hasLines 
+    ? ro.lines.reduce((sum, line) => sum + line.hoursPaid, 0)
+    : ro.paidHours;
+
   return (
     <SwipeableCard 
       onEdit={onEdit} 
@@ -35,17 +41,25 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProp
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-bold text-lg">#{ro.roNumber}</span>
+            {hasLines && (
+              <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                {ro.lines.length} lines
+              </span>
+            )}
           </div>
           <div className="text-sm text-muted-foreground mb-1">
             {formattedDate} • {ro.advisor}
           </div>
           <div className="text-sm text-foreground/80 truncate">
-            {ro.workPerformed}
+            {hasLines 
+              ? ro.lines.map(l => l.description).filter(Boolean).join(', ') || ro.workPerformed
+              : ro.workPerformed
+            }
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
           <span className="text-xl font-bold text-primary">
-            {ro.paidHours.toFixed(1)}h
+            {totalHours.toFixed(1)}h
           </span>
           <StatusPill type={ro.laborType} />
         </div>

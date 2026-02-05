@@ -1,15 +1,28 @@
 export type LaborType = 'warranty' | 'customer-pay' | 'internal';
 
+export interface ROLine {
+  id: string;
+  lineNo: number;
+  description: string;
+  hoursPaid: number;
+  laborType?: LaborType;
+  matchedReferenceId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RepairOrder {
   id: string;
   roNumber: string;
   date: string;
   advisor: string;
-  paidHours: number;
-  laborType: LaborType;
+  paidHours: number; // Computed from lines or direct entry in simple mode
+  laborType: LaborType; // Default labor type for simple mode
   workPerformed: string;
   notes?: string;
   photos?: string[];
+  lines: ROLine[]; // Line items for detailed entry
+  isSimpleMode: boolean; // true = single total hours, false = line items
   createdAt: string;
   updatedAt: string;
 }

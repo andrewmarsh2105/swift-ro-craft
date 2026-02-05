@@ -1,5 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor } from '@/types/ro';
+import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine } from '@/types/ro';
+
+// Helper to calculate total hours from lines
+function calculateTotalHours(lines: ROLine[]): number {
+  return lines.reduce((sum, line) => sum + line.hoursPaid, 0);
+}
 
 // Sample data for demo
 const sampleROs: RepairOrder[] = [
@@ -11,6 +16,11 @@ const sampleROs: RepairOrder[] = [
     paidHours: 2.5,
     laborType: 'warranty',
     workPerformed: 'Replaced front brake pads and rotors',
+    lines: [
+      { id: 'l1', lineNo: 1, description: 'Replaced front brake pads', hoursPaid: 1.5, laborType: 'warranty', createdAt: '2026-01-30T08:00:00Z', updatedAt: '2026-01-30T08:00:00Z' },
+      { id: 'l2', lineNo: 2, description: 'Replaced front rotors', hoursPaid: 1.0, laborType: 'warranty', createdAt: '2026-01-30T08:00:00Z', updatedAt: '2026-01-30T08:00:00Z' },
+    ],
+    isSimpleMode: false,
     createdAt: '2026-01-30T08:00:00Z',
     updatedAt: '2026-01-30T08:00:00Z',
   },
@@ -22,6 +32,11 @@ const sampleROs: RepairOrder[] = [
     paidHours: 1.2,
     laborType: 'customer-pay',
     workPerformed: 'Oil change and tire rotation',
+    lines: [
+      { id: 'l3', lineNo: 1, description: 'Oil change and filter replacement', hoursPaid: 0.5, laborType: 'customer-pay', createdAt: '2026-01-30T09:30:00Z', updatedAt: '2026-01-30T09:30:00Z' },
+      { id: 'l4', lineNo: 2, description: 'Tire rotation', hoursPaid: 0.7, laborType: 'customer-pay', createdAt: '2026-01-30T09:30:00Z', updatedAt: '2026-01-30T09:30:00Z' },
+    ],
+    isSimpleMode: false,
     createdAt: '2026-01-30T09:30:00Z',
     updatedAt: '2026-01-30T09:30:00Z',
   },
@@ -33,6 +48,8 @@ const sampleROs: RepairOrder[] = [
     paidHours: 3.0,
     laborType: 'warranty',
     workPerformed: 'Transmission fluid flush and filter replacement',
+    lines: [],
+    isSimpleMode: true,
     createdAt: '2026-01-29T14:00:00Z',
     updatedAt: '2026-01-29T14:00:00Z',
   },
@@ -44,6 +61,8 @@ const sampleROs: RepairOrder[] = [
     paidHours: 0.8,
     laborType: 'internal',
     workPerformed: 'PDI inspection on new vehicle',
+    lines: [],
+    isSimpleMode: true,
     createdAt: '2026-01-29T11:00:00Z',
     updatedAt: '2026-01-29T11:00:00Z',
   },
@@ -55,6 +74,11 @@ const sampleROs: RepairOrder[] = [
     paidHours: 4.2,
     laborType: 'customer-pay',
     workPerformed: 'Timing belt replacement and water pump',
+    lines: [
+      { id: 'l5', lineNo: 1, description: 'Timing belt replacement', hoursPaid: 3.0, laborType: 'customer-pay', createdAt: '2026-01-28T10:00:00Z', updatedAt: '2026-01-28T10:00:00Z' },
+      { id: 'l6', lineNo: 2, description: 'Water pump replacement', hoursPaid: 1.2, laborType: 'customer-pay', createdAt: '2026-01-28T10:00:00Z', updatedAt: '2026-01-28T10:00:00Z' },
+    ],
+    isSimpleMode: false,
     createdAt: '2026-01-28T10:00:00Z',
     updatedAt: '2026-01-28T10:00:00Z',
   },
@@ -91,8 +115,14 @@ export function useROStore() {
   }, []);
 
   const addRO = useCallback((ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
+    // Calculate paidHours from lines if in lines mode
+    const paidHours = ro.isSimpleMode 
+      ? ro.paidHours 
+      : calculateTotalHours(ro.lines);
+    
     const newRO: RepairOrder = {
       ...ro,
+      paidHours,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -111,11 +141,18 @@ export function useROStore() {
   }, [settings.recentAdvisors]);
 
   const updateRO = useCallback((id: string, updates: Partial<RepairOrder>) => {
-    setROs(prev => prev.map(ro => 
-      ro.id === id 
-        ? { ...ro, ...updates, updatedAt: new Date().toISOString() }
-        : ro
-    ));
+    setROs(prev => prev.map(ro => {
+      if (ro.id !== id) return ro;
+      
+      const updatedRO = { ...ro, ...updates, updatedAt: new Date().toISOString() };
+      
+      // Recalculate paidHours if lines were updated and not in simple mode
+      if (updates.lines && !updatedRO.isSimpleMode) {
+        updatedRO.paidHours = calculateTotalHours(updates.lines);
+      }
+      
+      return updatedRO;
+    }));
   }, []);
 
   const deleteRO = useCallback((id: string) => {
@@ -125,10 +162,19 @@ export function useROStore() {
   const duplicateRO = useCallback((id: string) => {
     const ro = ros.find(r => r.id === id);
     if (ro) {
+      // Duplicate lines with new IDs
+      const duplicatedLines = ro.lines.map((line, index) => ({
+        ...line,
+        id: Date.now().toString() + index + Math.random().toString(36).substring(2, 9),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+      
       const newRO: RepairOrder = {
         ...ro,
         id: Date.now().toString(),
         roNumber: '',
+        lines: duplicatedLines,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
