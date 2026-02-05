@@ -8,6 +8,7 @@ interface BottomSheetProps {
   children: ReactNode;
   title?: string;
   fullScreen?: boolean;
+  fullHeight?: boolean;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export function BottomSheet({
   children, 
   title,
   fullScreen = false,
+  fullHeight = false,
   className 
 }: BottomSheetProps) {
   const dragControls = useDragControls();
@@ -66,7 +68,8 @@ export function BottomSheet({
             onDragEnd={handleDragEnd}
             className={cn(
               'bottom-sheet',
-              fullScreen ? 'h-[95vh]' : 'max-h-[85vh]',
+              fullScreen || fullHeight ? 'h-[95vh]' : 'max-h-[85vh]',
+              fullHeight && 'flex flex-col',
               className
             )}
           >

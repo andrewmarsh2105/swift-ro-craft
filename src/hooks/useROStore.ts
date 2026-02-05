@@ -86,6 +86,10 @@ export function useROStore() {
   const [ros, setROs] = useState<RepairOrder[]>(sampleROs);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
+  const clearAllROs = useCallback(() => {
+    setROs([]);
+  }, []);
+
   const addRO = useCallback((ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newRO: RepairOrder = {
       ...ro,
@@ -212,6 +216,7 @@ export function useROStore() {
     updateRO,
     deleteRO,
     duplicateRO,
+    clearAllROs,
     updateSettings,
     updatePresets,
     updateAdvisors,

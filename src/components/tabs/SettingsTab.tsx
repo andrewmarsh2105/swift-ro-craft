@@ -1,9 +1,19 @@
 import { useState } from 'react';
-import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User } from 'lucide-react';
+import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import type { Preset, LaborType, Advisor } from '@/types/ro';
 import { cn } from '@/lib/utils';
 
@@ -128,12 +138,15 @@ function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
 }
 
 export function SettingsTab() {
-  const { settings, updateSettings, updatePresets, updateAdvisors } = useRO();
+  const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
   const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
   const [editingAdvisor, setEditingAdvisor] = useState<Advisor | null>(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [showFinalConfirm, setShowFinalConfirm] = useState(false);
 
   // Preset form state
   const [presetName, setPresetName] = useState('');
@@ -231,6 +244,25 @@ export function SettingsTab() {
     }
   };
 
+  const handleClearAllClick = () => {
+    setConfirmText('');
+    setShowClearAllDialog(true);
+  };
+
+  const handleFirstConfirm = () => {
+    if (confirmText.toUpperCase() === 'DELETE') {
+      setShowClearAllDialog(false);
+      setShowFinalConfirm(true);
+    }
+  };
+
+  const handleFinalConfirm = () => {
+    clearAllROs();
+    setShowFinalConfirm(false);
+    setConfirmText('');
+    toast.success('All ROs have been deleted');
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32">
       {/* Header */}
@@ -319,15 +351,30 @@ export function SettingsTab() {
             ))}
           </Reorder.Group>
         </div>
+        {/* Data Management */}
         <SettingsGroup title="Data">
           <SettingsRow
             label="Export All Data"
             onClick={() => {}}
           />
-          <SettingsRow
-            label="Clear All ROs"
-            onClick={() => {}}
-          />
+          <div className="w-full p-4 flex items-center justify-between tap-target touch-feedback">
+            <div>
+              <span className="font-medium text-destructive">Clear All ROs</span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleClearAllClick}
+              disabled={ros.length === 0}
+              className="tap-target"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          </div>
         </SettingsGroup>
 
         {/* About */}
@@ -475,6 +522,79 @@ export function SettingsTab() {
           </div>
         </div>
       </BottomSheet>
+
+      {/* Clear All ROs - Step 1: Type DELETE */}
+      <Dialog open={showClearAllDialog} onOpenChange={setShowClearAllDialog}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 bg-destructive/10 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <DialogTitle>Clear All ROs?</DialogTitle>
+            </div>
+            <DialogDescription className="text-left">
+              This will permanently delete all {ros.length} repair order{ros.length !== 1 ? 's' : ''} and cannot be undone.
+              <br /><br />
+              Type <span className="font-bold text-foreground">DELETE</span> to confirm:
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Type DELETE"
+            className="w-full h-12 px-4 bg-secondary rounded-xl text-center font-mono uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-destructive"
+            autoFocus
+          />
+          <DialogFooter className="flex-row gap-3 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowClearAllDialog(false)}
+              className="flex-1 tap-target"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleFirstConfirm}
+              disabled={confirmText.toUpperCase() !== 'DELETE'}
+              className="flex-1 tap-target"
+            >
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear All ROs - Step 2: Final Confirm */}
+      <Dialog open={showFinalConfirm} onOpenChange={setShowFinalConfirm}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center">Final Confirmation</DialogTitle>
+            <DialogDescription className="text-center">
+              Are you absolutely sure you want to delete all ROs? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-3 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowFinalConfirm(false)}
+              className="flex-1 tap-target"
+            >
+              No, Keep ROs
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleFinalConfirm}
+              className="flex-1 tap-target"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Yes, Delete All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

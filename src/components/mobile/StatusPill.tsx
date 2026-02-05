@@ -5,7 +5,7 @@ interface StatusPillProps {
   type: LaborType;
   hours?: number;
   showLabel?: boolean;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
@@ -38,6 +38,7 @@ export function StatusPill({
     <span className={cn(
       pillClass,
       size === 'sm' && 'text-[10px] px-2 py-0.5',
+      size === 'lg' && 'text-sm px-3 py-1.5',
       className
     )}>
       {showLabel ? fullLabels[type] : typeLabels[type]}

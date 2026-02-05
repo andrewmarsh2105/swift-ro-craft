@@ -6,6 +6,7 @@ import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { Chip, ChipGroup } from '@/components/mobile/Chip';
+import { RODetailSheet } from '@/components/sheets/RODetailSheet';
 import type { LaborType, RepairOrder } from '@/types/ro';
 
 interface ROCardProps {
@@ -13,16 +14,23 @@ interface ROCardProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onViewDetails: () => void;
 }
 
-function ROCard({ ro, onEdit, onDuplicate, onDelete }: ROCardProps) {
+function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProps) {
   const formattedDate = new Date(ro.date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   });
 
   return (
-    <SwipeableCard onEdit={onEdit} onDuplicate={onDuplicate} onDelete={onDelete}>
+    <SwipeableCard 
+      onEdit={onEdit} 
+      onDuplicate={onDuplicate} 
+      onDelete={onDelete}
+      onViewDetails={onViewDetails}
+      roNumber={ro.roNumber}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -60,6 +68,8 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
   const { ros, settings, deleteRO, duplicateRO } = useRO();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     advisors: [],
     laborTypes: [],
@@ -186,10 +196,33 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               onEdit={() => onEditRO(ro)}
               onDuplicate={() => duplicateRO(ro.id)}
               onDelete={() => deleteRO(ro.id)}
+              onViewDetails={() => {
+                setSelectedRO(ro);
+                setShowDetail(true);
+              }}
             />
           ))
         )}
       </div>
+
+      {/* RO Detail Sheet */}
+      <RODetailSheet
+        isOpen={showDetail}
+        onClose={() => setShowDetail(false)}
+        ro={selectedRO}
+        onEdit={() => {
+          setShowDetail(false);
+          if (selectedRO) onEditRO(selectedRO);
+        }}
+        onDuplicate={() => {
+          if (selectedRO) duplicateRO(selectedRO.id);
+          setShowDetail(false);
+        }}
+        onDelete={() => {
+          if (selectedRO) deleteRO(selectedRO.id);
+          setShowDetail(false);
+        }}
+      />
 
       {/* Filter Bottom Sheet */}
       <BottomSheet
