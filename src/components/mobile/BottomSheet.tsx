@@ -67,15 +67,17 @@ export function BottomSheet({
             dragElastic={0.2}
             onDragEnd={handleDragEnd}
             className={cn(
-              'bottom-sheet',
-              fullScreen || fullHeight ? 'h-[95vh]' : 'max-h-[85vh]',
-              fullHeight && 'flex flex-col',
+              'fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-3xl flex flex-col',
+              fullScreen ? 'top-[env(safe-area-inset-top,0px)]' : fullHeight ? 'h-[95vh]' : 'max-h-[85vh]',
               className
             )}
+            style={{
+              boxShadow: 'var(--shadow-sheet)',
+            }}
           >
             {/* Handle */}
             <div 
-              className="cursor-grab active:cursor-grabbing touch-none"
+              className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
               onPointerDown={(e) => dragControls.start(e)}
             >
               <div className="bottom-sheet-handle" />
@@ -83,16 +85,13 @@ export function BottomSheet({
 
             {/* Header */}
             {title && (
-              <div className="px-4 pb-3 border-b border-border">
+              <div className="px-4 pb-3 border-b border-border flex-shrink-0">
                 <h2 className="text-lg font-semibold text-center">{title}</h2>
               </div>
             )}
 
             {/* Content */}
-            <div className={cn(
-              'overflow-y-auto',
-              fullScreen ? 'flex-1' : 'max-h-[calc(85vh-4rem)]'
-            )}>
+            <div className="flex-1 overflow-y-auto min-h-0">
               {children}
             </div>
           </motion.div>
