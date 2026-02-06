@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, ChevronDown, ChevronUp, Mic, X, ArrowLeft, List, Hash } from 'lucide-react';
+import { Camera, ChevronDown, ChevronUp, Mic, X, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
 import { Chip } from '@/components/mobile/Chip';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { useRO } from '@/contexts/ROContext';
-import type { LaborType, RepairOrder, Preset, ROLine } from '@/types/ro';
+import type { LaborType, ROLine } from '@/types/ro';
 import { cn } from '@/lib/utils';
-
-const STORAGE_KEY = 'ro-add-mode-preference';
 
 export default function AddRO() {
   const navigate = useNavigate();
@@ -24,25 +22,31 @@ export default function AddRO() {
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   
-  // Mode toggle - remember last used mode
-  const getInitialMode = () => {
-    if (editingRO) return editingRO.isSimpleMode;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved === 'simple';
-  };
-  const [isSimpleMode, setIsSimpleMode] = useState(getInitialMode);
-  
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
-  const [simpleHours, setSimpleHours] = useState(editingRO?.paidHours || 0);
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
-  const [workPerformed, setWorkPerformed] = useState(editingRO?.workPerformed || '');
   const [notes, setNotes] = useState(editingRO?.notes || '');
-  const [lines, setLines] = useState<ROLine[]>(
-    editingRO?.lines?.length ? editingRO.lines : [createEmptyLine(1)]
-  );
-  const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
+  
+  // Lines mode is always on - initialize with existing lines or one empty line
+  const [lines, setLines] = useState<ROLine[]>(() => {
+    if (editingRO?.lines?.length) {
+      return editingRO.lines;
+    }
+    // If editing an old simple-mode RO, convert it
+    if (editingRO && editingRO.paidHours > 0) {
+      return [{
+        id: Date.now().toString(),
+        lineNo: 1,
+        description: editingRO.workPerformed || 'General Labor',
+        hoursPaid: editingRO.paidHours,
+        laborType: editingRO.laborType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }];
+    }
+    return [createEmptyLine(1)];
+  });
 
   // Lock body scroll when this page is mounted
   useEffect(() => {
@@ -52,55 +56,23 @@ export default function AddRO() {
     };
   }, []);
 
-  // Save mode preference
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, isSimpleMode ? 'simple' : 'lines');
-  }, [isSimpleMode]);
-
   // Calculate total hours from lines
-  const linesTotalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
-  const displayTotal = isSimpleMode ? simpleHours : linesTotalHours;
-
-  const handleModeSwitch = (mode: 'simple' | 'lines') => {
-    if (mode === 'simple' && !isSimpleMode) {
-      // Lines -> Simple: set simpleHours = sum of lines
-      setSimpleHours(linesTotalHours);
-      setIsSimpleMode(true);
-    } else if (mode === 'lines' && isSimpleMode) {
-      // Simple -> Lines: create a line from current data if any
-      if (simpleHours > 0 || workPerformed) {
-        setLines([{
-          id: Date.now().toString(),
-          lineNo: 1,
-          description: workPerformed || 'General Labor',
-          hoursPaid: simpleHours,
-          laborType,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }]);
-      } else if (lines.length === 0) {
-        setLines([createEmptyLine(1)]);
-      }
-      setIsSimpleMode(false);
-    }
-  };
+  const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
 
   const handleSave = (addAnother: boolean = false) => {
-    const computedWorkPerformed = isSimpleMode 
-      ? workPerformed 
-      : lines.map(l => l.description).filter(Boolean).join('\n');
+    const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
     
     const roData = {
       roNumber,
       advisor,
-      paidHours: isSimpleMode ? simpleHours : linesTotalHours,
+      paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
       notes,
       date: editingRO?.date || new Date().toISOString().split('T')[0],
       photos: editingRO?.photos,
-      lines: isSimpleMode ? [] : lines,
-      isSimpleMode,
+      lines,
+      isSimpleMode: false, // Always lines mode now
     };
 
     if (editingRO) {
@@ -112,54 +84,17 @@ export default function AddRO() {
     if (addAnother) {
       // Reset form for another entry
       setRoNumber('');
-      setSimpleHours(0);
-      setWorkPerformed('');
       setNotes('');
       setLines([createEmptyLine(1)]);
-      setSelectedPresets([]);
       setShowMoreDetails(false);
     } else {
       navigate(-1);
     }
   };
 
-  const handlePresetSelect = (preset: Preset) => {
-    if (selectedPresets.includes(preset.id)) {
-      setSelectedPresets(prev => prev.filter(id => id !== preset.id));
-      if (preset.defaultHours) {
-        setSimpleHours(prev => Math.max(0, prev - preset.defaultHours!));
-      }
-    } else {
-      setSelectedPresets(prev => [...prev, preset.id]);
-      setLaborType(preset.laborType);
-      if (preset.defaultHours) {
-        setSimpleHours(prev => prev + preset.defaultHours!);
-      }
-      if (preset.workTemplate) {
-        setWorkPerformed(prev => prev ? `${prev}\n${preset.workTemplate}` : preset.workTemplate!);
-      }
-    }
-  };
-
-  const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value === '') {
-      setSimpleHours(0);
-    } else {
-      const num = parseFloat(value);
-      if (!isNaN(num) && num >= 0) {
-        setSimpleHours(Math.round(num * 10) / 10);
-      }
-    }
-  };
-
-  const handleQuickIncrement = (amount: number) => {
-    setSimpleHours(prev => Math.round((prev + amount) * 10) / 10);
-  };
-
   const isValid = roNumber.trim() !== '' && 
     advisor.trim() !== '' && 
-    (isSimpleMode ? simpleHours > 0 : linesTotalHours > 0);
+    totalHours > 0;
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -178,19 +113,9 @@ export default function AddRO() {
         <div className="w-16" /> {/* Spacer for centering */}
       </header>
 
-      {/* Scrollable Content */}
+      {/* Scrollable Content - Single scroll container */}
       <main className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="p-4 space-y-6 pb-32">
-          {/* Mode Toggle - Segmented Control */}
-          <SegmentedControl
-            options={[
-              { value: 'lines', label: 'Lines Mode' },
-              { value: 'simple', label: 'Simple Mode' },
-            ]}
-            value={isSimpleMode ? 'simple' : 'lines'}
-            onChange={(value) => handleModeSwitch(value as 'simple' | 'lines')}
-          />
-
+        <div className="p-4 space-y-6 pb-48">
           {/* Scan RO Photo Button */}
           <button
             onClick={() => {
@@ -266,89 +191,18 @@ export default function AddRO() {
             />
           </div>
 
-          {/* Mode-specific content */}
-          {isSimpleMode ? (
-            <>
-              {/* Simple Mode: Typed hours input */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Paid Hours *
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.1"
-                    min="0"
-                    value={simpleHours || ''}
-                    onChange={handleHoursChange}
-                    placeholder="0.0"
-                    className="flex-1 h-14 px-4 bg-secondary rounded-xl text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                {/* Quick increment chips */}
-                <div className="flex justify-center gap-2 mt-3">
-                  {[0.1, 0.2, 0.5, 1.0].map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      onClick={() => handleQuickIncrement(amount)}
-                      className="px-4 py-2 bg-secondary rounded-lg text-sm font-medium tap-target touch-feedback"
-                    >
-                      +{amount}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Presets for simple mode */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Quick Presets
-                </label>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-                  {settings.presets.map((preset) => (
-                    <Chip
-                      key={preset.id}
-                      label={preset.name}
-                      selected={selectedPresets.includes(preset.id)}
-                      onSelect={() => handlePresetSelect(preset)}
-                      className="whitespace-nowrap flex-shrink-0"
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Work Performed */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Work Performed (optional)
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={workPerformed}
-                    onChange={(e) => setWorkPerformed(e.target.value)}
-                    placeholder="Describe work performed..."
-                    rows={2}
-                    className="w-full p-4 pr-12 bg-secondary rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <button className="absolute right-3 top-3 p-2 text-muted-foreground touch-feedback">
-                    <Mic className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Lines Mode: Line Item Editor */}
-              <LineItemEditor
-                lines={lines}
-                onLinesChange={setLines}
-                presets={settings.presets}
-                showLaborType={false}
-              />
-            </>
-          )}
+          {/* Line Items Editor - Always visible */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Line Items
+            </label>
+            <LineItemEditor
+              lines={lines}
+              onLinesChange={setLines}
+              presets={settings.presets}
+              showLaborType={false}
+            />
+          </div>
 
           {/* More Details Accordion */}
           <div className="border border-border rounded-xl overflow-hidden">
@@ -399,7 +253,7 @@ export default function AddRO() {
         {/* Total Hours Display */}
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">Total Hours</span>
-          <span className="text-2xl font-bold text-primary">{displayTotal.toFixed(1)}</span>
+          <span className="text-2xl font-bold text-primary">{totalHours.toFixed(1)}</span>
         </div>
         
         {/* Action Buttons */}
