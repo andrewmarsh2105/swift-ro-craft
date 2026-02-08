@@ -6,9 +6,11 @@ import { FloatingActionButton } from '@/components/mobile/FloatingActionButton';
 import { ROsTab } from '@/components/tabs/ROsTab';
 import { SummaryTab } from '@/components/tabs/SummaryTab';
 import { SettingsTab } from '@/components/tabs/SettingsTab';
+import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { RepairOrder } from '@/types/ro';
 
-function ROTrackerApp() {
+function MobileApp() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'ros' | 'summary' | 'settings'>('ros');
 
@@ -45,7 +47,15 @@ function ROTrackerApp() {
 }
 
 const Index = () => {
-  return <ROTrackerApp />;
+  const isMobile = useIsMobile();
+  
+  // Desktop: Use the full Xtime-style workspace
+  if (!isMobile) {
+    return <DesktopWorkspace />;
+  }
+  
+  // Mobile: Use the tab-based app
+  return <MobileApp />;
 };
 
 export default Index;
