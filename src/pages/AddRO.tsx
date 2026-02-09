@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, User, Clock } from 'lucide-react';
+import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, User, Clock, ChevronDown, ChevronUp, FileText, Settings2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { ScanROSheet } from '@/components/sheets/ScanROSheet';
@@ -9,6 +10,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import type { LaborType, ROLine } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 // Desktop imports
 import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
@@ -33,7 +39,10 @@ export default function AddRO() {
   const [showScanSheet, setShowScanSheet] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('');
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [showMoreFields, setShowMoreFields] = useState(false);
+  const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const linesContainerRef = useRef<HTMLDivElement>(null);
   
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
@@ -69,6 +78,16 @@ export default function AddRO() {
       };
     }
   }, [isMobile]);
+
+  // Clear highlights after 2 seconds
+  useEffect(() => {
+    if (highlightedLineIds.length > 0) {
+      const timer = setTimeout(() => {
+        setHighlightedLineIds([]);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedLineIds]);
 
   // Calculate total hours from lines
   const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
@@ -114,24 +133,47 @@ export default function AddRO() {
     
     if (data.roNumber) setRoNumber(data.roNumber);
     if (data.advisor) setAdvisor(data.advisor);
+    
+    const newLineIds: string[] = [];
+    
     if (data.paidHours || data.workPerformed) {
       const newLine = createEmptyLine(1);
       newLine.description = data.workPerformed || 'Scanned work';
       newLine.hoursPaid = data.paidHours || 0;
-      setLines(prev => [newLine, ...prev.filter(l => l.description || l.hoursPaid > 0)].map((l, i) => ({ ...l, lineNo: i + 1 })));
+      newLineIds.push(newLine.id);
+      
+      setLines(prev => {
+        const filtered = prev.filter(l => l.description || l.hoursPaid > 0);
+        return [newLine, ...filtered].map((l, i) => ({ ...l, lineNo: i + 1 }));
+      });
     }
     
-    toast.success('Scanned data applied!');
+    // Highlight the newly added lines
+    setHighlightedLineIds(newLineIds);
+    
+    toast.success('Scan applied - lines added at top');
     setScanStatus('Done');
+    
+    // Scroll to top to show new lines
+    setTimeout(() => {
+      linesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   };
 
   const handleAddLine = () => {
+    if ('vibrate' in navigator) navigator.vibrate(10);
     const newLine = createEmptyLine(1);
     const updatedLines = [newLine, ...lines].map((line, i) => ({
       ...line,
       lineNo: i + 1,
     }));
     setLines(updatedLines);
+    setHighlightedLineIds([newLine.id]);
+    toast.success('New line added');
+  };
+
+  const handlePresetAdd = (presetId: string, presetName: string, hours: number, newLineId: string) => {
+    setHighlightedLineIds([newLineId]);
   };
 
   const handleSave = (addAnother: boolean = false) => {
@@ -214,59 +256,87 @@ export default function AddRO() {
         aria-hidden="true"
       />
 
-      {/* Sticky RO Header Strip */}
-      <div className="flex-shrink-0 border-b border-border bg-card px-3 py-2">
-        <div className="flex items-center gap-2">
+      {/* Minimal Sticky RO Header Strip - Only essential fields */}
+      <div className="flex-shrink-0 border-b border-border bg-card">
+        {/* Primary row: RO #, Advisor, Date, Total */}
+        <div className="px-3 py-2 flex items-center gap-2">
           {/* RO # */}
-          <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
               inputMode="numeric"
               value={roNumber}
               onChange={(e) => setRoNumber(e.target.value)}
               placeholder="RO #"
-              className="w-full h-9 px-2 bg-muted rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-20 h-8 px-2 bg-muted rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+          
+          {/* Advisor */}
+          <button
+            onClick={() => setShowAdvisorList(true)}
+            className={cn(
+              'flex-1 h-8 px-2 rounded text-xs text-left flex items-center gap-1.5 min-w-0 truncate',
+              advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
+            )}
+          >
+            <User className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">{advisor || 'Advisor'}</span>
+          </button>
           
           {/* Date */}
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="h-9 px-2 bg-muted rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary w-[110px]"
+            className="h-8 px-1.5 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary w-[100px] flex-shrink-0"
           />
           
-          {/* Total Hours */}
-          <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-lg">
-            <Clock className="h-3.5 w-3.5 text-primary" />
-            <span className="text-sm font-bold text-primary">{totalHours.toFixed(1)}h</span>
+          {/* Total Hours - Prominent */}
+          <div className="flex items-center gap-1 px-2 py-1 bg-primary rounded flex-shrink-0">
+            <span className="text-sm font-bold text-primary-foreground">{totalHours.toFixed(1)}h</span>
           </div>
         </div>
-        
-        {/* Advisor & Labor Type Row */}
-        <div className="flex items-center gap-2 mt-2">
-          <button
-            onClick={() => setShowAdvisorList(true)}
-            className={cn(
-              'flex-1 h-9 px-3 rounded-lg text-sm text-left flex items-center gap-2',
-              advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
-            )}
-          >
-            <User className="h-3.5 w-3.5" />
-            {advisor || 'Select Advisor'}
-          </button>
-          
-          <select
-            value={laborType}
-            onChange={(e) => setLaborType(e.target.value as LaborType)}
-            className="h-9 px-2 bg-muted rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            {LABOR_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.short}</option>
-            ))}
-          </select>
-        </div>
+
+        {/* Collapsible More Fields */}
+        <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full px-3 py-1.5 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground border-t border-border/50">
+              <Settings2 className="h-3 w-3" />
+              {showMoreFields ? 'Hide' : 'More'} options
+              {showMoreFields ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-3 py-2 space-y-2 border-t border-border/50 bg-muted/20">
+              {/* Labor Type */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-20">Labor Type</span>
+                <select
+                  value={laborType}
+                  onChange={(e) => setLaborType(e.target.value as LaborType)}
+                  className="flex-1 h-8 px-2 bg-muted rounded text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {LABOR_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Notes */}
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-20 pt-2">Notes</span>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Additional notes..."
+                  rows={2}
+                  className="flex-1 p-2 bg-muted rounded text-xs resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {/* Presets Toolbar */}
@@ -274,11 +344,12 @@ export default function AddRO() {
         <div className="flex-shrink-0 border-b border-border bg-muted/20 px-2 py-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
             {settings.presets.slice(0, 6).map((preset) => (
-              <button
+              <PresetButton
                 key={preset.id}
-                onClick={() => {
+                preset={preset}
+                onAdd={(newLineId) => {
                   const newLine: ROLine = {
-                    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+                    id: newLineId,
                     lineNo: 1,
                     description: preset.workTemplate || preset.name,
                     hoursPaid: preset.defaultHours || 0,
@@ -289,22 +360,18 @@ export default function AddRO() {
                   };
                   const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
                   setLines(updatedLines);
+                  handlePresetAdd(preset.id, preset.name, preset.defaultHours || 0, newLineId);
                   toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
-                  if ('vibrate' in navigator) navigator.vibrate(10);
                 }}
-                className="flex-shrink-0 px-2.5 py-1.5 bg-card border border-border rounded-md text-xs font-medium flex items-center gap-1 active:scale-95 transition-transform min-h-[32px]"
-              >
-                <Plus className="h-3 w-3" />
-                {preset.name}
-              </button>
+              />
             ))}
           </div>
         </div>
       )}
 
       {/* Scrollable Content - Lines Grid */}
-      <main className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="p-3 pb-40">
+      <main ref={linesContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="p-3 pb-48">
           {/* Debug status (dev mode) */}
           {import.meta.env.DEV && scanStatus && (
             <div className="mb-2 p-2 bg-muted rounded-lg text-xs font-mono text-muted-foreground">
@@ -317,6 +384,7 @@ export default function AddRO() {
             lines={lines}
             onLinesChange={setLines}
             presets={settings.presets}
+            highlightedIds={highlightedLineIds}
           />
         </div>
       </main>
@@ -325,7 +393,7 @@ export default function AddRO() {
       <div className="fixed bottom-[140px] left-3 right-3 z-40 safe-bottom">
         <button
           onClick={handleAddLine}
-          className="w-full py-2.5 bg-card border border-dashed border-primary/50 rounded-xl flex items-center justify-center gap-2 text-primary text-sm font-medium shadow-lg"
+          className="w-full py-2.5 bg-card border border-dashed border-primary/50 rounded-xl flex items-center justify-center gap-2 text-primary text-sm font-medium shadow-lg active:scale-[0.98] transition-transform"
         >
           <Plus className="h-4 w-4" />
           Add Line
@@ -346,7 +414,7 @@ export default function AddRO() {
             onClick={() => handleSave(false)}
             disabled={!isValid}
             className={cn(
-              'flex-1 py-3 rounded-xl font-semibold text-sm min-h-[44px] transition-colors',
+              'flex-1 py-3 rounded-xl font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98]',
               isValid
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground'
@@ -359,7 +427,7 @@ export default function AddRO() {
               onClick={() => handleSave(true)}
               disabled={!isValid}
               className={cn(
-                'py-3 px-4 rounded-xl font-medium text-sm border-2 min-h-[44px] transition-colors',
+                'py-3 px-4 rounded-xl font-medium text-sm border-2 min-h-[44px] transition-colors active:scale-[0.98]',
                 isValid
                   ? 'border-primary text-primary'
                   : 'border-muted text-muted-foreground'
@@ -417,5 +485,52 @@ export default function AddRO() {
         onApply={handleScanApply}
       />
     </div>
+  );
+}
+
+// Preset button with pressed state animation
+function PresetButton({ 
+  preset, 
+  onAdd 
+}: { 
+  preset: { id: string; name: string; defaultHours?: number; workTemplate?: string; laborType?: LaborType }; 
+  onAdd: (newLineId: string) => void;
+}) {
+  const [isPressed, setIsPressed] = useState(false);
+
+  const handleClick = () => {
+    if ('vibrate' in navigator) navigator.vibrate(10);
+    setIsPressed(true);
+    const newLineId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    onAdd(newLineId);
+    setTimeout(() => setIsPressed(false), 600);
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className={cn(
+        'flex-shrink-0 px-2.5 py-1.5 border rounded-md text-xs font-medium flex items-center gap-1 transition-all duration-150 min-h-[32px]',
+        isPressed 
+          ? 'bg-primary text-primary-foreground border-primary scale-95' 
+          : 'bg-card border-border hover:bg-primary/10 hover:border-primary/30 active:scale-95'
+      )}
+    >
+      {isPressed ? (
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="inline-flex"
+        >
+          ✓
+        </motion.span>
+      ) : (
+        <Plus className="h-3 w-3" />
+      )}
+      {preset.name}
+      {preset.defaultHours !== undefined && (
+        <span className="opacity-60">({preset.defaultHours}h)</span>
+      )}
+    </button>
   );
 }
