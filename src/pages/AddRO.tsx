@@ -41,6 +41,7 @@ export default function AddRO() {
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
+  const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const linesContainerRef = useRef<HTMLDivElement>(null);
   
@@ -174,6 +175,10 @@ export default function AddRO() {
 
   const handlePresetAdd = (presetId: string, presetName: string, hours: number, newLineId: string) => {
     setHighlightedLineIds([newLineId]);
+    setRecentlyAddedPresets(prev => {
+      const updated = [presetId, ...prev.filter(id => id !== presetId)].slice(0, 3);
+      return updated;
+    });
   };
 
   const handleSave = (addAnother: boolean = false) => {
@@ -339,11 +344,27 @@ export default function AddRO() {
         </Collapsible>
       </div>
 
-      {/* Presets Toolbar */}
+      {/* Presets Toolbar - Single row with recent chips inline */}
       {settings.presets.length > 0 && (
-        <div className="flex-shrink-0 border-b border-border bg-muted/20 px-2 py-1.5">
+        <div className="flex-shrink-0 border-b border-border bg-muted/20 px-2 py-1.5 overflow-hidden">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            {settings.presets.slice(0, 6).map((preset) => (
+            {/* Recent chips (smaller, inline) */}
+            {recentlyAddedPresets.length > 0 && (
+              <>
+                <span className="text-[10px] text-muted-foreground flex-shrink-0">Recent:</span>
+                {recentlyAddedPresets.map(id => {
+                  const preset = settings.presets.find(p => p.id === id);
+                  return preset ? (
+                    <span key={id} className="flex-shrink-0 px-1.5 py-0.5 bg-primary/20 rounded text-[10px] text-primary font-medium">
+                      {preset.name}
+                    </span>
+                  ) : null;
+                })}
+                <div className="w-px h-4 bg-border flex-shrink-0 mx-1" />
+              </>
+            )}
+            {/* Preset buttons */}
+            {settings.presets.map((preset) => (
               <PresetButton
                 key={preset.id}
                 preset={preset}
