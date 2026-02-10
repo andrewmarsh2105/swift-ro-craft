@@ -29,19 +29,24 @@ export default function AddRO() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { settings, addRO, updateRO, ros } = useRO();
+  const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   
   // Get editing RO from location state
   const editingROId = (location.state as { editingROId?: string })?.editingROId;
   const editingRO = editingROId ? ros.find(r => r.id === editingROId) : undefined;
 
   const [showAdvisorList, setShowAdvisorList] = useState(false);
+  const [advisorSearch, setAdvisorSearch] = useState('');
   const [showScanSheet, setShowScanSheet] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('');
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
+
+  const filteredAdvisors = settings.advisors.filter(a =>
+    a.name.toLowerCase().includes(advisorSearch.toLowerCase())
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const linesContainerRef = useRef<HTMLDivElement>(null);
   
@@ -467,12 +472,25 @@ export default function AddRO() {
         title="Select Advisor"
       >
         <div className="p-4 space-y-2">
-          {settings.advisors.map((adv) => (
+          {/* Search/Create input */}
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="Search or add new advisor..."
+              value={advisorSearch}
+              onChange={(e) => setAdvisorSearch(e.target.value)}
+              className="w-full h-12 px-4 bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
+          </div>
+
+          {filteredAdvisors.map((adv) => (
             <button
               key={adv.id}
               onClick={() => {
                 setAdvisor(adv.name);
                 setShowAdvisorList(false);
+                setAdvisorSearch('');
               }}
               className={cn(
                 'w-full p-3 rounded-xl text-left font-medium min-h-[44px]',
@@ -483,19 +501,23 @@ export default function AddRO() {
             </button>
           ))}
           
-          <div className="pt-4">
-            <input
-              type="text"
-              placeholder="Add new advisor..."
-              className="w-full h-12 px-4 bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                  setAdvisor(e.currentTarget.value.trim());
-                  setShowAdvisorList(false);
-                }
+          {/* Create new advisor option */}
+          {advisorSearch.trim() && !settings.advisors.some(a => a.name.toLowerCase() === advisorSearch.trim().toLowerCase()) && (
+            <button
+              onClick={() => {
+                const name = advisorSearch.trim();
+                updateAdvisors([...settings.advisors, { id: Date.now().toString(), name }]);
+                setAdvisor(name);
+                setShowAdvisorList(false);
+                setAdvisorSearch('');
+                toast.success(`Advisor "${name}" created`);
               }}
-            />
-          </div>
+              className="w-full p-3 rounded-xl text-left font-medium min-h-[44px] bg-primary/10 text-primary border-2 border-dashed border-primary/30 flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add new advisor: "{advisorSearch.trim()}"
+            </button>
+          )}
         </div>
       </BottomSheet>
 

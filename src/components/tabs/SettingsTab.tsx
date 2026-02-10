@@ -429,13 +429,16 @@ export function SettingsTab() {
             <label className="block text-sm font-medium text-muted-foreground mb-2">
               Default Hours (optional)
             </label>
-            <input
-              type="number"
+             <input
+              type="text"
               inputMode="decimal"
               value={presetHours}
-              onChange={(e) => setPresetHours(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9.]/g, '');
+                const parts = val.split('.');
+                setPresetHours(parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : val);
+              }}
               placeholder="0.0"
-              step="0.1"
               className="w-full h-12 px-4 bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>

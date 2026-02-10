@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Camera, X, ChevronDown, ChevronUp, Save, Plus, Upload, Calendar, User, Clock, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
+import { AdvisorCombobox } from './AdvisorCombobox';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { useRO } from '@/contexts/ROContext';
 import type { LaborType, ROLine, RepairOrder } from '@/types/ro';
@@ -23,7 +24,7 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
 ];
 
 export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
-  const { settings, addRO, updateRO } = useRO();
+  const { settings, addRO, updateRO, updateAdvisors } = useRO();
   
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
@@ -150,19 +151,15 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
             </div>
 
             {/* Advisor */}
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <select
-                value={advisor}
-                onChange={(e) => setAdvisor(e.target.value)}
-                className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[120px]"
-              >
-                <option value="">Select Advisor</option>
-                {settings.advisors.map((adv) => (
-                  <option key={adv.id} value={adv.name}>{adv.name}</option>
-                ))}
-              </select>
-            </div>
+            <AdvisorCombobox
+              value={advisor}
+              onChange={setAdvisor}
+              advisors={settings.advisors}
+              onCreateAdvisor={(name) => {
+                const newAdvisor = { id: Date.now().toString(), name };
+                updateAdvisors([...settings.advisors, newAdvisor]);
+              }}
+            />
 
             {/* Labor Type */}
             <select
