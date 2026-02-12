@@ -132,6 +132,14 @@ export function useScanFlow() {
         confidence: Number(line.confidence) || 0.5,
       }));
 
+      const candidateDates = Array.isArray(ocrResult.candidateDates)
+        ? ocrResult.candidateDates.map((c: any) => ({
+            value: c.value,
+            source: c.source || 'text',
+            originalFormat: c.originalFormat || c.value,
+          }))
+        : [];
+
       const extractedData: ExtractedData = {
         roNumber: ocrResult.roNumber || null,
         advisor: ocrResult.advisor || null,
@@ -140,6 +148,7 @@ export function useScanFlow() {
         vehicleYear: ocrResult.vehicleYear ?? null,
         vehicleMake: ocrResult.vehicleMake ?? null,
         vehicleModel: ocrResult.vehicleModel ?? null,
+        candidateDates,
         lines: extractedLines,
         fieldConfidence: {
           roNumber: ocrResult.fieldConfidence?.roNumber ?? 0.5,

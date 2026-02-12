@@ -25,6 +25,12 @@ export interface ExtractedLine {
   confidence: number;
 }
 
+export interface CandidateDate {
+  value: string; // YYYY-MM-DD
+  source: 'header' | 'text';
+  originalFormat: string;
+}
+
 export interface ExtractedData {
   roNumber: string | null;
   advisor: string | null;
@@ -33,6 +39,7 @@ export interface ExtractedData {
   vehicleYear: number | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
+  candidateDates: CandidateDate[];
   lines: ExtractedLine[];
   fieldConfidence: {
     roNumber: number;

@@ -75,11 +75,18 @@ Return a JSON object with this exact structure:
 {
   "roNumber": "string or null",
   "advisor": "string or null",
-  "date": "YYYY-MM-DD or null",
+  "date": "YYYY-MM-DD or null (the best candidate date — see candidateDates)",
   "customerName": "string or null",
   "vehicleYear": number or null (4-digit year),
   "vehicleMake": "string or null",
   "vehicleModel": "string or null",
+  "candidateDates": [
+    {
+      "value": "YYYY-MM-DD",
+      "source": "header" | "text",
+      "originalFormat": "string — the raw date string as it appeared on the document"
+    }
+  ],
   "lines": [
     {
       "description": "string - the work/service description",
@@ -95,7 +102,17 @@ Return a JSON object with this exact structure:
   }
 }
 
-Rules:
+Date extraction rules:
+- Find ALL date-like strings visible on the document.
+- Support these formats: MM/DD/YYYY, M/D/YY, MM-DD-YYYY, YYYY-MM-DD, "Month D, YYYY"
+- Normalize every date to "YYYY-MM-DD" in the "value" field.
+- For 2-digit years: 00-49 → 2000-2049, 50-99 → 1950-1999.
+- Set "source" to "header" for dates found near the RO number / date label area, or "text" for dates found elsewhere in the body.
+- Keep the raw string in "originalFormat".
+- For the top-level "date" field, pick the single best candidate (usually the one labeled "Date" or "RO Date" in the header).
+- Include ALL found dates in "candidateDates" (including the chosen one).
+
+Other rules:
 - Extract ALL line items you can see, each as a separate entry in lines array
 - If hours are not visible, set to 0
 - Set confidence based on how clear/readable the text is
@@ -160,6 +177,70 @@ Rules:
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // --- Server-side date candidate filtering & ranking ---
+    const rawCandidates: Array<{ value: string; source: string; originalFormat: string }> =
+      Array.isArray(extracted.candidateDates) ? extracted.candidateDates : [];
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    // Local today as YYYY-MM-DD
+    const todayStr = `${currentYear}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+    function daysBetween(a: string, b: string): number {
+      // Pure date-only diff (no TZ issues)
+      const [ay, am, ad] = a.split("-").map(Number);
+      const [by, bm, bd] = b.split("-").map(Number);
+      const da = Date.UTC(ay, am - 1, ad);
+      const db = Date.UTC(by, bm - 1, bd);
+      return Math.abs(da - db) / 86400000;
+    }
+
+    function isReasonableDate(d: string): boolean {
+      const parts = d.split("-").map(Number);
+      if (parts.length !== 3) return false;
+      const [y, m, dd] = parts;
+      if (y < 2000 || y > currentYear + 1) return false;
+      if (m < 1 || m > 12 || dd < 1 || dd > 31) return false;
+      return true;
+    }
+
+    const validCandidates = rawCandidates
+      .filter((c) => c.value && isReasonableDate(c.value))
+      .map((c) => ({
+        ...c,
+        diff: daysBetween(c.value, todayStr),
+        has4DigitYear: c.originalFormat ? /\b\d{4}\b/.test(c.originalFormat) : false,
+      }));
+
+    if (validCandidates.length > 0) {
+      // Sort: primary window (<=30d) first, then secondary (<=180d), then rest
+      // Within each tier: smallest diff wins; tie-break: header > text, 4-digit year preferred
+      validCandidates.sort((a, b) => {
+        const tierA = a.diff <= 30 ? 0 : a.diff <= 180 ? 1 : 2;
+        const tierB = b.diff <= 30 ? 0 : b.diff <= 180 ? 1 : 2;
+        if (tierA !== tierB) return tierA - tierB;
+        if (a.diff !== b.diff) return a.diff - b.diff;
+        // Prefer header source
+        if (a.source === "header" && b.source !== "header") return -1;
+        if (b.source === "header" && a.source !== "header") return 1;
+        // Prefer 4-digit year
+        if (a.has4DigitYear && !b.has4DigitYear) return -1;
+        if (b.has4DigitYear && !a.has4DigitYear) return 1;
+        return 0;
+      });
+
+      // Set the best candidate as the selected date
+      extracted.date = validCandidates[0].value;
+      // Return top 3 candidates
+      extracted.candidateDates = validCandidates.slice(0, 3).map(({ value, source, originalFormat }) => ({
+        value,
+        source,
+        originalFormat,
+      }));
+    } else {
+      extracted.candidateDates = [];
     }
 
     return new Response(JSON.stringify(extracted), {
