@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
 import { pushDebug } from '@/components/debug/DevDebugPanel';
 import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine } from '@/types/ro';
@@ -55,6 +56,7 @@ const defaultSettings: Settings = {
 
 export function useROStore() {
   const { user } = useAuth();
+  const { isOnline, queueAction, registerRefresh } = useOffline();
   const [ros, setROs] = useState<RepairOrder[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [loadingROs, setLoadingROs] = useState(true);
@@ -130,6 +132,14 @@ export function useROStore() {
   useEffect(() => { fetchROs(); }, [fetchROs]);
   useEffect(() => { fetchPresets(); }, [fetchPresets]);
 
+  // Register refresh callback for offline sync
+  useEffect(() => {
+    registerRefresh(async () => {
+      await fetchROs();
+      await fetchPresets();
+    });
+  }, [registerRefresh, fetchROs, fetchPresets]);
+
   const clearAllROs = useCallback(async () => {
     if (!user) return;
     const { error } = await supabase.from('ros').delete().eq('user_id', user.id);
@@ -139,6 +149,15 @@ export function useROStore() {
 
   const addRO = useCallback(async (ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!user) return;
+
+    // Queue if offline
+    if (!isOnline) {
+      await queueAction('addRO', { ro });
+      toast.info('Saved offline — will sync when back online');
+      pushDebug({ action: 'addRO QUEUED (offline)', userId: user.id });
+      return;
+    }
+
     const paidHours = ro.isSimpleMode ? ro.paidHours : ro.lines.reduce((s, l) => s + l.hoursPaid, 0);
 
     const { data: newRow, error } = await supabase
@@ -157,6 +176,12 @@ export function useROStore() {
 
     if (error || !newRow) {
       const msg = error?.message || 'Unknown error';
+      // If network error, queue it
+      if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+        await queueAction('addRO', { ro });
+        toast.info('Network issue — saved offline');
+        return;
+      }
       toast.error('Failed to create RO');
       pushDebug({ action: 'addRO FAIL', userId: user.id, error: msg });
       return;
@@ -187,10 +212,17 @@ export function useROStore() {
 
     await fetchROs();
     return dbToRO(newRow, ro.lines as any[]);
-  }, [user, fetchROs]);
+  }, [user, fetchROs, isOnline, queueAction]);
 
   const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>) => {
     if (!user) return;
+
+    // Queue if offline
+    if (!isOnline) {
+      await queueAction('updateRO', { id, updates });
+      toast.info('Update saved offline — will sync when back online');
+      return;
+    }
 
     const dbUpdates: any = {};
     if (updates.roNumber !== undefined) dbUpdates.ro_number = updates.roNumber;
@@ -232,14 +264,22 @@ export function useROStore() {
     }
 
     await fetchROs();
-  }, [user, fetchROs]);
+  }, [user, fetchROs, isOnline, queueAction]);
 
   const deleteRO = useCallback(async (id: string) => {
     if (!user) return;
+
+    if (!isOnline) {
+      await queueAction('deleteRO', { id });
+      setROs(prev => prev.filter(ro => ro.id !== id));
+      toast.info('Delete saved offline — will sync when back online');
+      return;
+    }
+
     const { error } = await supabase.from('ros').delete().eq('id', id);
     if (error) { toast.error('Failed to delete RO'); return; }
     setROs(prev => prev.filter(ro => ro.id !== id));
-  }, [user]);
+  }, [user, isOnline, queueAction]);
 
   const duplicateRO = useCallback(async (id: string, newRONumber?: string) => {
     const ro = ros.find(r => r.id === id);

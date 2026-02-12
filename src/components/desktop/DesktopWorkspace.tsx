@@ -4,6 +4,7 @@ import { ROEditor } from './ROEditor';
 import { SettingsTab } from '@/components/tabs/SettingsTab';
 import { SummaryTab } from '@/components/tabs/SummaryTab';
 import { FlagInbox } from '@/components/flags/FlagInbox';
+import { OfflineStatusBar } from '@/components/shared/OfflineStatusBar';
 import { FileText, Settings, BarChart3, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RepairOrder } from '@/types/ro';
@@ -54,6 +55,7 @@ export function DesktopWorkspace() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      <OfflineStatusBar />
       {/* Top Bar */}
       <div className="flex-shrink-0 h-10 flex items-center justify-end px-4 gap-1 border-b border-border bg-card">
         <FlagInbox />

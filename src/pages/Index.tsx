@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { OfflineStatusBar } from '@/components/shared/OfflineStatusBar';
 import { BottomTabBar } from '@/components/mobile/BottomTabBar';
 import { FloatingActionButton } from '@/components/mobile/FloatingActionButton';
 import { ROsTab } from '@/components/tabs/ROsTab';
@@ -23,9 +24,10 @@ function MobileApp() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
+      <OfflineStatusBar />
       {/* Main Content Area */}
-      <main className="h-[calc(100vh-var(--tab-bar-height)-var(--safe-area-inset-bottom))]">
+      <main className="flex-1 overflow-auto">
         {activeTab === 'ros' && <ROsTab onEditRO={handleEditRO} />}
         {activeTab === 'summary' && <SummaryTab />}
         {activeTab === 'settings' && <SettingsTab />}
