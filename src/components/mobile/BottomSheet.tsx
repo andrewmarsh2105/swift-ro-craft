@@ -91,7 +91,7 @@ export function BottomSheet({
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]">
               {children}
             </div>
           </motion.div>

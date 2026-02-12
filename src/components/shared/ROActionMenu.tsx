@@ -108,7 +108,7 @@ export function ROActionMenu({ roNumber, onEdit, onDuplicate, onDelete, classNam
                 RO #{roNumber}
               </p>
             </div>
-            <div className="px-2 pb-[calc(env(safe-area-inset-bottom,0px)+6rem)]">
+            <div className="px-2 pb-6">
               {menuItems}
             </div>
           </BottomSheet>
