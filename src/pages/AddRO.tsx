@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, User, Clock, ChevronDown, ChevronUp, FileText, Settings2 } from 'lucide-react';
+import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, User, Clock, ChevronDown, ChevronUp, FileText, Settings2, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { ScanROSheet } from '@/components/sheets/ScanROSheet';
+import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { useRO } from '@/contexts/ROContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { LaborType, ROLine } from '@/types/ro';
@@ -37,9 +37,7 @@ export default function AddRO() {
 
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   const [advisorSearch, setAdvisorSearch] = useState('');
-  const [showScanSheet, setShowScanSheet] = useState(false);
-  const [scanStatus, setScanStatus] = useState<string>('');
-  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [showScanFlow, setShowScanFlow] = useState(false);
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
@@ -47,7 +45,6 @@ export default function AddRO() {
   const filteredAdvisors = settings.advisors.filter(a =>
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
   );
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const linesContainerRef = useRef<HTMLDivElement>(null);
   
   // Form state
@@ -100,68 +97,27 @@ export default function AddRO() {
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
   const tbdCount = lines.filter(l => l.isTbd).length;
 
-  const handleScanClick = () => {
-    setScanStatus('Opening camera...');
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setScanStatus('No file selected');
-      return;
-    }
-    
-    setScanStatus(`File selected: ${file.name}`);
-    setIsProcessingPhoto(true);
-    
-    setTimeout(() => {
-      setScanStatus('Uploading photo...');
-    }, 100);
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      setScanStatus('Photo loaded, opening review...');
-      setIsProcessingPhoto(false);
-      setShowScanSheet(true);
-    };
-    reader.onerror = () => {
-      setScanStatus('Error reading file');
-      setIsProcessingPhoto(false);
-      toast.error('Failed to read photo');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const handleScanApply = (data: { roNumber?: string; advisor?: string; paidHours?: number; workPerformed?: string }) => {
-    setScanStatus('Applying scanned data...');
-    
+  const handleScanApply = (data: ScanApplyData) => {
     if (data.roNumber) setRoNumber(data.roNumber);
     if (data.advisor) setAdvisor(data.advisor);
-    
-    const newLineIds: string[] = [];
-    
-    if (data.paidHours || data.workPerformed) {
-      const newLine = createEmptyLine(1);
-      newLine.description = data.workPerformed || 'Scanned work';
-      newLine.hoursPaid = data.paidHours || 0;
-      newLineIds.push(newLine.id);
-      
+    if (data.date) setDate(data.date);
+    if (data.customerName) setCustomerName(data.customerName);
+
+    const newLineIds = data.lines.map(l => l.id);
+
+    if (data.mode === 'replace') {
+      setLines(data.lines.map((l, i) => ({ ...l, lineNo: i + 1 })));
+    } else {
+      // Prepend: add at top
       setLines(prev => {
         const filtered = prev.filter(l => l.description || l.hoursPaid > 0);
-        return [newLine, ...filtered].map((l, i) => ({ ...l, lineNo: i + 1 }));
+        return [...data.lines, ...filtered].map((l, i) => ({ ...l, lineNo: i + 1 }));
       });
     }
-    
-    // Highlight the newly added lines
+
     setHighlightedLineIds(newLineIds);
-    
-    toast.success('Scan applied - lines added at top');
-    setScanStatus('Done');
-    
+    setShowScanFlow(false);
+
     // Scroll to top to show new lines
     setTimeout(() => {
       linesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -256,28 +212,12 @@ export default function AddRO() {
           {editingRO ? 'Edit RO' : 'Add RO'}
         </h1>
         <button
-          onClick={handleScanClick}
-          disabled={isProcessingPhoto}
+          onClick={() => setShowScanFlow(true)}
           className="flex items-center gap-1 text-primary font-medium min-w-[44px] min-h-[44px] justify-center -mr-2"
         >
-          {isProcessingPhoto ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <Camera className="h-5 w-5" />
-          )}
+          <Camera className="h-5 w-5" />
         </button>
       </header>
-
-      {/* Hidden file input for camera/gallery */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleFileSelect}
-        className="hidden"
-        aria-hidden="true"
-      />
 
       {/* Minimal Sticky RO Header Strip - Only essential fields */}
       <div className="flex-shrink-0 border-b border-border bg-card">
@@ -422,13 +362,6 @@ export default function AddRO() {
       {/* Scrollable Content - Lines Grid */}
       <main ref={linesContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-3 pb-48">
-          {/* Debug status (dev mode) */}
-          {import.meta.env.DEV && scanStatus && (
-            <div className="mb-2 p-2 bg-muted rounded-lg text-xs font-mono text-muted-foreground">
-              Status: {scanStatus}
-            </div>
-          )}
-
           {/* Compact Lines Grid */}
           <CompactLinesGrid
             lines={lines}
@@ -550,11 +483,13 @@ export default function AddRO() {
         </div>
       </BottomSheet>
 
-      {/* Scan RO Review Sheet */}
-      <ScanROSheet
-        isOpen={showScanSheet}
-        onClose={() => setShowScanSheet(false)}
+      {/* Scan Flow */}
+      <ScanFlow
+        isOpen={showScanFlow}
+        onClose={() => setShowScanFlow(false)}
         onApply={handleScanApply}
+        roId={editingROId}
+        hasExistingLines={lines.some(l => l.description.trim() !== '' || l.hoursPaid > 0)}
       />
     </div>
   );

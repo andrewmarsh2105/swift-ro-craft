@@ -298,6 +298,7 @@ export type Database = {
         Row: {
           created_at: string
           default_summary_range: string
+          default_template_id: string | null
           flag_inbox_date_range: string | null
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
           id: string
@@ -309,6 +310,7 @@ export type Database = {
         Insert: {
           created_at?: string
           default_summary_range?: string
+          default_template_id?: string | null
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
@@ -320,6 +322,7 @@ export type Database = {
         Update: {
           created_at?: string
           default_summary_range?: string
+          default_template_id?: string | null
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
@@ -328,7 +331,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_default_template_id_fkey"
+            columns: ["default_template_id"]
+            isOneToOne: false
+            referencedRelation: "ro_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
