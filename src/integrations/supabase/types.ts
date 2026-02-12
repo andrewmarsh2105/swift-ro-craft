@@ -143,12 +143,17 @@ export type Database = {
           is_tbd: boolean
           labor_type: Database["public"]["Enums"]["labor_type"]
           line_no: number
+          line_vehicle_make: string | null
+          line_vehicle_model: string | null
+          line_vehicle_trim: string | null
+          line_vehicle_year: number | null
           match_confidence: number | null
           matched_reference_id: string | null
           notes: string | null
           ro_id: string
           updated_at: string
           user_id: string
+          vehicle_override: boolean
         }
         Insert: {
           created_at?: string
@@ -158,12 +163,17 @@ export type Database = {
           is_tbd?: boolean
           labor_type?: Database["public"]["Enums"]["labor_type"]
           line_no?: number
+          line_vehicle_make?: string | null
+          line_vehicle_model?: string | null
+          line_vehicle_trim?: string | null
+          line_vehicle_year?: number | null
           match_confidence?: number | null
           matched_reference_id?: string | null
           notes?: string | null
           ro_id: string
           updated_at?: string
           user_id: string
+          vehicle_override?: boolean
         }
         Update: {
           created_at?: string
@@ -173,12 +183,17 @@ export type Database = {
           is_tbd?: boolean
           labor_type?: Database["public"]["Enums"]["labor_type"]
           line_no?: number
+          line_vehicle_make?: string | null
+          line_vehicle_model?: string | null
+          line_vehicle_trim?: string | null
+          line_vehicle_year?: number | null
           match_confidence?: number | null
           matched_reference_id?: string | null
           notes?: string | null
           ro_id?: string
           updated_at?: string
           user_id?: string
+          vehicle_override?: boolean
         }
         Relationships: [
           {
@@ -265,6 +280,10 @@ export type Database = {
           status: Database["public"]["Enums"]["ro_status"]
           updated_at: string
           user_id: string
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_trim: string | null
+          vehicle_year: number | null
         }
         Insert: {
           advisor_id?: string | null
@@ -278,6 +297,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["ro_status"]
           updated_at?: string
           user_id: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_trim?: string | null
+          vehicle_year?: number | null
         }
         Update: {
           advisor_id?: string | null
@@ -291,6 +314,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["ro_status"]
           updated_at?: string
           user_id?: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_trim?: string | null
+          vehicle_year?: number | null
         }
         Relationships: []
       }
@@ -303,6 +330,7 @@ export type Database = {
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
           id: string
           show_scan_confidence: boolean | null
+          show_vehicle_chips: boolean | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -315,6 +343,7 @@ export type Database = {
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
           show_scan_confidence?: boolean | null
+          show_vehicle_chips?: boolean | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -327,6 +356,7 @@ export type Database = {
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
           show_scan_confidence?: boolean | null
+          show_vehicle_chips?: boolean | null
           theme?: string | null
           updated_at?: string
           user_id?: string

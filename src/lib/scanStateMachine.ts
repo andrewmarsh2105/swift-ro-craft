@@ -30,6 +30,9 @@ export interface ExtractedData {
   advisor: string | null;
   date: string | null;
   customerName: string | null;
+  vehicleYear: number | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
   lines: ExtractedLine[];
   fieldConfidence: {
     roNumber: number;

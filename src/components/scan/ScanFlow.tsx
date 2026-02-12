@@ -6,7 +6,7 @@ import { useScanFlow } from '@/hooks/useScanFlow';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { ScanReviewScreen } from './ScanReviewScreen';
 import { cn } from '@/lib/utils';
-import type { ROLine } from '@/types/ro';
+import type { ROLine, VehicleInfo } from '@/types/ro';
 
 interface ScanFlowProps {
   isOpen: boolean;
@@ -21,6 +21,7 @@ export interface ScanApplyData {
   advisor?: string;
   date?: string;
   customerName?: string;
+  vehicle?: VehicleInfo;
   lines: ROLine[];
   mode: 'prepend' | 'replace';
 }

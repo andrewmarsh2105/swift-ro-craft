@@ -1,5 +1,12 @@
 export type LaborType = 'warranty' | 'customer-pay' | 'internal';
 
+export interface VehicleInfo {
+  year?: number;
+  make?: string;
+  model?: string;
+  trim?: string;
+}
+
 export interface ROLine {
   id: string;
   lineNo: number;
@@ -8,6 +15,8 @@ export interface ROLine {
   isTbd?: boolean;
   laborType?: LaborType;
   matchedReferenceId?: string;
+  vehicleOverride?: boolean;
+  lineVehicle?: VehicleInfo;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,13 +27,14 @@ export interface RepairOrder {
   date: string;
   advisor: string;
   customerName?: string;
-  paidHours: number; // Computed from lines or direct entry in simple mode
-  laborType: LaborType; // Default labor type for simple mode
+  vehicle?: VehicleInfo;
+  paidHours: number;
+  laborType: LaborType;
   workPerformed: string;
   notes?: string;
   photos?: string[];
-  lines: ROLine[]; // Line items for detailed entry
-  isSimpleMode: boolean; // true = single total hours, false = line items
+  lines: ROLine[];
+  isSimpleMode: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,4 +73,12 @@ export interface Settings {
   advisors: Advisor[];
   presets: Preset[];
   showDarkMode: boolean;
+}
+
+/** Format vehicle info as a compact chip label, e.g. "'25 Altima" */
+export function formatVehicleChip(v?: VehicleInfo): string | null {
+  if (!v || (!v.year && !v.make && !v.model)) return null;
+  const yr = v.year ? `'${String(v.year).slice(-2)}` : '';
+  const parts = [yr, v.make, v.model].filter(Boolean);
+  return parts.join(' ') || null;
 }

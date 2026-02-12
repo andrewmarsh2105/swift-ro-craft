@@ -438,6 +438,12 @@ export function SettingsTab() {
             toggleValue={userSettings.showScanConfidence}
             onToggle={(v) => updateUserSetting('showScanConfidence', v)}
           />
+          <SettingsRow
+            label="Show Vehicle on Lines"
+            toggle
+            toggleValue={userSettings.showVehicleChips}
+            onToggle={(v) => updateUserSetting('showVehicleChips', v)}
+          />
         </SettingsGroup>
 
         {/* Summary Range */}

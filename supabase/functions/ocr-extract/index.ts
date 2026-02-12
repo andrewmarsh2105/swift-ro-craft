@@ -77,6 +77,9 @@ Return a JSON object with this exact structure:
   "advisor": "string or null",
   "date": "YYYY-MM-DD or null",
   "customerName": "string or null",
+  "vehicleYear": number or null (4-digit year),
+  "vehicleMake": "string or null",
+  "vehicleModel": "string or null",
   "lines": [
     {
       "description": "string - the work/service description",

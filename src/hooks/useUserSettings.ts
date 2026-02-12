@@ -7,6 +7,7 @@ export type SummaryRange = 'week' | 'two_weeks';
 interface UserSettings {
   theme: string;
   showScanConfidence: boolean;
+  showVehicleChips: boolean;
   flagInboxDateRange: string;
   flagInboxTypes: string[];
   defaultSummaryRange: SummaryRange;
@@ -16,6 +17,7 @@ interface UserSettings {
 const defaults: UserSettings = {
   theme: 'light',
   showScanConfidence: false,
+  showVehicleChips: true,
   flagInboxDateRange: 'this_week',
   flagInboxTypes: [],
   defaultSummaryRange: 'week',
@@ -38,6 +40,7 @@ export function useUserSettings() {
       setSettings({
         theme: data.theme || 'light',
         showScanConfidence: data.show_scan_confidence ?? false,
+        showVehicleChips: (data as any).show_vehicle_chips ?? true,
         flagInboxDateRange: data.flag_inbox_date_range || 'this_week',
         flagInboxTypes: data.flag_inbox_types || [],
         defaultSummaryRange: (data.default_summary_range as SummaryRange) || 'week',
@@ -54,6 +57,7 @@ export function useUserSettings() {
     setSettings(prev => ({ ...prev, [key]: value }));
     
     const dbKey = key === 'showScanConfidence' ? 'show_scan_confidence'
+      : key === 'showVehicleChips' ? 'show_vehicle_chips'
       : key === 'flagInboxDateRange' ? 'flag_inbox_date_range'
       : key === 'flagInboxTypes' ? 'flag_inbox_types'
       : key === 'defaultSummaryRange' ? 'default_summary_range'

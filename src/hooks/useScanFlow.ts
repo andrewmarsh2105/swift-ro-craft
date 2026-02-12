@@ -137,6 +137,9 @@ export function useScanFlow() {
         advisor: ocrResult.advisor || null,
         date: ocrResult.date || null,
         customerName: ocrResult.customerName || null,
+        vehicleYear: ocrResult.vehicleYear ?? null,
+        vehicleMake: ocrResult.vehicleMake ?? null,
+        vehicleModel: ocrResult.vehicleModel ?? null,
         lines: extractedLines,
         fieldConfidence: {
           roNumber: ocrResult.fieldConfidence?.roNumber ?? 0.5,

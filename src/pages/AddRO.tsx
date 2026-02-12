@@ -8,8 +8,10 @@ import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { useRO } from '@/contexts/ROContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import type { LaborType, ROLine } from '@/types/ro';
+import type { LaborType, ROLine, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
+import { formatVehicleChip } from '@/types/ro';
+import { useFlagContext } from '@/contexts/FlagContext';
 import { toast } from 'sonner';
 import {
   Collapsible,
@@ -31,6 +33,7 @@ export default function AddRO() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
+  const { userSettings } = useFlagContext();
   
   // Get editing RO from location state
   const editingROId = (location.state as { editingROId?: string })?.editingROId;
@@ -55,6 +58,7 @@ export default function AddRO() {
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
   const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
   const [notes, setNotes] = useState(editingRO?.notes || '');
+  const [vehicle, setVehicle] = useState<VehicleInfo>(editingRO?.vehicle || {});
   
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (editingRO?.lines?.length) {
@@ -103,6 +107,7 @@ export default function AddRO() {
     if (data.advisor) setAdvisor(data.advisor);
     if (data.date) setDate(data.date);
     if (data.customerName) setCustomerName(data.customerName);
+    if (data.vehicle) setVehicle(data.vehicle);
 
     const newLineIds = data.lines.map(l => l.id);
 
@@ -154,6 +159,7 @@ export default function AddRO() {
       roNumber,
       advisor,
       customerName: customerName.trim() || undefined,
+      vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -272,7 +278,7 @@ export default function AddRO() {
               {showMoreFields ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
           </CollapsibleTrigger>
-          <CollapsibleContent>
+           <CollapsibleContent>
             <div className="px-3 py-2 space-y-2 border-t border-border/50 bg-muted/20">
               {/* Customer Name */}
               <div className="flex items-center gap-2">
@@ -282,6 +288,33 @@ export default function AddRO() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Customer Name (optional)"
+                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              {/* Vehicle */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-20">Vehicle</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={vehicle.year || ''}
+                  onChange={(e) => setVehicle(prev => ({ ...prev, year: parseInt(e.target.value) || undefined }))}
+                  placeholder="Year"
+                  maxLength={4}
+                  className="w-14 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <input
+                  type="text"
+                  value={vehicle.make || ''}
+                  onChange={(e) => setVehicle(prev => ({ ...prev, make: e.target.value }))}
+                  placeholder="Make"
+                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <input
+                  type="text"
+                  value={vehicle.model || ''}
+                  onChange={(e) => setVehicle(prev => ({ ...prev, model: e.target.value }))}
+                  placeholder="Model"
                   className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -369,6 +402,8 @@ export default function AddRO() {
             onLinesChange={setLines}
             presets={settings.presets}
             highlightedIds={highlightedLineIds}
+            roVehicle={vehicle}
+            showVehicleChips={userSettings.showVehicleChips}
           />
         </div>
       </main>

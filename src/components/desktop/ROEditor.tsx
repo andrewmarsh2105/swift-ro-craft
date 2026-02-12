@@ -7,7 +7,8 @@ import { AdvisorCombobox } from './AdvisorCombobox';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { useRO } from '@/contexts/ROContext';
-import type { LaborType, ROLine, RepairOrder } from '@/types/ro';
+import { useFlagContext } from '@/contexts/FlagContext';
+import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -27,6 +28,7 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
 
 export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
   const { settings, addRO, updateRO, updateAdvisors } = useRO();
+  const { userSettings } = useFlagContext();
   
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
@@ -35,6 +37,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
   const [date, setDate] = useState(ro?.date || localDateStr());
   const [laborType, setLaborType] = useState<LaborType>(ro?.laborType || 'customer-pay');
   const [notes, setNotes] = useState(ro?.notes || '');
+  const [vehicle, setVehicle] = useState<VehicleInfo>(ro?.vehicle || {});
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (ro?.lines?.length) return ro.lines.map(l => ({ ...l, laborType: l.laborType || 'customer-pay' }));
     if (ro && ro.paidHours > 0) {
@@ -63,6 +66,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       setDate(ro.date);
       setLaborType(ro.laborType);
       setNotes(ro.notes || '');
+      setVehicle(ro.vehicle || {});
       if (ro.lines?.length) {
         setLines(ro.lines);
       } else if (ro.paidHours > 0) {
@@ -83,6 +87,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       setDate(localDateStr());
       setLaborType('customer-pay');
       setNotes('');
+      setVehicle({});
       setLines([createEmptyLine(1)]);
       setShowNotes(false);
     }
@@ -105,6 +110,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     if (data.advisor) setAdvisor(data.advisor);
     if (data.date) setDate(data.date);
     if (data.customerName) setCustomerName(data.customerName);
+    if (data.vehicle) setVehicle(data.vehicle);
 
     const newLineIds = data.lines.map(l => l.id);
 
@@ -128,6 +134,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       roNumber,
       advisor,
       customerName: customerName.trim() || undefined,
+      vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -217,6 +224,33 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
               placeholder="Customer (optional)"
               className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary w-36"
             />
+
+            {/* Vehicle (compact inline) */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={vehicle.year || ''}
+                onChange={(e) => setVehicle(prev => ({ ...prev, year: parseInt(e.target.value) || undefined }))}
+                placeholder="Yr"
+                maxLength={4}
+                className="w-12 h-8 px-1.5 bg-muted rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <input
+                type="text"
+                value={vehicle.make || ''}
+                onChange={(e) => setVehicle(prev => ({ ...prev, make: e.target.value }))}
+                placeholder="Make"
+                className="w-20 h-8 px-1.5 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <input
+                type="text"
+                value={vehicle.model || ''}
+                onChange={(e) => setVehicle(prev => ({ ...prev, model: e.target.value }))}
+                placeholder="Model"
+                className="w-20 h-8 px-1.5 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
           </div>
 
           {/* Right-aligned actions: Upload icon + Total */}
@@ -281,6 +315,8 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
           onLinesChange={setLines}
           presets={settings.presets}
           highlightedIds={highlightedLineIds}
+          roVehicle={vehicle}
+          showVehicleChips={userSettings.showVehicleChips}
         />
 
         {/* Notes Section */}

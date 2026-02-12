@@ -3,7 +3,8 @@ import { Copy, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { ROLine, LaborType, Preset } from '@/types/ro';
+import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
+import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 
 interface CompactLinesGridProps {
@@ -12,6 +13,8 @@ interface CompactLinesGridProps {
   presets?: Preset[];
   readOnly?: boolean;
   highlightedIds?: string[];
+  roVehicle?: VehicleInfo;
+  showVehicleChips?: boolean;
 }
 
 function createEmptyLine(lineNo: number): ROLine {
@@ -43,7 +46,9 @@ export function CompactLinesGrid({
   onLinesChange, 
   presets = [],
   readOnly = false,
-  highlightedIds = []
+  highlightedIds = [],
+  roVehicle,
+  showVehicleChips = true,
 }: CompactLinesGridProps) {
   const topRef = useRef<HTMLDivElement>(null);
 
@@ -209,6 +214,19 @@ export function CompactLinesGrid({
                     </span>
                   </div>
                 )}
+
+                {/* Vehicle chip */}
+                {showVehicleChips && (() => {
+                  const veh = line.vehicleOverride && line.lineVehicle ? line.lineVehicle : roVehicle;
+                  const chip = formatVehicleChip(veh);
+                  return chip ? (
+                    <div className="mt-1 pl-7">
+                      <span className="inline-flex items-center px-2 py-0.5 bg-accent text-accent-foreground text-[10px] font-medium rounded">
+                        🚗 {chip}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </motion.div>
           );

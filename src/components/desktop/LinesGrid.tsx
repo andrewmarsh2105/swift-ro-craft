@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Plus, Trash2, Copy, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { ROLine, LaborType, Preset } from '@/types/ro';
+import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
+import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 
 interface LinesGridProps {
@@ -11,6 +12,8 @@ interface LinesGridProps {
   presets?: Preset[];
   readOnly?: boolean;
   highlightedIds?: string[];
+  roVehicle?: VehicleInfo;
+  showVehicleChips?: boolean;
 }
 
 function createEmptyLine(lineNo: number): ROLine {
@@ -32,7 +35,7 @@ const LABOR_TYPE_OPTIONS: { value: LaborType | ''; label: string; short: string 
   { value: 'internal', label: 'Internal', short: 'Int' },
 ];
 
-export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false, highlightedIds = [] }: LinesGridProps) {
+export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false, highlightedIds = [], roVehicle, showVehicleChips = true }: LinesGridProps) {
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
   const inputRefs = useRef<Map<string, HTMLInputElement | HTMLSelectElement>>(new Map());
 
@@ -177,6 +180,15 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
                 disabled={readOnly}
                 className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded text-sm focus:outline-none transition-colors disabled:opacity-60"
               />
+              {showVehicleChips && (() => {
+                const veh = line.vehicleOverride && line.lineVehicle ? line.lineVehicle : roVehicle;
+                const chip = formatVehicleChip(veh);
+                return chip ? (
+                  <span className="inline-flex items-center ml-1 px-1.5 py-0.5 bg-accent text-accent-foreground text-[10px] font-medium rounded whitespace-nowrap">
+                    🚗 {chip}
+                  </span>
+                ) : null;
+              })()}
             </div>
 
             {/* Labor Type */}

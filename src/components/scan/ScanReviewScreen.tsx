@@ -106,6 +106,9 @@ export function ScanReviewScreen({
       advisor: data.advisor || undefined,
       date: data.date || undefined,
       customerName: data.customerName || undefined,
+      vehicle: (data.vehicleYear || data.vehicleMake || data.vehicleModel)
+        ? { year: data.vehicleYear ?? undefined, make: data.vehicleMake ?? undefined, model: data.vehicleModel ?? undefined }
+        : undefined,
       lines,
       mode,
     };
@@ -219,6 +222,48 @@ export function ScanReviewScreen({
                 placeholder="—"
                 className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+
+            {/* Vehicle (optional) */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Vehicle</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={data.vehicleYear || ''}
+                  onChange={e => {
+                    const updated = { ...data, vehicleYear: parseInt(e.target.value) || null };
+                    setData(updated);
+                    onUpdateData(updated);
+                  }}
+                  placeholder="Year"
+                  maxLength={4}
+                  className="w-16 h-10 px-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <input
+                  type="text"
+                  value={data.vehicleMake || ''}
+                  onChange={e => {
+                    const updated = { ...data, vehicleMake: e.target.value || null };
+                    setData(updated);
+                    onUpdateData(updated);
+                  }}
+                  placeholder="Make"
+                  className="flex-1 h-10 px-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <input
+                  type="text"
+                  value={data.vehicleModel || ''}
+                  onChange={e => {
+                    const updated = { ...data, vehicleModel: e.target.value || null };
+                    setData(updated);
+                    onUpdateData(updated);
+                  }}
+                  placeholder="Model"
+                  className="flex-1 h-10 px-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -4,18 +4,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
 import { pushDebug } from '@/components/debug/DevDebugPanel';
-import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine } from '@/types/ro';
+import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine, VehicleInfo } from '@/types/ro';
 
 // Map DB row to app RepairOrder
 function dbToRO(row: any, lines: any[]): RepairOrder {
+  const vehicle: VehicleInfo | undefined =
+    (row.vehicle_year || row.vehicle_make || row.vehicle_model)
+      ? { year: row.vehicle_year ?? undefined, make: row.vehicle_make ?? undefined, model: row.vehicle_model ?? undefined, trim: row.vehicle_trim ?? undefined }
+      : undefined;
+
   return {
     id: row.id,
     roNumber: row.ro_number,
     date: row.date,
     advisor: row.advisor_name,
     customerName: row.customer_name || undefined,
+    vehicle,
     paidHours: lines.filter((l: any) => !l.is_tbd).reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
-    laborType: row.status === 'draft' ? 'customer-pay' : 'customer-pay', // default
+    laborType: 'customer-pay',
     workPerformed: lines.map((l: any) => l.description).filter(Boolean).join('\n'),
     notes: row.notes || undefined,
     lines: lines.map((l: any, i: number) => ({
@@ -26,6 +32,10 @@ function dbToRO(row: any, lines: any[]): RepairOrder {
       isTbd: !!l.is_tbd,
       laborType: l.labor_type as LaborType,
       matchedReferenceId: l.matched_reference_id || undefined,
+      vehicleOverride: !!l.vehicle_override,
+      lineVehicle: l.vehicle_override
+        ? { year: l.line_vehicle_year ?? undefined, make: l.line_vehicle_make ?? undefined, model: l.line_vehicle_model ?? undefined, trim: l.line_vehicle_trim ?? undefined }
+        : undefined,
       createdAt: l.created_at,
       updatedAt: l.updated_at,
     })),
@@ -170,6 +180,10 @@ export function useROStore() {
         customer_name: ro.customerName || null,
         notes: ro.notes || null,
         status: 'draft',
+        vehicle_year: ro.vehicle?.year ?? null,
+        vehicle_make: ro.vehicle?.make ?? null,
+        vehicle_model: ro.vehicle?.model ?? null,
+        vehicle_trim: ro.vehicle?.trim ?? null,
       })
       .select()
       .single();
@@ -199,6 +213,11 @@ export function useROStore() {
         hours_paid: l.hoursPaid,
         is_tbd: !!l.isTbd,
         matched_reference_id: l.matchedReferenceId || null,
+        vehicle_override: !!l.vehicleOverride,
+        line_vehicle_year: l.lineVehicle?.year ?? null,
+        line_vehicle_make: l.lineVehicle?.make ?? null,
+        line_vehicle_model: l.lineVehicle?.model ?? null,
+        line_vehicle_trim: l.lineVehicle?.trim ?? null,
       }));
       const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
       if (lErr) {
@@ -230,6 +249,12 @@ export function useROStore() {
     if (updates.date !== undefined) dbUpdates.date = updates.date;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
     if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName || null;
+    if (updates.vehicle !== undefined) {
+      dbUpdates.vehicle_year = updates.vehicle?.year ?? null;
+      dbUpdates.vehicle_make = updates.vehicle?.make ?? null;
+      dbUpdates.vehicle_model = updates.vehicle?.model ?? null;
+      dbUpdates.vehicle_trim = updates.vehicle?.trim ?? null;
+    }
 
     if (Object.keys(dbUpdates).length > 0) {
       const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id);
@@ -254,6 +279,11 @@ export function useROStore() {
           hours_paid: l.hoursPaid,
           is_tbd: !!l.isTbd,
           matched_reference_id: l.matchedReferenceId || null,
+          vehicle_override: !!l.vehicleOverride,
+          line_vehicle_year: l.lineVehicle?.year ?? null,
+          line_vehicle_make: l.lineVehicle?.make ?? null,
+          line_vehicle_model: l.lineVehicle?.model ?? null,
+          line_vehicle_trim: l.lineVehicle?.trim ?? null,
         }));
         const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);
         if (insErr) {
