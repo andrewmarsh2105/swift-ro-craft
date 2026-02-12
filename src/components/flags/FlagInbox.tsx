@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Flag, X, Filter, Calendar, Check } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useRO } from '@/contexts/ROContext';
@@ -25,7 +25,7 @@ const DATE_RANGES = [
 export function FlagInbox() {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
-  const { flags, clearFlag, activeCount } = useFlagContext();
+  const { flags, clearFlag, activeCount, refetch } = useFlagContext();
   const { ros } = useRO();
   const [typeFilter, setTypeFilter] = useState<FlagType | 'all'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
@@ -68,10 +68,17 @@ export function FlagInbox() {
     return line ? `L${line.lineNo}: ${line.description || 'No description'}` : null;
   };
 
+  // Refetch flags every time inbox opens
+  useEffect(() => {
+    if (open) {
+      refetch();
+    }
+  }, [open, refetch]);
+
   const content = (
-    <div className="flex flex-col h-full">
+    <div>
       {/* Filters */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-border space-y-3">
+      <div className="px-4 py-3 border-b border-border space-y-3">
         {/* Date Range */}
         <div className="flex gap-1.5">
           {DATE_RANGES.map((dr) => (
@@ -125,7 +132,7 @@ export function FlagInbox() {
       </div>
 
       {/* Flag List */}
-      <div className="flex-1 overflow-y-auto">
+      <div>
         {filteredFlags.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Flag className="h-8 w-8 mx-auto mb-2 opacity-30" />
