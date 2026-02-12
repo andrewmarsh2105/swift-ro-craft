@@ -35,11 +35,4 @@ export const FLAG_TYPE_BG: Record<FlagType, string> = {
   other: 'bg-muted',
 };
 
-export type ReviewIssueType = 'missing_hours' | 'duplicate_ro' | 'low_confidence';
-
-export interface ReviewIssue {
-  type: ReviewIssueType;
-  roId: string;
-  lineId?: string;
-  message: string;
-}
+// ReviewIssue type has moved to src/lib/reviewRules.ts

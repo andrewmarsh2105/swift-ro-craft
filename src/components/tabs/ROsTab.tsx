@@ -14,7 +14,9 @@ import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
-import type { ReviewIssue, FlagType } from '@/types/flags';
+import type { FlagType } from '@/types/flags';
+import type { ReviewIssue } from '@/lib/reviewRules';
+import { getReviewIssues } from '@/lib/reviewRules';
 
 interface ROCardProps {
   ro: RepairOrder;
@@ -157,36 +159,8 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
     return result;
   }, [ros, searchQuery, filters]);
 
-  // Compute review issues for all ROs
-  const getReviewIssues = useCallback((ro: RepairOrder): ReviewIssue[] => {
-    const issues: ReviewIssue[] = [];
-    // Missing hours on lines
-    if (ro.lines?.length > 0) {
-      ro.lines.forEach(line => {
-        if (line.hoursPaid === 0 && line.description) {
-          issues.push({
-            type: 'missing_hours',
-            roId: ro.id,
-            lineId: line.id,
-            message: `L${line.lineNo}: "${line.description}" has 0 hours`,
-          });
-        }
-      });
-    }
-    // Duplicate RO number
-    const dupes = ros.filter(r => r.id !== ro.id && r.roNumber === ro.roNumber && ro.roNumber !== '');
-    if (dupes.length > 0) {
-      issues.push({
-        type: 'duplicate_ro',
-        roId: ro.id,
-        message: `RO #${ro.roNumber} appears ${dupes.length + 1} times`,
-      });
-    }
-    return issues;
-  }, [ros]);
-
   const handleConvertToFlag = useCallback((issue: ReviewIssue, flagType: FlagType, note?: string) => {
-    addFlag(issue.roId, flagType, note || issue.message, issue.lineId);
+    addFlag(issue.roId, flagType, note || issue.detail, issue.lineId);
   }, [addFlag]);
 
   const uniqueAdvisors = useMemo(() => {
@@ -268,7 +242,7 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               ro={ro}
               flags={getFlagsForRO(ro.id)}
               onClearFlag={clearFlag}
-              reviewIssues={getReviewIssues(ro)}
+              reviewIssues={getReviewIssues(ro, ros)}
               onConvertToFlag={handleConvertToFlag}
               onEdit={() => onEditRO(ro)}
               onFlag={() => setFlaggingRO(ro)}
