@@ -10,6 +10,7 @@ interface LinesGridProps {
   onLinesChange: (lines: ROLine[]) => void;
   presets?: Preset[];
   readOnly?: boolean;
+  highlightedIds?: string[];
 }
 
 function createEmptyLine(lineNo: number): ROLine {
@@ -31,7 +32,7 @@ const LABOR_TYPE_OPTIONS: { value: LaborType | ''; label: string; short: string 
   { value: 'internal', label: 'Internal', short: 'Int' },
 ];
 
-export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false }: LinesGridProps) {
+export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false, highlightedIds = [] }: LinesGridProps) {
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
   const inputRefs = useRef<Map<string, HTMLInputElement | HTMLSelectElement>>(new Map());
 
@@ -155,7 +156,8 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
             className={cn(
               "grid grid-cols-[48px_1fr_120px_60px_100px_80px] border-b border-border/50 hover:bg-muted/30 transition-colors",
               index % 2 === 0 ? 'bg-background' : 'bg-muted/10',
-              line.isTbd && 'opacity-60'
+              line.isTbd && 'opacity-60',
+              highlightedIds.includes(line.id) && 'ring-2 ring-primary ring-inset bg-primary/10'
             )}
           >
             {/* Line Number */}

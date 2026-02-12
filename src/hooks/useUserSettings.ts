@@ -10,6 +10,7 @@ interface UserSettings {
   flagInboxDateRange: string;
   flagInboxTypes: string[];
   defaultSummaryRange: SummaryRange;
+  defaultTemplateId: string | null;
 }
 
 const defaults: UserSettings = {
@@ -18,6 +19,7 @@ const defaults: UserSettings = {
   flagInboxDateRange: 'this_week',
   flagInboxTypes: [],
   defaultSummaryRange: 'week',
+  defaultTemplateId: null,
 };
 
 export function useUserSettings() {
@@ -39,6 +41,7 @@ export function useUserSettings() {
         flagInboxDateRange: data.flag_inbox_date_range || 'this_week',
         flagInboxTypes: data.flag_inbox_types || [],
         defaultSummaryRange: (data.default_summary_range as SummaryRange) || 'week',
+        defaultTemplateId: (data as any).default_template_id || null,
       });
     }
     setLoaded(true);
@@ -54,6 +57,7 @@ export function useUserSettings() {
       : key === 'flagInboxDateRange' ? 'flag_inbox_date_range'
       : key === 'flagInboxTypes' ? 'flag_inbox_types'
       : key === 'defaultSummaryRange' ? 'default_summary_range'
+      : key === 'defaultTemplateId' ? 'default_template_id'
       : key;
     
     const { error } = await supabase

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Camera, X, ChevronDown, ChevronUp, Save, Plus, Upload, Calendar, User, Clock, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
 import { AdvisorCombobox } from './AdvisorCombobox';
 import { StatusPill } from '@/components/mobile/StatusPill';
+import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { useRO } from '@/contexts/ROContext';
 import type { LaborType, ROLine, RepairOrder } from '@/types/ro';
 import { cn } from '@/lib/utils';
@@ -49,6 +50,8 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     return [createEmptyLine(1)];
   });
   const [showNotes, setShowNotes] = useState(!!ro?.notes);
+  const [showScanFlow, setShowScanFlow] = useState(false);
+  const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
 
   // Sync with ro prop changes
   useEffect(() => {
@@ -73,7 +76,6 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
         }]);
       }
     } else if (isNew) {
-      // Reset for new RO
       setRoNumber('');
       setAdvisor('');
       setCustomerName('');
@@ -85,9 +87,38 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     }
   }, [ro, isNew]);
 
+  // Clear highlights after 2 seconds
+  useEffect(() => {
+    if (highlightedLineIds.length > 0) {
+      const timer = setTimeout(() => setHighlightedLineIds([]), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedLineIds]);
+
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
   const tbdCount = lines.filter(l => l.isTbd).length;
   const isValid = roNumber.trim() !== '' && advisor.trim() !== '' && (totalHours > 0 || tbdCount > 0);
+
+  const handleScanApply = (data: ScanApplyData) => {
+    if (data.roNumber) setRoNumber(data.roNumber);
+    if (data.advisor) setAdvisor(data.advisor);
+    if (data.date) setDate(data.date);
+    if (data.customerName) setCustomerName(data.customerName);
+
+    const newLineIds = data.lines.map(l => l.id);
+
+    if (data.mode === 'replace') {
+      setLines(data.lines.map((l, i) => ({ ...l, lineNo: i + 1 })));
+    } else {
+      setLines(prev => {
+        const filtered = prev.filter(l => l.description || l.hoursPaid > 0);
+        return [...data.lines, ...filtered].map((l, i) => ({ ...l, lineNo: i + 1 }));
+      });
+    }
+
+    setHighlightedLineIds(newLineIds);
+    setShowScanFlow(false);
+  };
 
   const handleSave = (addAnother: boolean = false) => {
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
@@ -115,7 +146,6 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     }
 
     if (addAnother) {
-      // Reset for another entry
       setRoNumber('');
       setCustomerName('');
       setNotes('');
@@ -188,6 +218,15 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
             />
           </div>
 
+          {/* Upload RO Photo button */}
+          <button
+            onClick={() => setShowScanFlow(true)}
+            className="flex items-center gap-2 h-8 px-3 bg-secondary rounded text-sm font-medium hover:bg-secondary/80 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Upload RO Photo
+          </button>
+
           {/* Total Hours - Always visible */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -220,6 +259,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
                   };
                   const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
                   setLines(updatedLines);
+                  setHighlightedLineIds([newLine.id]);
                   toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
                 }}
                 className="flex-shrink-0 px-3 py-1.5 bg-card border border-border rounded text-xs font-medium hover:bg-primary/10 hover:border-primary/30 transition-colors flex items-center gap-1.5"
@@ -239,6 +279,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
           lines={lines}
           onLinesChange={setLines}
           presets={settings.presets}
+          highlightedIds={highlightedLineIds}
         />
 
         {/* Notes Section */}
@@ -313,6 +354,15 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
           </div>
         </div>
       </div>
+
+      {/* Scan Flow */}
+      <ScanFlow
+        isOpen={showScanFlow}
+        onClose={() => setShowScanFlow(false)}
+        onApply={handleScanApply}
+        roId={ro?.id}
+        hasExistingLines={lines.some(l => l.description.trim() !== '' || l.hoursPaid > 0)}
+      />
     </div>
   );
 }
