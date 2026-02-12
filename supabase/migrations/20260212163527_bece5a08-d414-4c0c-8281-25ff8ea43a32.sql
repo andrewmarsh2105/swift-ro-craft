@@ -1,0 +1,1 @@
+ALTER TABLE public.ro_lines ADD COLUMN is_tbd boolean NOT NULL DEFAULT false;

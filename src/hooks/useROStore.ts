@@ -13,7 +13,7 @@ function dbToRO(row: any, lines: any[]): RepairOrder {
     date: row.date,
     advisor: row.advisor_name,
     customerName: row.customer_name || undefined,
-    paidHours: lines.reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
+    paidHours: lines.filter((l: any) => !l.is_tbd).reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
     laborType: row.status === 'draft' ? 'customer-pay' : 'customer-pay', // default
     workPerformed: lines.map((l: any) => l.description).filter(Boolean).join('\n'),
     notes: row.notes || undefined,
@@ -22,6 +22,7 @@ function dbToRO(row: any, lines: any[]): RepairOrder {
       lineNo: l.line_no,
       description: l.description,
       hoursPaid: Number(l.hours_paid),
+      isTbd: !!l.is_tbd,
       laborType: l.labor_type as LaborType,
       matchedReferenceId: l.matched_reference_id || undefined,
       createdAt: l.created_at,
@@ -171,6 +172,7 @@ export function useROStore() {
         description: l.description,
         labor_type: (l.laborType || ro.laborType || 'customer-pay') as any,
         hours_paid: l.hoursPaid,
+        is_tbd: !!l.isTbd,
         matched_reference_id: l.matchedReferenceId || null,
       }));
       const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
@@ -218,6 +220,7 @@ export function useROStore() {
           description: l.description,
           labor_type: (l.laborType || updates.laborType || 'customer-pay') as any,
           hours_paid: l.hoursPaid,
+          is_tbd: !!l.isTbd,
           matched_reference_id: l.matchedReferenceId || null,
         }));
         const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);

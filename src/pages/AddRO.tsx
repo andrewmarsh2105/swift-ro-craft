@@ -96,8 +96,9 @@ export default function AddRO() {
     }
   }, [highlightedLineIds]);
 
-  // Calculate total hours from lines
-  const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
+  // Calculate total hours from lines (exclude TBD)
+  const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const tbdCount = lines.filter(l => l.isTbd).length;
 
   const handleScanClick = () => {
     setScanStatus('Opening camera...');
@@ -233,7 +234,7 @@ export default function AddRO() {
 
   const isValid = roNumber.trim() !== '' && 
     advisor.trim() !== '' && 
-    totalHours > 0;
+    (totalHours > 0 || tbdCount > 0);
 
   // Desktop: Use the full workspace instead
   if (!isMobile) {
@@ -453,7 +454,12 @@ export default function AddRO() {
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
         {/* Total Hours */}
         <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Total ({lines.length} lines)</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Total ({lines.length} lines)
+            {tbdCount > 0 && (
+              <span className="ml-1 text-warning">• {tbdCount} TBD</span>
+            )}
+          </span>
           <span className="text-xl font-bold text-primary">{totalHours.toFixed(1)}h</span>
         </div>
         

@@ -140,6 +140,7 @@ export type Database = {
           description: string
           hours_paid: number
           id: string
+          is_tbd: boolean
           labor_type: Database["public"]["Enums"]["labor_type"]
           line_no: number
           match_confidence: number | null
@@ -154,6 +155,7 @@ export type Database = {
           description?: string
           hours_paid?: number
           id?: string
+          is_tbd?: boolean
           labor_type?: Database["public"]["Enums"]["labor_type"]
           line_no?: number
           match_confidence?: number | null
@@ -168,6 +170,7 @@ export type Database = {
           description?: string
           hours_paid?: number
           id?: string
+          is_tbd?: boolean
           labor_type?: Database["public"]["Enums"]["labor_type"]
           line_no?: number
           match_confidence?: number | null

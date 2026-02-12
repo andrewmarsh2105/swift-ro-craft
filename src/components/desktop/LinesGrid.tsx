@@ -132,15 +132,17 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
     }
   };
 
-  const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
+  const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const tbdCount = lines.filter(l => l.isTbd).length;
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card">
       {/* Table Header */}
-      <div className="grid grid-cols-[48px_1fr_120px_100px_80px] bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="grid grid-cols-[48px_1fr_120px_60px_100px_80px] bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
         <div className="px-3 py-2 text-center">#</div>
         <div className="px-3 py-2">Description</div>
         <div className="px-3 py-2">Type</div>
+        <div className="px-3 py-2 text-center">TBD</div>
         <div className="px-3 py-2 text-right">Hours</div>
         <div className="px-3 py-2 text-center">Actions</div>
       </div>
@@ -151,8 +153,9 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
           <div
             key={line.id}
             className={cn(
-              "grid grid-cols-[48px_1fr_120px_100px_80px] border-b border-border/50 hover:bg-muted/30 transition-colors",
-              index % 2 === 0 ? 'bg-background' : 'bg-muted/10'
+              "grid grid-cols-[48px_1fr_120px_60px_100px_80px] border-b border-border/50 hover:bg-muted/30 transition-colors",
+              index % 2 === 0 ? 'bg-background' : 'bg-muted/10',
+              line.isTbd && 'opacity-60'
             )}
           >
             {/* Line Number */}
@@ -190,14 +193,37 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
               </select>
             </div>
 
+            {/* TBD Toggle */}
+            <div className="px-2 py-1 flex items-center justify-center">
+              {!readOnly && (
+                <button
+                  onClick={() => handleLineChange(index, { isTbd: !line.isTbd })}
+                  className={cn(
+                    'px-2 py-1 rounded text-[10px] font-bold transition-colors',
+                    line.isTbd
+                      ? 'bg-warning/20 text-warning border border-warning/40'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  )}
+                >
+                  TBD
+                </button>
+              )}
+              {readOnly && line.isTbd && (
+                <span className="px-2 py-1 bg-warning/20 text-warning text-[10px] font-bold rounded">TBD</span>
+              )}
+            </div>
+
             {/* Hours */}
             <div className="px-2 py-1">
               <DecimalHoursInput
                 value={line.hoursPaid}
                 onChange={(v) => handleHoursChange(index, v)}
-                placeholder="0.0"
+                placeholder={line.isTbd ? '—' : '0.0'}
                 disabled={readOnly}
-                className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded text-sm text-right font-medium focus:outline-none transition-colors disabled:opacity-60"
+                className={cn(
+                  'w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded text-sm text-right font-medium focus:outline-none transition-colors disabled:opacity-60',
+                  line.isTbd && 'line-through text-muted-foreground'
+                )}
               />
             </div>
 
@@ -238,9 +264,17 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
       )}
 
       {/* Footer with Total */}
-      <div className="grid grid-cols-[48px_1fr_120px_100px_80px] bg-muted/30 border-t border-border font-semibold">
+      <div className="grid grid-cols-[48px_1fr_120px_60px_100px_80px] bg-muted/30 border-t border-border font-semibold">
         <div className="px-3 py-3" />
-        <div className="px-3 py-3 text-sm text-muted-foreground">Total ({lines.length} lines)</div>
+        <div className="px-3 py-3 text-sm text-muted-foreground">
+          Total ({lines.length} lines)
+          {tbdCount > 0 && (
+            <span className="ml-2 text-warning text-xs font-medium">
+              • {tbdCount} TBD
+            </span>
+          )}
+        </div>
+        <div className="px-3 py-3" />
         <div className="px-3 py-3" />
         <div className="px-3 py-3 text-right text-primary">{totalHours.toFixed(1)}h</div>
         <div className="px-3 py-3" />

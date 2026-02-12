@@ -151,7 +151,7 @@ export function CompactLinesGrid({
                   )}
                 </div>
 
-                {/* Row 2: Labor Type + Hours */}
+                {/* Row 2: Labor Type + TBD + Hours */}
                 <div className="flex items-center gap-2 pl-7">
                   <select
                     value={line.laborType || ''}
@@ -165,17 +165,36 @@ export function CompactLinesGrid({
                     ))}
                   </select>
                   
+                  {/* TBD Toggle */}
+                  {!readOnly && (
+                    <button
+                      onClick={() => handleLineChange(index, { isTbd: !line.isTbd })}
+                      className={cn(
+                        'px-2 py-1 rounded text-[10px] font-bold transition-colors flex-shrink-0',
+                        line.isTbd
+                          ? 'bg-warning/20 text-warning border border-warning/40'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      )}
+                    >
+                      TBD
+                    </button>
+                  )}
+                  {readOnly && line.isTbd && (
+                    <span className="px-2 py-1 bg-warning/20 text-warning text-[10px] font-bold rounded flex-shrink-0">TBD</span>
+                  )}
+
                   <div className="flex-1" />
                   
                   <div className="flex items-center gap-1">
                     <DecimalHoursInput
                       value={line.hoursPaid}
                       onChange={(v) => handleHoursInput(index, v)}
-                      placeholder="0.0"
+                      placeholder={line.isTbd ? '—' : '0.0'}
                       disabled={readOnly}
                       className={cn(
                         'w-16 h-8 px-2 bg-background rounded text-sm font-semibold text-right focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60',
-                        isHighlighted && 'ring-2 ring-primary'
+                        isHighlighted && 'ring-2 ring-primary',
+                        line.isTbd && 'line-through text-muted-foreground'
                       )}
                     />
                     <span className="text-xs text-muted-foreground">hrs</span>

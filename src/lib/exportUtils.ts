@@ -28,7 +28,10 @@ export function generateLineCSV(report: PayPeriodReport): string {
 export function generateSummaryText(report: PayPeriodReport): string {
   const lines: string[] = [];
   lines.push(`PAY PERIOD REPORT: ${report.startDate} to ${report.endDate}`);
-  lines.push(`Total Hours: ${report.totalHours.toFixed(1)}h | ${report.totalROs} ROs | ${report.totalLines} lines`);
+  lines.push(`Total Paid Hours: ${report.totalHours.toFixed(1)}h | ${report.totalROs} ROs | ${report.totalLines} lines`);
+  if (report.tbdLineCount > 0) {
+    lines.push(`TBD: ${report.tbdLineCount} lines (${report.tbdHours.toFixed(1)}h) — not counted in totals`);
+  }
   lines.push('');
 
   // By labor type
@@ -55,8 +58,9 @@ export function generateSummaryText(report: PayPeriodReport): string {
   lines.push('');
 
   // Warnings
-  if (report.missingHoursCount > 0 || report.flaggedCount > 0) {
+  if (report.missingHoursCount > 0 || report.flaggedCount > 0 || report.tbdLineCount > 0) {
     lines.push('WARNINGS:');
+    if (report.tbdLineCount > 0) lines.push(`  ⏳ ${report.tbdLineCount} TBD lines (${report.tbdHours.toFixed(1)}h not counted)`);
     if (report.missingHoursCount > 0) lines.push(`  ⚠ ${report.missingHoursCount} lines with missing hours`);
     if (report.flaggedCount > 0) lines.push(`  🚩 ${report.flaggedCount} flagged items`);
   }
