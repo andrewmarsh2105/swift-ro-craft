@@ -1,195 +1,243 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine } from '@/types/ro';
 
-// Helper to calculate total hours from lines
-function calculateTotalHours(lines: ROLine[]): number {
-  return lines.reduce((sum, line) => sum + line.hoursPaid, 0);
+// Map DB row to app RepairOrder
+function dbToRO(row: any, lines: any[]): RepairOrder {
+  return {
+    id: row.id,
+    roNumber: row.ro_number,
+    date: row.date,
+    advisor: row.advisor_name,
+    paidHours: lines.reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
+    laborType: row.status === 'draft' ? 'customer-pay' : 'customer-pay', // default
+    workPerformed: lines.map((l: any) => l.description).filter(Boolean).join('\n'),
+    notes: row.notes || undefined,
+    lines: lines.map((l: any, i: number) => ({
+      id: l.id,
+      lineNo: l.line_no,
+      description: l.description,
+      hoursPaid: Number(l.hours_paid),
+      laborType: l.labor_type as LaborType,
+      matchedReferenceId: l.matched_reference_id || undefined,
+      createdAt: l.created_at,
+      updatedAt: l.updated_at,
+    })),
+    isSimpleMode: lines.length === 0,
+    photos: [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
-// Sample data for demo
-const sampleROs: RepairOrder[] = [
-  {
-    id: '1',
-    roNumber: '123456',
-    date: '2026-01-30',
-    advisor: 'Mike Johnson',
-    paidHours: 2.5,
-    laborType: 'warranty',
-    workPerformed: 'Replaced front brake pads and rotors',
-    lines: [
-      { id: 'l1', lineNo: 1, description: 'Replaced front brake pads', hoursPaid: 1.5, laborType: 'warranty', createdAt: '2026-01-30T08:00:00Z', updatedAt: '2026-01-30T08:00:00Z' },
-      { id: 'l2', lineNo: 2, description: 'Replaced front rotors', hoursPaid: 1.0, laborType: 'warranty', createdAt: '2026-01-30T08:00:00Z', updatedAt: '2026-01-30T08:00:00Z' },
-    ],
-    isSimpleMode: false,
-    createdAt: '2026-01-30T08:00:00Z',
-    updatedAt: '2026-01-30T08:00:00Z',
-  },
-  {
-    id: '2',
-    roNumber: '123457',
-    date: '2026-01-30',
-    advisor: 'Sarah Williams',
-    paidHours: 1.2,
-    laborType: 'customer-pay',
-    workPerformed: 'Oil change and tire rotation',
-    lines: [
-      { id: 'l3', lineNo: 1, description: 'Oil change and filter replacement', hoursPaid: 0.5, laborType: 'customer-pay', createdAt: '2026-01-30T09:30:00Z', updatedAt: '2026-01-30T09:30:00Z' },
-      { id: 'l4', lineNo: 2, description: 'Tire rotation', hoursPaid: 0.7, laborType: 'customer-pay', createdAt: '2026-01-30T09:30:00Z', updatedAt: '2026-01-30T09:30:00Z' },
-    ],
-    isSimpleMode: false,
-    createdAt: '2026-01-30T09:30:00Z',
-    updatedAt: '2026-01-30T09:30:00Z',
-  },
-  {
-    id: '3',
-    roNumber: '123458',
-    date: '2026-01-29',
-    advisor: 'Mike Johnson',
-    paidHours: 3.0,
-    laborType: 'warranty',
-    workPerformed: 'Transmission fluid flush and filter replacement',
-    lines: [],
-    isSimpleMode: true,
-    createdAt: '2026-01-29T14:00:00Z',
-    updatedAt: '2026-01-29T14:00:00Z',
-  },
-  {
-    id: '4',
-    roNumber: '123459',
-    date: '2026-01-29',
-    advisor: 'Tom Chen',
-    paidHours: 0.8,
-    laborType: 'internal',
-    workPerformed: 'PDI inspection on new vehicle',
-    lines: [],
-    isSimpleMode: true,
-    createdAt: '2026-01-29T11:00:00Z',
-    updatedAt: '2026-01-29T11:00:00Z',
-  },
-  {
-    id: '5',
-    roNumber: '123460',
-    date: '2026-01-28',
-    advisor: 'Sarah Williams',
-    paidHours: 4.2,
-    laborType: 'customer-pay',
-    workPerformed: 'Timing belt replacement and water pump',
-    lines: [
-      { id: 'l5', lineNo: 1, description: 'Timing belt replacement', hoursPaid: 3.0, laborType: 'customer-pay', createdAt: '2026-01-28T10:00:00Z', updatedAt: '2026-01-28T10:00:00Z' },
-      { id: 'l6', lineNo: 2, description: 'Water pump replacement', hoursPaid: 1.2, laborType: 'customer-pay', createdAt: '2026-01-28T10:00:00Z', updatedAt: '2026-01-28T10:00:00Z' },
-    ],
-    isSimpleMode: false,
-    createdAt: '2026-01-28T10:00:00Z',
-    updatedAt: '2026-01-28T10:00:00Z',
-  },
-];
-
-const defaultPresets: Preset[] = [
-  { id: '1', name: 'Oil Change', laborType: 'customer-pay', defaultHours: 0.5, workTemplate: 'Oil change and filter replacement' },
-  { id: '2', name: 'Brake Service', laborType: 'warranty', defaultHours: 1.5, workTemplate: 'Brake pad replacement' },
-  { id: '3', name: 'Tire Rotation', laborType: 'customer-pay', defaultHours: 0.3, workTemplate: 'Tire rotation and inspection' },
-  { id: '4', name: 'PDI', laborType: 'internal', defaultHours: 0.8, workTemplate: 'Pre-delivery inspection' },
-  { id: '5', name: 'Recall', laborType: 'warranty', defaultHours: 1.0, workTemplate: 'Recall service performed' },
-];
-
-const defaultAdvisors: Advisor[] = [
-  { id: '1', name: 'Mike Johnson' },
-  { id: '2', name: 'Sarah Williams' },
-  { id: '3', name: 'Tom Chen' },
-  { id: '4', name: 'Lisa Park' },
-];
+// Map DB labor_reference to Preset
+function dbToPreset(row: any): Preset {
+  return {
+    id: row.id,
+    name: row.name,
+    laborType: row.labor_type_default as LaborType,
+    defaultHours: row.default_hours ? Number(row.default_hours) : undefined,
+    workTemplate: row.name,
+  };
+}
 
 const defaultSettings: Settings = {
-  recentAdvisors: ['Mike Johnson', 'Sarah Williams', 'Tom Chen', 'Lisa Park'],
-  advisors: defaultAdvisors,
-  presets: defaultPresets,
+  recentAdvisors: [],
+  advisors: [],
+  presets: [],
   showDarkMode: false,
 };
 
 export function useROStore() {
-  const [ros, setROs] = useState<RepairOrder[]>(sampleROs);
+  const { user } = useAuth();
+  const [ros, setROs] = useState<RepairOrder[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [loadingROs, setLoadingROs] = useState(true);
 
-  const clearAllROs = useCallback(() => {
-    setROs([]);
-  }, []);
+  // Fetch ROs with lines
+  const fetchROs = useCallback(async () => {
+    if (!user) { setROs([]); setLoadingROs(false); return; }
+    setLoadingROs(true);
+    try {
+      const { data: roRows, error } = await supabase
+        .from('ros')
+        .select('*')
+        .order('date', { ascending: false });
+      if (error) throw error;
 
-  const addRO = useCallback((ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
-    // Calculate paidHours from lines if in lines mode
-    const paidHours = ro.isSimpleMode 
-      ? ro.paidHours 
-      : calculateTotalHours(ro.lines);
-    
-    const newRO: RepairOrder = {
-      ...ro,
-      paidHours,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setROs(prev => [newRO, ...prev]);
-    
-    // Add advisor to recent if not already there
-    if (!settings.recentAdvisors.includes(ro.advisor)) {
+      const { data: lineRows, error: lErr } = await supabase
+        .from('ro_lines')
+        .select('*')
+        .order('line_no', { ascending: true });
+      if (lErr) throw lErr;
+
+      const linesByRO = new Map<string, any[]>();
+      (lineRows || []).forEach((l) => {
+        const arr = linesByRO.get(l.ro_id) || [];
+        arr.push(l);
+        linesByRO.set(l.ro_id, arr);
+      });
+
+      const mapped = (roRows || []).map(r => dbToRO(r, linesByRO.get(r.id) || []));
+      setROs(mapped);
+    } catch (err: any) {
+      console.error('Failed to fetch ROs', err);
+    } finally {
+      setLoadingROs(false);
+    }
+  }, [user]);
+
+  // Fetch presets (labor_references)
+  const fetchPresets = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('labor_references')
+        .select('*')
+        .eq('active', true)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+
+      const presets = (data || []).map(dbToPreset);
+
+      // Derive unique advisors from ROs
+      const advisorSet = new Map<string, Advisor>();
+      ros.forEach(ro => {
+        if (ro.advisor && !advisorSet.has(ro.advisor)) {
+          advisorSet.set(ro.advisor, { id: ro.advisor, name: ro.advisor });
+        }
+      });
+
       setSettings(prev => ({
         ...prev,
-        recentAdvisors: [ro.advisor, ...prev.recentAdvisors].slice(0, 6),
+        presets,
+        advisors: Array.from(advisorSet.values()),
+        recentAdvisors: Array.from(advisorSet.keys()).slice(0, 6),
       }));
+    } catch (err: any) {
+      console.error('Failed to fetch presets', err);
     }
-    
-    return newRO;
-  }, [settings.recentAdvisors]);
+  }, [user, ros]);
 
-  const updateRO = useCallback((id: string, updates: Partial<RepairOrder>) => {
-    setROs(prev => prev.map(ro => {
-      if (ro.id !== id) return ro;
-      
-      const updatedRO = { ...ro, ...updates, updatedAt: new Date().toISOString() };
-      
-      // Recalculate paidHours if lines were updated and not in simple mode
-      if (updates.lines && !updatedRO.isSimpleMode) {
-        updatedRO.paidHours = calculateTotalHours(updates.lines);
+  useEffect(() => { fetchROs(); }, [fetchROs]);
+  useEffect(() => { fetchPresets(); }, [fetchPresets]);
+
+  const clearAllROs = useCallback(async () => {
+    if (!user) return;
+    const { error } = await supabase.from('ros').delete().eq('user_id', user.id);
+    if (error) { toast.error('Failed to clear ROs'); return; }
+    setROs([]);
+  }, [user]);
+
+  const addRO = useCallback(async (ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) return;
+    const paidHours = ro.isSimpleMode ? ro.paidHours : ro.lines.reduce((s, l) => s + l.hoursPaid, 0);
+
+    const { data: newRow, error } = await supabase
+      .from('ros')
+      .insert({
+        user_id: user.id,
+        ro_number: ro.roNumber,
+        date: ro.date,
+        advisor_name: ro.advisor,
+        notes: ro.notes || null,
+        status: 'draft',
+      })
+      .select()
+      .single();
+
+    if (error || !newRow) { toast.error('Failed to create RO'); return; }
+
+    // Insert lines
+    if (ro.lines.length > 0) {
+      const lineInserts = ro.lines.map((l, i) => ({
+        ro_id: newRow.id,
+        user_id: user.id,
+        line_no: i + 1,
+        description: l.description,
+        labor_type: l.laborType as any,
+        hours_paid: l.hoursPaid,
+        matched_reference_id: l.matchedReferenceId || null,
+      }));
+      const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
+      if (lErr) console.error('Failed to insert lines', lErr);
+    }
+
+    await fetchROs();
+    return dbToRO(newRow, ro.lines as any[]);
+  }, [user, fetchROs]);
+
+  const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>) => {
+    if (!user) return;
+
+    const dbUpdates: any = {};
+    if (updates.roNumber !== undefined) dbUpdates.ro_number = updates.roNumber;
+    if (updates.advisor !== undefined) dbUpdates.advisor_name = updates.advisor;
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+
+    if (Object.keys(dbUpdates).length > 0) {
+      const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id);
+      if (error) { toast.error('Failed to update RO'); return; }
+    }
+
+    // Replace lines if provided
+    if (updates.lines) {
+      await supabase.from('ro_lines').delete().eq('ro_id', id);
+      if (updates.lines.length > 0) {
+        const lineInserts = updates.lines.map((l, i) => ({
+          ro_id: id,
+          user_id: user.id,
+          line_no: i + 1,
+          description: l.description,
+          labor_type: l.laborType as any,
+          hours_paid: l.hoursPaid,
+          matched_reference_id: l.matchedReferenceId || null,
+        }));
+        await supabase.from('ro_lines').insert(lineInserts);
       }
-      
-      return updatedRO;
-    }));
-  }, []);
-
-  const deleteRO = useCallback((id: string) => {
-    setROs(prev => prev.filter(ro => ro.id !== id));
-  }, []);
-
-  const duplicateRO = useCallback((id: string) => {
-    const ro = ros.find(r => r.id === id);
-    if (ro) {
-      // Duplicate lines with new IDs
-      const duplicatedLines = ro.lines.map((line, index) => ({
-        ...line,
-        id: Date.now().toString() + index + Math.random().toString(36).substring(2, 9),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }));
-      
-      const newRO: RepairOrder = {
-        ...ro,
-        id: Date.now().toString(),
-        roNumber: '',
-        lines: duplicatedLines,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setROs(prev => [newRO, ...prev]);
-      return newRO;
     }
-  }, [ros]);
+
+    await fetchROs();
+  }, [user, fetchROs]);
+
+  const deleteRO = useCallback(async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('ros').delete().eq('id', id);
+    if (error) { toast.error('Failed to delete RO'); return; }
+    setROs(prev => prev.filter(ro => ro.id !== id));
+  }, [user]);
+
+  const duplicateRO = useCallback(async (id: string) => {
+    const ro = ros.find(r => r.id === id);
+    if (!ro) return;
+    return addRO({ ...ro, roNumber: '' });
+  }, [ros, addRO]);
 
   const updateSettings = useCallback((updates: Partial<Settings>) => {
     setSettings(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const updatePresets = useCallback((presets: Preset[]) => {
+  const updatePresets = useCallback(async (presets: Preset[]) => {
+    if (!user) return;
     setSettings(prev => ({ ...prev, presets }));
-  }, []);
+    // Sync to DB: delete all, re-insert
+    await supabase.from('labor_references').delete().eq('user_id', user.id);
+    if (presets.length > 0) {
+      const rows = presets.map((p, i) => ({
+        user_id: user.id,
+        name: p.name,
+        labor_type_default: p.laborType as any,
+        default_hours: p.defaultHours || 0,
+        sort_order: i,
+        active: true,
+      }));
+      await supabase.from('labor_references').insert(rows);
+    }
+    await fetchPresets();
+  }, [user, fetchPresets]);
 
   const updateAdvisors = useCallback((advisors: Advisor[]) => {
     setSettings(prev => ({ ...prev, advisors }));
@@ -200,11 +248,9 @@ export function useROStore() {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const summaries: DaySummary[] = [];
-
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
       const dayROs = ros.filter(ro => ro.date === dateStr);
-      
       summaries.push({
         date: dateStr,
         totalHours: dayROs.reduce((sum, ro) => sum + ro.paidHours, 0),
@@ -214,33 +260,24 @@ export function useROStore() {
         internalHours: dayROs.filter(ro => ro.laborType === 'internal').reduce((sum, ro) => sum + ro.paidHours, 0),
       });
     }
-
     return summaries;
   }, [ros]);
 
   const getAdvisorSummaries = useCallback((startDate?: string, endDate?: string): AdvisorSummary[] => {
     let filteredROs = ros;
-    
     if (startDate && endDate) {
       filteredROs = ros.filter(ro => ro.date >= startDate && ro.date <= endDate);
     }
-
     const advisorMap = new Map<string, AdvisorSummary>();
-    
     filteredROs.forEach(ro => {
       const existing = advisorMap.get(ro.advisor);
       if (existing) {
         existing.totalHours += ro.paidHours;
         existing.roCount += 1;
       } else {
-        advisorMap.set(ro.advisor, {
-          advisor: ro.advisor,
-          totalHours: ro.paidHours,
-          roCount: 1,
-        });
+        advisorMap.set(ro.advisor, { advisor: ro.advisor, totalHours: ro.paidHours, roCount: 1 });
       }
     });
-
     return Array.from(advisorMap.values()).sort((a, b) => b.totalHours - a.totalHours);
   }, [ros]);
 
@@ -258,6 +295,7 @@ export function useROStore() {
   return {
     ros,
     settings,
+    loadingROs,
     addRO,
     updateRO,
     deleteRO,

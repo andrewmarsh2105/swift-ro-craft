@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle } from 'lucide-react';
+import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import {
@@ -139,6 +140,7 @@ function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
 
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
+  const { user, signOut } = useAuth();
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
   const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
@@ -384,6 +386,22 @@ export function SettingsTab() {
             value="1.0.0"
             onClick={() => {}}
           />
+        </SettingsGroup>
+
+        {/* Account */}
+        <SettingsGroup title="Account">
+          {user && (
+            <div className="p-4 text-sm text-muted-foreground truncate">
+              {user.email}
+            </div>
+          )}
+          <button
+            onClick={signOut}
+            className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-destructive"
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="font-medium">Sign Out</span>
+          </button>
         </SettingsGroup>
       </div>
 
