@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Camera, Save, Plus, Calendar, User, Clock, FileText } from 'lucide-react';
+import { Camera, Save, Plus, Calendar, User, Clock, FileText, Check } from 'lucide-react';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
 import { AdvisorCombobox } from './AdvisorCombobox';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
+import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
@@ -56,6 +57,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
   const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model));
   const [showScanFlow, setShowScanFlow] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
+  const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
 
   // Sync with ro prop changes
   useEffect(() => {
@@ -251,35 +253,30 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       {/* Presets Toolbar */}
       {settings.presets.length > 0 && (
         <div className="flex-shrink-0 border-b border-border bg-muted/30 px-4 py-2">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            <span className="text-xs text-muted-foreground font-medium flex-shrink-0">Quick Add:</span>
-            {settings.presets.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => {
-                  const newLine: ROLine = {
-                    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-                    lineNo: 1,
-                    description: preset.workTemplate || preset.name,
-                    hoursPaid: preset.defaultHours || 0,
-                    laborType: preset.laborType,
-                    matchedReferenceId: preset.id,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  };
-                  const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
-                  setLines(updatedLines);
-                  setHighlightedLineIds([newLine.id]);
-                  toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
-                }}
-                className="flex-shrink-0 px-3 py-1.5 bg-card border border-border rounded text-xs font-medium hover:bg-primary/10 hover:border-primary/30 transition-colors flex items-center gap-1.5"
-              >
-                <Plus className="h-3 w-3" />
-                {preset.name}
-                {preset.defaultHours && <span className="opacity-60">({preset.defaultHours}h)</span>}
-              </button>
-            ))}
-          </div>
+          <PresetSearchRail
+            presets={settings.presets}
+            animatingId={animatingPresetId}
+            layout="desktop"
+            onSelect={(preset) => {
+              setAnimatingPresetId(preset.id);
+              setTimeout(() => setAnimatingPresetId(null), 600);
+
+              const newLine: ROLine = {
+                id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+                lineNo: 1,
+                description: preset.workTemplate || preset.name,
+                hoursPaid: preset.defaultHours || 0,
+                laborType: preset.laborType,
+                matchedReferenceId: preset.id,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
+              setLines(updatedLines);
+              setHighlightedLineIds([newLine.id]);
+              toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
+            }}
+          />
         </div>
       )}
 

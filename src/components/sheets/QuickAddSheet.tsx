@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Camera, ChevronDown, ChevronUp, Mic, X, ToggleLeft, ToggleRight, List, Hash } from 'lucide-react';
+import { Camera, ChevronDown, ChevronUp, Mic, X, ToggleLeft, ToggleRight, List, Hash, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { NumericInput } from '@/components/mobile/NumericInput';
 import { Chip } from '@/components/mobile/Chip';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
+import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
 import { useRO } from '@/contexts/ROContext';
 import type { LaborType, RepairOrder, Preset, ROLine } from '@/types/ro';
 import { cn, localDateStr } from '@/lib/utils';
@@ -34,6 +35,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [notes, setNotes] = useState(editingRO?.notes || '');
   const [lines, setLines] = useState<ROLine[]>(editingRO?.lines || [createEmptyLine(1)]);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
+  const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
 
   // Reset form when opening/closing or when editingRO changes
   useEffect(() => {
@@ -103,6 +105,9 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   };
 
   const handlePresetSelect = (preset: Preset) => {
+    setAnimatingPresetId(preset.id);
+    setTimeout(() => setAnimatingPresetId(null), 600);
+
     if (isSimpleMode) {
       // Simple mode behavior - toggle preset selection
       if (selectedPresets.includes(preset.id)) {
@@ -270,22 +275,14 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               />
 
               {/* Presets for simple mode */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Quick Presets
-                </label>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-                  {settings.presets.map((preset) => (
-                    <Chip
-                      key={preset.id}
-                      label={preset.name}
-                      selected={selectedPresets.includes(preset.id)}
-                      onSelect={() => handlePresetSelect(preset)}
-                      className="whitespace-nowrap flex-shrink-0"
-                    />
-                  ))}
-                </div>
-              </div>
+              {settings.presets.length > 0 && (
+                <PresetSearchRail
+                  presets={settings.presets}
+                  onSelect={handlePresetSelect}
+                  animatingId={animatingPresetId}
+                  layout="mobile"
+                />
+              )}
 
               {/* Work Performed */}
               <div>
