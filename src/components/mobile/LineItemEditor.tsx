@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
+import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
 
 interface LineItemEditorProps {
   lines: ROLine[];
@@ -138,33 +139,12 @@ export function LineItemEditor({
     <div className="space-y-4" ref={topRef}>
       {/* Preset Quick Add - At TOP */}
       {presets.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">
-            Quick Add Presets
-          </label>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-            {presets.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => handlePresetSelect(preset)}
-                className={cn(
-                  'flex-shrink-0 px-4 py-3 bg-primary/10 border border-primary/30 rounded-xl text-sm font-medium tap-target touch-feedback whitespace-nowrap transition-all duration-200 flex items-center gap-2',
-                  animatingPresetId === preset.id && 'bg-primary text-primary-foreground scale-95'
-                )}
-              >
-                {animatingPresetId === preset.id ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                {preset.name}
-                {preset.defaultHours && (
-                  <span className="text-xs opacity-70">({preset.defaultHours}h)</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PresetSearchRail
+          presets={presets}
+          onSelect={handlePresetSelect}
+          animatingId={animatingPresetId}
+          layout="mobile"
+        />
       )}
 
       {/* Recently Added Indicator */}
