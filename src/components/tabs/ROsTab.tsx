@@ -19,7 +19,7 @@ import type { ReviewIssue, FlagType } from '@/types/flags';
 interface ROCardProps {
   ro: RepairOrder;
   onEdit: () => void;
-  onDuplicate: () => void;
+  onDuplicate: (newRONumber: string) => void;
   onDelete: () => void;
   onFlag: () => void;
   onViewDetails: () => void;
@@ -27,9 +27,10 @@ interface ROCardProps {
   onClearFlag: (flagId: string) => void;
   reviewIssues: ReviewIssue[];
   onConvertToFlag: (issue: ReviewIssue, flagType: FlagType, note?: string) => void;
+  existingRONumbers: string[];
 }
 
-function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flags, onClearFlag, reviewIssues, onConvertToFlag }: ROCardProps) {
+function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers }: ROCardProps) {
   const formattedDate = new Date(ro.date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -81,6 +82,7 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flag
               onDuplicate={onDuplicate}
               onDelete={onDelete}
               onFlag={onFlag}
+              existingRONumbers={existingRONumbers}
             />
           </div>
           <StatusPill type={ro.laborType} />
@@ -270,9 +272,9 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               onConvertToFlag={handleConvertToFlag}
               onEdit={() => onEditRO(ro)}
               onFlag={() => setFlaggingRO(ro)}
-              onDuplicate={() => {
-                duplicateRO(ro.id);
-                toast.success(`Duplicated RO #${ro.roNumber}`);
+              onDuplicate={(newRONumber) => {
+                duplicateRO(ro.id, newRONumber);
+                toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
               }}
               onDelete={() => {
                 deleteRO(ro.id);
@@ -282,6 +284,7 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
                 setSelectedRO(ro);
                 setShowDetail(true);
               }}
+              existingRONumbers={ros.map(r => r.roNumber)}
             />
           ))
         )}
@@ -296,10 +299,14 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
           setShowDetail(false);
           if (selectedRO) onEditRO(selectedRO);
         }}
-        onDuplicate={() => {
-          if (selectedRO) duplicateRO(selectedRO.id);
+        onDuplicate={(newRONumber) => {
+          if (selectedRO) {
+            duplicateRO(selectedRO.id, newRONumber);
+            toast.success(`Duplicated RO #${selectedRO.roNumber} → #${newRONumber}`);
+          }
           setShowDetail(false);
         }}
+        existingRONumbers={ros.map(r => r.roNumber)}
         onDelete={() => {
           if (selectedRO) deleteRO(selectedRO.id);
           setShowDetail(false);

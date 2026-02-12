@@ -238,10 +238,10 @@ export function useROStore() {
     setROs(prev => prev.filter(ro => ro.id !== id));
   }, [user]);
 
-  const duplicateRO = useCallback(async (id: string) => {
+  const duplicateRO = useCallback(async (id: string, newRONumber?: string) => {
     const ro = ros.find(r => r.id === id);
     if (!ro) return;
-    return addRO({ ...ro, roNumber: '' });
+    return addRO({ ...ro, roNumber: newRONumber || '' });
   }, [ros, addRO]);
 
   const updateSettings = useCallback((updates: Partial<Settings>) => {

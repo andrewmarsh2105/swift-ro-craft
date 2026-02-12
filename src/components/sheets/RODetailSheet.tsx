@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pencil, Copy, Trash2, Calendar, User, Clock, Wrench, ChevronDown, ChevronUp, List, FileText, Settings2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Pencil, Copy, Trash2, Calendar, User, Clock, Wrench, ChevronDown, ChevronUp, List, FileText, Settings2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { StatusPill } from '@/components/mobile/StatusPill';
@@ -24,8 +24,9 @@ interface RODetailSheetProps {
   onClose: () => void;
   ro: RepairOrder | null;
   onEdit: () => void;
-  onDuplicate: () => void;
+  onDuplicate: (newRONumber: string) => void;
   onDelete: () => void;
+  existingRONumbers?: string[];
 }
 
 export function RODetailSheet({ 
@@ -34,11 +35,34 @@ export function RODetailSheet({
   ro, 
   onEdit, 
   onDuplicate, 
-  onDelete 
+  onDelete,
+  existingRONumbers = [],
 }: RODetailSheetProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLines, setShowLines] = useState(true);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [dupRONumber, setDupRONumber] = useState('');
+  const [dupWarning, setDupWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (showDuplicateDialog) {
+      setDupRONumber('');
+      setDupWarning(null);
+    }
+  }, [showDuplicateDialog]);
+
+  const handleDuplicateConfirm = (force: boolean = false) => {
+    const trimmed = dupRONumber.trim();
+    if (!trimmed) return;
+    if (!force && existingRONumbers.includes(trimmed)) {
+      setDupWarning(`RO #${trimmed} already exists.`);
+      return;
+    }
+    setShowDuplicateDialog(false);
+    onDuplicate(trimmed);
+    onClose();
+  };
 
   if (!ro) return null;
 
@@ -225,7 +249,7 @@ export function RODetailSheet({
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={onDuplicate}
+                  onClick={() => setShowDuplicateDialog(true)}
                   className="flex-1 tap-target"
                 >
                   <Copy className="h-4 w-4 mr-2" />
@@ -274,6 +298,68 @@ export function RODetailSheet({
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate RO dialog */}
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Duplicate RO #{ro.roNumber}</DialogTitle>
+            <DialogDescription>
+              Enter a new RO number for the duplicate. Advisor and line items will be copied.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={dupRONumber}
+              onChange={(e) => {
+                setDupRONumber(e.target.value);
+                setDupWarning(null);
+              }}
+              placeholder="New RO #"
+              className="w-full h-10 px-3 bg-muted rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && dupRONumber.trim()) {
+                  handleDuplicateConfirm();
+                }
+              }}
+            />
+            {dupWarning && (
+              <div className="flex items-start gap-2 p-2.5 bg-warning/10 border border-warning/30 rounded-lg text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-warning font-medium">{dupWarning}</p>
+                  <button
+                    onClick={() => handleDuplicateConfirm(true)}
+                    className="text-xs text-primary underline mt-1"
+                  >
+                    Continue anyway
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-row gap-3 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDuplicateDialog(false)}
+              className="flex-1 tap-target"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleDuplicateConfirm()}
+              disabled={!dupRONumber.trim()}
+              className="flex-1 tap-target"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
             </Button>
           </DialogFooter>
         </DialogContent>

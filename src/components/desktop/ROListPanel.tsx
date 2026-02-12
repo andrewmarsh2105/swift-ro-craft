@@ -210,15 +210,16 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
                       <ROActionMenu
                         roNumber={ro.roNumber}
                         onEdit={() => onSelectRO(ro)}
-                        onDuplicate={() => {
-                          duplicateRO(ro.id);
-                          toast.success(`Duplicated RO #${ro.roNumber}`);
+                        onDuplicate={(newRONumber) => {
+                          duplicateRO(ro.id, newRONumber);
+                          toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
                         }}
                         onDelete={() => {
                           deleteRO(ro.id);
                           toast.success(`Deleted RO #${ro.roNumber}`);
                         }}
                         onFlag={() => setFlaggingRO(ro)}
+                        existingRONumbers={ros.map(r => r.roNumber)}
                         className="-mr-2"
                       />
                     </div>
