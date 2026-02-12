@@ -14,16 +14,242 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      labor_references: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_hours: number | null
+          id: string
+          keywords: string[] | null
+          labor_type_default: Database["public"]["Enums"]["labor_type"]
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_hours?: number | null
+          id?: string
+          keywords?: string[] | null
+          labor_type_default?: Database["public"]["Enums"]["labor_type"]
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_hours?: number | null
+          id?: string
+          keywords?: string[] | null
+          labor_type_default?: Database["public"]["Enums"]["labor_type"]
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ro_lines: {
+        Row: {
+          created_at: string
+          description: string
+          hours_paid: number
+          id: string
+          labor_type: Database["public"]["Enums"]["labor_type"]
+          line_no: number
+          match_confidence: number | null
+          matched_reference_id: string | null
+          notes: string | null
+          ro_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          hours_paid?: number
+          id?: string
+          labor_type?: Database["public"]["Enums"]["labor_type"]
+          line_no?: number
+          match_confidence?: number | null
+          matched_reference_id?: string | null
+          notes?: string | null
+          ro_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          hours_paid?: number
+          id?: string
+          labor_type?: Database["public"]["Enums"]["labor_type"]
+          line_no?: number
+          match_confidence?: number | null
+          matched_reference_id?: string | null
+          notes?: string | null
+          ro_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ro_lines_ro_id_fkey"
+            columns: ["ro_id"]
+            isOneToOne: false
+            referencedRelation: "ros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ro_photos: {
+        Row: {
+          created_at: string
+          id: string
+          ro_id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ro_id: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ro_id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ro_photos_ro_id_fkey"
+            columns: ["ro_id"]
+            isOneToOne: false
+            referencedRelation: "ros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ro_templates: {
+        Row: {
+          created_at: string
+          field_map_json: Json | null
+          id: string
+          name: string
+          sample_photo_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_map_json?: Json | null
+          id?: string
+          name: string
+          sample_photo_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          field_map_json?: Json | null
+          id?: string
+          name?: string
+          sample_photo_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ros: {
+        Row: {
+          advisor_id: string | null
+          advisor_name: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          ro_number: string
+          status: Database["public"]["Enums"]["ro_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advisor_id?: string | null
+          advisor_name?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          ro_number: string
+          status?: Database["public"]["Enums"]["ro_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advisor_id?: string | null
+          advisor_name?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          ro_number?: string
+          status?: Database["public"]["Enums"]["ro_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      owns_ro: { Args: { _ro_id: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      labor_type: "warranty" | "customer-pay" | "internal"
+      ro_status: "draft" | "complete"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +376,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      labor_type: ["warranty", "customer-pay", "internal"],
+      ro_status: ["draft", "complete"],
+    },
   },
 } as const
