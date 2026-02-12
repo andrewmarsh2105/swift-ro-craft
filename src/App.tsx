@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ROProvider } from "@/contexts/ROContext";
 import { FlagProvider } from "@/contexts/FlagContext";
+import { OfflineProvider } from "@/contexts/OfflineContext";
 import { DevDebugPanel } from "@/components/debug/DevDebugPanel";
 import Index from "./pages/Index";
 import AddRO from "./pages/AddRO";
@@ -55,6 +56,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <OfflineProvider>
       <ROProvider>
         <FlagProvider>
           <TooltipProvider>
@@ -73,6 +75,7 @@ const App = () => (
           </TooltipProvider>
         </FlagProvider>
       </ROProvider>
+      </OfflineProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

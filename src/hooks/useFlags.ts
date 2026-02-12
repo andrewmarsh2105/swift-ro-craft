@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
 import type { ROFlag, FlagType } from '@/types/flags';
 
@@ -19,6 +20,7 @@ function dbToFlag(row: any): ROFlag {
 
 export function useFlags() {
   const { user } = useAuth();
+  const { isOnline, queueAction } = useOffline();
   const [flags, setFlags] = useState<ROFlag[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +50,13 @@ export function useFlags() {
     roLineId?: string
   ) => {
     if (!user) return;
+
+    if (!isOnline) {
+      await queueAction('addFlag', { roId, flagType, note, roLineId });
+      toast.info('Flag saved offline — will sync when back online');
+      return;
+    }
+
     const { data, error } = await supabase
       .from('ro_flags')
       .insert({
@@ -65,10 +74,18 @@ export function useFlags() {
     }
     setFlags(prev => [dbToFlag(data), ...prev]);
     toast.success('Flag added');
-  }, [user]);
+  }, [user, isOnline, queueAction]);
 
   const clearFlag = useCallback(async (flagId: string) => {
     if (!user) return;
+
+    if (!isOnline) {
+      await queueAction('clearFlag', { flagId });
+      setFlags(prev => prev.filter(f => f.id !== flagId));
+      toast.info('Flag cleared offline — will sync when back online');
+      return;
+    }
+
     const { error } = await supabase
       .from('ro_flags')
       .update({ cleared_at: new Date().toISOString() })
@@ -79,7 +96,7 @@ export function useFlags() {
     }
     setFlags(prev => prev.filter(f => f.id !== flagId));
     toast.success('Flag cleared');
-  }, [user]);
+  }, [user, isOnline, queueAction]);
 
   const getFlagsForRO = useCallback((roId: string) => {
     return flags.filter(f => f.roId === roId && !f.roLineId);
