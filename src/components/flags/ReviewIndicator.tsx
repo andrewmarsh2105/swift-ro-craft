@@ -1,88 +1,141 @@
 import { useState } from 'react';
-import { AlertTriangle, Flag, X } from 'lucide-react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { AlertTriangle, ArrowRight, Flag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AddFlagDialog } from './AddFlagDialog';
 import { cn } from '@/lib/utils';
-import type { ReviewIssue } from '@/types/flags';
+import type { ReviewIssue } from '@/lib/reviewRules';
 import type { FlagType } from '@/types/flags';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer';
 
 interface ReviewIndicatorProps {
   issues: ReviewIssue[];
   onConvertToFlag: (issue: ReviewIssue, flagType: FlagType, note?: string) => void;
-  onDismiss?: (issue: ReviewIssue) => void;
+  onGoToLine?: (lineId: string) => void;
   size?: 'sm' | 'md';
 }
 
-export function ReviewIndicator({ issues, onConvertToFlag, onDismiss, size = 'sm' }: ReviewIndicatorProps) {
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+export function ReviewIndicator({ issues, onConvertToFlag, onGoToLine, size = 'sm' }: ReviewIndicatorProps) {
+  const [open, setOpen] = useState(false);
   const [convertingIssue, setConvertingIssue] = useState<ReviewIssue | null>(null);
+  const isMobile = useIsMobile();
 
-  const activeIssues = issues.filter(i => !dismissed.has(`${i.type}-${i.roId}-${i.lineId || ''}`));
-
-  if (activeIssues.length === 0) return null;
-
-  const handleDismiss = (issue: ReviewIssue) => {
-    const key = `${issue.type}-${issue.roId}-${issue.lineId || ''}`;
-    setDismissed(prev => new Set(prev).add(key));
-    onDismiss?.(issue);
-  };
+  if (issues.length === 0) return null;
 
   const iconSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
+  const issueList = (
+    <div className="space-y-2 p-1">
+      {issues.map((issue, i) => (
+        <div
+          key={`${issue.code}-${issue.lineId || i}`}
+          className={cn(
+            'px-3 py-3 rounded-lg border',
+            issue.severity === 'error'
+              ? 'bg-destructive/10 border-destructive/20'
+              : 'bg-yellow-500/10 border-yellow-500/20'
+          )}
+        >
+          <p className={cn(
+            'text-sm font-semibold mb-0.5',
+            issue.severity === 'error' ? 'text-destructive' : 'text-yellow-600'
+          )}>
+            {issue.title}
+          </p>
+          <p className="text-xs text-muted-foreground mb-2">{issue.detail}</p>
+          <div className="flex gap-1.5 flex-wrap">
+            {issue.suggestedAction === 'go_to_line' && issue.lineId && onGoToLine && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onGoToLine(issue.lineId!);
+                  setOpen(false);
+                }}
+                className="h-7 text-[11px]"
+              >
+                <ArrowRight className="h-3 w-3 mr-1" />
+                Go to line {issue.lineNo}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setConvertingIssue(issue)}
+              className="h-7 text-[11px] text-orange-500 border-orange-500/30"
+            >
+              <Flag className="h-3 w-3 mr-1" />
+              Convert to flag
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const content = isMobile ? (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            Needs Review
+          </DrawerTitle>
+          <DrawerDescription>
+            {issues.length} issue{issues.length !== 1 ? 's' : ''} found on this RO.
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="px-4 pb-6 max-h-[60vh] overflow-y-auto">
+          {issueList}
+        </div>
+      </DrawerContent>
+    </Drawer>
+  ) : (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            Needs Review
+          </DialogTitle>
+          <DialogDescription>
+            {issues.length} issue{issues.length !== 1 ? 's' : ''} found on this RO.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[50vh] overflow-y-auto">
+          {issueList}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <>
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-0.5 text-yellow-500 hover:text-yellow-600 transition-colors"
-            title="Needs review"
-          >
-            <AlertTriangle className={iconSize} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-64 p-2 rounded-xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1.5">
-            Needs Review
-          </p>
-          <div className="space-y-1.5">
-            {activeIssues.map((issue, i) => (
-              <div key={i} className="px-2 py-2 bg-yellow-500/10 rounded-lg">
-                <p className="text-xs font-medium text-yellow-600 mb-1.5">{issue.message}</p>
-                <div className="flex gap-1.5">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDismiss(issue)}
-                    className="h-7 text-[11px] text-muted-foreground"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Ignore
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setConvertingIssue(issue)}
-                    className="h-7 text-[11px] text-orange-500"
-                  >
-                    <Flag className="h-3 w-3 mr-1" />
-                    Flag it
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        className="inline-flex items-center gap-0.5 text-yellow-500 hover:text-yellow-600 transition-colors"
+        title={`${issues.length} review issue${issues.length !== 1 ? 's' : ''}`}
+      >
+        <AlertTriangle className={iconSize} />
+      </button>
+
+      {content}
 
       {convertingIssue && (
         <AddFlagDialog
@@ -90,7 +143,6 @@ export function ReviewIndicator({ issues, onConvertToFlag, onDismiss, size = 'sm
           onClose={() => setConvertingIssue(null)}
           onSubmit={(flagType, note) => {
             onConvertToFlag(convertingIssue, flagType, note);
-            handleDismiss(convertingIssue);
             setConvertingIssue(null);
           }}
           title="Convert to Flag"

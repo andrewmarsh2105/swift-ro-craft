@@ -9,7 +9,9 @@ import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { toast } from 'sonner';
 import type { RepairOrder, LaborType } from '@/types/ro';
-import type { ReviewIssue, FlagType } from '@/types/flags';
+import type { FlagType } from '@/types/flags';
+import type { ReviewIssue } from '@/lib/reviewRules';
+import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 
 interface ROListPanelProps {
@@ -25,21 +27,6 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
 
-  const getReviewIssues = useCallback((ro: RepairOrder): ReviewIssue[] => {
-    const issues: ReviewIssue[] = [];
-    if (ro.lines?.length > 0) {
-      ro.lines.forEach(line => {
-        if (line.hoursPaid === 0 && line.description) {
-          issues.push({ type: 'missing_hours', roId: ro.id, lineId: line.id, message: `L${line.lineNo}: "${line.description}" has 0 hours` });
-        }
-      });
-    }
-    const dupes = ros.filter(r => r.id !== ro.id && r.roNumber === ro.roNumber && ro.roNumber !== '');
-    if (dupes.length > 0) {
-      issues.push({ type: 'duplicate_ro', roId: ro.id, message: `RO #${ro.roNumber} appears ${dupes.length + 1} times` });
-    }
-    return issues;
-  }, [ros]);
 
   const filteredROs = useMemo(() => {
     let result = ros;
@@ -184,11 +171,11 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
                         <StatusPill type={ro.laborType} size="sm" />
                         <FlagBadge flags={getFlagsForRO(ro.id)} onClear={clearFlag} />
                         {(() => {
-                          const issues = getReviewIssues(ro);
+                          const issues = getReviewIssues(ro, ros);
                           return issues.length > 0 ? (
                             <ReviewIndicator
                               issues={issues}
-                              onConvertToFlag={(issue, flagType, note) => addFlag(issue.roId, flagType, note || issue.message, issue.lineId)}
+                              onConvertToFlag={(issue, flagType, note) => addFlag(issue.roId, flagType, note || issue.detail, issue.lineId)}
                             />
                           ) : null;
                         })()}
