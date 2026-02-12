@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, Plus, ChevronRight } from 'lucide-react';
+import { Search, SlidersHorizontal, Plus } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
+import { ROActionMenu } from '@/components/shared/ROActionMenu';
+import { toast } from 'sonner';
 import type { RepairOrder, LaborType } from '@/types/ro';
 import { cn } from '@/lib/utils';
 
@@ -142,15 +144,17 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
                   : ro.paidHours;
 
                 return (
-                  <button
+                  <div
                     key={ro.id}
-                    onClick={() => onSelectRO(ro)}
                     className={cn(
-                      'w-full px-4 py-3 flex items-center gap-3 text-left border-b border-border/50 hover:bg-muted/30 transition-colors',
+                      'w-full px-4 py-3 flex items-center gap-3 border-b border-border/50 hover:bg-muted/30 transition-colors',
                       selectedROId === ro.id && 'bg-primary/5 border-l-2 border-l-primary'
                     )}
                   >
-                    <div className="flex-1 min-w-0">
+                    <div
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => onSelectRO(ro)}
+                    >
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="font-semibold text-sm">#{ro.roNumber}</span>
                         <StatusPill type={ro.laborType} size="sm" />
@@ -169,9 +173,21 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-lg font-bold text-primary">{totalHours.toFixed(1)}h</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <ROActionMenu
+                        roNumber={ro.roNumber}
+                        onEdit={() => onSelectRO(ro)}
+                        onDuplicate={() => {
+                          duplicateRO(ro.id);
+                          toast.success(`Duplicated RO #${ro.roNumber}`);
+                        }}
+                        onDelete={() => {
+                          deleteRO(ro.id);
+                          toast.success(`Deleted RO #${ro.roNumber}`);
+                        }}
+                        className="-mr-2"
+                      />
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

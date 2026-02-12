@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
-import { Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
-import { SwipeableCard } from '@/components/mobile/SwipeableCard';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { Chip, ChipGroup } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
+import { ROActionMenu } from '@/components/shared/ROActionMenu';
+import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
 
 interface ROCardProps {
@@ -23,22 +24,16 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProp
     day: 'numeric',
   });
 
-  // Calculate total hours from lines if available
   const hasLines = ro.lines && ro.lines.length > 0;
   const totalHours = hasLines 
     ? ro.lines.reduce((sum, line) => sum + line.hoursPaid, 0)
     : ro.paidHours;
 
   return (
-    <SwipeableCard 
-      onEdit={onEdit} 
-      onDuplicate={onDuplicate} 
-      onDelete={onDelete}
-      onViewDetails={onViewDetails}
-      roNumber={ro.roNumber}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+    <div className="card-mobile p-4 rounded-xl">
+      <div className="flex items-start gap-3">
+        {/* Tappable content area */}
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
           <div className="flex items-center gap-2 mb-1">
             <span className="font-bold text-lg">#{ro.roNumber}</span>
             {hasLines && (
@@ -58,13 +53,21 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProp
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <span className="text-xl font-bold text-primary">
-            {totalHours.toFixed(1)}h
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-xl font-bold text-primary">
+              {totalHours.toFixed(1)}h
+            </span>
+            <ROActionMenu
+              roNumber={ro.roNumber}
+              onEdit={onEdit}
+              onDuplicate={onDuplicate}
+              onDelete={onDelete}
+            />
+          </div>
           <StatusPill type={ro.laborType} />
         </div>
       </div>
-    </SwipeableCard>
+    </div>
   );
 }
 
@@ -208,8 +211,14 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               key={ro.id}
               ro={ro}
               onEdit={() => onEditRO(ro)}
-              onDuplicate={() => duplicateRO(ro.id)}
-              onDelete={() => deleteRO(ro.id)}
+              onDuplicate={() => {
+                duplicateRO(ro.id);
+                toast.success(`Duplicated RO #${ro.roNumber}`);
+              }}
+              onDelete={() => {
+                deleteRO(ro.id);
+                toast.success(`Deleted RO #${ro.roNumber}`);
+              }}
               onViewDetails={() => {
                 setSelectedRO(ro);
                 setShowDetail(true);
