@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
+import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 
 interface CompactLinesGridProps {
   lines: ROLine[];
@@ -19,6 +20,7 @@ function createEmptyLine(lineNo: number): ROLine {
     lineNo,
     description: '',
     hoursPaid: 0,
+    laborType: 'customer-pay',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -83,12 +85,8 @@ export function CompactLinesGrid({
     onLinesChange(updatedLines);
   };
 
-  const handleHoursInput = (index: number, value: string) => {
-    const cleanValue = value.replace(/[^0-9.]/g, '');
-    const parts = cleanValue.split('.');
-    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleanValue;
-    const numValue = parseFloat(sanitized) || 0;
-    handleLineChange(index, { hoursPaid: Math.max(0, numValue) });
+  const handleHoursInput = (index: number, value: number) => {
+    handleLineChange(index, { hoursPaid: Math.max(0, value) });
   };
 
   return (
@@ -170,11 +168,9 @@ export function CompactLinesGrid({
                   <div className="flex-1" />
                   
                   <div className="flex items-center gap-1">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={line.hoursPaid || ''}
-                      onChange={(e) => handleHoursInput(index, e.target.value)}
+                    <DecimalHoursInput
+                      value={line.hoursPaid}
+                      onChange={(v) => handleHoursInput(index, v)}
                       placeholder="0.0"
                       disabled={readOnly}
                       className={cn(

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
+import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 
 interface LineItemEditorProps {
   lines: ROLine[];
@@ -18,6 +19,7 @@ function createEmptyLine(lineNo: number): ROLine {
     lineNo,
     description: '',
     hoursPaid: 0,
+    laborType: 'customer-pay',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -86,20 +88,8 @@ export function LineItemEditor({
     onLinesChange(updatedLines);
   };
 
-  const handleHoursInput = (index: number, value: string) => {
-    // Allow empty string, numbers, and decimals
-    const cleanValue = value.replace(/[^0-9.]/g, '');
-    // Prevent multiple decimal points
-    const parts = cleanValue.split('.');
-    const sanitized = parts.length > 2 
-      ? parts[0] + '.' + parts.slice(1).join('') 
-      : cleanValue;
-    
-    const numValue = parseFloat(sanitized) || 0;
-    // Prevent negative numbers
-    const finalValue = Math.max(0, numValue);
-    
-    handleLineChange(index, { hoursPaid: finalValue });
+  const handleHoursInput = (index: number, value: number) => {
+    handleLineChange(index, { hoursPaid: Math.max(0, value) });
   };
 
   const handlePresetSelect = (preset: Preset) => {
@@ -257,11 +247,9 @@ export function LineItemEditor({
                     <label className="block text-xs font-medium text-muted-foreground mb-1">
                       Hours Paid
                     </label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={line.hoursPaid || ''}
-                      onChange={(e) => handleHoursInput(index, e.target.value)}
+                    <DecimalHoursInput
+                      value={line.hoursPaid}
+                      onChange={(v) => handleHoursInput(index, v)}
                       placeholder="0.0"
                       className="w-full h-12 px-4 bg-background rounded-xl text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary"
                     />

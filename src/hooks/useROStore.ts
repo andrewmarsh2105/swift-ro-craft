@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { pushDebug } from '@/components/debug/DevDebugPanel';
 import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine } from '@/types/ro';
 
 // Map DB row to app RepairOrder
@@ -82,8 +83,11 @@ export function useROStore() {
 
       const mapped = (roRows || []).map(r => dbToRO(r, linesByRO.get(r.id) || []));
       setROs(mapped);
+      const totalLines = (lineRows || []).length;
+      pushDebug({ action: `fetchROs OK: ${mapped.length} ROs, ${totalLines} lines` });
     } catch (err: any) {
       console.error('Failed to fetch ROs', err);
+      pushDebug({ action: 'fetchROs FAIL', error: err?.message });
     } finally {
       setLoadingROs(false);
     }
@@ -148,7 +152,13 @@ export function useROStore() {
       .select()
       .single();
 
-    if (error || !newRow) { toast.error('Failed to create RO'); return; }
+    if (error || !newRow) {
+      const msg = error?.message || 'Unknown error';
+      toast.error('Failed to create RO');
+      pushDebug({ action: 'addRO FAIL', userId: user.id, error: msg });
+      return;
+    }
+    pushDebug({ action: 'addRO OK', roId: newRow.id, userId: user.id });
 
     // Insert lines
     if (ro.lines.length > 0) {
@@ -157,12 +167,18 @@ export function useROStore() {
         user_id: user.id,
         line_no: i + 1,
         description: l.description,
-        labor_type: l.laborType as any,
+        labor_type: (l.laborType || ro.laborType || 'customer-pay') as any,
         hours_paid: l.hoursPaid,
         matched_reference_id: l.matchedReferenceId || null,
       }));
       const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
-      if (lErr) console.error('Failed to insert lines', lErr);
+      if (lErr) {
+        console.error('Failed to insert lines', lErr);
+        toast.error(`Lines failed to save: ${lErr.message}`);
+        pushDebug({ action: 'insertLines FAIL', roId: newRow.id, error: lErr.message, lineCount: lineInserts.length });
+      } else {
+        pushDebug({ action: 'insertLines OK', roId: newRow.id, lineCount: lineInserts.length });
+      }
     }
 
     await fetchROs();
@@ -185,18 +201,27 @@ export function useROStore() {
 
     // Replace lines if provided
     if (updates.lines) {
-      await supabase.from('ro_lines').delete().eq('ro_id', id);
+      const { error: delErr } = await supabase.from('ro_lines').delete().eq('ro_id', id);
+      if (delErr) {
+        console.error('Failed to delete old lines', delErr);
+        toast.error(`Failed to update lines: ${delErr.message}`);
+        return;
+      }
       if (updates.lines.length > 0) {
         const lineInserts = updates.lines.map((l, i) => ({
           ro_id: id,
           user_id: user.id,
           line_no: i + 1,
           description: l.description,
-          labor_type: l.laborType as any,
+          labor_type: (l.laborType || updates.laborType || 'customer-pay') as any,
           hours_paid: l.hoursPaid,
           matched_reference_id: l.matchedReferenceId || null,
         }));
-        await supabase.from('ro_lines').insert(lineInserts);
+        const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);
+        if (insErr) {
+          console.error('Failed to insert lines', insErr);
+          toast.error(`Lines failed to save: ${insErr.message}`);
+        }
       }
     }
 

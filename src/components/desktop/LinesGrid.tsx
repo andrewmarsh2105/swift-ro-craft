@@ -3,6 +3,7 @@ import { Plus, Trash2, Copy, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
+import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 
 interface LinesGridProps {
   lines: ROLine[];
@@ -17,6 +18,7 @@ function createEmptyLine(lineNo: number): ROLine {
     lineNo,
     description: '',
     hoursPaid: 0,
+    laborType: 'customer-pay',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -75,12 +77,8 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
     onLinesChange(updatedLines);
   };
 
-  const handleHoursChange = (index: number, value: string) => {
-    const cleanValue = value.replace(/[^0-9.]/g, '');
-    const parts = cleanValue.split('.');
-    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleanValue;
-    const numValue = parseFloat(sanitized) || 0;
-    handleLineChange(index, { hoursPaid: Math.max(0, numValue) });
+  const handleHoursChange = (index: number, value: number) => {
+    handleLineChange(index, { hoursPaid: Math.max(0, value) });
   };
 
   const handleKeyDown = (e: KeyboardEvent, rowIndex: number, colName: string) => {
@@ -194,13 +192,9 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
 
             {/* Hours */}
             <div className="px-2 py-1">
-              <input
-                ref={(el) => setRef(`${index}-hours`, el)}
-                type="text"
-                inputMode="decimal"
-                value={line.hoursPaid || ''}
-                onChange={(e) => handleHoursChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, index, 'hours')}
+              <DecimalHoursInput
+                value={line.hoursPaid}
+                onChange={(v) => handleHoursChange(index, v)}
                 placeholder="0.0"
                 disabled={readOnly}
                 className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded text-sm text-right font-medium focus:outline-none transition-colors disabled:opacity-60"

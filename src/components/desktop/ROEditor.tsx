@@ -33,14 +33,14 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
   const [laborType, setLaborType] = useState<LaborType>(ro?.laborType || 'customer-pay');
   const [notes, setNotes] = useState(ro?.notes || '');
   const [lines, setLines] = useState<ROLine[]>(() => {
-    if (ro?.lines?.length) return ro.lines;
+    if (ro?.lines?.length) return ro.lines.map(l => ({ ...l, laborType: l.laborType || 'customer-pay' }));
     if (ro && ro.paidHours > 0) {
       return [{
         id: Date.now().toString(),
         lineNo: 1,
         description: ro.workPerformed || 'General Labor',
         hoursPaid: ro.paidHours,
-        laborType: ro.laborType,
+        laborType: ro.laborType || 'customer-pay',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }];

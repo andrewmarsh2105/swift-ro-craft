@@ -34,7 +34,8 @@ export function NumericInput({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value) || 0;
+    const raw = e.target.value.replace(',', '.');
+    const newValue = parseFloat(raw) || 0;
     if (newValue >= min && newValue <= max) {
       onChange(Math.round(newValue * 10) / 10);
     }
@@ -60,10 +61,10 @@ export function NumericInput({
         </button>
         
         <input
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={value.toFixed(1)}
           onChange={handleInputChange}
-          inputMode="decimal"
           className="numeric-input w-24"
         />
         

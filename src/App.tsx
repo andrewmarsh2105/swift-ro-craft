@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ROProvider } from "@/contexts/ROContext";
+import { DevDebugPanel } from "@/components/debug/DevDebugPanel";
 import Index from "./pages/Index";
 import AddRO from "./pages/AddRO";
 import Auth from "./pages/Auth";
@@ -56,6 +57,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <DevDebugPanel />
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
