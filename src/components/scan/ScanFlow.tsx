@@ -83,45 +83,24 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
       {/* File inputs are now embedded inside their <label> buttons below */}
 
       {/* Content based on state */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
+      <div className={cn(
+        "flex-1 flex flex-col items-center justify-center p-8 gap-6",
+        isMobile && (state === 'idle' || state === 'selecting') && "pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
+      )}>
         {(state === 'idle' || state === 'selecting') && (
           <>
-            {/* Preview area */}
+            {/* Visual-only dropzone (not the interaction point) */}
             <div className="w-full max-w-sm aspect-[3/4] border-4 border-dashed border-primary/30 rounded-3xl flex flex-col items-center justify-center gap-4 bg-primary/5">
               <Camera className="h-16 w-16 text-primary/40" />
               <p className="text-muted-foreground text-center px-6 text-sm">
                 {isMobile
-                  ? 'Tap "Take Photo" to scan or "Photos" to pick from camera roll'
+                  ? 'Use the buttons below to scan or pick a photo'
                   : 'Click "Upload RO Photo" to select an image'}
               </p>
             </div>
 
-            {/* Action buttons — each wraps its own hidden input for iOS Safari gesture compliance */}
-            {isMobile ? (
-              <div className="flex gap-3 w-full max-w-sm">
-                <label className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer tap-target touch-feedback active:scale-[0.97] transition-transform">
-                  <Camera className="h-5 w-5" />
-                  Take Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={onFileChange}
-                    className="hidden"
-                  />
-                </label>
-                <label className="py-4 px-6 bg-secondary text-secondary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer tap-target touch-feedback active:scale-[0.97] transition-transform">
-                  <Image className="h-5 w-5" />
-                  Photos
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={onFileChange}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            ) : (
+            {/* Desktop: inline upload button */}
+            {!isMobile && (
               <label className="py-4 px-8 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer hover:bg-primary/90 transition-colors">
                 <Upload className="h-5 w-5" />
                 Upload RO Photo
@@ -138,7 +117,6 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
 
         {(state === 'uploading' || state === 'extracting') && (
           <div className="flex flex-col items-center gap-6">
-            {/* Image thumbnail preview */}
             {imagePreviewUrl && (
               <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-lg">
                 <img src={imagePreviewUrl} alt="Scanned RO" className="w-full h-full object-cover" />
@@ -180,6 +158,38 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
           </div>
         )}
       </div>
+
+      {/* Mobile: Fixed bottom action bar — always visible */}
+      {isMobile && (state === 'idle' || state === 'selecting') && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-[1000] border-t border-border bg-card"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          <div className="flex gap-3 p-4">
+            <label className="flex-1 min-h-[56px] bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform">
+              <Camera className="h-5 w-5" />
+              Take Photo
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={onFileChange}
+                className="hidden"
+              />
+            </label>
+            <label className="min-h-[56px] px-6 bg-secondary text-secondary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform">
+              <Image className="h-5 w-5" />
+              Photos
+              <input
+                type="file"
+                accept="image/*"
+                onChange={onFileChange}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* Dev Debug Panel */}
       {/* Dev Debug — positioned at top so it never blocks action buttons */}
