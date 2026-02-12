@@ -1,15 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flag, Check } from 'lucide-react';
+import { Flag, ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useRO } from '@/contexts/ROContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
@@ -22,32 +15,25 @@ const DATE_RANGES = [
   { value: 'all', label: 'All' },
 ];
 
-export function FlagInbox() {
-  const isMobile = useIsMobile();
+export default function FlagInboxPage() {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const { flags, clearFlag, activeCount, refetch } = useFlagContext();
+  const { flags, clearFlag, activeCount, loading, refetch } = useFlagContext();
   const { ros } = useRO();
   const [typeFilter, setTypeFilter] = useState<FlagType | 'all'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
 
+  // Fresh fetch on mount
   useEffect(() => {
-    if (open) refetch();
-  }, [open, refetch]);
+    refetch();
+  }, [refetch]);
 
-  const handleOpen = () => {
-    if (isMobile) {
-      navigate('/flag-inbox');
-    } else {
-      setOpen(true);
-    }
-  };
-
-  const filteredFlags = (() => {
+  const filteredFlags = useMemo(() => {
     let result = flags;
+
     if (typeFilter !== 'all') {
       result = result.filter(f => f.flagType === typeFilter);
     }
+
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     if (dateRange === 'today') {
@@ -61,12 +47,18 @@ export function FlagInbox() {
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       result = result.filter(f => new Date(f.createdAt) >= monthAgo);
     }
+
     return result;
-  })();
+  }, [flags, typeFilter, dateRange]);
 
   const getRoNumber = (roId: string) => {
     const ro = ros.find(r => r.id === roId);
     return ro ? `#${ro.roNumber}` : '—';
+  };
+
+  const getAdvisor = (roId: string) => {
+    const ro = ros.find(r => r.id === roId);
+    return ro?.advisor || '—';
   };
 
   const getLineDesc = (roId: string, lineId?: string | null) => {
@@ -76,10 +68,31 @@ export function FlagInbox() {
     return line ? `L${line.lineNo}: ${line.description || '—'}` : null;
   };
 
-  const desktopContent = (
-    <div>
+  return (
+    <div
+      className="flex flex-col h-screen bg-background"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+    >
+      {/* Sticky Header */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-background">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 -ml-2 rounded-lg hover:bg-muted transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h1 className="text-lg font-semibold flex-1">Flag Inbox</h1>
+        {activeCount > 0 && (
+          <span className="text-xs text-muted-foreground">{activeCount} active</span>
+        )}
+      </div>
+
       {/* Filters */}
-      <div className="px-4 py-3 border-b border-border space-y-3">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border space-y-3">
+        {/* Date Range */}
         <div className="flex gap-1.5">
           {DATE_RANGES.map((dr) => (
             <button
@@ -96,6 +109,8 @@ export function FlagInbox() {
             </button>
           ))}
         </div>
+
+        {/* Type Filter */}
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setTypeFilter('all')}
@@ -129,13 +144,29 @@ export function FlagInbox() {
         </div>
       </div>
 
-      {/* Flag List */}
-      <div>
-        {filteredFlags.length === 0 ? (
+      {/* Scrollable List */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredFlags.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Flag className="h-8 w-8 mx-auto mb-2 opacity-30" />
             <p className="font-medium">No flags</p>
-            <p className="text-sm mt-1">Flagged items will appear here</p>
+            <p className="text-sm mt-1">
+              {flags.length === 0
+                ? 'Flagged items will appear here'
+                : 'No flags match current filters'}
+            </p>
+            {flags.length > 0 && typeFilter !== 'all' && (
+              <button
+                onClick={() => { setTypeFilter('all'); setDateRange('all'); }}
+                className="mt-3 text-xs text-primary font-medium"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-border">
@@ -153,6 +184,9 @@ export function FlagInbox() {
                     </div>
                     {lineDesc && (
                       <p className="text-xs text-muted-foreground truncate">{lineDesc}</p>
+                    )}
+                    {!flag.roLineId && (
+                      <p className="text-xs text-muted-foreground">RO-level flag</p>
                     )}
                     {flag.note && (
                       <p className="text-xs text-foreground/80 mt-0.5">"{flag.note}"</p>
@@ -175,47 +209,5 @@ export function FlagInbox() {
         )}
       </div>
     </div>
-  );
-
-  return (
-    <>
-      {/* Inbox Trigger Button */}
-      <button
-        onClick={handleOpen}
-        className={cn(
-          'relative p-2 rounded-lg transition-colors',
-          'text-muted-foreground hover:text-foreground hover:bg-muted',
-          activeCount > 0 && 'text-orange-500'
-        )}
-        title="Flag Inbox"
-      >
-        <Flag className="h-5 w-5" />
-        {activeCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-            {activeCount > 9 ? '9+' : activeCount}
-          </span>
-        )}
-      </button>
-
-      {/* Desktop Dialog only */}
-      {!isMobile && (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-lg max-h-[70vh] flex flex-col rounded-2xl p-0 overflow-hidden">
-            <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
-              <DialogTitle className="flex items-center gap-2">
-                <Flag className="h-4 w-4" />
-                Flag Inbox
-                {activeCount > 0 && (
-                  <span className="text-xs font-normal text-muted-foreground">({activeCount} active)</span>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 min-h-0 overflow-auto">
-              {desktopContent}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
   );
 }
