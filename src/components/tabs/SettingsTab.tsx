@@ -292,6 +292,24 @@ export function SettingsTab() {
           />
         </SettingsGroup>
 
+        {/* Summary Range */}
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
+            Summary Range
+          </h3>
+          <div className="card-mobile p-4">
+            <p className="text-sm text-muted-foreground mb-3">Default period for Summary &amp; Main page</p>
+            <SegmentedControl
+              options={[
+                { value: 'week', label: '1 Week' },
+                { value: 'two_weeks', label: '2 Weeks' },
+              ]}
+              value={userSettings.defaultSummaryRange || 'week'}
+              onChange={(v) => updateUserSetting('defaultSummaryRange', v)}
+            />
+          </div>
+        </div>
+
         {/* Default Values */}
         <SettingsGroup title="Defaults">
           <SettingsRow

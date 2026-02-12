@@ -1,19 +1,22 @@
 import { useState, useMemo } from 'react';
-import { Download, Copy, Filter, ChevronRight, FileText, AlertTriangle, Flag } from 'lucide-react';
-import { useRO } from '@/contexts/ROContext';
+import { Download, Copy, FileText, AlertTriangle, Flag, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFlagContext } from '@/contexts/FlagContext';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
-import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { StatusPill } from '@/components/mobile/StatusPill';
-import { Chip } from '@/components/mobile/Chip';
 import { ProofPack } from '@/components/reports/ProofPack';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
+import type { SummaryRange } from '@/hooks/useUserSettings';
 
-type ViewMode = 'day' | 'week' | 'month';
+type ViewMode = 'default' | 'custom';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -25,14 +28,16 @@ function getWeekRange(date: Date): { start: string; end: string } {
   return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
 }
 
-function getMonthRange(date: Date): { start: string; end: string } {
-  const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+function getTwoWeekRange(date: Date): { start: string; end: string } {
+  const end = new Date(date);
+  end.setDate(end.getDate() - end.getDay() + 7); // end of current week (Sun)
+  const start = new Date(end);
+  start.setDate(start.getDate() - 13); // 14 days back (Mon of 2 weeks ago)
   return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
 }
 
 function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?: boolean }) {
-  const date = new Date(summary.date);
+  const date = new Date(summary.date + 'T12:00:00');
   const dayName = dayNames[date.getDay()];
   const dayNum = date.getDate();
 
@@ -76,31 +81,95 @@ function AdvisorCard({ summary }: { summary: AdvisorBreakdown }) {
   );
 }
 
+function WeekBlock({ days, label, todayStr }: { days: DayBreakdown[]; label: string; todayStr: string }) {
+  const weekTotal = days.reduce((s, d) => s + d.totalHours, 0);
+  const visibleDays = days.filter(d => d.totalHours > 0 || d.date === todayStr);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1">
+        <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{label}</h4>
+        <span className="text-sm font-bold">{weekTotal.toFixed(1)}h</span>
+      </div>
+      {visibleDays.length === 0 ? (
+        <p className="text-sm text-muted-foreground px-1">No entries</p>
+      ) : (
+        visibleDays.map(summary => (
+          <DaySummaryCard key={summary.date} summary={summary} isToday={summary.date === todayStr} />
+        ))
+      )}
+    </div>
+  );
+}
+
 export function SummaryTab() {
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
+  const { userSettings } = useFlagContext();
+  const defaultRange: SummaryRange = userSettings.defaultSummaryRange || 'week';
+
+  const [rangeOverride, setRangeOverride] = useState<'default' | 'week' | 'two_weeks' | 'custom'>('default');
+  const [customStart, setCustomStart] = useState<Date | undefined>();
+  const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [showProofPack, setShowProofPack] = useState(false);
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
 
+  const effectiveRange = rangeOverride === 'default' ? defaultRange : rangeOverride;
+
   const dateRange = useMemo(() => {
-    if (viewMode === 'day') return { start: todayStr, end: todayStr };
-    if (viewMode === 'week') return getWeekRange(today);
-    return getMonthRange(today);
-  }, [viewMode, todayStr]);
+    if (effectiveRange === 'custom' && customStart && customEnd) {
+      return { start: customStart.toISOString().split('T')[0], end: customEnd.toISOString().split('T')[0] };
+    }
+    if (effectiveRange === 'two_weeks') return getTwoWeekRange(today);
+    return getWeekRange(today);
+  }, [effectiveRange, todayStr, customStart, customEnd]);
 
   const report = usePayPeriodReport(dateRange.start, dateRange.end);
 
+  // Split days into two week blocks for biweekly
+  const weekBlocks = useMemo(() => {
+    if (effectiveRange !== 'two_weeks') return null;
+    const midpoint = new Date(dateRange.start);
+    midpoint.setDate(midpoint.getDate() + 7);
+    const midStr = midpoint.toISOString().split('T')[0];
+    const week1 = report.byDay.filter(d => d.date < midStr);
+    const week2 = report.byDay.filter(d => d.date >= midStr);
+
+    const w1Start = new Date(dateRange.start + 'T12:00:00');
+    const w1End = new Date(midpoint);
+    w1End.setDate(w1End.getDate() - 1);
+    const w2End = new Date(dateRange.end + 'T12:00:00');
+
+    return {
+      week1: { days: week1, label: `Week 1 (${format(w1Start, 'MMM d')} – ${format(w1End, 'MMM d')})` },
+      week2: { days: week2, label: `Week 2 (${format(midpoint, 'MMM d')} – ${format(w2End, 'MMM d')})` },
+    };
+  }, [effectiveRange, report.byDay, dateRange]);
+
   const viewModeLabel = useMemo(() => {
-    if (viewMode === 'day') return 'Today';
-    if (viewMode === 'week') {
-      const start = new Date(dateRange.start);
-      const end = new Date(dateRange.end);
-      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    if (effectiveRange === 'custom' && customStart && customEnd) {
+      return `${format(customStart, 'MMM d')} – ${format(customEnd, 'MMM d')}`;
     }
-    return today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  }, [viewMode, dateRange, today]);
+    if (effectiveRange === 'two_weeks') {
+      const s = new Date(dateRange.start + 'T12:00:00');
+      const e = new Date(dateRange.end + 'T12:00:00');
+      return `${format(s, 'MMM d')} – ${format(e, 'MMM d')} (2 Weeks)`;
+    }
+    const s = new Date(dateRange.start + 'T12:00:00');
+    const e = new Date(dateRange.end + 'T12:00:00');
+    return `${format(s, 'MMM d')} – ${format(e, 'MMM d')}`;
+  }, [effectiveRange, dateRange, customStart, customEnd]);
+
+  const segmentValue = rangeOverride === 'default'
+    ? (defaultRange === 'two_weeks' ? 'two_weeks' : 'week')
+    : rangeOverride;
+
+  const handleSegmentChange = (v: string) => {
+    if (v === 'week') setRangeOverride(defaultRange === 'week' ? 'default' : 'week');
+    else if (v === 'two_weeks') setRangeOverride(defaultRange === 'two_weeks' ? 'default' : 'two_weeks');
+    else setRangeOverride(v as any);
+  };
 
   const handleCopySummary = async () => {
     const text = generateSummaryText(report);
@@ -120,13 +189,40 @@ export function SummaryTab() {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border space-y-3">
         <SegmentedControl
           options={[
-            { value: 'day' as ViewMode, label: 'Day' },
-            { value: 'week' as ViewMode, label: 'Week' },
-            { value: 'month' as ViewMode, label: 'Month' },
+            { value: 'week', label: '1 Week' },
+            { value: 'two_weeks', label: '2 Weeks' },
+            { value: 'custom', label: 'Custom' },
           ]}
-          value={viewMode}
-          onChange={(v) => setViewMode(v as ViewMode)}
+          value={segmentValue}
+          onChange={handleSegmentChange}
         />
+        {effectiveRange === 'custom' && (
+          <div className="flex gap-2 items-center">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !customStart && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {customStart ? format(customStart, 'MMM d, yyyy') : 'Start date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-muted-foreground">–</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !customEnd && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {customEnd ? format(customEnd, 'MMM d, yyyy') : 'End date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <span className="font-semibold text-lg">{viewModeLabel}</span>
         </div>
@@ -138,7 +234,7 @@ export function SummaryTab() {
         <div className="bg-primary text-primary-foreground rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-primary-foreground/80 font-medium">
-              {viewMode === 'day' ? "Today's Total" : viewMode === 'week' ? 'Week Total' : 'Month Total'}
+              {effectiveRange === 'two_weeks' ? '2-Week Total' : effectiveRange === 'custom' ? 'Total' : 'Week Total'}
             </span>
             <span className="text-sm text-primary-foreground/70">
               {report.totalROs} ROs · {report.totalLines} lines
@@ -179,7 +275,16 @@ export function SummaryTab() {
         )}
 
         {/* Day summaries */}
-        {viewMode !== 'day' && (
+        {weekBlocks ? (
+          <>
+            <WeekBlock days={weekBlocks.week1.days} label={weekBlocks.week1.label} todayStr={todayStr} />
+            <WeekBlock days={weekBlocks.week2.days} label={weekBlocks.week2.label} todayStr={todayStr} />
+            <div className="bg-muted/50 rounded-xl p-3 flex justify-between items-center">
+              <span className="font-semibold text-sm text-muted-foreground uppercase">Grand Total (2 Weeks)</span>
+              <span className="text-lg font-bold">{report.totalHours.toFixed(1)}h</span>
+            </div>
+          </>
+        ) : (
           <div className="space-y-2">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">Daily Breakdown</h3>
             {report.byDay.filter(s => s.totalHours > 0 || s.date === todayStr).map((summary) => (

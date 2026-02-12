@@ -297,6 +297,7 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string
+          default_summary_range: string
           flag_inbox_date_range: string | null
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
           id: string
@@ -307,6 +308,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_summary_range?: string
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
@@ -317,6 +319,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_summary_range?: string
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string

@@ -2,11 +2,14 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export type SummaryRange = 'week' | 'two_weeks';
+
 interface UserSettings {
   theme: string;
   showScanConfidence: boolean;
   flagInboxDateRange: string;
   flagInboxTypes: string[];
+  defaultSummaryRange: SummaryRange;
 }
 
 const defaults: UserSettings = {
@@ -14,6 +17,7 @@ const defaults: UserSettings = {
   showScanConfidence: false,
   flagInboxDateRange: 'this_week',
   flagInboxTypes: [],
+  defaultSummaryRange: 'week',
 };
 
 export function useUserSettings() {
@@ -34,6 +38,7 @@ export function useUserSettings() {
         showScanConfidence: data.show_scan_confidence ?? false,
         flagInboxDateRange: data.flag_inbox_date_range || 'this_week',
         flagInboxTypes: data.flag_inbox_types || [],
+        defaultSummaryRange: (data.default_summary_range as SummaryRange) || 'week',
       });
     }
     setLoaded(true);
@@ -48,6 +53,7 @@ export function useUserSettings() {
     const dbKey = key === 'showScanConfidence' ? 'show_scan_confidence'
       : key === 'flagInboxDateRange' ? 'flag_inbox_date_range'
       : key === 'flagInboxTypes' ? 'flag_inbox_types'
+      : key === 'defaultSummaryRange' ? 'default_summary_range'
       : key;
     
     const { error } = await supabase
