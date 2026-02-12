@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { Camera, X, ChevronDown, ChevronUp, Save, Plus, Upload, Calendar, User, Clock, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, Save, Plus, Calendar, User, Clock, FileText } from 'lucide-react';
 import { localDateStr } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
 import { AdvisorCombobox } from './AdvisorCombobox';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
+import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
@@ -53,7 +53,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     }
     return [createEmptyLine(1)];
   });
-  const [showNotes, setShowNotes] = useState(!!ro?.notes);
+  const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model));
   const [showScanFlow, setShowScanFlow] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
 
@@ -89,7 +89,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       setNotes('');
       setVehicle({});
       setLines([createEmptyLine(1)]);
-      setShowNotes(false);
+      setShowDetails(false);
     }
   }, [ro, isNew]);
 
@@ -158,7 +158,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       setCustomerName('');
       setNotes('');
       setLines([createEmptyLine(1)]);
-      setShowNotes(false);
+      setShowDetails(false);
       onSaveAndAddAnother?.();
     } else {
       onSave?.();
@@ -215,42 +215,6 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
-
-            {/* Customer Name */}
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Customer (optional)"
-              className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary w-36"
-            />
-
-            {/* Vehicle (compact inline) */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={vehicle.year || ''}
-                onChange={(e) => setVehicle(prev => ({ ...prev, year: parseInt(e.target.value) || undefined }))}
-                placeholder="Yr"
-                maxLength={4}
-                className="w-12 h-8 px-1.5 bg-muted rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <input
-                type="text"
-                value={vehicle.make || ''}
-                onChange={(e) => setVehicle(prev => ({ ...prev, make: e.target.value }))}
-                placeholder="Make"
-                className="w-20 h-8 px-1.5 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <input
-                type="text"
-                value={vehicle.model || ''}
-                onChange={(e) => setVehicle(prev => ({ ...prev, model: e.target.value }))}
-                placeholder="Model"
-                className="w-20 h-8 px-1.5 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
           </div>
 
           {/* Right-aligned actions: Upload icon + Total */}
@@ -271,6 +235,17 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
             </div>
           </div>
         </div>
+
+        {/* Details collapsed summary row */}
+        <DetailsCollapsible
+          vehicle={vehicle}
+          onVehicleChange={setVehicle}
+          customerName={customerName}
+          onCustomerNameChange={setCustomerName}
+          open={showDetails}
+          onOpenChange={setShowDetails}
+          layout="desktop"
+        />
       </div>
 
       {/* Presets Toolbar */}
@@ -321,31 +296,13 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
 
         {/* Notes Section */}
         <div className="mt-4">
-          <button
-            onClick={() => setShowNotes(!showNotes)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showNotes ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            Notes
-          </button>
-          <AnimatePresence>
-            {showNotes && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Additional notes..."
-                  rows={3}
-                  className="w-full mt-2 p-3 bg-muted rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Additional notes..."
+            rows={2}
+            className="w-full p-3 bg-muted rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
       </div>
 

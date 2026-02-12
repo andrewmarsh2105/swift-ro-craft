@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { formatVehicleChip } from '@/types/ro';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { toast } from 'sonner';
+import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import {
   Collapsible,
   CollapsibleContent,
@@ -269,58 +270,24 @@ export default function AddRO() {
           </div>
         </div>
 
-        {/* Collapsible More Fields */}
+        {/* Details collapsed summary row */}
+        <DetailsCollapsible
+          vehicle={vehicle}
+          onVehicleChange={setVehicle}
+          customerName={customerName}
+          onCustomerNameChange={setCustomerName}
+          open={showMoreFields}
+          onOpenChange={setShowMoreFields}
+          layout="mobile"
+        />
+
+        {/* Collapsible More Fields (Labor Type, Notes) */}
         <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
-          <CollapsibleTrigger asChild>
-            <button className="w-full px-3 py-1.5 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground border-t border-border/50">
-              <Settings2 className="h-3 w-3" />
-              {showMoreFields ? 'Hide' : 'More'} options
-              {showMoreFields ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            </button>
-          </CollapsibleTrigger>
-           <CollapsibleContent>
-            <div className="px-3 py-2 space-y-2 border-t border-border/50 bg-muted/20">
-              {/* Customer Name */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-20">Customer</span>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Customer Name (optional)"
-                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              {/* Vehicle */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-20">Vehicle</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={vehicle.year || ''}
-                  onChange={(e) => setVehicle(prev => ({ ...prev, year: parseInt(e.target.value) || undefined }))}
-                  placeholder="Year"
-                  maxLength={4}
-                  className="w-14 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <input
-                  type="text"
-                  value={vehicle.make || ''}
-                  onChange={(e) => setVehicle(prev => ({ ...prev, make: e.target.value }))}
-                  placeholder="Make"
-                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <input
-                  type="text"
-                  value={vehicle.model || ''}
-                  onChange={(e) => setVehicle(prev => ({ ...prev, model: e.target.value }))}
-                  placeholder="Model"
-                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
+          <CollapsibleContent>
+            <div className="px-3 py-2 space-y-2 bg-muted/20">
               {/* Labor Type */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-20">Labor Type</span>
+                <span className="text-xs text-muted-foreground w-16">Labor</span>
                 <select
                   value={laborType}
                   onChange={(e) => setLaborType(e.target.value as LaborType)}
@@ -333,7 +300,7 @@ export default function AddRO() {
               </div>
               {/* Notes */}
               <div className="flex items-start gap-2">
-                <span className="text-xs text-muted-foreground w-20 pt-2">Notes</span>
+                <span className="text-xs text-muted-foreground w-16 pt-2">Notes</span>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
