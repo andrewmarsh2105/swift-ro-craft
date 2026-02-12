@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, X, ChevronDown, ChevronUp, Save, Plus, Upload, Calendar, User, Clock, FileText } from 'lucide-react';
+import { localDateStr } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
 import { AdvisorCombobox } from './AdvisorCombobox';
@@ -31,7 +32,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
   const [advisor, setAdvisor] = useState(ro?.advisor || '');
   const [customerName, setCustomerName] = useState(ro?.customerName || '');
-  const [date, setDate] = useState(ro?.date || new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(ro?.date || localDateStr());
   const [laborType, setLaborType] = useState<LaborType>(ro?.laborType || 'customer-pay');
   const [notes, setNotes] = useState(ro?.notes || '');
   const [lines, setLines] = useState<ROLine[]>(() => {
@@ -79,7 +80,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       setRoNumber('');
       setAdvisor('');
       setCustomerName('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(localDateStr());
       setLaborType('customer-pay');
       setNotes('');
       setLines([createEmptyLine(1)]);

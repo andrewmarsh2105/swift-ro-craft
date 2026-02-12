@@ -91,7 +91,7 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
     const start = new Date(startDate);
     const end = new Date(endDate);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const ds = d.toISOString().split('T')[0];
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       dayMap.set(ds, { date: ds, totalHours: 0, roCount: 0, warrantyHours: 0, customerPayHours: 0, internalHours: 0 });
     }
     rosInRange.forEach(ro => {

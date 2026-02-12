@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, User, Clock, ChevronDown, ChevronUp, FileText, Settings2, Image } from 'lucide-react';
+import { localDateStr } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
@@ -50,7 +51,7 @@ export default function AddRO() {
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
-  const [date, setDate] = useState(editingRO?.date || new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(editingRO?.date || localDateStr());
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
   const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
   const [notes, setNotes] = useState(editingRO?.notes || '');

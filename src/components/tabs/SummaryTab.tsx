@@ -23,17 +23,19 @@ const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function getWeekRange(date: Date): { start: string; end: string } {
   const start = new Date(date);
   start.setDate(start.getDate() - start.getDay() + 1);
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
-  return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
+  return { start: fmt(start), end: fmt(end) };
 }
 
 function getTwoWeekRange(date: Date): { start: string; end: string } {
   const end = new Date(date);
   end.setDate(end.getDate() - end.getDay() + 7); // end of current week (Sun)
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const start = new Date(end);
-  start.setDate(start.getDate() - 13); // 14 days back (Mon of 2 weeks ago)
-  return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
+  start.setDate(start.getDate() - 13);
+  return { start: fmt(start), end: fmt(end) };
 }
 
 function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?: boolean }) {
@@ -113,7 +115,7 @@ export function SummaryTab() {
   const [showProofPack, setShowProofPack] = useState(false);
 
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const effectiveRange = rangeOverride === 'default' ? defaultRange : rangeOverride;
 

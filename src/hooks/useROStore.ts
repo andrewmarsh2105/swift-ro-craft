@@ -320,7 +320,7 @@ export function useROStore() {
     const end = new Date(endDate);
     const summaries: DaySummary[] = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayROs = ros.filter(ro => ro.date === dateStr);
       summaries.push({
         date: dateStr,

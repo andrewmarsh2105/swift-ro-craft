@@ -143,17 +143,20 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
     }
 
     // Date range filter
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (filters.dateRange === 'today') {
       result = result.filter((ro) => ro.date === today);
     } else if (filters.dateRange === 'week') {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      result = result.filter((ro) => ro.date >= weekAgo.toISOString().split('T')[0]);
+      const weekAgoStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`;
+      result = result.filter((ro) => ro.date >= weekAgoStr);
     } else if (filters.dateRange === 'month') {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      result = result.filter((ro) => ro.date >= monthAgo.toISOString().split('T')[0]);
+      const monthAgoStr = `${monthAgo.getFullYear()}-${String(monthAgo.getMonth() + 1).padStart(2, '0')}-${String(monthAgo.getDate()).padStart(2, '0')}`;
+      result = result.filter((ro) => ro.date >= monthAgoStr);
     }
 
     return result;

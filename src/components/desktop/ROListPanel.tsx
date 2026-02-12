@@ -43,17 +43,20 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
     }
 
     // Date range filter
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (dateFilter === 'today') {
       result = result.filter((ro) => ro.date === today);
     } else if (dateFilter === 'week') {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      result = result.filter((ro) => ro.date >= weekAgo.toISOString().split('T')[0]);
+      const weekAgoStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`;
+      result = result.filter((ro) => ro.date >= weekAgoStr);
     } else if (dateFilter === 'month') {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      result = result.filter((ro) => ro.date >= monthAgo.toISOString().split('T')[0]);
+      const monthAgoStr = `${monthAgo.getFullYear()}-${String(monthAgo.getMonth() + 1).padStart(2, '0')}-${String(monthAgo.getDate()).padStart(2, '0')}`;
+      result = result.filter((ro) => ro.date >= monthAgoStr);
     }
 
     return result;
@@ -72,17 +75,21 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
   }, [filteredROs]);
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const now = new Date();
+    const yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const yesterdayStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
 
-    if (dateStr === today.toISOString().split('T')[0]) {
+    if (dateStr === todayStr) {
       return 'Today';
-    } else if (dateStr === yesterday.toISOString().split('T')[0]) {
+    } else if (dateStr === yesterdayStr) {
       return 'Yesterday';
     }
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    // Parse as local date (YYYY-MM-DD) to avoid UTC shift
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const localDate = new Date(y, m - 1, d);
+    return localDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
   return (

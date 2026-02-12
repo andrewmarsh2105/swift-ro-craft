@@ -8,7 +8,7 @@ import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
 import { useRO } from '@/contexts/ROContext';
 import type { LaborType, RepairOrder, Preset, ROLine } from '@/types/ro';
-import { cn } from '@/lib/utils';
+import { cn, localDateStr } from '@/lib/utils';
 
 interface QuickAddSheetProps {
   isOpen: boolean;
@@ -82,7 +82,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       laborType,
       workPerformed: computedWorkPerformed,
       notes,
-      date: editingRO?.date || new Date().toISOString().split('T')[0],
+      date: editingRO?.date || localDateStr(),
       photos: editingRO?.photos,
       lines: isSimpleMode ? [] : lines,
       isSimpleMode,
