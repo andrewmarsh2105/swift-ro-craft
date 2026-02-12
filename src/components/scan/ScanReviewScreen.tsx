@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ChevronLeft, Plus, Trash2, Check } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Check, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { generateLineId, type ExtractedData, type ExtractedLine } from '@/lib/scanStateMachine';
+import { generateLineId, type ExtractedData, type ExtractedLine, type CandidateDate } from '@/lib/scanStateMachine';
 import type { ScanApplyData } from './ScanFlow';
 import type { ROLine } from '@/types/ro';
 import {
@@ -54,6 +54,8 @@ export function ScanReviewScreen({
 }: ScanReviewScreenProps) {
   const isMobile = useIsMobile();
   const [showApplyPrompt, setShowApplyPrompt] = useState(false);
+  const [showDateCandidates, setShowDateCandidates] = useState(false);
+  const [userEditedDate, setUserEditedDate] = useState(false);
   const [data, setData] = useState(extractedData);
 
   const updateField = (field: keyof Pick<ExtractedData, 'roNumber' | 'advisor' | 'date' | 'customerName'>, value: string) => {
@@ -207,9 +209,53 @@ export function ScanReviewScreen({
               <input
                 type="date"
                 value={data.date || ''}
-                onChange={e => updateField('date', e.target.value)}
+                onChange={e => {
+                  setUserEditedDate(true);
+                  updateField('date', e.target.value);
+                }}
                 className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
+              {/* Candidate dates dropdown */}
+              {data.candidateDates.length >= 2 && !userEditedDate && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowDateCandidates(!showDateCandidates)}
+                    className="flex items-center gap-1 text-xs text-primary font-medium mt-1"
+                  >
+                    <ChevronDown className={cn('h-3 w-3 transition-transform', showDateCandidates && 'rotate-180')} />
+                    {data.candidateDates.length} dates detected
+                  </button>
+                  {showDateCandidates && (
+                    <div className="mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                      {data.candidateDates.map((c, i) => (
+                        <button
+                          key={`${c.value}-${i}`}
+                          type="button"
+                          onClick={() => {
+                            updateField('date', c.value);
+                            setShowDateCandidates(false);
+                          }}
+                          className={cn(
+                            'w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-muted/50 transition-colors',
+                            c.value === data.date && 'bg-primary/10 font-medium'
+                          )}
+                        >
+                          <span>{c.value}</span>
+                          <span className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded',
+                            c.source === 'header'
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted text-muted-foreground'
+                          )}>
+                            {c.source === 'header' ? 'Header' : 'Text'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Customer */}
