@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { X, Camera, Image, Upload, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -29,9 +29,6 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
   const isMobile = useIsMobile();
   const { userSettings } = useFlagContext();
   const { session, handleFileSelected, reset, retry, updateExtractedData } = useScanFlow();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const desktopInputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = () => {
     reset();
@@ -83,32 +80,7 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
         <div className="w-10" />
       </div>
 
-      {/* Hidden file inputs - wrapped in labels for iOS Safari gesture compliance */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={onFileChange}
-        className="hidden"
-        id="scan-camera-input"
-      />
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        onChange={onFileChange}
-        className="hidden"
-        id="scan-gallery-input"
-      />
-      <input
-        ref={desktopInputRef}
-        type="file"
-        accept="image/*"
-        onChange={onFileChange}
-        className="hidden"
-        id="scan-desktop-input"
-      />
+      {/* File inputs are now embedded inside their <label> buttons below */}
 
       {/* Content based on state */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
@@ -118,35 +90,47 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
             <div className="w-full max-w-sm aspect-[3/4] border-4 border-dashed border-primary/30 rounded-3xl flex flex-col items-center justify-center gap-4 bg-primary/5">
               <Camera className="h-16 w-16 text-primary/40" />
               <p className="text-muted-foreground text-center px-6 text-sm">
-                Take a photo or upload an image of the RO to auto-extract fields and lines
+                {isMobile
+                  ? 'Tap "Take Photo" to scan or "Photos" to pick from camera roll'
+                  : 'Click "Upload RO Photo" to select an image'}
               </p>
             </div>
 
-            {/* Action buttons - using labels for iOS Safari compliance */}
+            {/* Action buttons — each wraps its own hidden input for iOS Safari gesture compliance */}
             {isMobile ? (
               <div className="flex gap-3 w-full max-w-sm">
-                <label
-                  htmlFor="scan-camera-input"
-                  className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer tap-target touch-feedback"
-                >
+                <label className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer tap-target touch-feedback active:scale-[0.97] transition-transform">
                   <Camera className="h-5 w-5" />
-                  Scan RO
+                  Take Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={onFileChange}
+                    className="hidden"
+                  />
                 </label>
-                <label
-                  htmlFor="scan-gallery-input"
-                  className="py-4 px-6 bg-secondary rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer tap-target touch-feedback"
-                >
+                <label className="py-4 px-6 bg-secondary text-secondary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer tap-target touch-feedback active:scale-[0.97] transition-transform">
                   <Image className="h-5 w-5" />
                   Photos
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={onFileChange}
+                    className="hidden"
+                  />
                 </label>
               </div>
             ) : (
-              <label
-                htmlFor="scan-desktop-input"
-                className="py-4 px-8 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer"
-              >
+              <label className="py-4 px-8 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer hover:bg-primary/90 transition-colors">
                 <Upload className="h-5 w-5" />
                 Upload RO Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onFileChange}
+                  className="hidden"
+                />
               </label>
             )}
           </>
@@ -198,12 +182,11 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
       </div>
 
       {/* Dev Debug Panel */}
+      {/* Dev Debug — positioned at top so it never blocks action buttons */}
       {import.meta.env.DEV && (
-        <div className="absolute bottom-4 left-4 right-4 p-3 bg-muted/80 backdrop-blur rounded-xl text-xs font-mono space-y-1">
-          <div className="font-semibold text-muted-foreground">Scan Debug</div>
-          <div>State: <span className="text-primary font-bold">{state}</span></div>
-          <div>File: {debug.fileSelected ? '✅' : '❌'} | Upload: {debug.uploadStarted ? (debug.uploadDone ? '✅' : '⏳') : '❌'} | OCR: {debug.ocrStarted ? (debug.ocrDone ? '✅' : '⏳') : '❌'}</div>
-          {debug.lastError && <div className="text-destructive">Error: {debug.lastError}</div>}
+        <div className="absolute top-16 left-4 right-4 p-2 bg-muted/80 backdrop-blur rounded-lg text-[10px] font-mono space-y-0.5 pointer-events-none opacity-60">
+          <div>State: <span className="text-primary font-bold">{state}</span> | File: {debug.fileSelected ? '✅' : '❌'} | Up: {debug.uploadStarted ? (debug.uploadDone ? '✅' : '⏳') : '❌'} | OCR: {debug.ocrStarted ? (debug.ocrDone ? '✅' : '⏳') : '❌'}</div>
+          {debug.lastError && <div className="text-destructive">Err: {debug.lastError}</div>}
         </div>
       )}
     </motion.div>

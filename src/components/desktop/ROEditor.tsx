@@ -218,22 +218,22 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
             />
           </div>
 
-          {/* Upload RO Photo button */}
-          <button
-            onClick={() => setShowScanFlow(true)}
-            className="flex items-center gap-2 h-8 px-3 bg-secondary rounded text-sm font-medium hover:bg-secondary/80 transition-colors"
-          >
-            <Upload className="h-4 w-4" />
-            Upload RO Photo
-          </button>
-
-          {/* Total Hours - Always visible */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xl font-bold text-primary">{totalHours.toFixed(1)}h</span>
-            {tbdCount > 0 && (
-              <span className="text-xs text-warning font-medium">({tbdCount} TBD)</span>
-            )}
+          {/* Right-aligned actions: Upload icon + Total */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={() => setShowScanFlow(true)}
+              className="h-8 w-8 flex items-center justify-center bg-secondary rounded hover:bg-secondary/80 transition-colors"
+              title="Upload RO Photo"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xl font-bold text-primary">{totalHours.toFixed(1)}h</span>
+              {tbdCount > 0 && (
+                <span className="text-xs text-warning font-medium">({tbdCount} TBD)</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
