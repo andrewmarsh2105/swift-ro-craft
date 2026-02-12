@@ -5,6 +5,7 @@ export interface ROLine {
   lineNo: number;
   description: string;
   hoursPaid: number;
+  isTbd?: boolean;
   laborType?: LaborType;
   matchedReferenceId?: string;
   createdAt: string;

@@ -140,9 +140,17 @@ export function SummaryTab() {
             <span className="text-primary-foreground/80 font-medium">
               {viewMode === 'day' ? "Today's Total" : viewMode === 'week' ? 'Week Total' : 'Month Total'}
             </span>
-            <span className="text-sm text-primary-foreground/70">{report.totalROs} ROs · {report.totalLines} lines</span>
+            <span className="text-sm text-primary-foreground/70">
+              {report.totalROs} ROs · {report.totalLines} lines
+              {report.tbdLineCount > 0 && ` · ${report.tbdLineCount} TBD`}
+            </span>
           </div>
           <div className="text-4xl font-bold mb-3">{report.totalHours.toFixed(1)}h</div>
+          {report.tbdLineCount > 0 && (
+            <div className="text-sm text-primary-foreground/70 mb-2">
+              ⏳ {report.tbdLineCount} TBD lines ({report.tbdHours.toFixed(1)}h) not counted
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {report.byLaborType.map(lt => (
               <span key={lt.laborType} className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium">

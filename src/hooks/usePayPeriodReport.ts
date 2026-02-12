@@ -42,6 +42,8 @@ export interface PayPeriodReport {
   totalHours: number;
   totalROs: number;
   totalLines: number;
+  tbdLineCount: number;
+  tbdHours: number;
   // Breakdowns
   byDay: DayBreakdown[];
   byAdvisor: AdvisorBreakdown[];
@@ -77,10 +79,12 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       });
     });
 
-    // Paid lines = lines with description (non-TBD/empty)
-    const paidLines = linesInRange.filter(({ line }) => line.description.trim() !== '');
+    // Paid lines = lines with description (non-TBD/empty) and not TBD
+    const paidLines = linesInRange.filter(({ line }) => line.description.trim() !== '' && !line.isTbd);
+    const tbdLines = linesInRange.filter(({ line }) => line.isTbd);
 
     const totalHours = paidLines.reduce((s, { line }) => s + line.hoursPaid, 0);
+    const tbdHours = tbdLines.reduce((s, { line }) => s + line.hoursPaid, 0);
 
     // By day
     const dayMap = new Map<string, DayBreakdown>();
@@ -195,6 +199,8 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       totalHours,
       totalROs: rosInRange.length,
       totalLines: paidLines.length,
+      tbdLineCount: tbdLines.length,
+      tbdHours,
       byDay,
       byAdvisor,
       byLaborType,

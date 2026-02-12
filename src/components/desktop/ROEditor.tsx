@@ -85,8 +85,9 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     }
   }, [ro, isNew]);
 
-  const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
-  const isValid = roNumber.trim() !== '' && advisor.trim() !== '' && totalHours > 0;
+  const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const tbdCount = lines.filter(l => l.isTbd).length;
+  const isValid = roNumber.trim() !== '' && advisor.trim() !== '' && (totalHours > 0 || tbdCount > 0);
 
   const handleSave = (addAnother: boolean = false) => {
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
@@ -191,6 +192,9 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
           <div className="flex items-center gap-2 flex-shrink-0">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="text-xl font-bold text-primary">{totalHours.toFixed(1)}h</span>
+            {tbdCount > 0 && (
+              <span className="text-xs text-warning font-medium">({tbdCount} TBD)</span>
+            )}
           </div>
         </div>
       </div>
