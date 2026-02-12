@@ -9,6 +9,7 @@ import { FlagProvider } from "@/contexts/FlagContext";
 import { DevDebugPanel } from "@/components/debug/DevDebugPanel";
 import Index from "./pages/Index";
 import AddRO from "./pages/AddRO";
+import FlagInboxPage from "./pages/FlagInboxPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -65,6 +66,7 @@ const App = () => (
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
+                <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
