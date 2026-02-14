@@ -63,10 +63,9 @@ export function generateSummaryText(report: PayPeriodReport): string {
   lines.push('');
 
   // Warnings
-  if (report.missingHoursCount > 0 || report.flaggedCount > 0 || report.tbdLineCount > 0) {
+  if (report.flaggedCount > 0 || report.tbdLineCount > 0) {
     lines.push('WARNINGS:');
     if (report.tbdLineCount > 0) lines.push(`  ⏳ ${report.tbdLineCount} TBD lines (${report.tbdHours.toFixed(1)}h not counted)`);
-    if (report.missingHoursCount > 0) lines.push(`  ⚠ ${report.missingHoursCount} lines with missing hours`);
     if (report.flaggedCount > 0) lines.push(`  🚩 ${report.flaggedCount} flagged items`);
   }
 
