@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useScanFlow } from '@/hooks/useScanFlow';
 import { useFlagContext } from '@/contexts/FlagContext';
+import { useROSafe } from '@/contexts/ROContext';
 import { ScanReviewScreen } from './ScanReviewScreen';
 import { cn } from '@/lib/utils';
 import type { ROLine, VehicleInfo } from '@/types/ro';
@@ -30,6 +31,8 @@ export interface ScanApplyData {
 export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: ScanFlowProps) {
   const isMobile = useIsMobile();
   const { userSettings } = useFlagContext();
+  const roContext = useROSafe();
+  const presets = roContext?.settings?.presets ?? [];
   const { session, handleFileSelected, reset, retry, updateExtractedData } = useScanFlow();
 
   const handleClose = () => {
@@ -40,7 +43,7 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleFileSelected(file, roId);
+      handleFileSelected(file, roId, undefined, presets, userSettings.keywordAutofill);
     }
     // Reset input so same file can be re-selected
     e.target.value = '';

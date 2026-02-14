@@ -332,6 +332,7 @@ export type Database = {
           flag_inbox_date_range: string | null
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
           id: string
+          keyword_autofill: boolean
           show_scan_confidence: boolean | null
           show_vehicle_chips: boolean | null
           theme: string | null
@@ -345,6 +346,7 @@ export type Database = {
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
+          keyword_autofill?: boolean
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           theme?: string | null
@@ -358,6 +360,7 @@ export type Database = {
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
+          keyword_autofill?: boolean
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           theme?: string | null

@@ -77,6 +77,7 @@ Return a JSON object with this exact structure:
   "advisor": "string or null",
   "date": "YYYY-MM-DD or null (the best candidate date — see candidateDates)",
   "customerName": "string or null",
+  "mileage": "string or null (odometer/mileage reading if visible)",
   "vehicleYear": number or null (4-digit year),
   "vehicleMake": "string or null",
   "vehicleModel": "string or null",
@@ -102,6 +103,12 @@ Return a JSON object with this exact structure:
   }
 }
 
+CRITICAL — Labor hours extraction priority:
+- ALWAYS prioritize explicit labor times printed on the ticket (e.g. "0.7", "1.5h", "2.0 hrs").
+- If a line shows an explicit time value, use that EXACTLY — do NOT override or guess.
+- If a line has NO explicit time, set hours to 0 and confidence LOW (e.g. 0.2-0.4).
+- Never infer or estimate hours from the description alone.
+
 Date extraction rules:
 - Find ALL date-like strings visible on the document.
 - Support these formats: MM/DD/YYYY, M/D/YY, MM-DD-YYYY, YYYY-MM-DD, "Month D, YYYY"
@@ -114,7 +121,7 @@ Date extraction rules:
 
 Other rules:
 - Extract ALL line items you can see, each as a separate entry in lines array
-- If hours are not visible, set to 0
+- Look for mileage/odometer readings (often labeled "Mileage", "Odo", "Miles In", etc.)
 - Set confidence based on how clear/readable the text is
 - For labor type, default to "customer-pay" unless you see warranty or internal indicators
 - Return ONLY valid JSON, no markdown formatting`;
