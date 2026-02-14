@@ -188,7 +188,7 @@ export function useROStore() {
       return;
     }
 
-    const paidHours = ro.isSimpleMode ? ro.paidHours : ro.lines.reduce((s, l) => s + l.hoursPaid, 0);
+    const paidHours = ro.isSimpleMode ? ro.paidHours : ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0);
 
     const { data: newRow, error } = await supabase
       .from('ros')

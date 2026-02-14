@@ -40,7 +40,7 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flag
 
   const hasLines = ro.lines && ro.lines.length > 0;
   const totalHours = hasLines 
-    ? ro.lines.reduce((sum, line) => sum + line.hoursPaid, 0)
+    ? ro.lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0)
     : ro.paidHours;
 
   return (

@@ -220,7 +220,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
               {dateROs.map((ro) => {
                 const hasLines = ro.lines && ro.lines.length > 0;
                 const totalHours = hasLines
-                  ? ro.lines.reduce((sum, line) => sum + line.hoursPaid, 0)
+                  ? ro.lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0)
                   : ro.paidHours;
 
                 return (
@@ -294,7 +294,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
           <span className="font-semibold">
             {filteredROs.reduce((sum, ro) => {
               const hours = ro.lines?.length
-                ? ro.lines.reduce((s, l) => s + l.hoursPaid, 0)
+                ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
                 : ro.paidHours;
               return sum + hours;
             }, 0).toFixed(1)}h total
