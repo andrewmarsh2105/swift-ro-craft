@@ -32,7 +32,7 @@ function createEmptyLine(lineNo: number): ROLine {
 const LABOR_TYPES: { value: LaborType; label: string; short: string }[] = [
   { value: 'warranty', label: 'Warranty', short: 'W' },
   { value: 'customer-pay', label: 'Customer Pay', short: 'CP' },
-  { value: 'internal', label: 'Internal', short: 'Int' },
+  { value: 'internal', label: 'Internal', short: 'I' },
 ];
 
 function triggerHaptic() {
