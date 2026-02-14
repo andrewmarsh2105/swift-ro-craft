@@ -444,6 +444,12 @@ export function SettingsTab() {
             toggleValue={userSettings.showVehicleChips}
             onToggle={(v) => updateUserSetting('showVehicleChips', v)}
           />
+          <SettingsRow
+            label="Keyword Auto-Fill Hours"
+            toggle
+            toggleValue={userSettings.keywordAutofill}
+            onToggle={(v) => updateUserSetting('keywordAutofill', v)}
+          />
         </SettingsGroup>
 
         {/* Summary Range */}

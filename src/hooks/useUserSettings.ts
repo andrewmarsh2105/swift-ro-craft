@@ -8,6 +8,7 @@ interface UserSettings {
   theme: string;
   showScanConfidence: boolean;
   showVehicleChips: boolean;
+  keywordAutofill: boolean;
   flagInboxDateRange: string;
   flagInboxTypes: string[];
   defaultSummaryRange: SummaryRange;
@@ -18,6 +19,7 @@ const defaults: UserSettings = {
   theme: 'light',
   showScanConfidence: false,
   showVehicleChips: true,
+  keywordAutofill: true,
   flagInboxDateRange: 'this_week',
   flagInboxTypes: [],
   defaultSummaryRange: 'week',
@@ -41,6 +43,7 @@ export function useUserSettings() {
         theme: data.theme || 'light',
         showScanConfidence: data.show_scan_confidence ?? false,
         showVehicleChips: (data as any).show_vehicle_chips ?? true,
+        keywordAutofill: (data as any).keyword_autofill ?? true,
         flagInboxDateRange: data.flag_inbox_date_range || 'this_week',
         flagInboxTypes: data.flag_inbox_types || [],
         defaultSummaryRange: (data.default_summary_range as SummaryRange) || 'week',
@@ -58,6 +61,7 @@ export function useUserSettings() {
     
     const dbKey = key === 'showScanConfidence' ? 'show_scan_confidence'
       : key === 'showVehicleChips' ? 'show_vehicle_chips'
+      : key === 'keywordAutofill' ? 'keyword_autofill'
       : key === 'flagInboxDateRange' ? 'flag_inbox_date_range'
       : key === 'flagInboxTypes' ? 'flag_inbox_types'
       : key === 'defaultSummaryRange' ? 'default_summary_range'

@@ -10,8 +10,39 @@ import {
   type ExtractedData,
   type ExtractedLine,
 } from '@/lib/scanStateMachine';
+import type { Preset } from '@/types/ro';
 
 const MAX_RETRIES = 2;
+
+const LOW_CONFIDENCE_THRESHOLD = 0.5;
+
+/** Match extracted line descriptions against presets to fill missing hours */
+function applyKeywordAutofill(lines: ExtractedLine[], presets: Preset[]): ExtractedLine[] {
+  if (!presets.length) return lines;
+
+  return lines.map(line => {
+    // Only fill if hours are 0 or confidence is low
+    const needsFill = line.hours === 0 || line.confidence < LOW_CONFIDENCE_THRESHOLD;
+    if (!needsFill) return line;
+
+    const descLower = line.description.toLowerCase();
+    
+    // Find best matching preset by name or keywords
+    for (const preset of presets) {
+      const nameMatch = descLower.includes(preset.name.toLowerCase());
+      if (nameMatch && preset.defaultHours && preset.defaultHours > 0) {
+        return {
+          ...line,
+          hours: preset.defaultHours,
+          laborType: preset.laborType || line.laborType,
+          confidence: Math.max(line.confidence, 0.6), // bump confidence slightly for keyword match
+        };
+      }
+    }
+
+    return line;
+  });
+}
 
 export function useScanFlow() {
   const { user } = useAuth();
@@ -50,6 +81,8 @@ export function useScanFlow() {
     currentScanId: string,
     roId?: string,
     templateFieldMap?: Record<string, any>,
+    presets?: Preset[],
+    keywordAutofill?: boolean,
   ) => {
     if (!user) return;
 
@@ -124,13 +157,18 @@ export function useScanFlow() {
 
       const ocrResult = await ocrResponse.json();
 
-      const extractedLines: ExtractedLine[] = (ocrResult.lines || []).map((line: any) => ({
+      let extractedLines: ExtractedLine[] = (ocrResult.lines || []).map((line: any) => ({
         id: generateLineId(),
         description: line.description || '',
         hours: Number(line.hours) || 0,
         laborType: line.laborType || 'customer-pay',
         confidence: Number(line.confidence) || 0.5,
       }));
+
+      // Apply keyword auto-fill if enabled and presets available
+      if (keywordAutofill && presets && presets.length > 0) {
+        extractedLines = applyKeywordAutofill(extractedLines, presets);
+      }
 
       const candidateDates = Array.isArray(ocrResult.candidateDates)
         ? ocrResult.candidateDates.map((c: any) => ({
@@ -175,13 +213,19 @@ export function useScanFlow() {
     }
   }, [user, updateState, updateDebug]);
 
-  const handleFileSelected = useCallback((file: File, roId?: string, templateFieldMap?: Record<string, any>) => {
+  const handleFileSelected = useCallback((
+    file: File,
+    roId?: string,
+    templateFieldMap?: Record<string, any>,
+    presets?: Preset[],
+    keywordAutofill?: boolean,
+  ) => {
     // New file = new scan, reset retry counter
     const newScanId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     scanIdRef.current = newScanId;
     retryCountRef.current = 0;
     fileRef.current = file;
-    runUploadAndOCR(file, newScanId, roId, templateFieldMap);
+    runUploadAndOCR(file, newScanId, roId, templateFieldMap, presets, keywordAutofill);
   }, [runUploadAndOCR]);
 
   const retry = useCallback(() => {
