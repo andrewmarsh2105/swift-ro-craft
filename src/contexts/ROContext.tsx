@@ -22,3 +22,8 @@ export function useRO() {
   }
   return context;
 }
+
+/** Safe version that returns null when outside ROProvider (for resilient components) */
+export function useROSafe() {
+  return useContext(ROContext);
+}

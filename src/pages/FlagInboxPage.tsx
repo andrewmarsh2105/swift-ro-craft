@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flag, ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { useRO } from '@/contexts/ROContext';
+import { useROSafe } from '@/contexts/ROContext';
 import { cn } from '@/lib/utils';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
@@ -18,7 +18,8 @@ const DATE_RANGES = [
 export default function FlagInboxPage() {
   const navigate = useNavigate();
   const { flags, clearFlag, activeCount, loading, refetch } = useFlagContext();
-  const { ros } = useRO();
+  const roContext = useROSafe();
+  const ros = roContext?.ros ?? [];
   const [typeFilter, setTypeFilter] = useState<FlagType | 'all'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
 
