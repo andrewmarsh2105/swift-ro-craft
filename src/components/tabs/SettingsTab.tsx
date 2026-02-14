@@ -146,25 +146,45 @@ function TemplatesSection() {
   const [showEditor, setShowEditor] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState('');
+  const [templateHints, setTemplateHints] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  const defaultTemplateId = (userSettings as any).defaultTemplateId || null;
+  const defaultTemplateId = userSettings.defaultTemplateId || null;
 
   const handleSave = async () => {
     if (!templateName.trim()) return;
+    // Parse hints into a field map object
+    let fieldMap: Record<string, any> | undefined;
+    if (templateHints.trim()) {
+      try {
+        fieldMap = JSON.parse(templateHints.trim());
+      } catch {
+        // Treat as plain-text extraction hints
+        fieldMap = { extractionHints: templateHints.trim() };
+      }
+    }
+
     if (editingId) {
-      await updateTemplate(editingId, { name: templateName.trim() });
+      await updateTemplate(editingId, { name: templateName.trim(), fieldMap: fieldMap || null });
     } else {
-      await addTemplate(templateName.trim());
+      await addTemplate(templateName.trim(), fieldMap);
     }
     setShowEditor(false);
     setEditingId(null);
     setTemplateName('');
+    setTemplateHints('');
   };
 
-  const handleEdit = (t: { id: string; name: string }) => {
+  const handleEdit = (t: { id: string; name: string; fieldMapJson?: Record<string, any> | null }) => {
     setEditingId(t.id);
     setTemplateName(t.name);
+    setTemplateHints(
+      t.fieldMapJson
+        ? (typeof t.fieldMapJson === 'object' && t.fieldMapJson.extractionHints
+          ? t.fieldMapJson.extractionHints
+          : JSON.stringify(t.fieldMapJson, null, 2))
+        : ''
+    );
     setShowEditor(true);
   };
 
@@ -172,12 +192,12 @@ function TemplatesSection() {
     await deleteTemplate(id);
     setShowDeleteConfirm(null);
     if (defaultTemplateId === id) {
-      updateUserSetting('defaultTemplateId' as any, null);
+      updateUserSetting('defaultTemplateId', null);
     }
   };
 
   const handleSetDefault = (id: string) => {
-    updateUserSetting('defaultTemplateId' as any, defaultTemplateId === id ? null : id);
+    updateUserSetting('defaultTemplateId', defaultTemplateId === id ? null : id);
   };
 
   return (
@@ -190,6 +210,7 @@ function TemplatesSection() {
           onClick={() => {
             setEditingId(null);
             setTemplateName('');
+            setTemplateHints('');
             setShowEditor(true);
           }}
           className="p-2 tap-target touch-feedback text-primary"
@@ -201,7 +222,7 @@ function TemplatesSection() {
       {loading ? (
         <p className="px-4 text-sm text-muted-foreground">Loading…</p>
       ) : templates.length === 0 ? (
-        <p className="px-4 text-sm text-muted-foreground">No templates yet. Create one during your first scan.</p>
+        <p className="px-4 text-sm text-muted-foreground">No templates yet. Create one to guide scan extraction.</p>
       ) : (
         <div className="space-y-2">
           {templates.map(t => (
@@ -215,7 +236,7 @@ function TemplatesSection() {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Updated {new Date(t.updatedAt).toLocaleDateString()}
+                  {t.fieldMapJson ? 'Has extraction hints' : 'No hints'} · Updated {new Date(t.updatedAt).toLocaleDateString()}
                 </div>
               </div>
               <button onClick={() => handleSetDefault(t.id)} className="p-2 tap-target touch-feedback">
@@ -248,6 +269,21 @@ function TemplatesSection() {
               placeholder="e.g., Standard RO Layout"
               className="w-full h-12 px-4 bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Extraction Hints <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={templateHints}
+              onChange={e => setTemplateHints(e.target.value)}
+              placeholder={"Describe where fields are on this RO format, e.g.:\n• RO number is top-right\n• Advisor name is below customer info\n• Lines start after \"Labor Operations\""}
+              rows={4}
+              className="w-full p-4 bg-secondary rounded-xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              These hints help the scanner focus on the right areas of your specific RO format.
+            </p>
           </div>
           <div className="flex gap-3">
             <button
