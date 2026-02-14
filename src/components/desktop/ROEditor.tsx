@@ -39,6 +39,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
   const [laborType, setLaborType] = useState<LaborType>(ro?.laborType || 'customer-pay');
   const [notes, setNotes] = useState(ro?.notes || '');
   const [vehicle, setVehicle] = useState<VehicleInfo>(ro?.vehicle || {});
+  const [mileage, setMileage] = useState(ro?.mileage || '');
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (ro?.lines?.length) return ro.lines.map(l => ({ ...l, laborType: l.laborType || 'customer-pay' }));
     if (ro && ro.paidHours > 0) {
@@ -54,7 +55,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     }
     return [createEmptyLine(1)];
   });
-  const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model));
+  const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.mileage || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model));
   const [showScanFlow, setShowScanFlow] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
@@ -69,6 +70,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       setLaborType(ro.laborType);
       setNotes(ro.notes || '');
       setVehicle(ro.vehicle || {});
+      setMileage(ro.mileage || '');
       if (ro.lines?.length) {
         setLines(ro.lines);
       } else if (ro.paidHours > 0) {
@@ -90,6 +92,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       setLaborType('customer-pay');
       setNotes('');
       setVehicle({});
+      setMileage('');
       setLines([createEmptyLine(1)]);
       setShowDetails(false);
     }
@@ -113,6 +116,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     if (data.date) setDate(data.date);
     if (data.customerName) setCustomerName(data.customerName);
     if (data.vehicle) setVehicle(data.vehicle);
+    if (data.mileage) setMileage(data.mileage);
 
     const newLineIds = data.lines.map(l => l.id);
 
@@ -137,6 +141,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       advisor,
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
+      mileage: mileage.trim() || undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -249,6 +254,8 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
           onVehicleChange={setVehicle}
           customerName={customerName}
           onCustomerNameChange={setCustomerName}
+          mileage={mileage}
+          onMileageChange={setMileage}
           open={showDetails}
           onOpenChange={setShowDetails}
           layout="desktop"

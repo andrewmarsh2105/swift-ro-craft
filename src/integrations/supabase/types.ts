@@ -275,6 +275,7 @@ export type Database = {
           customer_name: string | null
           date: string
           id: string
+          mileage: string | null
           notes: string | null
           ro_number: string
           status: Database["public"]["Enums"]["ro_status"]
@@ -292,6 +293,7 @@ export type Database = {
           customer_name?: string | null
           date?: string
           id?: string
+          mileage?: string | null
           notes?: string | null
           ro_number: string
           status?: Database["public"]["Enums"]["ro_status"]
@@ -309,6 +311,7 @@ export type Database = {
           customer_name?: string | null
           date?: string
           id?: string
+          mileage?: string | null
           notes?: string | null
           ro_number?: string
           status?: Database["public"]["Enums"]["ro_status"]

@@ -58,7 +58,7 @@ export function ScanReviewScreen({
   const [userEditedDate, setUserEditedDate] = useState(false);
   const [data, setData] = useState(extractedData);
 
-  const updateField = (field: keyof Pick<ExtractedData, 'roNumber' | 'advisor' | 'date' | 'customerName'>, value: string) => {
+  const updateField = (field: keyof Pick<ExtractedData, 'roNumber' | 'advisor' | 'date' | 'customerName' | 'mileage'>, value: string) => {
     const updated = { ...data, [field]: value || null };
     setData(updated);
     onUpdateData(updated);
@@ -108,6 +108,7 @@ export function ScanReviewScreen({
       advisor: data.advisor || undefined,
       date: data.date || undefined,
       customerName: data.customerName || undefined,
+      mileage: data.mileage || undefined,
       vehicle: (data.vehicleYear || data.vehicleMake || data.vehicleModel)
         ? { year: data.vehicleYear ?? undefined, make: data.vehicleMake ?? undefined, model: data.vehicleModel ?? undefined }
         : undefined,
@@ -265,6 +266,19 @@ export function ScanReviewScreen({
                 type="text"
                 value={data.customerName || ''}
                 onChange={e => updateField('customerName', e.target.value)}
+                placeholder="—"
+                className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Mileage */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Mileage</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={data.mileage || ''}
+                onChange={e => updateField('mileage', e.target.value)}
                 placeholder="—"
                 className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />

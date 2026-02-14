@@ -28,6 +28,7 @@ export interface RepairOrder {
   advisor: string;
   customerName?: string;
   vehicle?: VehicleInfo;
+  mileage?: string;
   paidHours: number;
   laborType: LaborType;
   workPerformed: string;

@@ -60,6 +60,7 @@ export default function AddRO() {
   const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
   const [notes, setNotes] = useState(editingRO?.notes || '');
   const [vehicle, setVehicle] = useState<VehicleInfo>(editingRO?.vehicle || {});
+  const [mileage, setMileage] = useState(editingRO?.mileage || '');
   
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (editingRO?.lines?.length) {
@@ -109,6 +110,7 @@ export default function AddRO() {
     if (data.date) setDate(data.date);
     if (data.customerName) setCustomerName(data.customerName);
     if (data.vehicle) setVehicle(data.vehicle);
+    if (data.mileage) setMileage(data.mileage);
 
     const newLineIds = data.lines.map(l => l.id);
 
@@ -161,6 +163,7 @@ export default function AddRO() {
       advisor,
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
+      mileage: mileage.trim() || undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -274,6 +277,8 @@ export default function AddRO() {
           onVehicleChange={setVehicle}
           customerName={customerName}
           onCustomerNameChange={setCustomerName}
+          mileage={mileage}
+          onMileageChange={setMileage}
           open={showMoreFields}
           onOpenChange={setShowMoreFields}
           layout="mobile"

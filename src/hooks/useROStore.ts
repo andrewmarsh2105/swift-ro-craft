@@ -39,6 +39,7 @@ function dbToRO(row: any, lines: any[]): RepairOrder {
     date: row.date,
     advisor: row.advisor_name,
     customerName: row.customer_name || undefined,
+    mileage: row.mileage || undefined,
     vehicle,
     paidHours: lines.filter((l: any) => !l.is_tbd).reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
     laborType: deriveLaborType(lines),
@@ -198,6 +199,7 @@ export function useROStore() {
         date: ro.date,
         advisor_name: ro.advisor,
         customer_name: ro.customerName || null,
+        mileage: ro.mileage || null,
         notes: ro.notes || null,
         status: 'draft',
         vehicle_year: ro.vehicle?.year ?? null,
@@ -269,6 +271,7 @@ export function useROStore() {
     if (updates.date !== undefined) dbUpdates.date = updates.date;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
     if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName || null;
+    if (updates.mileage !== undefined) dbUpdates.mileage = updates.mileage || null;
     if (updates.vehicle !== undefined) {
       dbUpdates.vehicle_year = updates.vehicle?.year ?? null;
       dbUpdates.vehicle_make = updates.vehicle?.make ?? null;

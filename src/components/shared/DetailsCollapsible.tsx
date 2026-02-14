@@ -13,6 +13,8 @@ interface DetailsCollapsibleProps {
   onVehicleChange: (v: VehicleInfo) => void;
   customerName: string;
   onCustomerNameChange: (name: string) => void;
+  mileage: string;
+  onMileageChange: (mileage: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   layout?: 'mobile' | 'desktop';
@@ -23,6 +25,8 @@ export function DetailsCollapsible({
   onVehicleChange,
   customerName,
   onCustomerNameChange,
+  mileage,
+  onMileageChange,
   open,
   onOpenChange,
   layout = 'mobile',
@@ -70,6 +74,12 @@ export function DetailsCollapsible({
               )}>
                 {customerName || '—'}
               </span>
+              {mileage && (
+                <>
+                  <span className="text-border">·</span>
+                  <span className="text-foreground truncate">{mileage} mi</span>
+                </>
+              )}
             </div>
           )}
         </button>
@@ -137,6 +147,17 @@ export function DetailsCollapsible({
                   </button>
                 )}
               </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Mileage</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={mileage}
+                  onChange={(e) => onMileageChange(e.target.value)}
+                  placeholder="Mileage (optional)"
+                  className="w-28 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
             </div>
           ) : (
             /* Mobile: stacked layout */
@@ -194,6 +215,17 @@ export function DetailsCollapsible({
                   </button>
                 </div>
               )}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-16">Mileage</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={mileage}
+                  onChange={(e) => onMileageChange(e.target.value)}
+                  placeholder="Optional"
+                  className="w-24 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
             </div>
           )}
         </div>

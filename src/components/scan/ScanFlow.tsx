@@ -22,6 +22,7 @@ export interface ScanApplyData {
   date?: string;
   customerName?: string;
   vehicle?: VehicleInfo;
+  mileage?: string;
   lines: ROLine[];
   mode: 'prepend' | 'replace';
 }
