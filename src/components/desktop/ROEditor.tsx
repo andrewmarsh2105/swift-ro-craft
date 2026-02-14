@@ -210,7 +210,12 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
             {/* Labor Type */}
             <select
               value={laborType}
-              onChange={(e) => setLaborType(e.target.value as LaborType)}
+              onChange={(e) => {
+                const newType = e.target.value as LaborType;
+                setLaborType(newType);
+                // Propagate to all existing lines immediately
+                setLines(prev => prev.map(l => ({ ...l, laborType: newType, updatedAt: new Date().toISOString() })));
+              }}
               className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {LABOR_TYPES.map((t) => (
@@ -289,6 +294,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
           highlightedIds={highlightedLineIds}
           roVehicle={vehicle}
           showVehicleChips={userSettings.showVehicleChips}
+          defaultLaborType={laborType}
         />
 
         {/* Notes Section */}

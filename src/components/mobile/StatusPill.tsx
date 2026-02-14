@@ -12,7 +12,7 @@ interface StatusPillProps {
 const typeLabels: Record<LaborType, string> = {
   'warranty': 'W',
   'customer-pay': 'CP',
-  'internal': 'Int',
+  'internal': 'I',
 };
 
 const fullLabels: Record<LaborType, string> = {

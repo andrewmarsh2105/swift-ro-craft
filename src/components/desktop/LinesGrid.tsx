@@ -14,15 +14,16 @@ interface LinesGridProps {
   highlightedIds?: string[];
   roVehicle?: VehicleInfo;
   showVehicleChips?: boolean;
+  defaultLaborType?: LaborType;
 }
 
-function createEmptyLine(lineNo: number): ROLine {
+function createEmptyLine(lineNo: number, laborType: LaborType = 'customer-pay'): ROLine {
   return {
     id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
     lineNo,
     description: '',
     hoursPaid: 0,
-    laborType: 'customer-pay',
+    laborType,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -32,15 +33,15 @@ const LABOR_TYPE_OPTIONS: { value: LaborType | ''; label: string; short: string 
   { value: '', label: 'Default', short: '-' },
   { value: 'warranty', label: 'Warranty', short: 'W' },
   { value: 'customer-pay', label: 'Customer Pay', short: 'CP' },
-  { value: 'internal', label: 'Internal', short: 'Int' },
+  { value: 'internal', label: 'Internal', short: 'I' },
 ];
 
-export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false, highlightedIds = [], roVehicle, showVehicleChips = true }: LinesGridProps) {
+export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false, highlightedIds = [], roVehicle, showVehicleChips = true, defaultLaborType = 'customer-pay' }: LinesGridProps) {
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
   const inputRefs = useRef<Map<string, HTMLInputElement | HTMLSelectElement>>(new Map());
 
   const handleAddLine = () => {
-    const newLine = createEmptyLine(lines.length + 1);
+    const newLine = createEmptyLine(lines.length + 1, defaultLaborType);
     onLinesChange([...lines, newLine]);
     // Focus the new line's description after render
     setTimeout(() => {
