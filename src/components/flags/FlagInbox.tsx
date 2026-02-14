@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flag, Check } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { useRO } from '@/contexts/ROContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useROSafe } from '@/contexts/ROContext';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,8 @@ export function FlagInbox() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { flags, clearFlag, activeCount, refetch } = useFlagContext();
-  const { ros } = useRO();
+  const roContext = useROSafe();
+  const ros = roContext?.ros ?? [];
   const [typeFilter, setTypeFilter] = useState<FlagType | 'all'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
 
