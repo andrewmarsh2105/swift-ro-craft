@@ -7,6 +7,26 @@ import { pushDebug } from '@/components/debug/DevDebugPanel';
 import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine, VehicleInfo } from '@/types/ro';
 
 // Map DB row to app RepairOrder
+function deriveLaborType(lines: any[]): LaborType {
+  if (!lines.length) return 'customer-pay';
+  // Count occurrences of each labor type
+  const counts: Record<string, number> = {};
+  lines.forEach((l: any) => {
+    const t = l.labor_type || l.laborType || 'customer-pay';
+    counts[t] = (counts[t] || 0) + 1;
+  });
+  // Return the most common type
+  let maxType: LaborType = 'customer-pay';
+  let maxCount = 0;
+  for (const [type, count] of Object.entries(counts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxType = type as LaborType;
+    }
+  }
+  return maxType;
+}
+
 function dbToRO(row: any, lines: any[]): RepairOrder {
   const vehicle: VehicleInfo | undefined =
     (row.vehicle_year || row.vehicle_make || row.vehicle_model)
@@ -21,7 +41,7 @@ function dbToRO(row: any, lines: any[]): RepairOrder {
     customerName: row.customer_name || undefined,
     vehicle,
     paidHours: lines.filter((l: any) => !l.is_tbd).reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
-    laborType: 'customer-pay',
+    laborType: deriveLaborType(lines),
     workPerformed: lines.map((l: any) => l.description).filter(Boolean).join('\n'),
     notes: row.notes || undefined,
     lines: lines.map((l: any, i: number) => ({
@@ -352,13 +372,14 @@ export function useROStore() {
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayROs = ros.filter(ro => ro.date === dateStr);
+      const allLines = dayROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
       summaries.push({
         date: dateStr,
-        totalHours: dayROs.reduce((sum, ro) => sum + ro.paidHours, 0),
+        totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0),
         roCount: dayROs.length,
-        warrantyHours: dayROs.filter(ro => ro.laborType === 'warranty').reduce((sum, ro) => sum + ro.paidHours, 0),
-        customerPayHours: dayROs.filter(ro => ro.laborType === 'customer-pay').reduce((sum, ro) => sum + ro.paidHours, 0),
-        internalHours: dayROs.filter(ro => ro.laborType === 'internal').reduce((sum, ro) => sum + ro.paidHours, 0),
+        warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0),
+        customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0),
+        internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0),
       });
     }
     return summaries;
@@ -384,12 +405,13 @@ export function useROStore() {
 
   const getWeekTotal = useCallback((startDate: string, endDate: string) => {
     const weekROs = ros.filter(ro => ro.date >= startDate && ro.date <= endDate);
+    const allLines = weekROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
     return {
-      totalHours: weekROs.reduce((sum, ro) => sum + ro.paidHours, 0),
+      totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0),
       roCount: weekROs.length,
-      warrantyHours: weekROs.filter(ro => ro.laborType === 'warranty').reduce((sum, ro) => sum + ro.paidHours, 0),
-      customerPayHours: weekROs.filter(ro => ro.laborType === 'customer-pay').reduce((sum, ro) => sum + ro.paidHours, 0),
-      internalHours: weekROs.filter(ro => ro.laborType === 'internal').reduce((sum, ro) => sum + ro.paidHours, 0),
+      warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0),
+      customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0),
+      internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0),
     };
   }, [ros]);
 
