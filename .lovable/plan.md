@@ -1,69 +1,108 @@
 
 
-## Plan: Three Fixes
+# Stripe Integration and Feature Paywall Plan
 
-### 1. Remove "Default Advisor" Setting
-The "Default Advisor" row in Settings has an empty `onClick` handler and serves no real function. We will remove:
-- The "Defaults" `SettingsGroup` block in `src/components/tabs/SettingsTab.tsx` (lines 468-474)
-- The `defaultAdvisor` field from the `Settings` interface in `src/types/ro.ts` (line 71)
+## Overview
 
-### 2. Add Vehicle Search to RO Lists (Desktop + Mobile)
-Currently, searching ROs only matches `roNumber`, `advisor`, and `workPerformed`. We will add vehicle fields to the search filter.
+Connect Stripe to the app and create a subscription system that locks premium features behind a paid tier. Free users get core RO tracking; paying subscribers unlock advanced features like OCR scanning, reports/exports, and templates.
 
-**Files to edit:**
-- **`src/components/desktop/ROListPanel.tsx`** (lines 35-42): Expand the search filter to also match against `ro.vehicle?.make`, `ro.vehicle?.model`, `ro.vehicle?.year`, and `ro.customerName`.
-- **`src/components/tabs/ROsTab.tsx`** (lines 125-133): Same expansion for the mobile RO list search.
+## Step 1: Enable Stripe
 
-The search will match partial strings, e.g. typing "Altima" matches any RO with `vehicle.model === "Altima"`, and typing "2021" or "21" matches the year.
+- Use the Stripe integration tool to connect your Stripe account
+- You will need your Stripe secret key (starts with `sk_test_` or `sk_live_`) from the Stripe Dashboard (https://dashboard.stripe.com/apikeys)
 
-### 3. Fix Proof Pack (Export + Summary)
-The Proof Pack CSV and summary text are missing vehicle data, and the summary text has a UTC date bug on line 54.
+## Step 2: Create Subscription Products in Stripe
 
-**`src/lib/exportUtils.ts`:**
-- **CSV** (`generateLineCSV`): Add `Vehicle` column after `Customer`. For each line, compute the effective vehicle (line override or RO header) using `formatVehicleChip()` and include it as a column.
-- **Summary text** (`generateSummaryText`, line 54): Replace `new Date(d.date)` with local date parsing (`new Date(y, m-1, day)` pattern) to prevent the off-by-one UTC shift in the "BY DAY" section.
-- Add the `formatVehicleChip` import from `@/types/ro`.
+- Create a "Pro" product with a monthly price (e.g., $9.99/month)
+- Optionally add a "Free" tier for reference
 
-### Technical Details
+## Step 3: Database Changes
 
-**Search matching logic (both desktop + mobile):**
-```typescript
-const vehicleStr = [
-  ro.vehicle?.year?.toString(),
-  ro.vehicle?.make,
-  ro.vehicle?.model,
-  ro.vehicle?.trim,
-].filter(Boolean).join(' ').toLowerCase();
+Add a `subscriptions` table to track user subscription status:
 
-result = result.filter((ro) =>
-  ro.roNumber.toLowerCase().includes(query) ||
-  ro.advisor.toLowerCase().includes(query) ||
-  ro.workPerformed.toLowerCase().includes(query) ||
-  (ro.customerName || '').toLowerCase().includes(query) ||
-  vehicleStr.includes(query)
-);
+- `id` (uuid, primary key)
+- `user_id` (uuid, not null)
+- `stripe_customer_id` (text)
+- `stripe_subscription_id` (text)
+- `status` (text -- active, canceled, past_due, etc.)
+- `plan` (text -- free, pro)
+- `current_period_end` (timestamptz)
+- `created_at`, `updated_at`
+
+RLS policies: users can only read their own subscription row.
+
+## Step 4: Backend Functions (Edge Functions)
+
+1. **`create-checkout`** -- Creates a Stripe Checkout Session for the user to subscribe
+2. **`stripe-webhook`** -- Receives Stripe webhook events (checkout.session.completed, invoice.paid, customer.subscription.updated/deleted) and updates the `subscriptions` table
+3. **`create-portal`** -- Creates a Stripe Customer Portal session so users can manage billing
+
+## Step 5: Frontend -- Subscription Hook
+
+Create a `useSubscription` hook that:
+- Fetches the user's subscription status from the `subscriptions` table
+- Exposes `isPro`, `plan`, `status`, and `currentPeriodEnd`
+- Caches with React Query for performance
+
+## Step 6: Feature Gating
+
+Lock these features behind the Pro plan:
+
+| Feature | Free | Pro |
+|---------|------|-----|
+| Create/edit ROs | Yes | Yes |
+| Manual line entry | Yes | Yes |
+| OCR scan (photo capture) | No | Yes |
+| Proof Pack / CSV export | No | Yes |
+| Templates (create/manage) | No | Yes |
+| Flag inbox | Yes | Yes |
+| Summary tab (basic) | Yes | Yes |
+| Summary tab (full reports) | No | Yes |
+
+When a free user taps a locked feature, show an upgrade prompt with a button that opens the Stripe Checkout page.
+
+## Step 7: Settings -- Subscription Management
+
+Add a "Subscription" section to the Settings tab showing:
+- Current plan (Free / Pro)
+- If Pro: renewal date, "Manage Billing" button (opens Stripe Portal)
+- If Free: "Upgrade to Pro" button (opens Stripe Checkout)
+
+## Technical Details
+
+### Edge Function: `create-checkout`
+- Accepts user email and a `priceId`
+- Creates or retrieves a Stripe customer
+- Creates a Checkout Session with `success_url` and `cancel_url`
+- Returns the checkout URL
+
+### Edge Function: `stripe-webhook`
+- Verifies Stripe webhook signature
+- Handles events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated`, `customer.subscription.deleted`
+- Upserts the `subscriptions` table accordingly
+
+### Edge Function: `create-portal`
+- Looks up the user's `stripe_customer_id`
+- Creates a Billing Portal session
+- Returns the portal URL
+
+### Frontend Gating Pattern
+```text
+function PremiumFeature({ children }) {
+  const { isPro } = useSubscription();
+  if (!isPro) return <UpgradePrompt />;
+  return children;
+}
 ```
 
-**CSV vehicle column:**
-```typescript
-// After 'Customer' column header, add 'Vehicle'
-// For each row, compute:
-import { formatVehicleChip } from '@/types/ro';
-const vehicleLabel = formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) || '';
-```
+Applied to: ScanFlow trigger, ProofPack export, Template management
 
-**Summary date fix (line 54):**
-```typescript
-// Replace: const date = new Date(d.date);
-const [y, m, day] = d.date.split('-').map(Number);
-const date = new Date(y, m - 1, day);
-```
+## Implementation Order
 
-### Files Changed
-| File | Change |
-|------|--------|
-| `src/components/tabs/SettingsTab.tsx` | Remove "Defaults" group with "Default Advisor" row |
-| `src/types/ro.ts` | Remove `defaultAdvisor` from `Settings` interface |
-| `src/components/desktop/ROListPanel.tsx` | Add vehicle + customer to search filter |
-| `src/components/tabs/ROsTab.tsx` | Add vehicle + customer to search filter |
-| `src/lib/exportUtils.ts` | Add vehicle column to CSV, fix UTC date bug in summary |
+1. Enable Stripe (tool call)
+2. Create database table + RLS
+3. Build edge functions (checkout, webhook, portal)
+4. Create `useSubscription` hook
+5. Add upgrade UI and gate features
+6. Add subscription management to Settings
+
