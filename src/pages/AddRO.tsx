@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { formatVehicleChip } from '@/types/ro';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { toast } from 'sonner';
+import { usePremiumAction } from '@/hooks/usePremiumAction';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import {
   Collapsible,
@@ -35,6 +36,7 @@ export default function AddRO() {
   const isMobile = useIsMobile();
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { userSettings } = useFlagContext();
+  const { guardAction } = usePremiumAction();
   
   // Get editing RO from location state
   const editingROId = (location.state as { editingROId?: string })?.editingROId;
@@ -221,7 +223,7 @@ export default function AddRO() {
           {editingRO ? 'Edit RO' : 'Add RO'}
         </h1>
         <button
-          onClick={() => setShowScanFlow(true)}
+          onClick={() => guardAction(() => setShowScanFlow(true), 'OCR Scanning')}
           className="flex items-center gap-1 text-primary font-medium min-w-[44px] min-h-[44px] justify-center -mr-2"
         >
           <Camera className="h-5 w-5" />

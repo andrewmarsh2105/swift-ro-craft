@@ -10,6 +10,7 @@ import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePremiumAction } from '@/hooks/usePremiumAction';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -107,6 +108,7 @@ function WeekBlock({ days, label, todayStr }: { days: DayBreakdown[]; label: str
 export function SummaryTab() {
   const isMobile = useIsMobile();
   const { userSettings } = useFlagContext();
+  const { guardAction } = usePremiumAction();
   const defaultRange: SummaryRange = userSettings.defaultSummaryRange || 'week';
 
   const [rangeOverride, setRangeOverride] = useState<'default' | 'week' | 'two_weeks' | 'custom'>('default');
@@ -323,7 +325,7 @@ export function SummaryTab() {
         {/* Export + Proof Pack Buttons */}
         <div className="space-y-3 pt-4">
           <button
-            onClick={() => setShowProofPack(true)}
+            onClick={() => guardAction(() => setShowProofPack(true), 'Proof Pack export')}
             className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2"
           >
             <FileText className="h-5 w-5" />
@@ -331,14 +333,14 @@ export function SummaryTab() {
           </button>
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={handleCopySummary}
+              onClick={() => guardAction(handleCopySummary, 'Copy Summary')}
               className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
             >
               <Copy className="h-4 w-4" />
               Copy Summary
             </button>
             <button
-              onClick={handleExportCSV}
+              onClick={() => guardAction(handleExportCSV, 'CSV Export')}
               className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
             >
               <Download className="h-4 w-4" />

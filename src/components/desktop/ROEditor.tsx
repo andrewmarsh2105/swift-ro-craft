@@ -12,6 +12,7 @@ import { useFlagContext } from '@/contexts/FlagContext';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePremiumAction } from '@/hooks/usePremiumAction';
 
 interface ROEditorProps {
   ro?: RepairOrder | null;
@@ -30,6 +31,7 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
 export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
   const { settings, addRO, updateRO, updateAdvisors } = useRO();
   const { userSettings } = useFlagContext();
+  const { guardAction } = usePremiumAction();
   
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
@@ -232,7 +234,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
           {/* Right-aligned actions: Upload icon + Total */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
-              onClick={() => setShowScanFlow(true)}
+              onClick={() => guardAction(() => setShowScanFlow(true), 'OCR Scanning')}
               className="h-8 w-8 flex items-center justify-center bg-secondary rounded hover:bg-secondary/80 transition-colors"
               title="Upload RO Photo"
             >
