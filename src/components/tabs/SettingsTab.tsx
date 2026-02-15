@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star } from 'lucide-react';
+import { SubscriptionSection } from '@/components/subscription/SubscriptionSection';
+import { PremiumFeature } from '@/components/subscription/PremiumFeature';
 import { useTemplates } from '@/hooks/useTemplates';
 import { motion, Reorder } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
@@ -460,6 +462,9 @@ export function SettingsTab() {
       </div>
 
       <div className="p-4 space-y-6">
+        {/* Subscription */}
+        <SubscriptionSection />
+
         {/* Appearance */}
         <SettingsGroup title="Appearance">
           <SettingsRow
@@ -569,8 +574,10 @@ export function SettingsTab() {
           </Reorder.Group>
         </div>
 
-        {/* Scan Templates */}
-        <TemplatesSection />
+        {/* Scan Templates (Pro) */}
+        <PremiumFeature feature="Scan Templates">
+          <TemplatesSection />
+        </PremiumFeature>
 
         {/* Data Management */}
         <SettingsGroup title="Data">
