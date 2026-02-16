@@ -115,10 +115,14 @@ export function CompactLinesGrid({
               transition={{ duration: 0.2 }}
             >
               <div className={cn(
-                'rounded-lg p-2 border transition-all duration-500',
+                'rounded-lg p-2.5 border transition-all duration-500 border-l-[3px]',
                 isHighlighted 
                   ? 'border-primary bg-primary/10 shadow-md' 
-                  : 'border-border/50 bg-secondary/50'
+                  : 'border-border bg-card shadow-sm',
+                // Left accent by labor type
+                line.laborType === 'warranty' && !isHighlighted && 'border-l-[hsl(var(--status-warranty))]',
+                line.laborType === 'customer-pay' && !isHighlighted && 'border-l-[hsl(var(--status-customer-pay))]',
+                line.laborType === 'internal' && !isHighlighted && 'border-l-[hsl(var(--status-internal))]',
               )}>
                 {/* Row 1: Line # + Description */}
                 <div className="flex items-center gap-2 mb-1.5">
@@ -134,9 +138,9 @@ export function CompactLinesGrid({
                     type="text"
                     value={line.description}
                     onChange={(e) => handleLineChange(index, { description: e.target.value })}
-                    placeholder="Description..."
+                    placeholder="Enter job description..."
                     disabled={readOnly}
-                    className="flex-1 h-8 px-2 bg-background rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+                    className="flex-1 h-10 px-3 bg-card border border-input rounded-md text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
                   {!readOnly && (
                     <div className="flex items-center gap-0.5 flex-shrink-0">
