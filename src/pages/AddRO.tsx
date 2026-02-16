@@ -382,9 +382,9 @@ export default function AddRO() {
       <div className="fixed bottom-[140px] left-3 right-3 z-40 safe-bottom">
         <button
           onClick={handleAddLine}
-          className="w-full py-2.5 bg-card border border-dashed border-primary/50 rounded-xl flex items-center justify-center gap-2 text-primary text-sm font-medium shadow-lg active:scale-[0.98] transition-transform"
+          className="w-auto mx-auto flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium text-muted-foreground hover:text-primary bg-muted/60 hover:bg-muted active:scale-[0.96] transition-all"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
           Add Line
         </button>
       </div>
