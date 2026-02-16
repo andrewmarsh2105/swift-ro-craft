@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
@@ -128,9 +128,14 @@ export function useROStore() {
     }
   }, [user]);
 
+  // Track whether an updatePresets operation is in flight to prevent races
+  const presetsUpdating = useRef(false);
+
   // Fetch presets (labor_references)
   const fetchPresets = useCallback(async () => {
     if (!user) return;
+    // Skip if an updatePresets call is in progress to prevent race conditions
+    if (presetsUpdating.current) return;
     try {
       const { data, error } = await supabase
         .from('labor_references')
@@ -141,24 +146,29 @@ export function useROStore() {
 
       const presets = (data || []).map(dbToPreset);
 
-      // Derive unique advisors from ROs
-      const advisorSet = new Map<string, Advisor>();
-      ros.forEach(ro => {
-        if (ro.advisor && !advisorSet.has(ro.advisor)) {
-          advisorSet.set(ro.advisor, { id: ro.advisor, name: ro.advisor });
-        }
-      });
-
       setSettings(prev => ({
         ...prev,
         presets,
-        advisors: Array.from(advisorSet.values()),
-        recentAdvisors: Array.from(advisorSet.keys()).slice(0, 6),
       }));
     } catch (err: any) {
       console.error('Failed to fetch presets', err);
     }
-  }, [user, ros]);
+  }, [user]);
+
+  // Derive advisors from ROs separately (no dependency on fetchPresets)
+  useEffect(() => {
+    const advisorSet = new Map<string, Advisor>();
+    ros.forEach(ro => {
+      if (ro.advisor && !advisorSet.has(ro.advisor)) {
+        advisorSet.set(ro.advisor, { id: ro.advisor, name: ro.advisor });
+      }
+    });
+    setSettings(prev => ({
+      ...prev,
+      advisors: Array.from(advisorSet.values()),
+      recentAdvisors: Array.from(advisorSet.keys()).slice(0, 6),
+    }));
+  }, [ros]);
 
   useEffect(() => { fetchROs(); }, [fetchROs]);
   useEffect(() => { fetchPresets(); }, [fetchPresets]);
@@ -346,19 +356,24 @@ export function useROStore() {
 
   const updatePresets = useCallback(async (presets: Preset[]) => {
     if (!user) return;
+    presetsUpdating.current = true;
     setSettings(prev => ({ ...prev, presets }));
-    // Sync to DB: delete all, re-insert
-    await supabase.from('labor_references').delete().eq('user_id', user.id);
-    if (presets.length > 0) {
-      const rows = presets.map((p, i) => ({
-        user_id: user.id,
-        name: p.name,
-        labor_type_default: p.laborType as any,
-        default_hours: p.defaultHours || 0,
-        sort_order: i,
-        active: true,
-      }));
-      await supabase.from('labor_references').insert(rows);
+    try {
+      // Sync to DB: delete all, re-insert
+      await supabase.from('labor_references').delete().eq('user_id', user.id);
+      if (presets.length > 0) {
+        const rows = presets.map((p, i) => ({
+          user_id: user.id,
+          name: p.name,
+          labor_type_default: p.laborType as any,
+          default_hours: p.defaultHours || 0,
+          sort_order: i,
+          active: true,
+        }));
+        await supabase.from('labor_references').insert(rows);
+      }
+    } finally {
+      presetsUpdating.current = false;
     }
     await fetchPresets();
   }, [user, fetchPresets]);

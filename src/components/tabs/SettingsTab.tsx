@@ -94,19 +94,21 @@ function PresetItem({ preset, onEdit, onDelete }: PresetItemProps) {
   return (
     <Reorder.Item
       value={preset}
-      className="bg-card p-4 rounded-xl flex items-center gap-3 touch-none"
+      className="bg-card p-4 rounded-xl flex items-center gap-3 touch-none overflow-hidden"
+      dragListener={true}
+      dragConstraints={{ left: 0, right: 0 }}
     >
-      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{preset.name}</div>
         <div className="text-sm text-muted-foreground">
           {typeLabel} • {preset.defaultHours ? `${preset.defaultHours}h` : 'No default'}
         </div>
       </div>
-      <button onClick={onEdit} className="p-2 tap-target touch-feedback">
+      <button onClick={onEdit} className="p-2 tap-target touch-feedback flex-shrink-0">
         <Pencil className="h-4 w-4 text-muted-foreground" />
       </button>
-      <button onClick={onDelete} className="p-2 tap-target touch-feedback text-destructive">
+      <button onClick={onDelete} className="p-2 tap-target touch-feedback text-destructive flex-shrink-0">
         <Trash2 className="h-4 w-4" />
       </button>
     </Reorder.Item>
@@ -525,7 +527,7 @@ export function SettingsTab() {
             axis="y"
             values={settings.presets}
             onReorder={handleReorder}
-            className="space-y-2"
+            className="space-y-2 overflow-x-hidden"
           >
             {settings.presets.map((preset) => (
               <PresetItem
