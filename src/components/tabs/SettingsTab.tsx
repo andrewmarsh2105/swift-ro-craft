@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star } from 'lucide-react';
 import { useTemplates } from '@/hooks/useTemplates';
-import { motion, Reorder } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
@@ -92,13 +92,7 @@ function PresetItem({ preset, onEdit, onDelete }: PresetItemProps) {
   }[preset.laborType];
 
   return (
-    <Reorder.Item
-      value={preset}
-      className="bg-card p-4 rounded-xl flex items-center gap-3 touch-none overflow-hidden"
-      dragListener={true}
-      dragConstraints={{ left: 0, right: 0 }}
-    >
-      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab flex-shrink-0" />
+    <div className="bg-card p-4 rounded-xl flex items-center gap-3 overflow-hidden">
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{preset.name}</div>
         <div className="text-sm text-muted-foreground">
@@ -111,7 +105,7 @@ function PresetItem({ preset, onEdit, onDelete }: PresetItemProps) {
       <button onClick={onDelete} className="p-2 tap-target touch-feedback text-destructive flex-shrink-0">
         <Trash2 className="h-4 w-4" />
       </button>
-    </Reorder.Item>
+    </div>
   );
 }
 
@@ -123,11 +117,7 @@ interface AdvisorItemProps {
 
 function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
   return (
-    <Reorder.Item
-      value={advisor}
-      className="bg-card p-4 rounded-xl flex items-center gap-3 touch-none"
-    >
-      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+    <div className="bg-card p-4 rounded-xl flex items-center gap-3">
       <User className="h-5 w-5 text-muted-foreground" />
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{advisor.name}</div>
@@ -138,7 +128,7 @@ function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
       <button onClick={onDelete} className="p-2 tap-target touch-feedback text-destructive">
         <Trash2 className="h-4 w-4" />
       </button>
-    </Reorder.Item>
+    </div>
   );
 }
 
@@ -386,9 +376,7 @@ export function SettingsTab() {
     updatePresets(settings.presets.filter(p => p.id !== id));
   };
 
-  const handleReorder = (newOrder: Preset[]) => {
-    updatePresets(newOrder);
-  };
+  // Reorder removed to prevent duplication bugs
 
   // Advisor management
   const openAdvisorEditor = (advisor?: Advisor) => {
@@ -421,9 +409,7 @@ export function SettingsTab() {
     updateAdvisors(settings.advisors.filter(a => a.id !== id));
   };
 
-  const handleAdvisorReorder = (newOrder: Advisor[]) => {
-    updateAdvisors(newOrder);
-  };
+  // Advisor reorder removed
 
   const toggleDarkMode = (enabled: boolean) => {
     setDarkMode(enabled);
@@ -523,12 +509,7 @@ export function SettingsTab() {
             </button>
           </div>
 
-          <Reorder.Group
-            axis="y"
-            values={settings.presets}
-            onReorder={handleReorder}
-            className="space-y-2 overflow-x-hidden"
-          >
+          <div className="space-y-2">
             {settings.presets.map((preset) => (
               <PresetItem
                 key={preset.id}
@@ -537,7 +518,7 @@ export function SettingsTab() {
                 onDelete={() => deletePreset(preset.id)}
               />
             ))}
-          </Reorder.Group>
+          </div>
         </div>
 
         {/* Advisors */}
@@ -554,12 +535,7 @@ export function SettingsTab() {
             </button>
           </div>
 
-          <Reorder.Group
-            axis="y"
-            values={settings.advisors}
-            onReorder={handleAdvisorReorder}
-            className="space-y-2"
-          >
+          <div className="space-y-2">
             {settings.advisors.map((advisor) => (
               <AdvisorItem
                 key={advisor.id}
@@ -568,7 +544,7 @@ export function SettingsTab() {
                 onDelete={() => deleteAdvisor(advisor.id)}
               />
             ))}
-          </Reorder.Group>
+          </div>
         </div>
 
         {/* Scan Templates */}

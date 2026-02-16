@@ -356,13 +356,23 @@ export function useROStore() {
 
   const updatePresets = useCallback(async (presets: Preset[]) => {
     if (!user) return;
+    // Prevent concurrent updates
+    if (presetsUpdating.current) return;
     presetsUpdating.current = true;
     setSettings(prev => ({ ...prev, presets }));
     try {
+      // Deduplicate by name before saving (keep first occurrence)
+      const seen = new Set<string>();
+      const uniquePresets = presets.filter(p => {
+        if (seen.has(p.name)) return false;
+        seen.add(p.name);
+        return true;
+      });
+
       // Sync to DB: delete all, re-insert
       await supabase.from('labor_references').delete().eq('user_id', user.id);
-      if (presets.length > 0) {
-        const rows = presets.map((p, i) => ({
+      if (uniquePresets.length > 0) {
+        const rows = uniquePresets.map((p, i) => ({
           user_id: user.id,
           name: p.name,
           labor_type_default: p.laborType as any,
