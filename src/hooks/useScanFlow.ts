@@ -201,6 +201,38 @@ export function useScanFlow() {
 
       updateDebug({ ocrDone: true });
       updateState('review', { extractedData });
+
+      // Non-blocking background cleanup — fires only after successful OCR
+      void (async () => {
+        try {
+          // 2-second safety buffer: ensures OCR edge function has fully
+          // finished reading before we delete the file from storage
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Delete from storage
+          const { error: storageError } = await supabase.storage
+            .from('ro-photos')
+            .remove([path]);
+
+          if (storageError) {
+            console.warn('[ScanFlow] Storage cleanup failed (non-critical):', storageError.message);
+            return;
+          }
+
+          // Also remove the database record if we inserted one
+          if (roId) {
+            await supabase
+              .from('ro_photos')
+              .delete()
+              .eq('storage_path', path);
+          }
+
+          console.log('[ScanFlow] Photo auto-deleted after OCR success');
+        } catch (e) {
+          // Cleanup failure is silent — never affects the user
+          console.warn('[ScanFlow] Cleanup error (non-critical):', e);
+        }
+      })();
     } catch (err: any) {
       // Only apply error if this scan is still current
       if (scanIdRef.current !== currentScanId) return;
