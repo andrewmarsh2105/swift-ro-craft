@@ -113,6 +113,14 @@ function getWeekStart(weekStartDay: number): string {
   return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 }
 
+function getTwoWeekStart(weekStartDay: number): string {
+  const now = new Date();
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff - 7);
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+}
+
 export function ROsTab({ onEditRO }: ROsTabProps) {
   const { ros, settings, deleteRO, duplicateRO } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
@@ -180,7 +188,10 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
     if (filters.dateRange === 'today') {
       result = result.filter((ro) => ro.date === today);
     } else if (filters.dateRange === 'week') {
-      const weekStart = getWeekStart(userSettings.weekStartDay ?? 0);
+      const useTwoWeeks = userSettings.defaultSummaryRange === 'two_weeks';
+      const weekStart = useTwoWeeks
+        ? getTwoWeekStart(userSettings.weekStartDay ?? 0)
+        : getWeekStart(userSettings.weekStartDay ?? 0);
       result = result.filter((ro) => ro.date >= weekStart);
     } else if (filters.dateRange === 'month') {
       const monthAgo = new Date();
@@ -369,7 +380,7 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               options={[
                 { value: 'all', label: 'All' },
                 { value: 'today', label: 'Today' },
-                { value: 'week', label: 'Week' },
+                { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Weeks' : '1 Week' },
                 { value: 'month', label: 'Month' },
               ]}
               value={filters.dateRange}

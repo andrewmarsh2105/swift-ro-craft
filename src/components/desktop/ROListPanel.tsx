@@ -28,6 +28,14 @@ function getWeekStart(weekStartDay: number): string {
   return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 }
 
+function getTwoWeekStart(weekStartDay: number): string {
+  const now = new Date();
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff - 7);
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+}
+
 export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelProps) {
   const { ros, deleteRO, duplicateRO } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
@@ -79,7 +87,10 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
     if (dateFilter === 'today') {
       result = result.filter((ro) => ro.date === today);
     } else if (dateFilter === 'week') {
-      const weekStart = getWeekStart(userSettings.weekStartDay ?? 0);
+      const useTwoWeeks = userSettings.defaultSummaryRange === 'two_weeks';
+      const weekStart = useTwoWeeks
+        ? getTwoWeekStart(userSettings.weekStartDay ?? 0)
+        : getWeekStart(userSettings.weekStartDay ?? 0);
       result = result.filter((ro) => ro.date >= weekStart);
     } else if (dateFilter === 'month') {
       const monthAgo = new Date();
@@ -201,7 +212,9 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
                   : 'text-muted-foreground hover:bg-muted'
               )}
             >
-              {filter}
+              {filter === 'week'
+                ? (userSettings.defaultSummaryRange === 'two_weeks' ? '2 Weeks' : '1 Week')
+                : filter}
             </button>
           ))}
         </div>
