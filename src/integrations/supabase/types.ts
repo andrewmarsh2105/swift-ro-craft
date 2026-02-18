@@ -338,6 +338,7 @@ export type Database = {
           theme: string | null
           updated_at: string
           user_id: string
+          week_start_day: number
         }
         Insert: {
           created_at?: string
@@ -352,6 +353,7 @@ export type Database = {
           theme?: string | null
           updated_at?: string
           user_id: string
+          week_start_day?: number
         }
         Update: {
           created_at?: string
@@ -366,6 +368,7 @@ export type Database = {
           theme?: string | null
           updated_at?: string
           user_id?: string
+          week_start_day?: number
         }
         Relationships: [
           {

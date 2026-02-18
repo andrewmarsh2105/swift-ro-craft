@@ -105,9 +105,17 @@ interface ROsTabProps {
   onEditRO: (ro: RepairOrder) => void;
 }
 
+function getWeekStart(weekStartDay: number): string {
+  const now = new Date();
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff);
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+}
+
 export function ROsTab({ onEditRO }: ROsTabProps) {
   const { ros, settings, deleteRO, duplicateRO } = useRO();
-  const { getFlagsForRO, clearFlag, addFlag } = useFlagContext();
+  const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
@@ -172,10 +180,8 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
     if (filters.dateRange === 'today') {
       result = result.filter((ro) => ro.date === today);
     } else if (filters.dateRange === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      const weekAgoStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`;
-      result = result.filter((ro) => ro.date >= weekAgoStr);
+      const weekStart = getWeekStart(userSettings.weekStartDay ?? 0);
+      result = result.filter((ro) => ro.date >= weekStart);
     } else if (filters.dateRange === 'month') {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
