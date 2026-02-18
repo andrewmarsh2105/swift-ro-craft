@@ -1,87 +1,94 @@
 
-## Customizable Week Start Day for the "Week" Filter
+## Tie "Week" Filter to Default Period Setting + Fix Week Start Day in Summary
 
 ### What the User Wants
 
-Right now, the "Week" filter always shows the last 7 rolling days. The user wants to define which day their work week starts on (e.g. Monday), so that "Week" shows from that day of the current week up to today — not a rolling 7-day window.
+1. **Main page "Week" filter** (mobile ROs tab + desktop list panel): When the user has set their default period to "2 Weeks" in Settings, clicking "Week" in the date filter should show the last 2 weeks (from 2 week-starts ago to today). If set to "1 Week", show the current week only.
 
-**Example:** If week start = Monday and today is Thursday, the "Week" filter shows Monday → Thursday only.
+2. **Summary tab**: Should still open on the default period (already done). No change needed there — `defaultSummaryRange` already controls what the Summary tab opens on.
+
+3. **Week start day must not break**: The `weekStartDay` preference must continue to anchor both the 1-week and 2-week calculations correctly.
 
 ---
 
-### How It Works Today
+### Current Behavior
 
-Both `ROsTab.tsx` (mobile) and `ROListPanel.tsx` (desktop) have identical "week" logic:
-
-```
-weekAgo = today - 7 days
-filter: ro.date >= weekAgo
-```
-
-This is a rolling window, not a real calendar week. There is no user preference for week start day.
+- `ROsTab.tsx` (mobile) and `ROListPanel.tsx` (desktop) — the "Week" date filter always calls `getWeekStart(weekStartDay)` to find the most recent occurrence of the start day and shows from there to today. It always shows exactly 1 week regardless of the default period setting.
+- `SummaryTab.tsx` — `getWeekRange()` has its own hardcoded logic (uses Monday, not `weekStartDay`). This is a separate issue but worth noting — the Summary tab's "1 Week" segment should also use `weekStartDay`. However, the user hasn't asked to change Summary tab logic here, so we'll focus only on the filter changes.
 
 ---
 
 ### Where the Changes Go
 
-**4 places total:**
+**2 files only** — no database or schema changes needed:
 
-#### 1. Database migration — add `week_start_day` column to `user_settings`
+#### 1. `src/components/tabs/ROsTab.tsx`
 
-A new integer column `week_start_day` (0 = Sunday, 1 = Monday ... 6 = Saturday), defaulting to `0` (Sunday). This follows the standard JavaScript `Date.getDay()` convention, making the math straightforward with no conversion needed.
-
-```sql
-ALTER TABLE public.user_settings
-  ADD COLUMN IF NOT EXISTS week_start_day integer NOT NULL DEFAULT 0;
-```
-
-#### 2. `src/hooks/useUserSettings.ts` — add the new setting
-
-- Add `weekStartDay: number` (0–6) to the `UserSettings` interface
-- Add default value `weekStartDay: 0`
-- Read `data.week_start_day` from the database fetch
-- Add `weekStartDay → week_start_day` to the `dbKey` mapping in `updateSetting`
-
-#### 3. `src/components/tabs/SettingsTab.tsx` — add the setting UI
-
-Add a new "Week Start Day" section (or row) inside the existing **Summary Range** settings card. It will render 7 day buttons (Sun / Mon / Tue / Wed / Thu / Fri / Sat) as a horizontal scrollable chip row, similar to the existing segmented controls. Tapping a day calls `updateUserSetting('weekStartDay', dayIndex)` and saves immediately.
-
-**Placement:** Directly below the existing "Summary Range" segmented control, within the same card/section.
-
-#### 4. `src/components/tabs/ROsTab.tsx` and `src/components/desktop/ROListPanel.tsx` — use the setting in the "week" filter
-
-Replace the hard-coded `today - 7 days` logic with a calculation that finds the most recent occurrence of the configured `weekStartDay`:
+The `getWeekStart` function already exists and works correctly. We need to add a `getTwoWeekStart` function that goes back an additional full week:
 
 ```typescript
-// Compute the start of the current week based on user preference
-function getWeekStart(weekStartDay: number): string {
+function getTwoWeekStart(weekStartDay: number): string {
   const now = new Date();
-  const todayDow = now.getDay(); // 0=Sun, 6=Sat
-  const diff = (todayDow - weekStartDay + 7) % 7; // days since week started
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
   const start = new Date(now);
-  start.setDate(now.getDate() - diff);
-  return `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,'0')}-${String(start.getDate()).padStart(2,'0')}`;
+  start.setDate(now.getDate() - diff - 7); // go back one extra week
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 }
 ```
 
-Then the filter becomes:
+Then update the `week` date filter branch to check `userSettings.defaultSummaryRange`:
+
 ```typescript
 } else if (filters.dateRange === 'week') {
-  const weekStart = getWeekStart(userSettings.weekStartDay ?? 0);
+  const useTwoWeeks = userSettings.defaultSummaryRange === 'two_weeks';
+  const weekStart = useTwoWeeks
+    ? getTwoWeekStart(userSettings.weekStartDay ?? 0)
+    : getWeekStart(userSettings.weekStartDay ?? 0);
   result = result.filter((ro) => ro.date >= weekStart);
 }
 ```
 
-Both `ROsTab` and `ROListPanel` get this same updated logic. `ROsTab` already has access to `userSettings` via `useFlagContext()`. `ROListPanel` also uses `useFlagContext()` so no new context wiring is needed.
+Also update the label for the "Week" filter button in the bottom sheet so users understand what they'll see:
+
+The `SegmentedControl` option label for `week` will dynamically say **"1 Week"** or **"2 Weeks"** based on the setting:
+
+```typescript
+{ value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Weeks' : '1 Week' }
+```
+
+This way users see exactly what the filter will show.
+
+#### 2. `src/components/desktop/ROListPanel.tsx`
+
+Same changes as above — add `getTwoWeekStart`, update the `week` branch of the date filter, and update the filter tab label. The desktop panel uses `dateFilter` state and a tab-style UI rather than a bottom sheet.
 
 ---
 
-### Technical Details
+### How the Math Works (Week Start Day Preserved)
 
-- **No timezone risk**: The calculation uses `new Date()` to get the local day-of-week, then subtracts days from the local date — consistent with the app's existing local date strategy (no UTC conversions).
-- **Edge case — today IS the start day**: `diff = 0`, so `weekStart = today`. Only today's ROs show. This is correct: the week just started.
-- **If user never set a preference**: defaults to `0` (Sunday), matching current behavior closely (7-day window is replaced by a Sun-to-today window — essentially the same for most of the week).
-- **Both mobile and desktop**: The filter logic change is applied to both `ROsTab.tsx` and `ROListPanel.tsx` since they both have independent week filter implementations.
+**1 Week mode** (existing, unchanged):
+- Find the most recent occurrence of `weekStartDay`
+- e.g. weekStartDay = Monday (1), today = Thursday → weekStart = this past Monday
+
+**2 Week mode** (new):
+- Find the most recent occurrence of `weekStartDay`, then go back 7 more days
+- e.g. weekStartDay = Monday (1), today = Thursday → weekStart = the Monday before last
+- Result: shows 2 full weeks anchored to the configured start day
+
+**Edge cases**:
+- Today IS the start day → 1-week mode shows only today; 2-week mode shows today + the full previous week
+- All consistent with the Summary tab's biweekly logic which also uses 2 stacked calendar weeks
+
+---
+
+### What Stays the Same
+
+- `defaultSummaryRange` setting UI in Settings tab — no changes
+- `weekStartDay` picker UI in Settings tab — no changes
+- Summary tab range selector — no changes
+- "Today" and "Month" filters — no changes
+- All other filter logic (advisors, labor type, search) — no changes
+- No database migration needed
 
 ---
 
@@ -89,8 +96,5 @@ Both `ROsTab` and `ROListPanel` get this same updated logic. `ROsTab` already ha
 
 | File | Change |
 |---|---|
-| New migration SQL | Add `week_start_day integer DEFAULT 0` to `user_settings` |
-| `src/hooks/useUserSettings.ts` | Add `weekStartDay` field, read/write mapping |
-| `src/components/tabs/SettingsTab.tsx` | Add day-picker UI in Summary Range section |
-| `src/components/tabs/ROsTab.tsx` | Replace rolling 7-day week filter with calendar-week logic |
-| `src/components/desktop/ROListPanel.tsx` | Same week filter update as above |
+| `src/components/tabs/ROsTab.tsx` | Add `getTwoWeekStart`, update week filter logic + dynamic label |
+| `src/components/desktop/ROListPanel.tsx` | Add `getTwoWeekStart`, update week filter logic + dynamic label |
