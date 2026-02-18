@@ -222,7 +222,7 @@ export function LinesGrid({
               key={line.id}
               data-line-id={line.id}
               className={cn(
-                'border-b border-border/50 transition-colors',
+                'border-b border-border/50 transition-colors overflow-hidden',
                 index % 2 === 0 ? 'bg-background' : 'bg-muted/10',
                 line.isTbd && 'opacity-60',
                 isHighlighted && 'ring-2 ring-primary ring-inset bg-primary/10'
@@ -362,7 +362,7 @@ export function LinesGrid({
 
               {/* Expanded description editor — inline below the row, no overlay */}
               {isExpanded && (
-                <div className="px-4 pb-3 pt-2 border-t border-border/40 bg-muted/5 animate-in slide-in-from-top-1 fade-in-0 duration-150">
+                <div className="px-4 pb-3 pt-2 border-t border-border/40 bg-muted/5 animate-in fade-in-0 duration-150">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
                     Full Description
                   </label>
