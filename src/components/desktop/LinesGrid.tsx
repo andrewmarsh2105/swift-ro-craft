@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { Plus, Trash2, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Copy, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
@@ -238,34 +238,45 @@ export function LinesGrid({
                 </div>
 
                 {/* Description (compact, truncated) */}
-                <div className="px-2 py-1 flex items-center gap-1 min-w-0">
-                  {!isExpanded ? (
-                    <>
-                      <input
-                        ref={(el) => setRef(`${index}-description`, el)}
-                        type="text"
-                        value={line.description}
-                        onChange={(e) => handleLineChange(index, { description: e.target.value })}
-                        onKeyDown={(e) => handleKeyDown(e, index, 'description')}
-                        placeholder="Job description..."
-                        disabled={readOnly}
-                        className="flex-1 h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded-[10px] text-sm focus:outline-none transition-colors disabled:opacity-60 truncate"
-                      />
-                      {showVehicleChips && (() => {
-                        const veh = line.vehicleOverride && line.lineVehicle ? line.lineVehicle : roVehicle;
-                        const chip = formatVehicleChip(veh);
-                        return chip ? (
-                          <span className="inline-flex items-center px-1.5 py-0.5 bg-accent text-accent-foreground text-[10px] font-medium rounded-full whitespace-nowrap flex-shrink-0">
-                            🚗 {chip}
-                          </span>
-                        ) : null;
-                      })()}
-                    </>
-                  ) : (
-                    <span className="text-xs text-muted-foreground italic px-2 truncate flex-1">
-                      {line.description || 'Editing below…'}
-                    </span>
+                <div className="px-2 py-1 flex items-center gap-1 min-w-0 group">
+                  <input
+                    ref={(el) => setRef(`${index}-description`, el)}
+                    type="text"
+                    value={line.description}
+                    onChange={(e) => handleLineChange(index, { description: e.target.value })}
+                    onKeyDown={(e) => handleKeyDown(e, index, 'description')}
+                    placeholder="Job description..."
+                    disabled={readOnly}
+                    className="flex-1 h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded-[10px] text-sm focus:outline-none transition-colors disabled:opacity-60 truncate"
+                  />
+                  {/* Expand/collapse button — original Maximize2 style */}
+                  {!readOnly && (
+                    <button
+                      onClick={() => toggleExpand(line.id)}
+                      className={cn(
+                        'p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all flex-shrink-0',
+                        isExpanded ? 'opacity-100 text-primary hover:text-primary' : 'opacity-0 group-hover:opacity-100'
+                      )}
+                      title={isExpanded ? 'Collapse' : 'Expand description'}
+                      aria-label={isExpanded ? 'Collapse line' : 'Expand line'}
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter') toggleExpand(line.id); }}
+                    >
+                      {isExpanded
+                        ? <Minimize2 className="h-3.5 w-3.5" />
+                        : <Maximize2 className="h-3.5 w-3.5" />
+                      }
+                    </button>
                   )}
+                  {showVehicleChips && (() => {
+                    const veh = line.vehicleOverride && line.lineVehicle ? line.lineVehicle : roVehicle;
+                    const chip = formatVehicleChip(veh);
+                    return chip ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 bg-accent text-accent-foreground text-[10px] font-medium rounded-full whitespace-nowrap flex-shrink-0">
+                        🚗 {chip}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Labor Type */}
@@ -330,25 +341,6 @@ export function LinesGrid({
                 <div className="px-2 py-1 flex items-center justify-center gap-0.5">
                   {!readOnly && (
                     <>
-                      {/* Expand/Collapse */}
-                      <button
-                        onClick={() => toggleExpand(line.id)}
-                        className={cn(
-                          'p-1.5 rounded transition-colors',
-                          isExpanded
-                            ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        )}
-                        title={isExpanded ? 'Show less' : 'Expand description'}
-                        aria-label={isExpanded ? 'Collapse line' : 'Expand line'}
-                        aria-expanded={isExpanded}
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        )}
-                      </button>
                       <button
                         onClick={() => handleDuplicateLine(index)}
                         className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
@@ -368,35 +360,19 @@ export function LinesGrid({
                 </div>
               </div>
 
-              {/* Expanded description editor */}
+              {/* Expanded description editor — inline below the row, no overlay */}
               {isExpanded && (
-                <div
-                  className={cn(
-                    'px-4 pb-3 pt-1 border-t border-border/40 bg-muted/5',
-                    'animate-in slide-in-from-top-1 fade-in-0 duration-150'
-                  )}
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
-                        Full Description
-                      </label>
-                    <AutoTextarea
-                        value={line.description}
-                        onChange={(v) => handleLineChange(index, { description: v })}
-                        placeholder="Job description…"
-                        disabled={readOnly}
-                        onRef={(el) => setTextareaRef(line.id, el)}
-                      />
-                    </div>
-                    <button
-                      onClick={() => setExpandedId(null)}
-                      className="mt-5 flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium px-2 py-1 rounded hover:bg-primary/10 transition-colors flex-shrink-0"
-                    >
-                      <ChevronUp className="h-3.5 w-3.5" />
-                      Show less
-                    </button>
-                  </div>
+                <div className="px-4 pb-3 pt-2 border-t border-border/40 bg-muted/5 animate-in slide-in-from-top-1 fade-in-0 duration-150">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
+                    Full Description
+                  </label>
+                  <AutoTextarea
+                    value={line.description}
+                    onChange={(v) => handleLineChange(index, { description: v })}
+                    placeholder="Job description…"
+                    disabled={readOnly}
+                    onRef={(el) => setTextareaRef(line.id, el)}
+                  />
                 </div>
               )}
             </div>
