@@ -95,37 +95,53 @@ export function LineTextModal({ open, onClose, lineNo, description, onEdit }: Li
   );
 
   if (isMobile) {
-    // Bottom sheet style for mobile
+    // Bottom sheet style for mobile — rendered via portal above save bar
     if (!open) return null;
+
+    // Save bar is ~120px tall; we add that as extra bottom padding so content
+    // is always visible and nothing is hidden behind it.
+    const SAVE_BAR_HEIGHT = 120;
+
     return (
       <>
         {/* Backdrop */}
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+          style={{ zIndex: 9998 }}
           onClick={onClose}
         />
-        {/* Sheet */}
+        {/* Sheet — z-index above save bar (z-50 = 50, save bar z-50) */}
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl shadow-2xl"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+          className="fixed left-0 right-0 bottom-0 bg-card rounded-t-2xl shadow-2xl flex flex-col"
+          style={{
+            zIndex: 9999,
+            maxHeight: '80vh',
+          }}
         >
           {/* Handle */}
-          <div className="flex justify-center pt-3 pb-1">
+          <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
             <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
           </div>
 
-          <div className="px-4 pb-4">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold">Line L{lineNo}</h2>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+          {/* Fixed header */}
+          <div className="px-4 pb-3 flex items-center justify-between flex-shrink-0">
+            <h2 className="text-base font-semibold">Line L{lineNo}</h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Scrollable body */}
+          <div
+            className="overflow-y-auto px-4"
+            style={{
+              paddingBottom: `calc(${SAVE_BAR_HEIGHT}px + env(safe-area-inset-bottom, 16px))`,
+            }}
+          >
             {content}
           </div>
         </div>
