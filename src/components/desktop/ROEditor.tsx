@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Camera, Save, Plus, Calendar, User, Clock, FileText, Check } from 'lucide-react';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 interface ROEditorProps {
   ro?: RepairOrder | null;
   isNew?: boolean;
+  focusLineId?: string | null;
   onSave?: () => void;
   onCancel?: () => void;
   onSaveAndAddAnother?: () => void;
@@ -27,7 +28,7 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
   { value: 'internal', label: 'Internal' },
 ];
 
-export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
+export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
   const { settings, addRO, updateRO, updateAdvisors } = useRO();
   const { userSettings } = useFlagContext();
   
@@ -59,6 +60,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
   const [showScanFlow, setShowScanFlow] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
+  const linesContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Sync with ro prop changes
   useEffect(() => {
@@ -98,13 +100,25 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     }
   }, [ro, isNew]);
 
-  // Clear highlights after 2 seconds
+  // Clear highlights after 2.5 seconds
   useEffect(() => {
     if (highlightedLineIds.length > 0) {
-      const timer = setTimeout(() => setHighlightedLineIds([]), 2000);
+      const timer = setTimeout(() => setHighlightedLineIds([]), 2500);
       return () => clearTimeout(timer);
     }
   }, [highlightedLineIds]);
+
+  // Focus + highlight a specific line when navigated from Flag Inbox
+  useEffect(() => {
+    if (!focusLineId) return;
+    setHighlightedLineIds([focusLineId]);
+    // Scroll the line into view after a short delay to let the editor render
+    const timer = setTimeout(() => {
+      const el = linesContainerRef.current?.querySelector(`[data-line-id="${focusLineId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [focusLineId]);
 
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
   const tbdCount = lines.filter(l => l.isTbd).length;
@@ -293,7 +307,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       )}
 
       {/* Main Content - Lines Grid */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4" ref={linesContainerRef}>
         <LinesGrid
           lines={lines}
           onLinesChange={setLines}

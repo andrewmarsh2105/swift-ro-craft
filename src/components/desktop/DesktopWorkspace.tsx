@@ -8,18 +8,41 @@ import { OfflineStatusBar } from '@/components/shared/OfflineStatusBar';
 import { FileText, Settings, BarChart3, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RepairOrder } from '@/types/ro';
+import { useRO } from '@/contexts/ROContext';
+import { toast } from 'sonner';
 
 type RightPanel = 'editor' | 'settings' | 'summary' | 'none';
 
 export function DesktopWorkspace() {
+  const { ros } = useRO();
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [rightPanel, setRightPanel] = useState<RightPanel>('none');
+  const [focusLineId, setFocusLineId] = useState<string | null>(null);
 
   const handleSelectRO = (ro: RepairOrder) => {
     setSelectedRO(ro);
     setIsAddingNew(false);
     setRightPanel('editor');
+    setFocusLineId(null);
+  };
+
+  const handleSelectROWithFocus = (roId: string, lineId?: string | null) => {
+    const ro = ros.find(r => r.id === roId);
+    if (!ro) {
+      toast.error('RO not found');
+      return;
+    }
+    if (lineId) {
+      const line = ro.lines?.find(l => l.id === lineId);
+      if (!line) {
+        toast.warning('Line not found — opening RO');
+      }
+    }
+    setSelectedRO(ro);
+    setIsAddingNew(false);
+    setRightPanel('editor');
+    setFocusLineId(lineId ?? null);
   };
 
   const handleAddNew = () => {
@@ -58,7 +81,7 @@ export function DesktopWorkspace() {
       <OfflineStatusBar />
       {/* Top Bar */}
       <div className="flex-shrink-0 h-10 flex items-center justify-end px-4 gap-1 border-b border-border bg-card">
-        <FlagInbox />
+        <FlagInbox onNavigateToRO={handleSelectROWithFocus} />
         <button
           onClick={() => togglePanel('summary')}
           className={cn(
@@ -109,6 +132,7 @@ export function DesktopWorkspace() {
             <ROEditor
               ro={selectedRO}
               isNew={isAddingNew}
+              focusLineId={focusLineId}
               onSave={handleSave}
               onCancel={handleCancel}
               onSaveAndAddAnother={handleSaveAndAddAnother}
