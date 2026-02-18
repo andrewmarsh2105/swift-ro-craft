@@ -1,38 +1,57 @@
 
+## Auto-Delete Photos After OCR Extraction
 
-# Redesign Line Items for Better Visual Hierarchy
+### What Changes
 
-## Problem
-Currently, each line item card and the "Add Line" button look too similar -- the description input blends in with the surrounding controls, making it hard to quickly identify where to type job descriptions.
+One file only: **`src/hooks/useScanFlow.ts`**
 
-## Design Changes
+After OCR returns a successful result and the extracted data is verified, a background cleanup task fires silently. It waits 2 seconds as a safety buffer, then removes both the file from storage and the database record (if one was created).
 
-### 1. Make the Description Input Stand Out
-- Increase the description input height (h-8 to h-10) and add a visible border so it reads as a proper text field
-- Use a white/solid background with a subtle shadow instead of the current flat `bg-background`
-- Add a placeholder with more guidance: "Enter job description..."
-- Slightly larger font size for the description vs. the secondary controls
+### Exact Insertion Point
 
-### 2. Visually Separate the "Add Line" Button
-- Add spacing (margin-top) above the Add Line button to create a clear gap from the line items
-- Change the button style from a dashed border card to a more subtle, compact text-button style (e.g., just an icon + text link, or a smaller pill-shaped button) so it doesn't compete with line cards
-- Use a muted/ghost style instead of the current card-like appearance
+After line 203 (`updateState('review', { extractedData });`) — inside the `try` block, after the final staleness check passes and the state is set to `review`.
 
-### 3. Line Card Layout Tweaks
-- Give line cards a slightly stronger border and background contrast so they feel like distinct "rows"
-- Move the line number badge and action buttons (copy/delete) to feel more like row metadata, keeping the description input as the dominant visual element
-- Add a thin left accent border (colored by labor type) to each card for quick scanning
+### The Cleanup Logic
 
-## Technical Details
+```typescript
+// Non-blocking background cleanup — fires only after successful OCR
+void (async () => {
+  try {
+    // 2-second safety buffer: ensures OCR edge function has fully
+    // finished reading before we delete the file from storage
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-### Files to modify:
-1. **`src/components/mobile/CompactLinesGrid.tsx`**
-   - Restyle the description input: taller, visible border, slightly larger text, solid background
-   - Add a left accent border to each line card based on labor type
-   - Increase padding slightly for the description row vs. the controls row
+    // Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from('ro-photos')
+      .remove([path]);
 
-2. **`src/pages/AddRO.tsx`**
-   - Restyle the "Add Line" button: change from a full-width dashed-border card to a compact ghost/text button with more top margin
-   - Add visual separation (extra spacing or a subtle divider) between the lines list and the add button
+    if (storageError) {
+      console.warn('[ScanFlow] Storage cleanup failed (non-critical):', storageError.message);
+      return;
+    }
 
-### No structural or logic changes needed -- this is purely a styling/layout update.
+    // Also remove the database record if we inserted one
+    if (roId) {
+      await supabase
+        .from('ro_photos')
+        .delete()
+        .eq('storage_path', path);
+    }
+
+    console.log('[ScanFlow] Photo auto-deleted after OCR success');
+  } catch (e) {
+    // Cleanup failure is silent — never affects the user
+    console.warn('[ScanFlow] Cleanup error (non-critical):', e);
+  }
+})();
+```
+
+### Safety Guarantees
+
+- **OCR always reads first**: The cleanup only starts after `ocrResponse.json()` has fully resolved and `updateState('review', ...)` has been called. The OCR edge function processes the file completely before sending any response back.
+- **2-second buffer**: Adds extra time beyond the OCR response to cover any residual in-flight signed URL reads.
+- **OCR failure = no delete**: The cleanup is inside the successful `try` path, after the staleness check. If OCR throws or returns an error, execution jumps to `catch` and cleanup never runs — the file is kept so the user can retry.
+- **Stale scan = no delete**: The final staleness check (`if (scanIdRef.current !== currentScanId) return;`) runs before cleanup fires, so a cancelled or superseded scan never triggers cleanup on the wrong file.
+- **Multi-user safe**: Storage paths are `userId/roId/timestamp.ext`, so no user can ever touch another user's files. RLS on `ro_photos` adds a second layer.
+- **Non-blocking**: The `void (async () => { ... })()` pattern means cleanup runs in the background without blocking the UI transition to the review screen.
