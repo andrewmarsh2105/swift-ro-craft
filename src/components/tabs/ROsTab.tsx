@@ -44,14 +44,14 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flag
     : ro.paidHours;
 
   return (
-    <div className="card-mobile p-4 rounded-xl">
+    <div className="card-mobile p-4 rounded-xl group hover:shadow-raised transition-shadow duration-200">
       <div className="flex items-start gap-3">
         {/* Tappable content area */}
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold text-lg">#{ro.roNumber}</span>
+            <span className="text-[17px] font-bold tracking-tight">#{ro.roNumber}</span>
             {hasLines && (
-              <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+              <span className="text-[11px] font-medium text-muted-foreground bg-secondary border border-border px-1.5 py-0.5 rounded-md">
                 {ro.lines.length} lines
               </span>
             )}
@@ -63,19 +63,20 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flag
               />
             )}
           </div>
-          <div className="text-sm text-muted-foreground mb-1">
-            {formattedDate} • {ro.advisor}
+          <div className="text-[13px] text-muted-foreground mb-1 font-medium">
+            {formattedDate} · {ro.advisor}
           </div>
-          <div className="text-sm text-foreground/80 truncate">
+          <div className="text-[13px] text-foreground/70 truncate">
             {hasLines 
               ? ro.lines.map(l => l.description).filter(Boolean).join(', ') || ro.workPerformed
               : ro.workPerformed
             }
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-1">
-            <span className="text-xl font-bold text-primary">
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5">
+            {/* Hours — primary "pop" element */}
+            <span className="hours-pill text-base tabular-nums">
               {totalHours.toFixed(1)}h
             </span>
             <ROActionMenu

@@ -44,18 +44,19 @@ function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?:
   const dayNum = date.getDate();
 
   return (
-    <div className={cn('card-mobile p-4 flex items-center gap-4', isToday && 'ring-2 ring-primary')}>
-      <div className="text-center w-12 flex-shrink-0">
-        <div className="text-xs text-muted-foreground uppercase">{dayName}</div>
-        <div className="text-2xl font-bold">{dayNum}</div>
+    <div className={cn('card-mobile p-4 flex items-center gap-4 transition-shadow duration-200', isToday && 'ring-2 ring-primary shadow-raised')}>
+      <div className="text-center w-10 flex-shrink-0">
+        <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{dayName}</div>
+        <div className="text-2xl font-bold tabular-nums leading-tight">{dayNum}</div>
       </div>
+      <div className="w-px h-10 bg-border flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold">{summary.totalHours.toFixed(1)}h</span>
-          <span className="text-sm text-muted-foreground">{summary.roCount} ROs</span>
+          <span className="text-2xl font-bold tabular-nums">{summary.totalHours.toFixed(1)}h</span>
+          <span className="text-[13px] text-muted-foreground">{summary.roCount} RO{summary.roCount !== 1 ? 's' : ''}</span>
         </div>
         {summary.totalHours > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
             {summary.warrantyHours > 0 && <StatusPill type="warranty" hours={summary.warrantyHours} size="sm" />}
             {summary.customerPayHours > 0 && <StatusPill type="customer-pay" hours={summary.customerPayHours} size="sm" />}
             {summary.internalHours > 0 && <StatusPill type="internal" hours={summary.internalHours} size="sm" />}
@@ -70,15 +71,15 @@ function AdvisorCard({ summary }: { summary: AdvisorBreakdown }) {
   return (
     <div className="card-mobile p-4 flex items-center justify-between w-full">
       <div>
-        <div className="font-semibold text-lg">{summary.advisor}</div>
-        <div className="text-sm text-muted-foreground">{summary.roCount} ROs</div>
-        <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-          {summary.warrantyHours > 0 && <span>W:{summary.warrantyHours.toFixed(1)}</span>}
-          {summary.customerPayHours > 0 && <span>CP:{summary.customerPayHours.toFixed(1)}</span>}
-          {summary.internalHours > 0 && <span>Int:{summary.internalHours.toFixed(1)}</span>}
+        <div className="font-semibold text-[15px]">{summary.advisor}</div>
+        <div className="text-[13px] text-muted-foreground">{summary.roCount} RO{summary.roCount !== 1 ? 's' : ''}</div>
+        <div className="flex gap-2 mt-1 text-[11px] font-medium text-muted-foreground">
+          {summary.warrantyHours > 0 && <span>W: {summary.warrantyHours.toFixed(1)}</span>}
+          {summary.customerPayHours > 0 && <span>CP: {summary.customerPayHours.toFixed(1)}</span>}
+          {summary.internalHours > 0 && <span>Int: {summary.internalHours.toFixed(1)}</span>}
         </div>
       </div>
-      <span className="text-xl font-bold text-primary">{summary.totalHours.toFixed(1)}h</span>
+      <span className="hours-pill text-base tabular-nums">{summary.totalHours.toFixed(1)}h</span>
     </div>
   );
 }
@@ -232,26 +233,26 @@ export function SummaryTab() {
 
       {/* Content */}
       <div className={cn('flex-1 overflow-y-auto p-4 space-y-4', isMobile && 'pb-32')}>
-        {/* Total Card */}
-        <div className="bg-primary text-primary-foreground rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-primary-foreground/80 font-medium">
+        {/* Total Card — solid primary fill, strong hierarchy */}
+        <div className="bg-primary text-primary-foreground rounded-2xl p-5" style={{ boxShadow: '0 4px 20px -4px hsl(var(--primary) / 0.5)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-wide">
               {effectiveRange === 'two_weeks' ? '2-Week Total' : effectiveRange === 'custom' ? 'Total' : 'Week Total'}
             </span>
-            <span className="text-sm text-primary-foreground/70">
+            <span className="text-xs text-primary-foreground/65 font-medium">
               {report.totalROs} ROs · {report.totalLines} lines
               {report.tbdLineCount > 0 && ` · ${report.tbdLineCount} TBD`}
             </span>
           </div>
-          <div className="text-4xl font-bold mb-3">{report.totalHours.toFixed(1)}h</div>
+          <div className="text-5xl font-bold tabular-nums mb-3 tracking-tight">{report.totalHours.toFixed(1)}<span className="text-3xl ml-1 opacity-80">h</span></div>
           {report.tbdLineCount > 0 && (
-            <div className="text-sm text-primary-foreground/70 mb-2">
+            <div className="text-xs text-primary-foreground/65 mb-2 font-medium">
               ⏳ {report.tbdLineCount} TBD lines ({report.tbdHours.toFixed(1)}h) not counted
             </div>
           )}
           <div className="flex flex-wrap gap-2">
             {report.byLaborType.map(lt => (
-              <span key={lt.laborType} className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
+              <span key={lt.laborType} className="px-2.5 py-1 bg-white/20 rounded-full text-xs font-semibold">
                 {lt.label}: {lt.totalHours.toFixed(1)}h
               </span>
             ))}

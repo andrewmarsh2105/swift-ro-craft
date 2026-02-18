@@ -118,22 +118,21 @@ export function CompactLinesGrid({
               transition={{ duration: 0.2 }}
             >
               <div className={cn(
-                'rounded-lg p-2.5 border transition-all duration-500 border-l-[3px]',
+                'rounded-lg p-2.5 border transition-all duration-300',
+                // Highlighted from flag nav takes priority
                 isHighlighted 
-                  ? 'border-primary bg-primary/10 shadow-md' 
+                  ? 'border-primary bg-primary/10 shadow-md border-l-[3px] border-l-primary' 
                   : 'border-border bg-card shadow-sm',
-                // Left accent by labor type
-                line.laborType === 'warranty' && !isHighlighted && 'border-l-[hsl(var(--status-warranty))]',
-                line.laborType === 'customer-pay' && !isHighlighted && 'border-l-[hsl(var(--status-customer-pay))]',
-                line.laborType === 'internal' && !isHighlighted && 'border-l-[hsl(var(--status-internal))]',
+                // Left accent ONLY for flagged (TBD state) — keeps neutral otherwise
+                !isHighlighted && line.isTbd && 'border-l-[3px] border-l-amber-400',
               )}>
                 {/* Row 1: Line # + Description */}
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className={cn(
-                    'text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 transition-colors',
+                    'text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-colors tabular-nums',
                     isHighlighted 
                       ? 'bg-primary text-primary-foreground' 
-                      : 'text-muted-foreground bg-muted'
+                      : 'text-muted-foreground bg-secondary border border-border'
                   )}>
                     L{line.lineNo}
                   </span>
@@ -149,7 +148,7 @@ export function CompactLinesGrid({
                         setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id });
                       }
                     }}
-                    className="flex-1 h-10 px-3 bg-card border border-input rounded-md text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                    className="flex-1 h-10 px-3 bg-card border border-input rounded-[10px] text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
                   />
                   {/* Expand button */}
                   <button
@@ -170,7 +169,7 @@ export function CompactLinesGrid({
                       </button>
                       <button
                         onClick={() => handleRemoveLine(index)}
-                        className="p-1.5 text-destructive/70 hover:text-destructive rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform"
+                        className="p-1.5 text-destructive/60 hover:text-destructive rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -184,7 +183,7 @@ export function CompactLinesGrid({
                     value={line.laborType || ''}
                     onChange={(e) => handleLineChange(index, { laborType: e.target.value as LaborType || undefined })}
                     disabled={readOnly}
-                    className="h-8 px-2 bg-background rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 min-w-[80px]"
+                    className="h-8 px-2 bg-secondary border border-border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[80px]"
                   >
                     <option value="">Default</option>
                     {LABOR_TYPES.map((t) => (
@@ -197,17 +196,17 @@ export function CompactLinesGrid({
                     <button
                       onClick={() => handleLineChange(index, { isTbd: !line.isTbd })}
                       className={cn(
-                        'px-2 py-1 rounded text-[10px] font-bold transition-colors flex-shrink-0',
+                        'px-2 py-1 rounded-md text-[10px] font-bold transition-all flex-shrink-0 border',
                         line.isTbd
-                          ? 'bg-warning/20 text-warning border border-warning/40'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
+                          : 'bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
                       )}
                     >
                       TBD
                     </button>
                   )}
                   {readOnly && line.isTbd && (
-                    <span className="px-2 py-1 bg-warning/20 text-warning text-[10px] font-bold rounded flex-shrink-0">TBD</span>
+                    <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-md border border-amber-300 flex-shrink-0 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700">TBD</span>
                   )}
 
                   <div className="flex-1" />
@@ -219,12 +218,12 @@ export function CompactLinesGrid({
                       placeholder={line.isTbd ? '—' : '0.0'}
                       disabled={readOnly}
                       className={cn(
-                        'w-16 h-8 px-2 bg-background rounded text-sm font-semibold text-right focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60',
-                        isHighlighted && 'ring-2 ring-primary',
+                        'w-16 h-8 px-2 bg-secondary border border-border rounded-md text-sm font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
+                        isHighlighted && 'ring-2 ring-primary border-primary',
                         line.isTbd && 'line-through text-muted-foreground'
                       )}
                     />
-                    <span className="text-xs text-muted-foreground">hrs</span>
+                    <span className="text-[11px] text-muted-foreground font-medium">hrs</span>
                   </div>
                 </div>
 

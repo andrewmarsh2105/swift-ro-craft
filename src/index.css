@@ -7,60 +7,61 @@
 @layer base {
   :root {
     /* Core brand - Professional blue */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    --background: 210 22% 95%;
+    --foreground: 222 47% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 47% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222 47% 9%;
 
     /* Professional blue primary */
-    --primary: 213 94% 45%;
+    --primary: 213 94% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 210 28% 91%;
+    --secondary-foreground: 222 47% 14%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 28% 91%;
+    --muted-foreground: 215 18% 44%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 210 28% 91%;
+    --accent-foreground: 222 47% 14%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 213 94% 45%;
+    --border: 214 26% 86%;
+    --input: 214 26% 89%;
+    --ring: 213 94% 42%;
 
     --radius: 0.75rem;
 
     /* RO Status Colors */
-    --status-warranty: 142 71% 45%;
+    --status-warranty: 142 65% 38%;
     --status-warranty-foreground: 0 0% 100%;
-    --status-warranty-bg: 142 71% 95%;
+    --status-warranty-bg: 142 60% 93%;
 
-    --status-customer-pay: 213 94% 45%;
+    --status-customer-pay: 213 94% 42%;
     --status-customer-pay-foreground: 0 0% 100%;
-    --status-customer-pay-bg: 213 94% 95%;
+    --status-customer-pay-bg: 213 80% 93%;
 
-    --status-internal: 25 95% 53%;
+    --status-internal: 25 90% 48%;
     --status-internal-foreground: 0 0% 100%;
-    --status-internal-bg: 25 95% 95%;
+    --status-internal-bg: 25 85% 93%;
 
     /* Mobile-specific */
     --tab-bar-height: 5rem;
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
 
-    /* Shadows */
+    /* Shadows — card has ring + subtle lift */
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-fab: 0 4px 14px -2px hsl(213 94% 45% / 0.4);
-    --shadow-sheet: 0 -4px 20px 0 hsl(0 0% 0% / 0.15);
+    --shadow-card: 0 1px 4px 0 hsl(214 30% 0% / 0.07), 0 0 0 1px hsl(214 26% 86% / 0.8);
+    --shadow-raised: 0 2px 8px -1px hsl(214 30% 0% / 0.12), 0 0 0 1px hsl(214 26% 86% / 0.7);
+    --shadow-fab: 0 4px 16px -2px hsl(213 94% 42% / 0.45);
+    --shadow-sheet: 0 -4px 24px 0 hsl(0 0% 0% / 0.16);
 
     /* Sidebar vars for compatibility */
     --sidebar-background: 0 0% 98%;
@@ -74,47 +75,51 @@
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
+    --background: 222 47% 7%;
+    --foreground: 210 40% 97%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 38% 11%;
+    --card-foreground: 210 40% 97%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 38% 11%;
+    --popover-foreground: 210 40% 97%;
 
-    --primary: 213 94% 55%;
-    --primary-foreground: 222 47% 8%;
+    --primary: 213 94% 58%;
+    --primary-foreground: 222 47% 6%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 217 26% 16%;
+    --secondary-foreground: 210 40% 90%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 217 26% 16%;
+    --muted-foreground: 215 18% 58%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 217 26% 16%;
+    --accent-foreground: 210 40% 90%;
 
-    --destructive: 0 63% 31%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 213 94% 55%;
+    --border: 217 26% 18%;
+    --input: 217 26% 19%;
+    --ring: 213 94% 58%;
 
     /* Status colors - dark mode */
-    --status-warranty: 142 71% 50%;
-    --status-warranty-bg: 142 71% 15%;
+    --status-warranty: 142 68% 52%;
+    --status-warranty-foreground: 142 90% 10%;
+    --status-warranty-bg: 142 55% 12%;
 
-    --status-customer-pay: 213 94% 55%;
-    --status-customer-pay-bg: 213 94% 15%;
+    --status-customer-pay: 213 94% 58%;
+    --status-customer-pay-foreground: 213 90% 10%;
+    --status-customer-pay-bg: 213 70% 13%;
 
-    --status-internal: 25 95% 58%;
-    --status-internal-bg: 25 95% 15%;
+    --status-internal: 25 90% 60%;
+    --status-internal-foreground: 25 90% 10%;
+    --status-internal-bg: 25 70% 12%;
 
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
-    --shadow-fab: 0 4px 14px -2px hsl(213 94% 55% / 0.5);
-    --shadow-sheet: 0 -4px 20px 0 hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 1px 4px 0 hsl(0 0% 0% / 0.3), 0 0 0 1px hsl(217 26% 18% / 0.9);
+    --shadow-raised: 0 2px 10px -1px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(217 26% 18% / 0.8);
+    --shadow-fab: 0 4px 16px -2px hsl(213 94% 58% / 0.55);
+    --shadow-sheet: 0 -4px 24px 0 hsl(0 0% 0% / 0.45);
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -156,15 +161,28 @@
     @apply min-h-[44px] min-w-[44px];
   }
 
-  /* Card styling */
+  /* Card styling — card floats off background with ring + shadow */
   .card-mobile {
     @apply bg-card rounded-xl;
     box-shadow: var(--shadow-card);
   }
 
+  /* Card with a bit more lift — for selected / important cards */
+  .card-raised {
+    @apply bg-card rounded-xl;
+    box-shadow: var(--shadow-raised);
+  }
+
+  /* Hours "pop" pill — accent background, strong contrast */
+  .hours-pill {
+    @apply inline-flex items-center px-3 py-1 rounded-full font-bold text-primary-foreground;
+    background: hsl(var(--primary));
+    box-shadow: 0 2px 8px -1px hsl(var(--primary) / 0.4);
+  }
+
   /* Status pill variants */
   .status-pill {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
 
   .status-pill-warranty {
@@ -212,29 +230,36 @@
 
   /* Segmented control */
   .segmented-control {
-    @apply inline-flex p-1 bg-muted rounded-lg;
+    @apply inline-flex p-1 bg-muted rounded-xl;
   }
 
   .segmented-control-item {
-    @apply px-4 py-2 text-sm font-medium rounded-md transition-all tap-target;
+    @apply px-4 py-2 text-sm font-medium rounded-lg transition-all tap-target;
   }
 
   .segmented-control-item-active {
-    @apply bg-card text-foreground;
+    @apply bg-card text-foreground font-semibold;
     box-shadow: var(--shadow-sm);
   }
 
   .segmented-control-item-inactive {
-    @apply text-muted-foreground;
+    @apply text-muted-foreground hover:text-foreground/80 transition-colors;
   }
 
-  /* Chip styling */
+  /* Chip styling — slightly elevated for tactility */
   .chip {
-    @apply inline-flex items-center gap-1.5 px-3 py-2 bg-secondary rounded-full text-sm font-medium tap-target;
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-border rounded-full text-sm font-medium tap-target transition-all duration-150;
+    box-shadow: 0 1px 2px 0 hsl(0 0% 0% / 0.06);
+  }
+
+  .chip:active {
+    @apply scale-95;
+    box-shadow: none;
   }
 
   .chip-selected {
-    @apply bg-primary text-primary-foreground;
+    @apply bg-primary text-primary-foreground border-primary/0;
+    box-shadow: 0 2px 6px -1px hsl(var(--primary) / 0.35);
   }
 
   /* Tab bar */
@@ -266,7 +291,7 @@
   }
 
   .swipe-action-duplicate {
-    @apply swipe-action left-0 bg-status-warranty text-white rounded-l-xl;
+    @apply swipe-action left-0 text-white rounded-l-xl;
     background: hsl(var(--status-warranty));
   }
 
@@ -275,9 +300,16 @@
     @apply text-center text-3xl font-bold bg-transparent border-0 focus:outline-none focus:ring-0 w-full;
   }
 
-  /* Quick increment button */
+  /* Quick increment button — elevated pill */
   .increment-btn {
-    @apply px-4 py-2 bg-secondary rounded-lg text-sm font-semibold tap-target active:scale-95 transition-transform;
+    @apply px-4 py-2 bg-secondary border border-border rounded-lg text-sm font-semibold tap-target active:scale-95 transition-all duration-100;
+    box-shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.08);
+  }
+
+  /* Standard focus ring for inputs */
+  .input-base {
+    @apply bg-card border border-input rounded-[10px] text-foreground placeholder:text-muted-foreground/60;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-shadow;
   }
 }
 
@@ -307,6 +339,11 @@
 
   /* Touch feedback */
   .touch-feedback {
-    @apply active:opacity-70 transition-opacity;
+    @apply active:opacity-75 active:scale-[0.98] transition-all duration-100;
+  }
+
+  /* Monospaced numerals for hours */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }

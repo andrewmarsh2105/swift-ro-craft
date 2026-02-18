@@ -112,14 +112,15 @@ export function PresetSearchRail({
                 key={preset.id}
                 onClick={() => onSelect(preset)}
                 className={cn(
-                  'flex-shrink-0 inline-flex items-center gap-1 px-3 rounded-lg text-xs font-medium whitespace-nowrap border transition-all duration-200',
+                  'flex-shrink-0 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all duration-150',
                   isMobile
-                    ? 'py-2.5 tap-target touch-feedback'
+                    ? 'py-2.5 tap-target'
                     : 'py-1.5',
                   animatingId === preset.id
-                    ? 'bg-primary text-primary-foreground border-primary scale-95'
-                    : 'bg-primary/10 border-primary/30 hover:bg-primary/20 text-foreground',
+                    ? 'bg-primary text-primary-foreground border-primary scale-95 shadow-none'
+                    : 'bg-card border-border text-foreground hover:border-primary/50 hover:bg-primary/5 active:scale-95',
                 )}
+                style={animatingId !== preset.id ? { boxShadow: '0 1px 3px 0 hsl(0 0% 0% / 0.08)' } : undefined}
               >
                 {animatingId === preset.id ? (
                   <Check className="h-3 w-3" />
