@@ -5,15 +5,17 @@ import { toast } from 'sonner';
 import {
   createScanSession,
   generateLineId,
+  detectHeaderConflicts,
+  mergePageIntoSession,
   type ScanSession,
   type ScanState,
   type ExtractedData,
   type ExtractedLine,
+  type HeaderConflict,
 } from '@/lib/scanStateMachine';
 import type { Preset } from '@/types/ro';
 
 const MAX_RETRIES = 2;
-
 const LOW_CONFIDENCE_THRESHOLD = 0.5;
 
 /** Match extracted line descriptions against presets to fill missing hours */
@@ -21,13 +23,11 @@ function applyKeywordAutofill(lines: ExtractedLine[], presets: Preset[]): Extrac
   if (!presets.length) return lines;
 
   return lines.map(line => {
-    // Only fill if hours are 0 or confidence is low
     const needsFill = line.hours === 0 || line.confidence < LOW_CONFIDENCE_THRESHOLD;
     if (!needsFill) return line;
 
     const descLower = line.description.toLowerCase();
-    
-    // Find best matching preset by name or keywords
+
     for (const preset of presets) {
       const nameMatch = descLower.includes(preset.name.toLowerCase());
       if (nameMatch && preset.defaultHours && preset.defaultHours > 0) {
@@ -35,7 +35,7 @@ function applyKeywordAutofill(lines: ExtractedLine[], presets: Preset[]): Extrac
           ...line,
           hours: preset.defaultHours,
           laborType: preset.laborType || line.laborType,
-          confidence: Math.max(line.confidence, 0.6), // bump confidence slightly for keyword match
+          confidence: Math.max(line.confidence, 0.6),
         };
       }
     }
@@ -56,6 +56,8 @@ export function useScanFlow() {
   const retryCountRef = useRef(0);
   // Keep File in a ref so it never gets serialized
   const fileRef = useRef<File | null>(null);
+  // Per-page template for the current upload
+  const pageTemplateIdRef = useRef<string | null>(null);
 
   const updateState = useCallback((state: ScanState, partial?: Partial<ScanSession>) => {
     setSession(prev => ({ ...prev, ...partial, state }));
@@ -73,6 +75,7 @@ export function useScanFlow() {
     scanIdRef.current = null;
     retryCountRef.current = 0;
     fileRef.current = null;
+    pageTemplateIdRef.current = null;
     setSession(createScanSession());
   }, []);
 
@@ -83,10 +86,10 @@ export function useScanFlow() {
     templateFieldMap?: Record<string, any>,
     presets?: Preset[],
     keywordAutofill?: boolean,
+    templateId?: string | null,
   ) => {
     if (!user) return;
 
-    // Reentrancy guard
     if (busyRef.current) {
       console.warn('[ScanFlow] Ignoring — already busy');
       return;
@@ -101,10 +104,11 @@ export function useScanFlow() {
     });
     updateDebug({ fileSelected: true, uploadStarted: true, lastError: null });
 
+    let path: string | null = null;
+
     try {
-      // Upload to storage
       const ext = file.name.split('.').pop() || 'jpg';
-      const path = `${user.id}/${roId || 'new'}/${Date.now()}.${ext}`;
+      path = `${user.id}/${roId || 'new'}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('ro-photos')
@@ -112,7 +116,6 @@ export function useScanFlow() {
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-      // Staleness check
       if (scanIdRef.current !== currentScanId) return;
 
       updateDebug({ uploadDone: true });
@@ -125,7 +128,6 @@ export function useScanFlow() {
         });
       }
 
-      // OCR
       updateState('extracting', { storagePath: path });
       updateDebug({ ocrStarted: true });
 
@@ -147,7 +149,6 @@ export function useScanFlow() {
         }
       );
 
-      // Staleness check
       if (scanIdRef.current !== currentScanId) return;
 
       if (!ocrResponse.ok) {
@@ -165,7 +166,6 @@ export function useScanFlow() {
         confidence: Number(line.confidence) || 0.5,
       }));
 
-      // Apply keyword auto-fill if enabled and presets available
       if (keywordAutofill && presets && presets.length > 0) {
         extractedLines = applyKeywordAutofill(extractedLines, presets);
       }
@@ -178,7 +178,7 @@ export function useScanFlow() {
           }))
         : [];
 
-      const extractedData: ExtractedData = {
+      const pageExtractedData: ExtractedData = {
         roNumber: ocrResult.roNumber || null,
         advisor: ocrResult.advisor || null,
         date: ocrResult.date || null,
@@ -196,30 +196,50 @@ export function useScanFlow() {
         },
       };
 
-      // Final staleness check
       if (scanIdRef.current !== currentScanId) return;
 
       updateDebug({ ocrDone: true });
-      updateState('review', { extractedData });
 
-      // Non-blocking background cleanup — fires only after successful OCR
+      // Merge the page into the session
+      setSession(prev => {
+        const pageNumber = prev.pages.length + 1;
+        const isFirstPage = prev.pages.length === 0;
+
+        if (!isFirstPage && prev.extractedData) {
+          // Detect header conflicts before merging
+          const conflicts = detectHeaderConflicts(prev.extractedData, pageExtractedData, pageNumber);
+
+          if (conflicts.length > 0) {
+            // Store pending page data for user to resolve conflicts
+            return {
+              ...prev,
+              state: 'review',
+              pendingHeaderConflicts: conflicts,
+              pendingPageData: pageExtractedData,
+              pendingPageNumber: pageNumber,
+              // Temporarily show the new page's image during conflict resolution
+              imagePreviewUrl: previewUrl,
+            };
+          }
+        }
+
+        return mergePageIntoSession(prev, pageExtractedData, previewUrl, path!, templateId || null);
+      });
+
+      // Non-blocking background cleanup
       void (async () => {
         try {
-          // 2-second safety buffer: ensures OCR edge function has fully
-          // finished reading before we delete the file from storage
           await new Promise(resolve => setTimeout(resolve, 2000));
 
-          // Delete from storage
           const { error: storageError } = await supabase.storage
             .from('ro-photos')
-            .remove([path]);
+            .remove([path!]);
 
           if (storageError) {
             console.warn('[ScanFlow] Storage cleanup failed (non-critical):', storageError.message);
             return;
           }
 
-          // Also remove the database record if we inserted one
           if (roId) {
             await supabase
               .from('ro_photos')
@@ -229,12 +249,10 @@ export function useScanFlow() {
 
           console.log('[ScanFlow] Photo auto-deleted after OCR success');
         } catch (e) {
-          // Cleanup failure is silent — never affects the user
           console.warn('[ScanFlow] Cleanup error (non-critical):', e);
         }
       })();
     } catch (err: any) {
-      // Only apply error if this scan is still current
       if (scanIdRef.current !== currentScanId) return;
       const errorMsg = err?.message || 'Unknown error';
       updateDebug({ lastError: errorMsg });
@@ -251,13 +269,36 @@ export function useScanFlow() {
     templateFieldMap?: Record<string, any>,
     presets?: Preset[],
     keywordAutofill?: boolean,
+    templateId?: string | null,
   ) => {
-    // New file = new scan, reset retry counter
     const newScanId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     scanIdRef.current = newScanId;
     retryCountRef.current = 0;
     fileRef.current = file;
-    runUploadAndOCR(file, newScanId, roId, templateFieldMap, presets, keywordAutofill);
+    pageTemplateIdRef.current = templateId ?? null;
+    runUploadAndOCR(file, newScanId, roId, templateFieldMap, presets, keywordAutofill, templateId);
+  }, [runUploadAndOCR]);
+
+  /**
+   * Add another page to the existing scan session.
+   * Does NOT reset the session — only clears the current-page upload state.
+   */
+  const handleAddPage = useCallback((
+    file: File,
+    roId?: string,
+    templateFieldMap?: Record<string, any>,
+    presets?: Preset[],
+    keywordAutofill?: boolean,
+    templateId?: string | null,
+  ) => {
+    // Generate a new scan ID for this page (stale result protection)
+    const newScanId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    scanIdRef.current = newScanId;
+    retryCountRef.current = 0;
+    fileRef.current = file;
+    pageTemplateIdRef.current = templateId ?? null;
+
+    runUploadAndOCR(file, newScanId, roId, templateFieldMap, presets, keywordAutofill, templateId);
   }, [runUploadAndOCR]);
 
   const retry = useCallback(() => {
@@ -286,13 +327,63 @@ export function useScanFlow() {
     setSession(prev => ({ ...prev, extractedData: data }));
   }, []);
 
+  /**
+   * Resolve header conflicts: user chose which values to keep.
+   * overrides: map of field -> 'keep' | 'replace'
+   */
+  const resolveHeaderConflicts = useCallback((
+    resolutions: Record<string, 'keep' | 'replace'>,
+  ) => {
+    setSession(prev => {
+      if (!prev.pendingPageData || prev.pendingPageNumber === null) return prev;
+
+      const overrides: Partial<Pick<ExtractedData, 'roNumber' | 'date' | 'mileage'>> = {};
+      const existing = prev.extractedData;
+
+      for (const conflict of prev.pendingHeaderConflicts) {
+        const res = resolutions[conflict.field] ?? 'keep';
+        if (res === 'replace') {
+          (overrides as any)[conflict.field] = conflict.newValue;
+        } else if (existing) {
+          (overrides as any)[conflict.field] = (existing as any)[conflict.field];
+        }
+      }
+
+      return mergePageIntoSession(
+        { ...prev, pendingHeaderConflicts: [], pendingPageData: null },
+        prev.pendingPageData,
+        prev.imagePreviewUrl,
+        prev.storagePath,
+        pageTemplateIdRef.current,
+        overrides,
+      );
+    });
+  }, []);
+
+  /**
+   * Dismiss the pending page scan — go back to review without merging
+   */
+  const cancelPendingPage = useCallback(() => {
+    setSession(prev => ({
+      ...prev,
+      state: 'review',
+      pendingHeaderConflicts: [],
+      pendingPageData: null,
+      pendingPageNumber: null,
+      imagePreviewUrl: prev.pages[0]?.imagePreviewUrl ?? prev.imagePreviewUrl,
+    }));
+  }, []);
+
   return {
     session,
     handleFileSelected,
+    handleAddPage,
     reset,
     retry,
     goToReview,
     updateExtractedData,
     updateState,
+    resolveHeaderConflicts,
+    cancelPendingPage,
   };
 }

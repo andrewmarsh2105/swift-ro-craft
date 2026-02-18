@@ -35,7 +35,16 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
   const { userSettings } = useFlagContext();
   const roContext = useROSafe();
   const presets = roContext?.settings?.presets ?? [];
-  const { session, handleFileSelected, reset, retry, updateExtractedData } = useScanFlow();
+  const {
+    session,
+    handleFileSelected,
+    handleAddPage,
+    reset,
+    retry,
+    updateExtractedData,
+    resolveHeaderConflicts,
+    cancelPendingPage,
+  } = useScanFlow();
   const { templates, loading: templatesLoading } = useTemplates();
 
   // Template selection state
@@ -76,17 +85,33 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
     const file = e.target.files?.[0];
     if (file) {
       const fieldMap = selectedTemplate?.fieldMapJson || undefined;
-      handleFileSelected(file, roId, fieldMap, presets, userSettings.keywordAutofill);
+      handleFileSelected(file, roId, fieldMap, presets, userSettings.keywordAutofill, selectedTemplateId);
     }
     e.target.value = '';
   };
 
+  const onAddPageFile = (file: File) => {
+    const fieldMap = selectedTemplate?.fieldMapJson || undefined;
+    handleAddPage(file, roId, fieldMap, presets, userSettings.keywordAutofill, selectedTemplateId);
+  };
+
   if (!isOpen) return null;
 
-  const { state, debug, imagePreviewUrl, extractedData, errorMessage } = session;
+  const {
+    state,
+    debug,
+    imagePreviewUrl,
+    extractedData,
+    errorMessage,
+    pages,
+    pendingHeaderConflicts,
+  } = session;
 
-  // Review screen
-  if (state === 'review' && extractedData) {
+  // Determine if we're adding a page (uploading/extracting with pages already present)
+  const isAddingPage = (state === 'uploading' || state === 'extracting') && pages.length > 0;
+
+  // Review screen — show if in review OR if we're adding a subsequent page (don't hide existing review)
+  if ((state === 'review' || isAddingPage) && extractedData) {
     return (
       <ScanReviewScreen
         extractedData={extractedData}
@@ -94,10 +119,16 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
         showConfidence={userSettings.showScanConfidence}
         hasExistingLines={!!hasExistingLines}
         existingLineDescriptions={existingLineDescriptions}
+        pages={pages}
+        pendingHeaderConflicts={pendingHeaderConflicts}
+        isAddingPage={isAddingPage}
         onUpdateData={updateExtractedData}
         onApply={onApply}
         onRetake={() => reset()}
         onClose={handleClose}
+        onAddPage={onAddPageFile}
+        onResolveConflicts={resolveHeaderConflicts}
+        onCancelPendingPage={cancelPendingPage}
       />
     );
   }

@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
-import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle } from 'lucide-react';
+import { useState, useMemo, useRef } from 'react';
+import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { generateLineId, type ExtractedData, type ExtractedLine, type CandidateDate } from '@/lib/scanStateMachine';
+import { generateLineId, normalizeDesc, type ExtractedData, type ExtractedLine, type ScanPage, type HeaderConflict } from '@/lib/scanStateMachine';
 import type { ScanApplyData } from './ScanFlow';
 import type { ROLine } from '@/types/ro';
 import {
@@ -23,14 +23,16 @@ interface ScanReviewScreenProps {
   showConfidence: boolean;
   hasExistingLines: boolean;
   existingLineDescriptions: string[];
+  pages: ScanPage[];
+  pendingHeaderConflicts: HeaderConflict[];
+  isAddingPage: boolean;
   onUpdateData: (data: ExtractedData) => void;
   onApply: (data: ScanApplyData) => void;
   onRetake: () => void;
   onClose: () => void;
-}
-
-function normalizeText(text: string): string {
-  return text.trim().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+  onAddPage: (file: File) => void;
+  onResolveConflicts: (resolutions: Record<string, 'keep' | 'replace'>) => void;
+  onCancelPendingPage: () => void;
 }
 
 const LABOR_TYPES = [
@@ -47,16 +49,30 @@ function ConfidenceBadge({ value }: { value: number }) {
   return <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-medium', color)}>{pct}%</span>;
 }
 
+function PageBadge({ page }: { page: number }) {
+  return (
+    <span className="text-[9px] px-1 py-0.5 rounded bg-primary/15 text-primary font-bold uppercase tracking-wide">
+      Pg {page}
+    </span>
+  );
+}
+
 export function ScanReviewScreen({
   extractedData,
   imagePreviewUrl,
   showConfidence,
   hasExistingLines,
   existingLineDescriptions,
+  pages,
+  pendingHeaderConflicts,
+  isAddingPage,
   onUpdateData,
   onApply,
   onRetake,
   onClose,
+  onAddPage,
+  onResolveConflicts,
+  onCancelPendingPage,
 }: ScanReviewScreenProps) {
   const isMobile = useIsMobile();
   const [showApplyPrompt, setShowApplyPrompt] = useState(false);
@@ -66,11 +82,38 @@ export function ScanReviewScreen({
   const [showDuplicatePrompt, setShowDuplicatePrompt] = useState(false);
   const [pendingApplyData, setPendingApplyData] = useState<ScanApplyData | null>(null);
   const [duplicateDescriptions, setDuplicateDescriptions] = useState<string[]>([]);
+  const [conflictResolutions, setConflictResolutions] = useState<Record<string, 'keep' | 'replace'>>({});
+  /** IDs of newly-added lines (from the most recent page append) — highlighted briefly */
+  const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
+  const addPageCameraRef = useRef<HTMLInputElement>(null);
+  const addPagePhotoRef = useRef<HTMLInputElement>(null);
+  const addPageDesktopRef = useRef<HTMLInputElement>(null);
+
+  const pageCount = pages.length;
+  const isMultiPage = pageCount > 1;
+
+  // Keep local data in sync when parent pushes new pages
+  const prevLinesRef = useRef<string[]>(data.lines.map(l => l.id));
+  const latestExtracted = extractedData;
+
+  useMemo(() => {
+    const prevIds = new Set(prevLinesRef.current);
+    const nextIds = latestExtracted.lines.map(l => l.id);
+    const added = nextIds.filter(id => !prevIds.has(id));
+    if (added.length > 0) {
+      setNewLineIds(new Set(added));
+      setTimeout(() => setNewLineIds(new Set()), 2500);
+    }
+    prevLinesRef.current = nextIds;
+    setData(latestExtracted);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestExtracted]);
 
   const existingNormalized = useMemo(
-    () => new Set(existingLineDescriptions.map(normalizeText).filter(t => t.length > 0)),
+    () => new Set(existingLineDescriptions.map(normalizeDesc).filter(t => t.length > 0)),
     [existingLineDescriptions]
   );
+
   const updateField = (field: keyof Pick<ExtractedData, 'roNumber' | 'advisor' | 'date' | 'customerName' | 'mileage'>, value: string) => {
     const updated = { ...data, [field]: value || null };
     setData(updated);
@@ -94,7 +137,7 @@ export function ScanReviewScreen({
       laborType: 'customer-pay',
       confidence: 1,
     };
-    const updated = { ...data, lines: [...data.lines, newLine] };
+    const updated = { ...data, lines: [newLine, ...data.lines] };
     setData(updated);
     onUpdateData(updated);
   };
@@ -133,7 +176,7 @@ export function ScanReviewScreen({
   const findDuplicates = (applyData: ScanApplyData): string[] => {
     if (existingNormalized.size === 0) return [];
     return applyData.lines
-      .filter(l => existingNormalized.has(normalizeText(l.description)))
+      .filter(l => existingNormalized.has(normalizeDesc(l.description)))
       .map(l => l.description);
   };
 
@@ -149,6 +192,22 @@ export function ScanReviewScreen({
     }
   };
 
+  /** Cross-page duplicate detection (within the draft itself) */
+  const findCrossPageDuplicates = (): { lineId: string; description: string }[] => {
+    const seen = new Map<string, string>();
+    const dupes: { lineId: string; description: string }[] = [];
+    for (const line of data.lines) {
+      const norm = normalizeDesc(line.description);
+      if (!norm) continue;
+      if (seen.has(norm)) {
+        dupes.push({ lineId: line.id, description: line.description });
+      } else {
+        seen.set(norm, line.id);
+      }
+    }
+    return dupes;
+  };
+
   const handleApplyClick = () => {
     if (hasExistingLines) {
       setShowApplyPrompt(true);
@@ -157,6 +216,104 @@ export function ScanReviewScreen({
       applyWithDuplicateCheck(applyData, 'Scan applied');
     }
   };
+
+  const handleAddPageFile = (file: File) => {
+    onAddPage(file);
+  };
+
+  // Group lines by source page for multi-page display
+  const linesByPage = useMemo(() => {
+    if (!isMultiPage) return null;
+    const map = new Map<number, ExtractedLine[]>();
+    for (const line of data.lines) {
+      const pg = line.sourcePage ?? 1;
+      if (!map.has(pg)) map.set(pg, []);
+      map.get(pg)!.push(line);
+    }
+    // Sort pages descending so newest page appears first
+    return Array.from(map.entries()).sort((a, b) => b[0] - a[0]);
+  }, [data.lines, isMultiPage]);
+
+  const crossPageDupes = useMemo(() => {
+    if (!isMultiPage) return [];
+    return findCrossPageDuplicates();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.lines, isMultiPage]);
+
+  // Header conflict dialog
+  if (pendingHeaderConflicts.length > 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-background flex flex-col"
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border safe-top">
+          <div />
+          <h2 className="font-semibold text-lg">Header Conflict</h2>
+          <button onClick={onCancelPendingPage} className="text-sm text-muted-foreground">Cancel</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <p className="text-sm font-medium">
+              Page {pendingHeaderConflicts[0].pageNumber} has different header values. Choose which to keep:
+            </p>
+          </div>
+
+          {pendingHeaderConflicts.map(conflict => {
+            const label = conflict.field === 'roNumber' ? 'RO Number' : conflict.field === 'date' ? 'Date' : 'Mileage';
+            const resolution = conflictResolutions[conflict.field] ?? 'keep';
+            return (
+              <div key={conflict.field} className="rounded-xl border border-border p-4 space-y-3">
+                <p className="text-sm font-semibold">{label}</p>
+                <button
+                  onClick={() => setConflictResolutions(r => ({ ...r, [conflict.field]: 'keep' }))}
+                  className={cn(
+                    'w-full text-left px-4 py-3 rounded-lg border-2 transition-colors',
+                    resolution === 'keep' ? 'border-primary bg-primary/5' : 'border-border bg-muted/30'
+                  )}
+                >
+                  <div className="text-xs text-muted-foreground mb-0.5">Keep (Page 1)</div>
+                  <div className="font-semibold">{conflict.existingValue}</div>
+                </button>
+                <button
+                  onClick={() => setConflictResolutions(r => ({ ...r, [conflict.field]: 'replace' }))}
+                  className={cn(
+                    'w-full text-left px-4 py-3 rounded-lg border-2 transition-colors',
+                    resolution === 'replace' ? 'border-primary bg-primary/5' : 'border-border bg-muted/30'
+                  )}
+                >
+                  <div className="text-xs text-muted-foreground mb-0.5">Replace (Page {conflict.pageNumber})</div>
+                  <div className="font-semibold">{conflict.newValue}</div>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="p-4 border-t border-border safe-bottom flex flex-col gap-2">
+          <Button
+            onClick={() => {
+              const finalResolutions: Record<string, 'keep' | 'replace'> = {};
+              for (const c of pendingHeaderConflicts) {
+                finalResolutions[c.field] = conflictResolutions[c.field] ?? 'keep';
+              }
+              setConflictResolutions({});
+              onResolveConflicts(finalResolutions);
+            }}
+            className="w-full"
+          >
+            <Check className="h-4 w-4 mr-2" />
+            Confirm & Merge Lines
+          </Button>
+          <Button variant="outline" onClick={onCancelPendingPage} className="w-full">
+            Cancel This Page
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -174,13 +331,55 @@ export function ScanReviewScreen({
           <ChevronLeft className="h-5 w-5" />
           Retake
         </button>
-        <h2 className="font-semibold text-lg">Review Scan</h2>
+        <div className="flex flex-col items-center">
+          <h2 className="font-semibold text-lg">Review Scan</h2>
+          {pageCount > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {pageCount} {pageCount === 1 ? 'page' : 'pages'} scanned
+            </span>
+          )}
+        </div>
         <button onClick={onClose} className="text-sm text-muted-foreground">Cancel</button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {/* Page thumbnails strip (multi-page) */}
+        {isMultiPage && (
+          <div className="px-4 pt-3">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {pages.map(p => (
+                <div key={p.pageId} className="relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 border-primary/30 bg-muted">
+                  {p.imagePreviewUrl ? (
+                    <img src={p.imagePreviewUrl} alt={`Page ${p.pageNumber}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <FileImage className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] text-center py-0.5 font-bold">
+                    Pg {p.pageNumber}
+                  </div>
+                </div>
+              ))}
+              {/* "Add page" mini-slot */}
+              <label className="flex-shrink-0 w-16 h-20 rounded-lg border-2 border-dashed border-primary/30 flex items-center justify-center cursor-pointer hover:border-primary/60 transition-colors">
+                <div className="flex flex-col items-center gap-0.5">
+                  <Plus className="h-5 w-5 text-primary/50" />
+                  <span className="text-[9px] text-primary/60 font-medium">Add</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
         {/* Image Preview */}
-        {imagePreviewUrl && (
+        {imagePreviewUrl && !isMultiPage && (
           <div className={cn('m-4 rounded-2xl overflow-hidden', isMobile ? 'aspect-video' : 'h-48')}>
             <img
               src={imagePreviewUrl}
@@ -190,8 +389,26 @@ export function ScanReviewScreen({
           </div>
         )}
 
+        {/* Adding page spinner overlay */}
+        {isAddingPage && (
+          <div className="mx-4 mt-3 p-3 bg-primary/10 rounded-xl flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm font-medium text-primary">Scanning page {pageCount + 1}…</span>
+          </div>
+        )}
+
+        {/* Cross-page duplicate warning */}
+        {crossPageDupes.length > 0 && (
+          <div className="mx-4 mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+            <span className="text-xs text-yellow-700 dark:text-yellow-300">
+              {crossPageDupes.length} duplicate {crossPageDupes.length === 1 ? 'line' : 'lines'} detected across pages. Review below.
+            </span>
+          </div>
+        )}
+
         {/* Extracted Fields */}
-        <div className="px-4 space-y-3">
+        <div className="px-4 mt-3 space-y-3">
           <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
             Extracted Fields
           </h3>
@@ -248,7 +465,6 @@ export function ScanReviewScreen({
                 }}
                 className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              {/* Candidate dates dropdown */}
               {data.candidateDates.length >= 2 && !userEditedDate && (
                 <div className="relative">
                   <button
@@ -316,7 +532,7 @@ export function ScanReviewScreen({
               />
             </div>
 
-            {/* Vehicle (optional) */}
+            {/* Vehicle */}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Vehicle</label>
               <div className="flex gap-2">
@@ -360,7 +576,7 @@ export function ScanReviewScreen({
           </div>
         </div>
 
-        {/* Lines */}
+        {/* Lines — grouped by page for multi-page, flat for single-page */}
         <div className="px-4 mt-6 space-y-3 pb-8">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
@@ -379,75 +595,128 @@ export function ScanReviewScreen({
             <p className="text-sm text-muted-foreground py-4 text-center">
               No lines detected. Add lines manually or retake photo.
             </p>
-          ) : (
-            <div className="space-y-2">
-              {data.lines.map((line, idx) => (
-                <div key={line.id} className="p-3 bg-muted/50 rounded-xl border border-border space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs text-muted-foreground font-mono mt-2 w-5">{idx + 1}</span>
-                    <div className="flex-1 space-y-2">
-                      {/* Description */}
-                      <input
-                        type="text"
-                        value={line.description}
-                        onChange={e => updateLine(line.id, 'description', e.target.value)}
-                        placeholder="Line description"
-                        className="w-full h-9 px-2 bg-background rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          ) : isMultiPage && linesByPage ? (
+            // Multi-page: grouped by page
+            <div className="space-y-4">
+              {linesByPage.map(([pageNum, pageLines]) => (
+                <div key={pageNum}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                      Page {pageNum}
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                  <div className="space-y-2">
+                    {pageLines.map((line, idx) => (
+                      <LineRow
+                        key={line.id}
+                        line={line}
+                        idx={data.lines.indexOf(line)}
+                        showConfidence={showConfidence}
+                        isNew={newLineIds.has(line.id)}
+                        isDuplicate={crossPageDupes.some(d => d.lineId === line.id)}
+                        showPageBadge={false}
+                        onUpdate={updateLine}
+                        onRemove={removeLine}
                       />
-                      {/* Hours + Type row */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={line.hours || ''}
-                          onChange={e => {
-                            const val = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
-                            updateLine(line.id, 'hours', parseFloat(val) || 0);
-                          }}
-                          placeholder="Hours"
-                          className="w-20 h-8 px-2 bg-background rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                        <select
-                          value={line.laborType}
-                          onChange={e => updateLine(line.id, 'laborType', e.target.value)}
-                          className="h-8 px-2 bg-background rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          {LABOR_TYPES.map(lt => (
-                            <option key={lt.value} value={lt.value}>{lt.label}</option>
-                          ))}
-                        </select>
-                        {showConfidence && <ConfidenceBadge value={line.confidence} />}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => removeLine(line.id)}
-                      className="p-1.5 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    ))}
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            // Single-page: flat list
+            <div className="space-y-2">
+              {data.lines.map((line, idx) => (
+                <LineRow
+                  key={line.id}
+                  line={line}
+                  idx={idx}
+                  showConfidence={showConfidence}
+                  isNew={newLineIds.has(line.id)}
+                  isDuplicate={false}
+                  showPageBadge={false}
+                  onUpdate={updateLine}
+                  onRemove={removeLine}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom Action */}
-      <div className="p-4 border-t border-border safe-bottom">
-        <button
-          onClick={handleApplyClick}
-          disabled={data.lines.length === 0}
-          className={cn(
-            'w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 tap-target touch-feedback',
-            data.lines.length > 0
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
+      {/* Bottom Actions */}
+      <div className="border-t border-border safe-bottom">
+        {/* Add more pages */}
+        <div className="px-4 pt-3 pb-2">
+          {isMobile ? (
+            <div className="flex gap-2">
+              <label className={cn(
+                'flex-1 min-h-[44px] border border-primary text-primary rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform text-sm',
+                isAddingPage && 'opacity-50 pointer-events-none'
+              )}>
+                <Camera className="h-4 w-4" />
+                Scan More
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
+                  className="hidden"
+                  disabled={isAddingPage}
+                />
+              </label>
+              <label className={cn(
+                'flex-1 min-h-[44px] border border-border bg-muted/40 rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform text-sm',
+                isAddingPage && 'opacity-50 pointer-events-none'
+              )}>
+                <Image className="h-4 w-4" />
+                Photos
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
+                  className="hidden"
+                  disabled={isAddingPage}
+                />
+              </label>
+            </div>
+          ) : (
+            <label className={cn(
+              'w-full min-h-[40px] border border-primary text-primary rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer hover:bg-primary/5 transition-colors text-sm',
+              isAddingPage && 'opacity-50 pointer-events-none'
+            )}>
+              <Plus className="h-4 w-4" />
+              {isAddingPage ? 'Scanning…' : 'Add More Pages / Lines'}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
+                className="hidden"
+                disabled={isAddingPage}
+              />
+            </label>
           )}
-        >
-          <Check className="h-5 w-5" />
-          Apply to RO
-        </button>
+        </div>
+
+        {/* Apply & Save */}
+        <div className="px-4 pb-4">
+          <button
+            onClick={handleApplyClick}
+            disabled={data.lines.length === 0 || isAddingPage}
+            className={cn(
+              'w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 tap-target touch-feedback',
+              data.lines.length > 0 && !isAddingPage
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
+            <Check className="h-5 w-5" />
+            Apply & Save RO
+            {pageCount > 1 && <span className="text-xs opacity-80 ml-1">({pageCount} pages)</span>}
+          </button>
+        </div>
       </div>
 
       {/* Apply mode prompt */}
@@ -516,10 +785,10 @@ export function ScanReviewScreen({
               variant="outline"
               onClick={() => {
                 if (pendingApplyData) {
-                  const dupeNorm = new Set(duplicateDescriptions.map(normalizeText));
+                  const dupeNorm = new Set(duplicateDescriptions.map(normalizeDesc));
                   const filtered: ScanApplyData = {
                     ...pendingApplyData,
-                    lines: pendingApplyData.lines.filter(l => !dupeNorm.has(normalizeText(l.description))),
+                    lines: pendingApplyData.lines.filter(l => !dupeNorm.has(normalizeDesc(l.description))),
                   };
                   setShowDuplicatePrompt(false);
                   setPendingApplyData(null);
@@ -561,6 +830,83 @@ export function ScanReviewScreen({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </motion.div>
+  );
+}
+
+// ─── Sub-component: Line row ───────────────────────────────────────────────
+
+interface LineRowProps {
+  line: ExtractedLine;
+  idx: number;
+  showConfidence: boolean;
+  isNew: boolean;
+  isDuplicate: boolean;
+  showPageBadge: boolean;
+  onUpdate: (id: string, field: keyof ExtractedLine, value: any) => void;
+  onRemove: (id: string) => void;
+}
+
+function LineRow({ line, idx, showConfidence, isNew, isDuplicate, showPageBadge, onUpdate, onRemove }: LineRowProps) {
+  return (
+    <motion.div
+      layout
+      initial={isNew ? { opacity: 0, y: -8 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        'p-3 rounded-xl border-2 transition-colors',
+      isNew ? 'border-primary/60 bg-primary/10' : isDuplicate ? 'border-yellow-400/60 bg-yellow-50/50 dark:bg-yellow-900/10' : 'bg-muted/50 border-border'
+      )}
+    >
+      <div className="flex items-start gap-2">
+        <span className="text-xs text-muted-foreground font-mono mt-2 w-5">{idx + 1}</span>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={line.description}
+              onChange={e => onUpdate(line.id, 'description', e.target.value)}
+              placeholder="Line description"
+              className="flex-1 h-9 px-2 bg-background rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {showPageBadge && line.sourcePage && <PageBadge page={line.sourcePage} />}
+            {isDuplicate && (
+              <span className="text-[9px] px-1 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded font-bold uppercase">
+                Dup
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={line.hours || ''}
+              onChange={e => {
+                const val = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                onUpdate(line.id, 'hours', parseFloat(val) || 0);
+              }}
+              placeholder="Hours"
+              className="w-20 h-8 px-2 bg-background rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <select
+              value={line.laborType}
+              onChange={e => onUpdate(line.id, 'laborType', e.target.value)}
+              className="h-8 px-2 bg-background rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {LABOR_TYPES.map(lt => (
+                <option key={lt.value} value={lt.value}>{lt.label}</option>
+              ))}
+            </select>
+            {showConfidence && <ConfidenceBadge value={line.confidence} />}
+          </div>
+        </div>
+        <button
+          onClick={() => onRemove(line.id)}
+          className="p-1.5 text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
     </motion.div>
   );
 }
