@@ -481,16 +481,37 @@ export function SettingsTab() {
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
             Summary Range
           </h3>
-          <div className="card-mobile p-4">
-            <p className="text-sm text-muted-foreground mb-3">Default period for Summary &amp; Main page</p>
-            <SegmentedControl
-              options={[
-                { value: 'week', label: '1 Week' },
-                { value: 'two_weeks', label: '2 Weeks' },
-              ]}
-              value={userSettings.defaultSummaryRange || 'week'}
-              onChange={(v) => updateUserSetting('defaultSummaryRange', v)}
-            />
+          <div className="card-mobile p-4 space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-3">Default period for Summary &amp; Main page</p>
+              <SegmentedControl
+                options={[
+                  { value: 'week', label: '1 Week' },
+                  { value: 'two_weeks', label: '2 Weeks' },
+                ]}
+                value={userSettings.defaultSummaryRange || 'week'}
+                onChange={(v) => updateUserSetting('defaultSummaryRange', v)}
+              />
+            </div>
+            <div className="border-t border-border pt-4">
+              <p className="text-sm text-muted-foreground mb-3">Week starts on</p>
+              <div className="flex gap-1.5">
+                {(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const).map((day, index) => (
+                  <button
+                    key={day}
+                    onClick={() => updateUserSetting('weekStartDay', index)}
+                    className={cn(
+                      'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                      (userSettings.weekStartDay ?? 0) === index
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
