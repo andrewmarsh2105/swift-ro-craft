@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
-import { Copy, Trash2 } from 'lucide-react';
+import { Copy, Trash2, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
+import { LineTextModal } from '@/components/shared/LineTextModal';
 
 interface CompactLinesGridProps {
   lines: ROLine[];
@@ -51,6 +52,7 @@ export function CompactLinesGrid({
   showVehicleChips = true,
 }: CompactLinesGridProps) {
   const topRef = useRef<HTMLDivElement>(null);
+  const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string } | null>(null);
 
   const handleDuplicateLine = (index: number) => {
     triggerHaptic();
@@ -141,8 +143,23 @@ export function CompactLinesGrid({
                     onChange={(e) => handleLineChange(index, { description: e.target.value })}
                     placeholder="Enter job description..."
                     disabled={readOnly}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id });
+                      }
+                    }}
                     className="flex-1 h-10 px-3 bg-card border border-input rounded-md text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
+                  {/* Expand button */}
+                  <button
+                    onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+                    title="View full description"
+                    aria-label="View full description"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                  </button>
                   {!readOnly && (
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
@@ -244,6 +261,14 @@ export function CompactLinesGrid({
           <p>No lines yet. Add a line or select a preset above.</p>
         </div>
       )}
+
+      {/* Full description modal */}
+      <LineTextModal
+        open={!!expandedLine}
+        onClose={() => setExpandedLine(null)}
+        lineNo={expandedLine?.lineNo ?? 0}
+        description={expandedLine?.description ?? ''}
+      />
     </div>
   );
 }

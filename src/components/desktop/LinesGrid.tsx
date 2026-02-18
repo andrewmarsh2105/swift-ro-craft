@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { Plus, Trash2, Copy, Check, X } from 'lucide-react';
+import { Plus, Trash2, Copy, Check, X, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
+import { LineTextModal } from '@/components/shared/LineTextModal';
 
 interface LinesGridProps {
   lines: ROLine[];
@@ -39,6 +40,7 @@ const LABOR_TYPE_OPTIONS: { value: LaborType | ''; label: string; short: string 
 export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false, highlightedIds = [], roVehicle, showVehicleChips = true, defaultLaborType = 'customer-pay' }: LinesGridProps) {
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
   const inputRefs = useRef<Map<string, HTMLInputElement | HTMLSelectElement>>(new Map());
+  const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string } | null>(null);
 
   const handleAddLine = () => {
     const newLine = createEmptyLine(lines.length + 1, defaultLaborType);
@@ -141,6 +143,7 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
   const tbdCount = lines.filter(l => l.isTbd).length;
 
   return (
+    <>
     <div className="border border-border rounded-lg overflow-hidden bg-card">
       {/* Table Header */}
       <div className="grid grid-cols-[48px_1fr_120px_60px_100px_80px] bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -171,7 +174,7 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
             </div>
 
             {/* Description */}
-            <div className="px-2 py-1">
+            <div className="px-2 py-1 flex items-center gap-1 group">
               <input
                 ref={(el) => setRef(`${index}-description`, el)}
                 type="text"
@@ -180,8 +183,18 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
                 onKeyDown={(e) => handleKeyDown(e, index, 'description')}
                 placeholder="Job description..."
                 disabled={readOnly}
-                className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded text-sm focus:outline-none transition-colors disabled:opacity-60"
+                className="flex-1 h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded text-sm focus:outline-none transition-colors disabled:opacity-60"
               />
+              <button
+                onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
+                className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all flex-shrink-0"
+                title="View full description"
+                aria-label="View full description"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id }); }}
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </button>
               {showVehicleChips && (() => {
                 const veh = line.vehicleOverride && line.lineVehicle ? line.lineVehicle : roVehicle;
                 const chip = formatVehicleChip(veh);
@@ -296,6 +309,15 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
         <div className="px-3 py-3" />
       </div>
     </div>
+
+    {/* Full description modal */}
+    <LineTextModal
+      open={!!expandedLine}
+      onClose={() => setExpandedLine(null)}
+      lineNo={expandedLine?.lineNo ?? 0}
+      description={expandedLine?.description ?? ''}
+    />
+    </>
   );
 }
 
