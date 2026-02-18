@@ -4,6 +4,7 @@ import { Flag, ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useROSafe } from '@/contexts/ROContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
 
@@ -57,16 +58,30 @@ export default function FlagInboxPage() {
     return ro ? `#${ro.roNumber}` : '—';
   };
 
-  const getAdvisor = (roId: string) => {
-    const ro = ros.find(r => r.id === roId);
-    return ro?.advisor || '—';
-  };
-
   const getLineDesc = (roId: string, lineId?: string | null) => {
     if (!lineId) return null;
     const ro = ros.find(r => r.id === roId);
     const line = ro?.lines?.find(l => l.id === lineId);
     return line ? `L${line.lineNo}: ${line.description || '—'}` : null;
+  };
+
+  const handleFlagTap = (roId: string, roLineId?: string | null) => {
+    const ro = ros.find(r => r.id === roId);
+    if (!ro) {
+      toast.error('RO not found');
+      return;
+    }
+    if (roLineId) {
+      const line = ro.lines?.find(l => l.id === roLineId);
+      if (!line) {
+        toast.warning('Line not found — opening RO');
+        navigate('/add-ro', { state: { editingROId: roId } });
+        return;
+      }
+      navigate('/add-ro', { state: { editingROId: roId, focusLineId: roLineId } });
+    } else {
+      navigate('/add-ro', { state: { editingROId: roId } });
+    }
   };
 
   return (
@@ -174,7 +189,11 @@ export default function FlagInboxPage() {
             {filteredFlags.map((flag) => {
               const lineDesc = getLineDesc(flag.roId, flag.roLineId);
               return (
-                <div key={flag.id} className="px-4 py-3 flex items-start gap-3">
+                <div
+                  key={flag.id}
+                  className="px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors"
+                  onClick={() => handleFlagTap(flag.roId, flag.roLineId)}
+                >
                   <Flag className={cn('h-4 w-4 mt-0.5 flex-shrink-0', FLAG_TYPE_COLORS[flag.flagType])} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -197,7 +216,7 @@ export default function FlagInboxPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => clearFlag(flag.id)}
+                    onClick={(e) => { e.stopPropagation(); clearFlag(flag.id); }}
                     className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                     title="Clear flag"
                   >

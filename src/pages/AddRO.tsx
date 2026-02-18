@@ -37,7 +37,8 @@ export default function AddRO() {
   const { userSettings } = useFlagContext();
   
   // Get editing RO from location state
-  const editingROId = (location.state as { editingROId?: string })?.editingROId;
+  const editingROId = (location.state as { editingROId?: string; focusLineId?: string })?.editingROId;
+  const focusLineId = (location.state as { editingROId?: string; focusLineId?: string })?.focusLineId;
   const editingRO = editingROId ? ros.find(r => r.id === editingROId) : undefined;
 
   const [showAdvisorList, setShowAdvisorList] = useState(false);
@@ -90,15 +91,26 @@ export default function AddRO() {
     }
   }, [isMobile]);
 
-  // Clear highlights after 2 seconds
+  // Clear highlights after 2.5 seconds
   useEffect(() => {
     if (highlightedLineIds.length > 0) {
       const timer = setTimeout(() => {
         setHighlightedLineIds([]);
-      }, 2000);
+      }, 2500);
       return () => clearTimeout(timer);
     }
   }, [highlightedLineIds]);
+
+  // Focus + highlight a specific line when navigated from Flag Inbox
+  useEffect(() => {
+    if (!focusLineId) return;
+    setHighlightedLineIds([focusLineId]);
+    const timer = setTimeout(() => {
+      const el = linesContainerRef.current?.querySelector(`[data-line-id="${focusLineId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [focusLineId]);
 
   // Calculate total hours from lines (exclude TBD)
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);

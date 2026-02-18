@@ -22,7 +22,11 @@ const DATE_RANGES = [
   { value: 'all', label: 'All' },
 ];
 
-export function FlagInbox() {
+interface FlagInboxProps {
+  onNavigateToRO?: (roId: string, lineId?: string | null) => void;
+}
+
+export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -41,6 +45,13 @@ export function FlagInbox() {
       navigate('/flag-inbox');
     } else {
       setOpen(true);
+    }
+  };
+
+  const handleFlagClick = (roId: string, roLineId?: string | null) => {
+    if (onNavigateToRO) {
+      setOpen(false);
+      onNavigateToRO(roId, roLineId);
     }
   };
 
@@ -142,8 +153,16 @@ export function FlagInbox() {
           <div className="divide-y divide-border">
             {filteredFlags.map((flag) => {
               const lineDesc = getLineDesc(flag.roId, flag.roLineId);
+              const isClickable = !!onNavigateToRO;
               return (
-                <div key={flag.id} className="px-4 py-3 flex items-start gap-3">
+                <div
+                  key={flag.id}
+                  className={cn(
+                    'px-4 py-3 flex items-start gap-3',
+                    isClickable && 'cursor-pointer hover:bg-muted/50 transition-colors'
+                  )}
+                  onClick={isClickable ? () => handleFlagClick(flag.roId, flag.roLineId) : undefined}
+                >
                   <Flag className={cn('h-4 w-4 mt-0.5 flex-shrink-0', FLAG_TYPE_COLORS[flag.flagType])} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -163,7 +182,7 @@ export function FlagInbox() {
                     </p>
                   </div>
                   <button
-                    onClick={() => clearFlag(flag.id)}
+                    onClick={(e) => { e.stopPropagation(); clearFlag(flag.id); }}
                     className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                     title="Clear flag"
                   >

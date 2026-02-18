@@ -104,6 +104,7 @@ export function CompactLinesGrid({
           return (
             <motion.div
               key={line.id}
+              data-line-id={line.id}
               initial={{ opacity: 0, height: 0, scale: 0.95 }}
               animate={{ 
                 opacity: 1, 

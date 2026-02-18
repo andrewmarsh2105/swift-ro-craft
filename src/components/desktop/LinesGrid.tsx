@@ -157,6 +157,7 @@ export function LinesGrid({ lines, onLinesChange, presets = [], readOnly = false
         {lines.map((line, index) => (
           <div
             key={line.id}
+            data-line-id={line.id}
             className={cn(
               "grid grid-cols-[48px_1fr_120px_60px_100px_80px] border-b border-border/50 hover:bg-muted/30 transition-colors",
               index % 2 === 0 ? 'bg-background' : 'bg-muted/10',
