@@ -1,25 +1,29 @@
 
-# Compact Preset Items in Settings
+# Make Date Input Calendar Icons Visible in Dark Mode
 
-## What Changes
+## Problem
+The native `<input type="date">` calendar picker icons are nearly invisible in dark mode because browsers render them based on the `color-scheme` property, which isn't set for dark mode in this project.
 
-The preset list in Settings currently uses large cards with `p-4` padding and `rounded-xl`, taking up a lot of vertical space. We'll make them more compact by:
+## Solution
+Add CSS rules in `src/index.css` to style the native date input calendar icons for dark mode visibility:
 
-- Reducing padding from `p-4` to `px-3 py-2`
-- Using smaller rounded corners (`rounded-lg` instead of `rounded-xl`)
-- Reducing the gap between items from `space-y-2` to `space-y-1`
-- Making the text slightly smaller (name stays normal, subtitle uses `text-xs`)
-- Shrinking the edit/delete button tap targets from `p-2` to `p-1.5`
+1. Set `color-scheme: dark` on the `.dark` class so browsers automatically adjust native form controls (including the calendar icon) for dark backgrounds
+2. Add a WebKit-specific rule to explicitly style the calendar picker icon with a light color in dark mode
 
 ## Technical Details
 
-### File: `src/components/tabs/SettingsTab.tsx`
+### File: `src/index.css`
 
-**PresetItem component (lines 87-110):**
-- Change container from `p-4 rounded-xl` to `px-3 py-2 rounded-lg`
-- Reduce icon button padding from `p-2` to `p-1.5`
+Add to the `.dark` block (around line 77):
+- `color-scheme: dark;` on the `.dark` selector so all native inputs (date, select, etc.) adapt automatically
 
-**Preset list container (line 533):**
-- Change `space-y-2` to `space-y-1`
+Add a global rule for extra specificity on WebKit browsers:
+```css
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+```
 
-This keeps all existing functionality (edit, delete) intact while making the list denser so you can see more presets at once without scrolling.
+This uses `filter: invert(1)` to flip the dark calendar icon to white, making it clearly visible against dark backgrounds. The `color-scheme: dark` property handles Firefox and other standards-compliant browsers.
+
+No changes to any component files are needed -- this is purely a CSS fix.
