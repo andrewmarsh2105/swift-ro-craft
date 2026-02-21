@@ -156,9 +156,9 @@
   }
 }
 
-/* Dark mode: make native date picker icons visible */
+/* Dark mode: make native date picker icons visible in blue */
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(195deg) brightness(1.2);
 }
 
 @layer components {
