@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Search, SlidersHorizontal, Filter } from 'lucide-react';
+import { Search, SlidersHorizontal, Filter, Table2, LayoutList } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
@@ -12,6 +12,7 @@ import { FlagBadge } from '@/components/flags/FlagBadge';
 import { FlagInbox } from '@/components/flags/FlagInbox';
 import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
+import { SpreadsheetView } from '@/components/shared/SpreadsheetView';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
 import type { FlagType } from '@/types/flags';
@@ -131,6 +132,7 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [searchScopes, setSearchScopes] = useState<Set<string>>(new Set(['ro', 'vehicle', 'advisor', 'work']));
   const [showScopes, setShowScopes] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'spreadsheet'>('cards');
   const [filters, setFilters] = useState<FilterState>({
     advisors: [],
     laborTypes: [],
@@ -269,6 +271,17 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
           </button>
           <FlagInbox />
           <button
+            onClick={() => setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards')}
+            className={`h-11 w-11 flex items-center justify-center rounded-xl transition-colors ${
+              viewMode === 'spreadsheet'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground'
+            }`}
+            title={viewMode === 'spreadsheet' ? 'Card View' : 'Spreadsheet View'}
+          >
+            {viewMode === 'spreadsheet' ? <LayoutList className="h-5 w-5" /> : <Table2 className="h-5 w-5" />}
+          </button>
+          <button
             onClick={() => setShowFilters(true)}
             className="h-11 px-4 bg-secondary rounded-xl flex items-center gap-2 tap-target touch-feedback relative"
           >
@@ -305,41 +318,53 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
         )}
       </div>
 
-      {/* RO List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-32">
-        {filteredROs.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="text-lg font-medium">No ROs found</p>
-            <p className="text-sm mt-1">Try adjusting your search or filters</p>
-          </div>
-        ) : (
-          filteredROs.map((ro) => (
-            <ROCard
-              key={ro.id}
-              ro={ro}
-              flags={getFlagsForRO(ro.id)}
-              onClearFlag={clearFlag}
-              reviewIssues={getReviewIssues(ro, ros)}
-              onConvertToFlag={handleConvertToFlag}
-              onEdit={() => onEditRO(ro)}
-              onFlag={() => setFlaggingRO(ro)}
-              onDuplicate={(newRONumber) => {
-                duplicateRO(ro.id, newRONumber);
-                toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
-              }}
-              onDelete={() => {
-                deleteRO(ro.id);
-                toast.success(`Deleted RO #${ro.roNumber}`);
-              }}
-              onViewDetails={() => {
-                setSelectedRO(ro);
-                setShowDetail(true);
-              }}
-              existingRONumbers={ros.map(r => r.roNumber)}
-            />
-          ))
-        )}
-      </div>
+      {/* RO List or Spreadsheet */}
+      {viewMode === 'spreadsheet' ? (
+        <div className="flex-1 overflow-hidden">
+          <SpreadsheetView
+            ros={filteredROs}
+            onSelectRO={(ro) => {
+              setSelectedRO(ro);
+              setShowDetail(true);
+            }}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-32">
+          {filteredROs.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-lg font-medium">No ROs found</p>
+              <p className="text-sm mt-1">Try adjusting your search or filters</p>
+            </div>
+          ) : (
+            filteredROs.map((ro) => (
+              <ROCard
+                key={ro.id}
+                ro={ro}
+                flags={getFlagsForRO(ro.id)}
+                onClearFlag={clearFlag}
+                reviewIssues={getReviewIssues(ro, ros)}
+                onConvertToFlag={handleConvertToFlag}
+                onEdit={() => onEditRO(ro)}
+                onFlag={() => setFlaggingRO(ro)}
+                onDuplicate={(newRONumber) => {
+                  duplicateRO(ro.id, newRONumber);
+                  toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
+                }}
+                onDelete={() => {
+                  deleteRO(ro.id);
+                  toast.success(`Deleted RO #${ro.roNumber}`);
+                }}
+                onViewDetails={() => {
+                  setSelectedRO(ro);
+                  setShowDetail(true);
+                }}
+                existingRONumbers={ros.map(r => r.roNumber)}
+              />
+            ))
+          )}
+        </div>
+      )}
 
       {/* RO Detail Sheet */}
       <RODetailSheet
