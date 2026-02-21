@@ -22,6 +22,7 @@ export function DesktopWorkspace() {
   const [rightPanel, setRightPanel] = useState<RightPanel>('none');
   const [focusLineId, setFocusLineId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [filteredROs, setFilteredROs] = useState<RepairOrder[]>(ros);
 
   const handleSelectRO = (ro: RepairOrder) => {
     setSelectedRO(ro);
@@ -132,7 +133,7 @@ export function DesktopWorkspace() {
 
       {viewMode === 'spreadsheet' ? (
         <div className="flex-1 min-h-0">
-          <SpreadsheetView ros={ros} onSelectRO={(ro) => {
+          <SpreadsheetView ros={filteredROs} onSelectRO={(ro) => {
             setViewMode('split');
             handleSelectRO(ro);
           }} />
@@ -145,6 +146,7 @@ export function DesktopWorkspace() {
               selectedROId={selectedRO?.id || null}
               onSelectRO={handleSelectRO}
               onAddNew={handleAddNew}
+              onFilteredROsChange={setFilteredROs}
             />
           </div>
 

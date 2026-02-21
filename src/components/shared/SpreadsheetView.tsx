@@ -9,10 +9,11 @@ interface SpreadsheetViewProps {
 
 interface FlatRow {
   ro: RepairOrder;
-  lineIndex: number; // -1 = simple mode (no lines)
+  lineIndex: number;
   isFirstOfGroup: boolean;
   groupSize: number;
-  groupIndex: number; // even/odd for zebra
+  groupIndex: number;
+  roTotal: number;
 }
 
 export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
@@ -24,6 +25,10 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
 
     for (const ro of ros) {
       const hasLines = ro.lines && ro.lines.length > 0;
+      const roTotal = hasLines
+        ? ro.lines.filter(l => !l.isTbd).reduce((sum, l) => sum + l.hoursPaid, 0)
+        : ro.paidHours;
+
       if (hasLines) {
         const size = ro.lines.length;
         ro.lines.forEach((_, i) => {
@@ -36,6 +41,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
             isFirstOfGroup: i === 0,
             groupSize: size,
             groupIndex: groupIdx,
+            roTotal,
           });
         });
       } else {
@@ -47,6 +53,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
           isFirstOfGroup: true,
           groupSize: 1,
           groupIndex: groupIdx,
+          roTotal,
         });
       }
       groupIdx++;
@@ -76,6 +83,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
               <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground">Description</th>
               <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-16">Type</th>
               <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-16">Hours</th>
+              <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-20">RO Total</th>
             </tr>
           </thead>
           <tbody>
@@ -145,6 +153,14 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                     {hoursPaid.toFixed(1)}
                     {isTbd && <span className="ml-1 text-[10px] font-semibold text-amber-500">TBD</span>}
                   </td>
+                  {row.isFirstOfGroup ? (
+                    <td
+                      className="px-3 py-2 text-right tabular-nums font-bold text-primary whitespace-nowrap align-top"
+                      rowSpan={row.groupSize}
+                    >
+                      {row.roTotal.toFixed(1)}h
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}

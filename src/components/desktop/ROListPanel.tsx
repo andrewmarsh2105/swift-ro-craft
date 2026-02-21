@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, SlidersHorizontal, Plus, Filter } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -18,6 +18,7 @@ interface ROListPanelProps {
   selectedROId: string | null;
   onSelectRO: (ro: RepairOrder) => void;
   onAddNew: () => void;
+  onFilteredROsChange?: (ros: RepairOrder[]) => void;
 }
 
 function getWeekStart(weekStartDay: number): string {
@@ -36,7 +37,7 @@ function getTwoWeekStart(weekStartDay: number): string {
   return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 }
 
-export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelProps) {
+export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsChange }: ROListPanelProps) {
   const { ros, deleteRO, duplicateRO } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,6 +102,10 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
 
     return result;
   }, [ros, searchQuery, dateFilter, searchScopes]);
+
+  useEffect(() => {
+    onFilteredROsChange?.(filteredROs);
+  }, [filteredROs, onFilteredROsChange]);
 
   // Group ROs by date
   const groupedROs = useMemo(() => {
