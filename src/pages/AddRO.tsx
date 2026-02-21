@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, CalendarCheck, User, Clock, ChevronDown, ChevronUp, FileText, Settings2, Image, X } from 'lucide-react';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
@@ -35,7 +36,7 @@ export default function AddRO() {
   const isMobile = useIsMobile();
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { userSettings } = useFlagContext();
-  
+  const { isPro, startCheckout } = useSubscription();
   // Get editing RO from location state
   const editingROId = (location.state as { editingROId?: string; focusLineId?: string })?.editingROId;
   const focusLineId = (location.state as { editingROId?: string; focusLineId?: string })?.focusLineId;
@@ -47,6 +48,16 @@ export default function AddRO() {
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
+  const [showCapSheet, setShowCapSheet] = useState(false);
+
+  // RO cap: count ROs created this calendar month
+  const monthlyROCount = useMemo(() => {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+  }, [ros]);
+  const RO_CAP = 150;
+  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_CAP;
 
   const filteredAdvisors = settings.advisors.filter(a =>
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
@@ -188,6 +199,12 @@ export default function AddRO() {
       isSimpleMode: false,
     };
 
+    // Check RO cap for free users
+    if (isAtCap) {
+      setShowCapSheet(true);
+      return;
+    }
+
     setIsSaving(true);
     try {
       if (editingRO) {
@@ -235,12 +252,15 @@ export default function AddRO() {
         <h1 className="text-base font-semibold">
           {editingRO ? 'Edit RO' : 'Add RO'}
         </h1>
-        <button
-          onClick={() => setShowScanFlow(true)}
-          className="flex items-center gap-1 text-primary font-medium min-w-[44px] min-h-[44px] justify-center -mr-2"
-        >
-          <Camera className="h-5 w-5" />
-        </button>
+        {isPro && (
+          <button
+            onClick={() => setShowScanFlow(true)}
+            className="flex items-center gap-1 text-primary font-medium min-w-[44px] min-h-[44px] justify-center -mr-2"
+          >
+            <Camera className="h-5 w-5" />
+          </button>
+        )}
+        {!isPro && <div className="min-w-[44px]" />}
       </header>
 
       {/* Minimal Sticky RO Header Strip - Only essential fields */}
@@ -547,6 +567,37 @@ export default function AddRO() {
         hasExistingLines={lines.some(l => l.description.trim() !== '' || l.hoursPaid > 0)}
         existingLineDescriptions={lines.map(l => l.description)}
       />
+
+      {/* RO Cap Reached Sheet */}
+      <BottomSheet
+        isOpen={showCapSheet}
+        onClose={() => setShowCapSheet(false)}
+        title="Monthly Limit Reached"
+      >
+        <div className="p-6 space-y-4 text-center">
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP} ROs per month.
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Upgrade to Pro for unlimited ROs plus OCR scanning, spreadsheet view, and more.
+          </p>
+          <button
+            onClick={() => {
+              setShowCapSheet(false);
+              startCheckout();
+            }}
+            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold"
+          >
+            Upgrade to Pro — $9.99/mo
+          </button>
+          <button
+            onClick={() => setShowCapSheet(false)}
+            className="w-full py-3 text-muted-foreground text-sm"
+          >
+            Maybe later
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

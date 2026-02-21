@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Camera, Save, Plus, Calendar, CalendarCheck, User, Clock, FileText, Check } from 'lucide-react';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
 import { AdvisorCombobox } from './AdvisorCombobox';
@@ -29,9 +30,18 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
 ];
 
 export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
-  const { settings, addRO, updateRO, updateAdvisors } = useRO();
+  const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { userSettings } = useFlagContext();
-  
+  const { isPro, startCheckout } = useSubscription();
+
+  // RO cap for free users
+  const monthlyROCount = useMemo(() => {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+  }, [ros]);
+  const RO_CAP = 150;
+  const isAtCap = !isPro && isNew && monthlyROCount >= RO_CAP;
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
   const [advisor, setAdvisor] = useState(ro?.advisor || '');
@@ -151,6 +161,11 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   const handleSave = (addAnother: boolean = false) => {
+    if (isAtCap) {
+      toast.error(`Monthly limit reached (${RO_CAP} ROs). Upgrade to Pro for unlimited ROs.`);
+      startCheckout();
+      return;
+    }
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
     
     const roData = {
@@ -271,13 +286,15 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
 
           {/* Spacer + right-aligned actions */}
           <div className="ml-auto flex items-center gap-3 flex-shrink-0">
-            <button
-              onClick={() => setShowScanFlow(true)}
-              className="h-8 w-8 flex items-center justify-center bg-secondary rounded hover:bg-secondary/80 transition-colors"
-              title="Upload RO Photo"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
+            {isPro && (
+              <button
+                onClick={() => setShowScanFlow(true)}
+                className="h-8 w-8 flex items-center justify-center bg-secondary rounded hover:bg-secondary/80 transition-colors"
+                title="Upload RO Photo"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+            )}
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-xl font-bold text-primary tabular-nums">{totalHours.toFixed(1)}h</span>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star, Crown } from 'lucide-react';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useTemplates } from '@/hooks/useTemplates';
 import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
@@ -319,6 +320,7 @@ export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
   const { userSettings, updateUserSetting } = useFlagContext();
+  const { isPro, subscriptionEnd, startCheckout, openPortal } = useSubscription();
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
   const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
@@ -448,6 +450,45 @@ export function SettingsTab() {
       </div>
 
       <div className="p-4 space-y-6">
+        {/* Plan */}
+        <SettingsGroup title="Plan">
+          {isPro ? (
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                <span className="font-semibold">Pro Plan</span>
+              </div>
+              {subscriptionEnd && (
+                <p className="text-xs text-muted-foreground">
+                  Renews {new Date(subscriptionEnd).toLocaleDateString()}
+                </p>
+              )}
+              <button
+                onClick={openPortal}
+                className="text-sm text-primary font-medium hover:underline"
+              >
+                Manage Subscription
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-muted-foreground" />
+                <span className="font-semibold">Free Plan</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Upgrade to Pro for unlimited ROs, OCR scanning, spreadsheet view, and multi-period reporting.
+              </p>
+              <button
+                onClick={startCheckout}
+                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm"
+              >
+                Upgrade to Pro — $9.99/mo
+              </button>
+            </div>
+          )}
+        </SettingsGroup>
+
         {/* Appearance */}
         <SettingsGroup title="Appearance">
           <SettingsRow
@@ -568,8 +609,8 @@ export function SettingsTab() {
           </div>
         </div>
 
-        {/* Scan Templates */}
-        <TemplatesSection />
+        {/* Scan Templates - Pro only */}
+        {isPro && <TemplatesSection />}
 
         {/* Data Management */}
         <SettingsGroup title="Data">

@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ROProvider } from "@/contexts/ROContext";
 import { FlagProvider } from "@/contexts/FlagContext";
 import { OfflineProvider } from "@/contexts/OfflineContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { DevDebugPanel } from "@/components/debug/DevDebugPanel";
 import Index from "./pages/Index";
 import AddRO from "./pages/AddRO";
@@ -56,6 +57,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <SubscriptionProvider>
       <OfflineProvider>
       <ROProvider>
         <FlagProvider>
@@ -76,6 +78,7 @@ const App = () => (
         </FlagProvider>
       </ROProvider>
       </OfflineProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
