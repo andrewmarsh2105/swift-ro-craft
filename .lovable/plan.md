@@ -1,100 +1,58 @@
 
-## Tie "Week" Filter to Default Period Setting + Fix Week Start Day in Summary
 
-### What the User Wants
+# Full-Screen Spreadsheet View for All ROs
 
-1. **Main page "Week" filter** (mobile ROs tab + desktop list panel): When the user has set their default period to "2 Weeks" in Settings, clicking "Week" in the date filter should show the last 2 weeks (from 2 week-starts ago to today). If set to "1 Week", show the current week only.
+## What This Does
 
-2. **Summary tab**: Should still open on the default period (already done). No change needed there — `defaultSummaryRange` already controls what the Summary tab opens on.
+Adds a new "Spreadsheet" view mode that fills the entire screen with one big table — like Excel — showing every RO and every line item in a flat, scannable grid. You can see RO numbers, job descriptions, labor types, and hours all at once without clicking into individual ROs.
 
-3. **Week start day must not break**: The `weekStartDay` preference must continue to anchor both the 1-week and 2-week calculations correctly.
+## How It Works
 
----
+### The View
 
-### Current Behavior
+A single full-width table with these columns:
 
-- `ROsTab.tsx` (mobile) and `ROListPanel.tsx` (desktop) — the "Week" date filter always calls `getWeekStart(weekStartDay)` to find the most recent occurrence of the start day and shows from there to today. It always shows exactly 1 week regardless of the default period setting.
-- `SummaryTab.tsx` — `getWeekRange()` has its own hardcoded logic (uses Monday, not `weekStartDay`). This is a separate issue but worth noting — the Summary tab's "1 Week" segment should also use `weekStartDay`. However, the user hasn't asked to change Summary tab logic here, so we'll focus only on the filter changes.
-
----
-
-### Where the Changes Go
-
-**2 files only** — no database or schema changes needed:
-
-#### 1. `src/components/tabs/ROsTab.tsx`
-
-The `getWeekStart` function already exists and works correctly. We need to add a `getTwoWeekStart` function that goes back an additional full week:
-
-```typescript
-function getTwoWeekStart(weekStartDay: number): string {
-  const now = new Date();
-  const diff = (now.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() - diff - 7); // go back one extra week
-  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-}
+```text
+| RO #  | Date   | Advisor | Line # | Description          | Type | Hours | TBD |
+|-------|--------|---------|--------|----------------------|------|-------|-----|
+| 1234  | Feb 21 | Mike    | 1      | Brake pad replace    | CP   | 1.5   |     |
+| 1234  | Feb 21 | Mike    | 2      | Rotor resurface      | CP   | 0.8   |     |
+| 1235  | Feb 21 | John    | 1      | Oil change           | W    | 0.5   |     |
+| 1235  | Feb 21 | John    | 2      | Tire rotation        | I    | 0.3   |     |
+| 1236  | Feb 20 | Mike    | 1      | Transmission flush   | CP   | 2.0   |     |
 ```
 
-Then update the `week` date filter branch to check `userSettings.defaultSummaryRange`:
+- RO header fields (RO #, Date, Advisor) are shown on the first line of each RO and visually merged/grayed on subsequent lines of the same RO (like merged cells in Excel)
+- Alternating row colors per RO group (not per row) so you can visually distinguish where one RO ends and the next begins
+- Sticky header row that stays visible while scrolling
+- A summary footer showing total ROs, total lines, and total hours
+- The existing date/search filters from the RO list carry over so you can filter the spreadsheet
 
-```typescript
-} else if (filters.dateRange === 'week') {
-  const useTwoWeeks = userSettings.defaultSummaryRange === 'two_weeks';
-  const weekStart = useTwoWeeks
-    ? getTwoWeekStart(userSettings.weekStartDay ?? 0)
-    : getWeekStart(userSettings.weekStartDay ?? 0);
-  result = result.filter((ro) => ro.date >= weekStart);
-}
-```
+### Accessing It
 
-Also update the label for the "Week" filter button in the bottom sheet so users understand what they'll see:
+- **Desktop**: A toggle button in the top bar (next to the Settings gear) switches between the current split-panel layout and the full-screen spreadsheet. Icon: a grid/table icon.
+- **Mobile**: A small toggle at the top of the ROs tab switches between card view and spreadsheet view. The table will be horizontally scrollable on small screens.
 
-The `SegmentedControl` option label for `week` will dynamically say **"1 Week"** or **"2 Weeks"** based on the setting:
+### Interactions
 
-```typescript
-{ value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Weeks' : '1 Week' }
-```
+- Clicking any row opens that RO in the editor (desktop) or detail sheet (mobile) — same as today
+- The table is read-only (no inline editing in this view) to keep it simple and fast
+- All existing filters (date range, search, advisor, labor type) work on the spreadsheet data
 
-This way users see exactly what the filter will show.
+## Technical Details
 
-#### 2. `src/components/desktop/ROListPanel.tsx`
+### New Files
+- `src/components/shared/SpreadsheetView.tsx` — The main table component. Takes filtered ROs as a prop, flattens them into rows (one row per line item), renders using standard HTML table elements styled with Tailwind. Uses sticky `thead`, zebra striping per RO group, and tabular-nums for hours alignment.
 
-Same changes as above — add `getTwoWeekStart`, update the `week` branch of the date filter, and update the filter tab label. The desktop panel uses `dateFilter` state and a tab-style UI rather than a bottom sheet.
+### Modified Files
+- `src/components/desktop/DesktopWorkspace.tsx` — Add a `viewMode` state (`'split' | 'spreadsheet'`). When `spreadsheet`, render `SpreadsheetView` full-width instead of the split panel. Add a toggle button in the top bar.
+- `src/pages/Index.tsx` — Pass a `viewMode` toggle into the mobile layout.
+- `src/components/tabs/ROsTab.tsx` — Add a small toggle button near the search bar. When spreadsheet mode is active, render `SpreadsheetView` instead of the card list. Reuse the same `filteredROs` data.
 
----
-
-### How the Math Works (Week Start Day Preserved)
-
-**1 Week mode** (existing, unchanged):
-- Find the most recent occurrence of `weekStartDay`
-- e.g. weekStartDay = Monday (1), today = Thursday → weekStart = this past Monday
-
-**2 Week mode** (new):
-- Find the most recent occurrence of `weekStartDay`, then go back 7 more days
-- e.g. weekStartDay = Monday (1), today = Thursday → weekStart = the Monday before last
-- Result: shows 2 full weeks anchored to the configured start day
-
-**Edge cases**:
-- Today IS the start day → 1-week mode shows only today; 2-week mode shows today + the full previous week
-- All consistent with the Summary tab's biweekly logic which also uses 2 stacked calendar weeks
-
----
-
-### What Stays the Same
-
-- `defaultSummaryRange` setting UI in Settings tab — no changes
-- `weekStartDay` picker UI in Settings tab — no changes
-- Summary tab range selector — no changes
-- "Today" and "Month" filters — no changes
-- All other filter logic (advisors, labor type, search) — no changes
-- No database migration needed
-
----
-
-### Summary of Files Changed
-
-| File | Change |
-|---|---|
-| `src/components/tabs/ROsTab.tsx` | Add `getTwoWeekStart`, update week filter logic + dynamic label |
-| `src/components/desktop/ROListPanel.tsx` | Add `getTwoWeekStart`, update week filter logic + dynamic label |
+### Key Implementation Notes
+- The table flattens each RO's `lines[]` array into individual rows. ROs with no lines get a single row showing the RO header and `workPerformed` as the description.
+- RO header cells (RO #, Date, Advisor) use `rowSpan` equal to the number of lines in that RO, creating the merged-cell look.
+- Hours column is right-aligned with `tabular-nums` for clean number alignment.
+- TBD lines show a small amber badge and their hours are shown with strikethrough.
+- The footer sums hours excluding TBD lines, matching existing behavior.
+- On mobile, the table wrapper has `overflow-x-auto` so users can swipe horizontally if needed, with the RO # column optionally sticky-left.
