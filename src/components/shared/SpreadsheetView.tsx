@@ -165,15 +165,24 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
         th, td { padding: 4px 8px; border: 1px solid #ddd; text-align: left; }
         th { background: #f5f5f5; font-weight: 600; }
         .date-sep { background: #eee; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+        .summary { margin-top: 1rem; font-size: 13px; }
+        .summary td { border: none; padding: 4px 8px; }
+        .summary .label { font-weight: 600; }
         @media print { body { margin: 0; } }
       </style></head><body>
       ${printContent.innerHTML}
+      <table class="summary">
+        <tr><td class="label">Warranty (W):</td><td>${warrantyHours.toFixed(1)}h</td></tr>
+        <tr><td class="label">Customer Pay (CP):</td><td>${cpHours.toFixed(1)}h</td></tr>
+        <tr><td class="label">Internal (I):</td><td>${internalHours.toFixed(1)}h</td></tr>
+        <tr><td class="label" style="font-size:14px;">Total:</td><td style="font-size:14px;font-weight:bold;">${totalHours.toFixed(1)}h</td></tr>
+      </table>
       </body></html>
     `);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
-  }, []);
+  }, [warrantyHours, cpHours, internalHours, totalHours]);
 
   if (ros.length === 0) {
     return (
