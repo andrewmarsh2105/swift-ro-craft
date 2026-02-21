@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
 import type { RepairOrder } from '@/types/ro';
+import { formatVehicleChip } from '@/types/ro';
 
 interface SpreadsheetViewProps {
   ros: RepairOrder[];
@@ -8,6 +10,7 @@ interface SpreadsheetViewProps {
 }
 
 interface FlatRow {
+  type: 'data';
   ro: RepairOrder;
   lineIndex: number;
   isFirstOfGroup: boolean;
@@ -16,50 +19,99 @@ interface FlatRow {
   roTotal: number;
 }
 
+interface DateSeparatorRow {
+  type: 'date-separator';
+  dateLabel: string;
+  roCount: number;
+  dayHours: number;
+}
+
+type TableRow = FlatRow | DateSeparatorRow;
+
+const TOTAL_COLUMNS = 9;
+
 export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
-  const { rows, totalHours, totalLines } = useMemo(() => {
-    const flat: FlatRow[] = [];
-    let groupIdx = 0;
+  const { rows, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
+    const allRows: TableRow[] = [];
     let hours = 0;
     let lines = 0;
+    let wHours = 0;
+    let cHours = 0;
+    let iHours = 0;
+    let groupIdx = 0;
 
-    for (const ro of ros) {
-      const hasLines = ro.lines && ro.lines.length > 0;
-      const roTotal = hasLines
-        ? ro.lines.filter(l => !l.isTbd).reduce((sum, l) => sum + l.hoursPaid, 0)
-        : ro.paidHours;
+    // Group ROs by date descending
+    const byDate = new Map<string, RepairOrder[]>();
+    const sorted = [...ros].sort((a, b) => b.date.localeCompare(a.date));
+    for (const ro of sorted) {
+      const key = ro.date.slice(0, 10);
+      if (!byDate.has(key)) byDate.set(key, []);
+      byDate.get(key)!.push(ro);
+    }
 
-      if (hasLines) {
-        const size = ro.lines.length;
-        ro.lines.forEach((_, i) => {
-          const line = ro.lines[i];
-          if (!line.isTbd) hours += line.hoursPaid;
+    for (const [dateKey, dayROs] of byDate) {
+      // Calculate day totals for separator
+      let dayHours = 0;
+      for (const ro of dayROs) {
+        const hasLines = ro.lines && ro.lines.length > 0;
+        if (hasLines) {
+          dayHours += ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0);
+        } else {
+          dayHours += ro.paidHours;
+        }
+      }
+
+      const dateLabel = format(parseISO(dateKey), 'EEE, MMM d');
+      allRows.push({ type: 'date-separator', dateLabel, roCount: dayROs.length, dayHours });
+
+      for (const ro of dayROs) {
+        const hasLines = ro.lines && ro.lines.length > 0;
+        const roTotal = hasLines
+          ? ro.lines.filter(l => !l.isTbd).reduce((sum, l) => sum + l.hoursPaid, 0)
+          : ro.paidHours;
+
+        if (hasLines) {
+          const size = ro.lines.length;
+          ro.lines.forEach((line, i) => {
+            if (!line.isTbd) {
+              hours += line.hoursPaid;
+              const lt = line.laborType ?? ro.laborType;
+              if (lt === 'warranty') wHours += line.hoursPaid;
+              else if (lt === 'customer-pay') cHours += line.hoursPaid;
+              else iHours += line.hoursPaid;
+            }
+            lines++;
+            allRows.push({
+              type: 'data',
+              ro,
+              lineIndex: i,
+              isFirstOfGroup: i === 0,
+              groupSize: size,
+              groupIndex: groupIdx,
+              roTotal,
+            });
+          });
+        } else {
+          hours += ro.paidHours;
+          if (ro.laborType === 'warranty') wHours += ro.paidHours;
+          else if (ro.laborType === 'customer-pay') cHours += ro.paidHours;
+          else iHours += ro.paidHours;
           lines++;
-          flat.push({
+          allRows.push({
+            type: 'data',
             ro,
-            lineIndex: i,
-            isFirstOfGroup: i === 0,
-            groupSize: size,
+            lineIndex: -1,
+            isFirstOfGroup: true,
+            groupSize: 1,
             groupIndex: groupIdx,
             roTotal,
           });
-        });
-      } else {
-        hours += ro.paidHours;
-        lines++;
-        flat.push({
-          ro,
-          lineIndex: -1,
-          isFirstOfGroup: true,
-          groupSize: 1,
-          groupIndex: groupIdx,
-          roTotal,
-        });
+        }
+        groupIdx++;
       }
-      groupIdx++;
     }
 
-    return { rows: flat, totalHours: hours, totalLines: lines };
+    return { rows: allRows, totalHours: hours, totalLines: lines, warrantyHours: wHours, cpHours: cHours, internalHours: iHours };
   }, [ros]);
 
   if (ros.length === 0) {
@@ -79,16 +131,31 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
               <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap">RO #</th>
               <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap">Date</th>
               <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap">Advisor</th>
+              <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap">Vehicle</th>
               <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-12">Line</th>
               <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground">Description</th>
               <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-16">Type</th>
               <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-16">Hours</th>
-              <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-20">RO Total</th>
+              <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap w-20 bg-primary/5">RO Total</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => {
-              const isEvenGroup = row.groupIndex % 2 === 0;
+              if (row.type === 'date-separator') {
+                return (
+                  <tr key={`sep-${i}`} className="bg-muted/60">
+                    <td colSpan={TOTAL_COLUMNS} className="px-3 py-2 font-bold text-foreground text-xs uppercase tracking-wider">
+                      <div className="flex items-center justify-between">
+                        <span>{row.dateLabel}</span>
+                        <span className="text-muted-foreground font-medium normal-case tracking-normal">
+                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {row.dayHours.toFixed(1)}h
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+
               const line = row.lineIndex >= 0 ? row.ro.lines[row.lineIndex] : null;
               const laborType = line?.laborType ?? row.ro.laborType;
               const hoursPaid = line ? line.hoursPaid : row.ro.paidHours;
@@ -108,19 +175,30 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                   ? 'text-[hsl(var(--status-customer-pay))]'
                   : 'text-[hsl(var(--status-internal))]';
 
+              const borderColorClass = row.ro.laborType === 'warranty'
+                ? 'border-l-[hsl(var(--status-warranty))]'
+                : row.ro.laborType === 'customer-pay'
+                  ? 'border-l-[hsl(var(--status-customer-pay))]'
+                  : 'border-l-[hsl(var(--status-internal))]';
+
+              const vehicleChip = formatVehicleChip(row.ro.vehicle);
+
               return (
                 <tr
                   key={`${row.ro.id}-${row.lineIndex}`}
                   className={cn(
-                    'cursor-pointer hover:bg-accent/50 transition-colors border-b border-border/50',
-                    isEvenGroup ? 'bg-card' : 'bg-muted/30'
+                    'cursor-pointer hover:bg-accent/50 transition-colors',
+                    row.isFirstOfGroup ? 'border-t-2 border-border' : 'border-t border-border/30',
                   )}
                   onClick={() => onSelectRO(row.ro)}
                 >
                   {row.isFirstOfGroup ? (
                     <>
                       <td
-                        className="px-3 py-2 font-bold text-foreground whitespace-nowrap align-top"
+                        className={cn(
+                          'px-3 py-2 font-bold text-foreground whitespace-nowrap align-top border-l-[3px]',
+                          borderColorClass,
+                        )}
                         rowSpan={row.groupSize}
                       >
                         #{row.ro.roNumber}
@@ -136,6 +214,12 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                         rowSpan={row.groupSize}
                       >
                         {row.ro.advisor}
+                      </td>
+                      <td
+                        className="px-3 py-2 text-muted-foreground whitespace-nowrap align-top text-xs"
+                        rowSpan={row.groupSize}
+                      >
+                        {vehicleChip || <span className="italic">—</span>}
                       </td>
                     </>
                   ) : null}
@@ -155,7 +239,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                   </td>
                   {row.isFirstOfGroup ? (
                     <td
-                      className="px-3 py-2 text-right tabular-nums font-bold text-primary whitespace-nowrap align-top"
+                      className="px-3 py-2 text-right tabular-nums font-bold text-primary whitespace-nowrap align-top bg-primary/5"
                       rowSpan={row.groupSize}
                     >
                       {row.roTotal.toFixed(1)}h
@@ -174,8 +258,11 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
           <span><strong className="text-foreground">{ros.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
-        <div className="font-bold text-foreground tabular-nums">
-          {totalHours.toFixed(1)}h total
+        <div className="flex items-center gap-3 tabular-nums">
+          <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {warrantyHours.toFixed(1)}h</span>
+          <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {cpHours.toFixed(1)}h</span>
+          <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {internalHours.toFixed(1)}h</span>
+          <span className="font-bold text-foreground ml-1">{totalHours.toFixed(1)}h total</span>
         </div>
       </div>
     </div>
