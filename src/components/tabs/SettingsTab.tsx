@@ -92,17 +92,17 @@ function PresetItem({ preset, onEdit, onDelete }: PresetItemProps) {
   }[preset.laborType];
 
   return (
-    <div className="bg-card p-4 rounded-xl flex items-center gap-3 overflow-hidden">
+    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3 overflow-hidden">
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{preset.name}</div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {typeLabel} • {preset.defaultHours ? `${preset.defaultHours}h` : 'No default'}
         </div>
       </div>
-      <button onClick={onEdit} className="p-2 tap-target touch-feedback flex-shrink-0">
+      <button onClick={onEdit} className="p-1.5 tap-target touch-feedback flex-shrink-0">
         <Pencil className="h-4 w-4 text-muted-foreground" />
       </button>
-      <button onClick={onDelete} className="p-2 tap-target touch-feedback text-destructive flex-shrink-0">
+      <button onClick={onDelete} className="p-1.5 tap-target touch-feedback text-destructive flex-shrink-0">
         <Trash2 className="h-4 w-4" />
       </button>
     </div>
@@ -530,7 +530,7 @@ export function SettingsTab() {
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             {settings.presets.map((preset) => (
               <PresetItem
                 key={preset.id}
