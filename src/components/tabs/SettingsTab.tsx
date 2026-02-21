@@ -117,15 +117,15 @@ interface AdvisorItemProps {
 
 function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
   return (
-    <div className="bg-card p-4 rounded-xl flex items-center gap-3">
+    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3">
       <User className="h-5 w-5 text-muted-foreground" />
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{advisor.name}</div>
       </div>
-      <button onClick={onEdit} className="p-2 tap-target touch-feedback">
+      <button onClick={onEdit} className="p-1.5 tap-target touch-feedback">
         <Pencil className="h-4 w-4 text-muted-foreground" />
       </button>
-      <button onClick={onDelete} className="p-2 tap-target touch-feedback text-destructive">
+      <button onClick={onDelete} className="p-1.5 tap-target touch-feedback text-destructive">
         <Trash2 className="h-4 w-4" />
       </button>
     </div>
@@ -556,7 +556,7 @@ export function SettingsTab() {
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             {settings.advisors.map((advisor) => (
               <AdvisorItem
                 key={advisor.id}
