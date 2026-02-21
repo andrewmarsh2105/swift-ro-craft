@@ -1,6 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Printer, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { downloadCSV } from '@/lib/exportUtils';
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 
@@ -31,6 +34,7 @@ type TableRow = FlatRow | DateSeparatorRow;
 const TOTAL_COLUMNS = 9;
 
 export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
+  const tableRef = useRef<HTMLDivElement>(null);
   const { rows, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
     const allRows: TableRow[] = [];
     let hours = 0;
@@ -119,6 +123,58 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
     return { rows: allRows, totalHours: hours, totalLines: lines, warrantyHours: wHours, cpHours: cHours, internalHours: iHours };
   }, [ros]);
 
+  const handleSaveCSV = useCallback(() => {
+    const headers = ['RO #', 'Date', 'Advisor', 'Vehicle', 'Line', 'Description', 'Type', 'Hours', 'RO Total'];
+    const csvRows = rows
+      .filter((r): r is FlatRow => r.type === 'data')
+      .map((row) => {
+        const line = row.lineIndex >= 0 ? row.ro.lines[row.lineIndex] : null;
+        const laborType = line?.laborType ?? row.ro.laborType;
+        const hoursPaid = line ? line.hoursPaid : row.ro.paidHours;
+        const description = line ? line.description : row.ro.workPerformed;
+        const lineNo = line ? line.lineNo : 1;
+        const typeLabel = laborType === 'warranty' ? 'W' : laborType === 'customer-pay' ? 'CP' : 'INT';
+        const vehicle = formatVehicleChip(row.ro.vehicle) || '';
+        return [
+          row.ro.roNumber,
+          row.ro.paidDate || row.ro.date,
+          row.ro.advisor || '',
+          `"${vehicle.replace(/"/g, '""')}"`,
+          lineNo,
+          `"${(description || '').replace(/"/g, '""')}"`,
+          typeLabel,
+          hoursPaid.toFixed(2),
+          row.isFirstOfGroup ? row.roTotal.toFixed(2) : '',
+        ].join(',');
+      });
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    downloadCSV(csv, `spreadsheet-${dateStr}.csv`);
+  }, [rows]);
+
+  const handlePrint = useCallback(() => {
+    const printContent = tableRef.current;
+    if (!printContent) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html><head><title>Spreadsheet</title>
+      <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 4px 8px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .date-sep { background: #eee; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+        @media print { body { margin: 0; } }
+      </style></head><body>
+      ${printContent.innerHTML}
+      </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }, []);
+
   if (ros.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -129,7 +185,18 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-auto">
+      {/* Toolbar */}
+      <div className="flex-shrink-0 flex items-center justify-end gap-2 px-3 py-1.5 border-b border-border bg-card">
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={handleSaveCSV}>
+          <Download className="h-3.5 w-3.5" />
+          Save CSV
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={handlePrint}>
+          <Printer className="h-3.5 w-3.5" />
+          Print
+        </Button>
+      </div>
+      <div className="flex-1 overflow-auto" ref={tableRef}>
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-card border-b-2 border-border">
             <tr>
