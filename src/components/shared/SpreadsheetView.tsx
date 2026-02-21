@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 
@@ -61,7 +61,8 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
         }
       }
 
-      const dateLabel = format(parseISO(dateKey), 'EEE, MMM d');
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const dateLabel = format(new Date(y, m - 1, d), 'EEE, MMM d');
       allRows.push({ type: 'date-separator', dateLabel, roCount: dayROs.length, dayHours });
 
       for (const ro of dayROs) {
@@ -163,7 +164,8 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
               const description = line ? line.description : row.ro.workPerformed;
               const lineNo = line ? line.lineNo : 1;
 
-              const formattedDate = new Date(row.ro.date).toLocaleDateString('en-US', {
+              const [y, m, d] = row.ro.date.split('-').map(Number);
+              const formattedDate = new Date(y, m - 1, d).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
               });
