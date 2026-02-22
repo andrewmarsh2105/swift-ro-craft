@@ -1,25 +1,25 @@
 import { useState, useMemo } from 'react';
 import { Download, Copy, FileText, AlertTriangle, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { ProofPack } from '@/components/reports/ProofPack';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn, localDateStr } from '@/lib/utils';
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
-
-type ViewMode = 'default' | 'custom';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -34,7 +34,7 @@ function getWeekRange(date: Date): { start: string; end: string } {
 
 function getTwoWeekRange(date: Date): { start: string; end: string } {
   const end = new Date(date);
-  end.setDate(end.getDate() - end.getDay() + 7); // end of current week (Sun)
+  end.setDate(end.getDate() - end.getDay() + 7);
   const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const start = new Date(end);
   start.setDate(start.getDate() - 13);
@@ -173,7 +173,6 @@ function MultiPeriodComparison({
   const deltaColor = delta > 0 ? 'text-green-600 dark:text-green-400' : delta < 0 ? 'text-red-500' : 'text-muted-foreground';
   const deltaBg = delta > 0 ? 'bg-green-100 dark:bg-green-900/30' : delta < 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted';
 
-  // Build daily comparison data aligned by index (day 1 vs day 1)
   const dailyData = useMemo(() => {
     if (!hasData) return [];
     const maxLen = Math.max(report1.byDay.length, report2.byDay.length);
@@ -204,18 +203,19 @@ function MultiPeriodComparison({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 px-1">
-        <BarChart3 className="h-4 w-4 text-primary" />
-        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Period Comparison</h3>
-      </div>
-
       {/* Date Pickers */}
       <PeriodDatePicker label="Period A" start={start1} end={end1} onStartChange={onStart1Change} onEndChange={onEnd1Change} color="bg-primary" />
       <PeriodDatePicker label="Period B" start={start2} end={end2} onStartChange={onStart2Change} onEndChange={onEnd2Change} color="bg-violet-500" />
 
+      {!hasData && (
+        <div className="card-mobile p-6 text-center text-muted-foreground text-sm">
+          Select both date ranges above to compare periods
+        </div>
+      )}
+
       {hasData && (
         <>
-          {/* Enhanced Summary Cards */}
+          {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-2">
             <div className="card-mobile p-3 text-center border-t-2 border-primary">
               <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period A</div>
@@ -348,12 +348,21 @@ export function SummaryTab() {
   const isMobile = useIsMobile();
   const { userSettings } = useFlagContext();
   const { isPro } = useSubscription();
-  const defaultRange: SummaryRange = userSettings.defaultSummaryRange || 'week';
 
-  const [rangeOverride, setRangeOverride] = useState<'default' | 'week' | 'two_weeks' | 'custom'>('default');
+  // Determine initial range selection from settings
+  const payPeriodType = userSettings.payPeriodType || 'week';
+  const payPeriodEndDates = userSettings.payPeriodEndDates;
+  const hasCustomPayPeriod = payPeriodType === 'custom' && payPeriodEndDates && payPeriodEndDates.length > 0;
+
+  const [rangeMode, setRangeMode] = useState<string>(() => {
+    if (payPeriodType === 'two_weeks') return 'two_weeks';
+    if (payPeriodType === 'custom' && hasCustomPayPeriod) return 'pay_period';
+    return 'week';
+  });
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [showProofPack, setShowProofPack] = useState(false);
+  const [activeTab, setActiveTab] = useState('summary');
 
   // Multi-period comparison state (Pro only)
   const [compareStart1, setCompareStart1] = useState<Date | undefined>();
@@ -364,21 +373,22 @@ export function SummaryTab() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-  const effectiveRange = rangeOverride === 'default' ? defaultRange : rangeOverride;
-
   const dateRange = useMemo(() => {
-    if (effectiveRange === 'custom' && customStart && customEnd) {
-      return { start: customStart.toISOString().split('T')[0], end: customEnd.toISOString().split('T')[0] };
+    if (rangeMode === 'custom' && customStart && customEnd) {
+      return { start: localDateStr(customStart), end: localDateStr(customEnd) };
     }
-    if (effectiveRange === 'two_weeks') return getTwoWeekRange(today);
+    if (rangeMode === 'pay_period' && hasCustomPayPeriod) {
+      return getCustomPayPeriodRange(payPeriodEndDates!, today);
+    }
+    if (rangeMode === 'two_weeks') return getTwoWeekRange(today);
     return getWeekRange(today);
-  }, [effectiveRange, todayStr, customStart, customEnd]);
+  }, [rangeMode, todayStr, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates]);
 
   const report = usePayPeriodReport(dateRange.start, dateRange.end);
 
   // Split days into two week blocks for biweekly
   const weekBlocks = useMemo(() => {
-    if (effectiveRange !== 'two_weeks') return null;
+    if (rangeMode !== 'two_weeks') return null;
     const midpoint = new Date(dateRange.start);
     midpoint.setDate(midpoint.getDate() + 7);
     const midStr = midpoint.toISOString().split('T')[0];
@@ -394,32 +404,13 @@ export function SummaryTab() {
       week1: { days: week1, label: `Week 1 (${format(w1Start, 'MMM d')} – ${format(w1End, 'MMM d')})` },
       week2: { days: week2, label: `Week 2 (${format(midpoint, 'MMM d')} – ${format(w2End, 'MMM d')})` },
     };
-  }, [effectiveRange, report.byDay, dateRange]);
+  }, [rangeMode, report.byDay, dateRange]);
 
   const viewModeLabel = useMemo(() => {
-    if (effectiveRange === 'custom' && customStart && customEnd) {
-      return `${format(customStart, 'MMM d')} – ${format(customEnd, 'MMM d')}`;
-    }
-    if (effectiveRange === 'two_weeks') {
-      const s = new Date(dateRange.start + 'T12:00:00');
-      const e = new Date(dateRange.end + 'T12:00:00');
-      return `${format(s, 'MMM d')} – ${format(e, 'MMM d')} (2 Weeks)`;
-    }
     const s = new Date(dateRange.start + 'T12:00:00');
     const e = new Date(dateRange.end + 'T12:00:00');
     return `${format(s, 'MMM d')} – ${format(e, 'MMM d')}`;
-  }, [effectiveRange, dateRange, customStart, customEnd]);
-
-  const segmentValue: string = rangeOverride === 'default'
-    ? (defaultRange === 'two_weeks' ? 'two_weeks' : 'week')
-    : rangeOverride;
-
-  const handleSegmentChange = (v: string) => {
-    if (v === 'compare') setRangeOverride('compare' as any);
-    else if (v === 'week') setRangeOverride(defaultRange === 'week' ? 'default' : 'week');
-    else if (v === 'two_weeks') setRangeOverride(defaultRange === 'two_weeks' ? 'default' : 'two_weeks');
-    else setRangeOverride(v as any);
-  };
+  }, [dateRange]);
 
   const handleCopySummary = async () => {
     const text = generateSummaryText(report);
@@ -433,179 +424,205 @@ export function SummaryTab() {
     toast.success('CSV downloaded');
   };
 
+  const rangeTotalLabel = rangeMode === 'two_weeks' ? '2-Week Total'
+    : rangeMode === 'pay_period' ? 'Pay Period Total'
+    : rangeMode === 'custom' ? 'Total'
+    : 'Week Total';
+
   return (
     <div className="flex flex-col h-full">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border space-y-3">
-        <SegmentedControl
-          options={[
-            { value: 'week', label: '1 Week' },
-            { value: 'two_weeks', label: '2 Weeks' },
-            { value: 'custom', label: 'Custom' },
-            ...(isPro ? [{ value: 'compare', label: 'Compare' }] : []),
-          ]}
-          value={segmentValue}
-          onChange={handleSegmentChange}
-        />
-        {segmentValue !== 'compare' && effectiveRange === 'custom' && (
-          <div className="flex gap-2 items-center">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !customStart && 'text-muted-foreground')}>
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  {customStart ? format(customStart, 'MMM d, yyyy') : 'Start date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-            <span className="text-muted-foreground">–</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !customEnd && 'text-muted-foreground')}>
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  {customEnd ? format(customEnd, 'MMM d, yyyy') : 'End date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )}
-        {segmentValue !== 'compare' && (
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-lg">{viewModeLabel}</span>
-          </div>
-        )}
+      {/* Sticky Header with Tabs */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full rounded-none bg-muted/50 h-11">
+            <TabsTrigger value="summary" className="flex-1 data-[state=active]:bg-background">Summary</TabsTrigger>
+            {isPro && (
+              <TabsTrigger value="compare" className="flex-1 data-[state=active]:bg-background">Compare</TabsTrigger>
+            )}
+          </TabsList>
+        </Tabs>
       </div>
 
-      {/* Content */}
-      <div className={cn('flex-1 overflow-y-auto p-4 space-y-4', isMobile && 'pb-32')}>
-        {segmentValue === 'compare' ? (
-          <MultiPeriodComparison
-            start1={compareStart1} end1={compareEnd1}
-            start2={compareStart2} end2={compareEnd2}
-            onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
-            onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
-          />
-        ) : (
-        <>
-        {/* Total Card — solid primary fill, strong hierarchy */}
-        <div className="bg-primary text-primary-foreground rounded-2xl p-5" style={{ boxShadow: '0 4px 20px -4px hsl(var(--primary) / 0.5)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-wide">
-              {effectiveRange === 'two_weeks' ? '2-Week Total' : effectiveRange === 'custom' ? 'Total' : 'Week Total'}
-            </span>
-            <span className="text-xs text-primary-foreground/65 font-medium">
-              {report.totalROs} ROs · {report.totalLines} lines
-              {report.tbdLineCount > 0 && ` · ${report.tbdLineCount} TBD`}
-            </span>
-          </div>
-          <div className="text-5xl font-bold tabular-nums mb-3 tracking-tight">{report.totalHours.toFixed(1)}<span className="text-3xl ml-1 opacity-80">h</span></div>
-          {report.tbdLineCount > 0 && (
-            <div className="text-xs text-primary-foreground/65 mb-2 font-medium">
-              ⏳ {report.tbdLineCount} TBD lines ({report.tbdHours.toFixed(1)}h) not counted
+      {/* Tab Content */}
+      <div className={cn('flex-1 overflow-y-auto', isMobile && 'pb-32')}>
+        {activeTab === 'summary' && (
+          <div className="space-y-4">
+            {/* Date Range Header */}
+            <div className="px-4 pt-3 flex items-center gap-3">
+              <Select value={rangeMode} onValueChange={setRangeMode}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="week">1 Week</SelectItem>
+                  <SelectItem value="two_weeks">2 Weeks</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  {hasCustomPayPeriod && (
+                    <SelectItem value="pay_period">Pay Period</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              <span className="font-semibold text-sm text-muted-foreground">{viewModeLabel}</span>
             </div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {report.byLaborType.map(lt => (
-              <span key={lt.laborType} className="px-2.5 py-1 bg-white/20 rounded-full text-xs font-semibold">
-                {lt.label}: {lt.totalHours.toFixed(1)}h
-              </span>
-            ))}
-          </div>
-        </div>
 
-        {(report.missingHoursCount > 0 || report.flaggedCount > 0) && (
-          <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
-            {report.missingHoursCount > 0 && (
-              <div className="flex items-center gap-2 text-sm">
-                <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-                <span>{report.missingHoursCount} lines with missing hours</span>
+            {/* Custom date pickers */}
+            {rangeMode === 'custom' && (
+              <div className="px-4 flex gap-2 items-center">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !customStart && 'text-muted-foreground')}>
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {customStart ? format(customStart, 'MMM d, yyyy') : 'Start date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-muted-foreground">–</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !customEnd && 'text-muted-foreground')}>
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {customEnd ? format(customEnd, 'MMM d, yyyy') : 'End date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
-            {report.flaggedCount > 0 && (
-              <div className="flex items-center gap-2 text-sm">
-                <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                <span>{report.flaggedCount} flagged items</span>
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Day summaries */}
-        {weekBlocks ? (
-          <>
-            <WeekBlock days={weekBlocks.week1.days} label={weekBlocks.week1.label} todayStr={todayStr} />
-            <WeekBlock days={weekBlocks.week2.days} label={weekBlocks.week2.label} todayStr={todayStr} />
-            <div className="bg-muted/50 rounded-xl p-3 flex justify-between items-center">
-              <span className="font-semibold text-sm text-muted-foreground uppercase">Grand Total (2 Weeks)</span>
-              <span className="text-lg font-bold">{report.totalHours.toFixed(1)}h</span>
+            {/* Main Summary Content */}
+            <div className="px-4 space-y-4">
+              {/* Total Card */}
+              <div className="bg-primary text-primary-foreground rounded-2xl p-5" style={{ boxShadow: '0 4px 20px -4px hsl(var(--primary) / 0.5)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-wide">
+                    {rangeTotalLabel}
+                  </span>
+                  <span className="text-xs text-primary-foreground/65 font-medium">
+                    {report.totalROs} ROs · {report.totalLines} lines
+                    {report.tbdLineCount > 0 && ` · ${report.tbdLineCount} TBD`}
+                  </span>
+                </div>
+                <div className="text-5xl font-bold tabular-nums mb-3 tracking-tight">{report.totalHours.toFixed(1)}<span className="text-3xl ml-1 opacity-80">h</span></div>
+                {report.tbdLineCount > 0 && (
+                  <div className="text-xs text-primary-foreground/65 mb-2 font-medium">
+                    ⏳ {report.tbdLineCount} TBD lines ({report.tbdHours.toFixed(1)}h) not counted
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {report.byLaborType.map(lt => (
+                    <span key={lt.laborType} className="px-2.5 py-1 bg-white/20 rounded-full text-xs font-semibold">
+                      {lt.label}: {lt.totalHours.toFixed(1)}h
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Warnings */}
+              {(report.missingHoursCount > 0 || report.flaggedCount > 0) && (
+                <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
+                  {report.missingHoursCount > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                      <span>{report.missingHoursCount} lines with missing hours</span>
+                    </div>
+                  )}
+                  {report.flaggedCount > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                      <span>{report.flaggedCount} flagged items</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Day summaries */}
+              {weekBlocks ? (
+                <>
+                  <WeekBlock days={weekBlocks.week1.days} label={weekBlocks.week1.label} todayStr={todayStr} />
+                  <WeekBlock days={weekBlocks.week2.days} label={weekBlocks.week2.label} todayStr={todayStr} />
+                  <div className="bg-muted/50 rounded-xl p-3 flex justify-between items-center">
+                    <span className="font-semibold text-sm text-muted-foreground uppercase">Grand Total (2 Weeks)</span>
+                    <span className="text-lg font-bold">{report.totalHours.toFixed(1)}h</span>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">Daily Breakdown</h3>
+                  {report.byDay.filter(s => s.totalHours > 0 || s.date === todayStr).map((summary) => (
+                    <DaySummaryCard key={summary.date} summary={summary} isToday={summary.date === todayStr} />
+                  ))}
+                </div>
+              )}
+
+              {/* Advisor Summary */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Advisor</h3>
+                {report.byAdvisor.length === 0 ? (
+                  <p className="text-sm text-muted-foreground px-1">No data</p>
+                ) : (
+                  report.byAdvisor.map((summary) => (
+                    <AdvisorCard key={summary.advisor} summary={summary} />
+                  ))
+                )}
+              </div>
+
+              {/* By Labor Reference */}
+              {report.byLaborRef.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Labor Reference</h3>
+                  {report.byLaborRef.map(r => (
+                    <div key={r.referenceId} className="card-mobile p-3 flex justify-between items-center">
+                      <span className="text-sm font-medium">{r.referenceName}</span>
+                      <span className="text-sm font-bold">{r.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Export + Proof Pack Buttons */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={() => setShowProofPack(true)}
+                  className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2"
+                >
+                  <FileText className="h-5 w-5" />
+                  Proof Pack
+                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleCopySummary}
+                    className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy Summary
+                  </button>
+                  <button
+                    onClick={handleExportCSV}
+                    className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </button>
+                </div>
+              </div>
             </div>
-          </>
-        ) : (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">Daily Breakdown</h3>
-            {report.byDay.filter(s => s.totalHours > 0 || s.date === todayStr).map((summary) => (
-              <DaySummaryCard key={summary.date} summary={summary} isToday={summary.date === todayStr} />
-            ))}
           </div>
         )}
 
-        {/* Advisor Summary */}
-        <div className="space-y-2">
-          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Advisor</h3>
-          {report.byAdvisor.length === 0 ? (
-            <p className="text-sm text-muted-foreground px-1">No data</p>
-          ) : (
-            report.byAdvisor.map((summary) => (
-              <AdvisorCard key={summary.advisor} summary={summary} />
-            ))
-          )}
-        </div>
-
-        {/* By Labor Reference */}
-        {report.byLaborRef.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Labor Reference</h3>
-            {report.byLaborRef.map(r => (
-              <div key={r.referenceId} className="card-mobile p-3 flex justify-between items-center">
-                <span className="text-sm font-medium">{r.referenceName}</span>
-                <span className="text-sm font-bold">{r.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
-              </div>
-            ))}
+        {activeTab === 'compare' && isPro && (
+          <div className="p-4">
+            <MultiPeriodComparison
+              start1={compareStart1} end1={compareEnd1}
+              start2={compareStart2} end2={compareEnd2}
+              onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
+              onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
+            />
           </div>
-        )}
-
-        {/* Export + Proof Pack Buttons */}
-        <div className="space-y-3 pt-4">
-          <button
-            onClick={() => setShowProofPack(true)}
-            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2"
-          >
-            <FileText className="h-5 w-5" />
-            Proof Pack
-          </button>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleCopySummary}
-              className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
-            >
-              <Copy className="h-4 w-4" />
-              Copy Summary
-            </button>
-            <button
-              onClick={handleExportCSV}
-              className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </button>
-          </div>
-        </div>
-        </>
         )}
       </div>
 

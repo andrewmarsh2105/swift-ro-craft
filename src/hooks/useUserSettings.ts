@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type SummaryRange = 'week' | 'two_weeks';
+export type PayPeriodType = 'week' | 'two_weeks' | 'custom';
 
 interface UserSettings {
   theme: string;
@@ -14,6 +15,8 @@ interface UserSettings {
   defaultSummaryRange: SummaryRange;
   defaultTemplateId: string | null;
   weekStartDay: number;
+  payPeriodType: PayPeriodType;
+  payPeriodEndDates: number[] | null;
 }
 
 const defaults: UserSettings = {
@@ -26,6 +29,8 @@ const defaults: UserSettings = {
   defaultSummaryRange: 'week',
   defaultTemplateId: null,
   weekStartDay: 0,
+  payPeriodType: 'week',
+  payPeriodEndDates: null,
 };
 
 export function useUserSettings() {
@@ -51,6 +56,8 @@ export function useUserSettings() {
         defaultSummaryRange: (data.default_summary_range as SummaryRange) || 'week',
         defaultTemplateId: (data as any).default_template_id || null,
         weekStartDay: (data as any).week_start_day ?? 0,
+        payPeriodType: ((data as any).pay_period_type as PayPeriodType) || 'week',
+        payPeriodEndDates: (data as any).pay_period_end_dates || null,
       });
     }
     setLoaded(true);
@@ -70,6 +77,8 @@ export function useUserSettings() {
       : key === 'defaultSummaryRange' ? 'default_summary_range'
       : key === 'defaultTemplateId' ? 'default_template_id'
       : key === 'weekStartDay' ? 'week_start_day'
+      : key === 'payPeriodType' ? 'pay_period_type'
+      : key === 'payPeriodEndDates' ? 'pay_period_end_dates'
       : key;
     
     const { error } = await supabase
