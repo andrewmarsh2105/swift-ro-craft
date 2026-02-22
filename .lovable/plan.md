@@ -1,33 +1,63 @@
 
 
-# Essential Performance Fixes for Large RO Counts
+# Elevate Pay Period Comparison
 
-## What Actually Matters
+## Current State
+The period comparison is hidden at the bottom of the summary page, below export buttons. It only shows total hours and labor type deltas -- no daily breakdown, no charts.
 
-Only **two** changes are truly necessary to prevent breakage and slowness at 100-1000+ ROs. Everything else (subscription polling interval, review rule optimization, memoizing small arrays) is nice-to-have but won't cause real problems.
+## What Changes
 
-## Change 1: Fix the 1,000-Row Silent Data Cap
+### 1. Move Comparison Up and Make It Prominent
+- Move the `MultiPeriodComparison` section from the bottom of the page to directly below the "Total Card" (the big primary-colored hero card)
+- This puts it front-and-center as the second thing users see
 
-**Problem**: The database client has a default limit of 1,000 rows per query. If a user has more than 1,000 ROs or 1,000 line items, data silently disappears with no error.
+### 2. Add Daily Breakdown Table
+When both periods are selected, show a day-by-day comparison:
+- Each row = a day (Mon, Tue, Wed, etc.)
+- Columns: Day name | Period A hours | Period B hours | Delta
+- Delta column is color-coded: green for positive, red for negative
+- A "Total" row at the bottom with the grand totals and overall delta
 
-**Fix**: Add `.limit(10000)` to both the `ros` and `ro_lines` queries in `fetchROs` inside `useROStore.ts`. This is a two-line change.
+### 3. Add a Bar Chart Visualization
+Using the already-installed `recharts` library:
+- Grouped bar chart showing Period A vs Period B hours per day
+- Period A bars in blue/primary color, Period B bars in a secondary color (e.g., violet/purple)
+- X-axis = day labels (Mon, Tue, etc.)
+- Clean, readable, with a legend
 
-## Change 2: Optimistic Updates After Mutations
+### 4. Enhanced Summary Cards
+Replace the current simple 3-column grid with more visually distinct cards:
+- Period A and Period B each get their own card with labor type pills
+- The delta indicator gets a larger, more prominent display with a colored background pill (green bg for positive, red bg for negative)
 
-**Problem**: After adding or editing a single RO, the app calls `fetchROs()` which re-downloads **every** RO and **every** line item from the database. With 1,000 ROs and 5,000 lines, that's two large network requests after every save -- causing a noticeable delay.
-
-**Fix**: After a successful `addRO`, build the new RO locally and prepend it to state. After a successful `updateRO`, merge the changes into the local copy. Stop calling `fetchROs()` after each mutation. Keep `fetchROs` for initial load and offline sync recovery.
-
-## What We're NOT Changing
-- Subscription polling (60s vs 5min) -- not a problem, it's one tiny request
-- Review rules O(n^2) -- with progressive loading already capping visible items at 50, this doesn't fire on 1,000 ROs at once
-- Memoizing `existingRONumbers` -- minor, not a bottleneck
+### 5. Date Handling
+The `usePayPeriodReport` hook already uses `ro.paidDate || ro.date` for all grouping -- no changes needed there. The comparison dates are converted using `toISOString().split('T')[0]` which will be changed to use the `localDateStr` utility for timezone safety.
 
 ## Technical Details
 
-### `src/hooks/useROStore.ts`
-- **fetchROs**: Add `.limit(10000)` to both queries
-- **addRO**: After successful insert + line insert, construct the full RepairOrder object using the existing `dbToRO()` helper and do `setROs(prev => [newRO, ...prev])` instead of `await fetchROs()`
-- **updateRO**: After successful update + line replace, re-fetch only that single RO's lines, rebuild it with `dbToRO()`, and do `setROs(prev => prev.map(r => r.id === id ? updatedRO : r))` instead of `await fetchROs()`
-- Keep `fetchROs()` calls in: initial mount, offline sync refresh, `clearAllROs`
+### File: `src/components/tabs/SummaryTab.tsx`
+
+**Move placement**: The `MultiPeriodComparison` JSX block moves from after the export buttons (line 499) to right after the Total Card (after line 408), still wrapped in `isPro &&`.
+
+**Rewrite `MultiPeriodComparison` component** to include:
+- Fix date formatting to use `localDateStr` instead of `toISOString().split('T')[0]`
+- Keep the date pickers (Period A / Period B) as-is
+- Add a `BarChart` from recharts showing daily hours for both periods side by side
+- Add a daily breakdown table below the chart with color-coded delta column
+- Enhanced total comparison cards with colored delta pill
+- The daily data comes from `report1.byDay` and `report2.byDay`, aligned by day-of-week
+
+**Chart specifics**:
+- `BarChart` with `Bar` components for Period A and Period B
+- Colors: Period A = primary/blue (`hsl(var(--primary))`), Period B = violet/purple (`#8b5cf6`)
+- `XAxis` with day abbreviations, `YAxis` with hours
+- `Tooltip` showing exact values
+- `Legend` at top
+- Wrapped in a `ResponsiveContainer` for proper sizing
+
+**Daily table specifics**:
+- Uses existing `Table` UI components
+- Rows for each day in the range (aligned by weekday)
+- Delta cell: green text + background tint for positive, red for negative, muted for zero
+- Bold total row at bottom
 
