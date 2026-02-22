@@ -85,6 +85,7 @@ export default {
       boxShadow: {
         card: "var(--shadow-card)",
         raised: "var(--shadow-raised)",
+        soft: "var(--shadow-soft)",
         fab: "var(--shadow-fab)",
         sheet: "var(--shadow-sheet)",
       },

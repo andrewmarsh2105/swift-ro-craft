@@ -168,11 +168,11 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
 
   return (
     <>
-    <div className="flex flex-col h-full border-r border-border bg-card">
+    <div className="flex flex-col h-full border-r border-border bg-card/80">
       {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">Repair Orders</h2>
+      <div className="flex-shrink-0 p-4 pb-3 border-b border-border">
+        <div className="flex items-center justify-between mb-3.5">
+          <h2 className="text-lg font-bold tracking-tight">Repair Orders</h2>
           <button
             onClick={onAddNew}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
@@ -278,7 +278,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
           groupedROs.map(([date, dateROs]) => (
             <div key={date}>
               {/* Date Header */}
-              <div className="sticky top-0 px-4 py-2 bg-muted/50 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase">
+              <div className="sticky top-0 px-4 py-2.5 bg-muted/40 border-b border-border/40 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 {formatDate(date)}
               </div>
 
@@ -293,7 +293,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
                   <div
                     key={ro.id}
                     className={cn(
-                      'w-full px-4 py-3 flex items-center gap-3 border-b border-border/50 hover:bg-muted/30 transition-colors',
+                      'w-full px-4 py-3 flex items-center gap-3 border-b border-border/40 hover:bg-muted/40 transition-all duration-150',
                       selectedROId === ro.id && 'bg-primary/5 border-l-2 border-l-primary'
                     )}
                   >

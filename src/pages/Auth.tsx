@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { Loader2, Mail, Lock, Wrench } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { motion } from 'framer-motion';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -59,15 +59,36 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Decorative dot grid */}
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: 'radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}
+      />
+      {/* Radial gradient glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 50% 40% at 50% 30%, hsl(var(--primary) / 0.06) 0%, transparent 70%)',
+        }}
+      />
+
+      <motion.div
+        className="relative w-full max-w-sm space-y-6"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
         {/* Branding */}
         <div className="text-center space-y-3">
           <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
             <Wrench className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">RO Navigator</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">RO Navigator</h1>
             <p className="text-muted-foreground text-sm mt-1">
               Track your hours. Get paid right.
             </p>
@@ -75,7 +96,7 @@ export default function Auth() {
         </div>
 
         {/* Form Card */}
-        <Card className="shadow-md">
+        <Card className="shadow-raised rounded-2xl border-border/50">
           <CardContent className="pt-6 space-y-5">
             <p className="text-sm font-medium text-center text-muted-foreground">
               {isLogin ? 'Sign in to your account' : 'Create a new account'}
@@ -149,10 +170,10 @@ export default function Auth() {
         </Card>
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground/60">
+        <p className="text-center text-xs text-muted-foreground/50">
           RO Navigator v1.0
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
