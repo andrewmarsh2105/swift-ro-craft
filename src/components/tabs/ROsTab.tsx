@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Search, SlidersHorizontal, Filter, Table2, LayoutList } from 'lucide-react';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
@@ -124,6 +125,7 @@ function getTwoWeekStart(weekStartDay: number): string {
 
 export function ROsTab({ onEditRO }: ROsTabProps) {
   const { ros, settings, deleteRO, duplicateRO } = useRO();
+  const { isPro } = useSubscription();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -270,17 +272,19 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
             <Filter className="h-5 w-5" />
           </button>
           <FlagInbox />
-          <button
-            onClick={() => setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards')}
-            className={`h-11 w-11 flex items-center justify-center rounded-xl transition-colors ${
-              viewMode === 'spreadsheet'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground'
-            }`}
-            title={viewMode === 'spreadsheet' ? 'Card View' : 'Spreadsheet View'}
-          >
-            {viewMode === 'spreadsheet' ? <LayoutList className="h-5 w-5" /> : <Table2 className="h-5 w-5" />}
-          </button>
+          {isPro && (
+            <button
+              onClick={() => setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards')}
+              className={`h-11 w-11 flex items-center justify-center rounded-xl transition-colors ${
+                viewMode === 'spreadsheet'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground'
+              }`}
+              title={viewMode === 'spreadsheet' ? 'Card View' : 'Spreadsheet View'}
+            >
+              {viewMode === 'spreadsheet' ? <LayoutList className="h-5 w-5" /> : <Table2 className="h-5 w-5" />}
+            </button>
+          )}
           <button
             onClick={() => setShowFilters(true)}
             className="h-11 px-4 bg-secondary rounded-xl flex items-center gap-2 tap-target touch-feedback relative"
