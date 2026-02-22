@@ -158,31 +158,38 @@ export function useROStore() {
     }
   }, [user]);
 
-  // Derive advisors from ROs separately (no dependency on fetchPresets)
-  useEffect(() => {
-    const advisorSet = new Map<string, Advisor>();
-    ros.forEach(ro => {
-      if (ro.advisor && !advisorSet.has(ro.advisor)) {
-        advisorSet.set(ro.advisor, { id: ro.advisor, name: ro.advisor });
-      }
-    });
-    setSettings(prev => ({
-      ...prev,
-      advisors: Array.from(advisorSet.values()),
-      recentAdvisors: Array.from(advisorSet.keys()).slice(0, 6),
-    }));
-  }, [ros]);
+  // Fetch advisors from DB
+  const fetchAdvisors = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('advisors')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      const advisors: Advisor[] = (data || []).map((r: any) => ({ id: r.id, name: r.name }));
+      setSettings(prev => ({
+        ...prev,
+        advisors,
+        recentAdvisors: advisors.map(a => a.name).slice(0, 6),
+      }));
+    } catch (err: any) {
+      console.error('Failed to fetch advisors', err);
+    }
+  }, [user]);
 
   useEffect(() => { fetchROs(); }, [fetchROs]);
   useEffect(() => { fetchPresets(); }, [fetchPresets]);
+  useEffect(() => { fetchAdvisors(); }, [fetchAdvisors]);
 
   // Register refresh callback for offline sync
   useEffect(() => {
     registerRefresh(async () => {
       await fetchROs();
       await fetchPresets();
+      await fetchAdvisors();
     });
-  }, [registerRefresh, fetchROs, fetchPresets]);
+  }, [registerRefresh, fetchROs, fetchPresets, fetchAdvisors]);
 
   const clearAllROs = useCallback(async () => {
     if (!user) return;
@@ -417,9 +424,26 @@ export function useROStore() {
     await fetchPresets();
   }, [user, fetchPresets]);
 
-  const updateAdvisors = useCallback((advisors: Advisor[]) => {
+  const updateAdvisors = useCallback(async (advisors: Advisor[]) => {
+    if (!user) return;
     setSettings(prev => ({ ...prev, advisors }));
-  }, []);
+    try {
+      // Sync to DB: delete all, re-insert
+      await supabase.from('advisors').delete().eq('user_id', user.id);
+      if (advisors.length > 0) {
+        const rows = advisors.map(a => ({
+          user_id: user.id,
+          name: a.name,
+        }));
+        const { error } = await supabase.from('advisors').insert(rows);
+        if (error) throw error;
+      }
+    } catch (err: any) {
+      console.error('Failed to persist advisors', err);
+      toast.error('Failed to save advisor changes');
+    }
+    await fetchAdvisors();
+  }, [user, fetchAdvisors]);
 
   // Summary calculations
   const getDaySummaries = useCallback((startDate: string, endDate: string): DaySummary[] => {

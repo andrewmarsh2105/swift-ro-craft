@@ -9,7 +9,9 @@ export type QueuedActionType =
   | 'deleteRO'
   | 'addFlag'
   | 'clearFlag'
-  | 'uploadPhoto';
+  | 'uploadPhoto'
+  | 'addAdvisor'
+  | 'deleteAdvisor';
 
 export interface QueuedAction {
   id: string;

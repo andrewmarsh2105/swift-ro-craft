@@ -141,13 +141,11 @@ export function useOfflineSync() {
         }
         case 'uploadPhoto': {
           const { bucket, path, file } = action.payload;
-          // file is stored as base64 in the queue
           const blob = base64ToBlob(file.base64, file.type);
           const { error: uploadErr } = await supabase.storage
             .from(bucket)
             .upload(path, blob, { contentType: file.type, upsert: true });
           if (uploadErr) throw uploadErr;
-          // Insert photo record
           if (action.payload.roId) {
             const { error: recErr } = await supabase.from('ro_photos').insert({
               ro_id: action.payload.roId,
@@ -156,6 +154,21 @@ export function useOfflineSync() {
             });
             if (recErr) throw recErr;
           }
+          return true;
+        }
+        case 'addAdvisor': {
+          const { name } = action.payload;
+          const { error } = await supabase.from('advisors').insert({
+            user_id: user.id,
+            name,
+          });
+          if (error) throw error;
+          return true;
+        }
+        case 'deleteAdvisor': {
+          const { id: advisorId } = action.payload;
+          const { error } = await supabase.from('advisors').delete().eq('id', advisorId);
+          if (error) throw error;
           return true;
         }
         default:
