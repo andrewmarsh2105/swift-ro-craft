@@ -508,9 +508,21 @@ export function SettingsTab() {
   };
 
   const savePreset = () => {
+    const trimmedName = presetName.trim();
+    if (!trimmedName) return;
+
+    // Duplicate name check (case-insensitive), skip self when editing
+    const isDuplicate = settings.presets.some(
+      p => p.name.toLowerCase() === trimmedName.toLowerCase() && p.id !== editingPreset?.id
+    );
+    if (isDuplicate) {
+      toast.error(`A preset named "${trimmedName}" already exists`);
+      return;
+    }
+
     const newPreset: Preset = {
       id: editingPreset?.id || Date.now().toString(),
-      name: presetName,
+      name: trimmedName,
       laborType: presetLaborType,
       defaultHours: presetHours ? parseFloat(presetHours) : undefined,
       workTemplate: presetTemplate || undefined,
@@ -544,9 +556,21 @@ export function SettingsTab() {
   };
 
   const saveAdvisor = () => {
+    const trimmedName = advisorName.trim();
+    if (!trimmedName) return;
+
+    // Duplicate name check (case-insensitive), skip self when editing
+    const isDuplicate = settings.advisors.some(
+      a => a.name.toLowerCase() === trimmedName.toLowerCase() && a.id !== editingAdvisor?.id
+    );
+    if (isDuplicate) {
+      toast.error(`An advisor named "${trimmedName}" already exists`);
+      return;
+    }
+
     const newAdvisor: Advisor = {
       id: editingAdvisor?.id || Date.now().toString(),
-      name: advisorName,
+      name: trimmedName,
     };
 
     if (editingAdvisor) {
