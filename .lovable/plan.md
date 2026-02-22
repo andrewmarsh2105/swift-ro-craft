@@ -1,53 +1,68 @@
 
 
-# Add Favorites to Preset Quick Rail
+# Improve SEO / Social Share Preview for RO Navigator
 
-## Overview
+## Problem
 
-Add a "favorite" toggle to labor presets so favorited presets appear first in the quick-add rail when editing an RO. Users can star/unstar presets from Settings, and favorites will be sorted to the front of the rail on both desktop and mobile.
+When someone searches for "RO Navigator" on Google or shares the link on social media, the result shows a generic description and no preview image (the OG image URL points to `https://ronavigator.com/og-image.png` which may not resolve since the app is hosted at `swift-ro-craft.lovable.app`).
 
 ## Changes
 
-### 1. Database Migration
+### 1. Fix OG Image URL (`index.html`)
 
-Add an `is_favorite` boolean column to the `labor_references` table:
+The current `og:image` and `twitter:image` tags point to `https://ronavigator.com/og-image.png`, but the app is published at `https://swift-ro-craft.lovable.app`. Update these to use the correct published URL so the image actually loads:
 
-```sql
-ALTER TABLE labor_references ADD COLUMN is_favorite boolean NOT NULL DEFAULT false;
+```
+og:image → https://swift-ro-craft.lovable.app/og-image.png
+twitter:image → https://swift-ro-craft.lovable.app/og-image.png
 ```
 
-### 2. Types (`src/types/ro.ts`)
+Also add missing tags:
+- `og:url` -- tells search engines the canonical page URL
+- `twitter:title` and `twitter:description` -- ensures Twitter/X renders a proper card
+- `og:site_name` -- shows "RO Navigator" as the site name in previews
 
-Add `isFavorite?: boolean` to the `Preset` interface.
+### 2. Improve the Description (`index.html`)
 
-### 3. Data Layer (`src/hooks/useROStore.ts`)
+Replace the generic description with something more specific and compelling:
 
-- Update `dbToPreset` to map `row.is_favorite` to the Preset object.
-- Update `updatePresets` to include `is_favorite` in the insert rows.
+**Current:** "Track your automotive repair orders, hours, and pay summaries. Free for techs."
 
-### 4. PresetSearchRail (`src/components/shared/PresetSearchRail.tsx`)
+**New:** "The free app built for auto techs to log repair orders, track paid hours by pay period, flag pay discrepancies, and make sure every hour counts -- even offline."
 
-- Accept a `favoriteIds` prop (or read `isFavorite` from presets directly).
-- Sort filtered presets so favorites come first.
-- Show a small star icon on favorite preset chips to visually distinguish them.
-- Add a subtle separator (a thin divider or extra gap) between the favorites group and the rest.
+This will appear under the title in Google results and social cards.
 
-### 5. Settings - Preset Management (`src/components/tabs/SettingsTab.tsx`)
+### 3. Add Structured Data (`index.html`)
 
-- Add a star toggle button on each preset row in the preset list.
-- Tapping the star toggles `isFavorite` on that preset and saves via `updatePresets`.
+Add a JSON-LD `WebApplication` schema block so Google can show richer results (app type, category, price):
 
-### 6. LineItemEditor (`src/components/mobile/LineItemEditor.tsx`)
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "RO Navigator",
+  "url": "https://swift-ro-craft.lovable.app",
+  "description": "...",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+```
 
-No changes needed -- it already passes presets to `PresetSearchRail`, which will handle the sorting internally.
+### 4. Add `og:image` dimensions (`index.html`)
 
-## Technical Details
+Adding width/height meta tags helps platforms render the image correctly:
+
+```html
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+```
+
+## Summary of Changes
 
 | File | Change |
 |------|--------|
-| Database migration | Add `is_favorite boolean DEFAULT false` to `labor_references` |
-| `src/types/ro.ts` | Add `isFavorite?: boolean` to `Preset` |
-| `src/hooks/useROStore.ts` | Map `is_favorite` in `dbToPreset`, include in `updatePresets` insert |
-| `src/components/shared/PresetSearchRail.tsx` | Sort favorites first, show star icon on favorites, subtle visual separator |
-| `src/components/tabs/SettingsTab.tsx` | Add star toggle button on each preset row |
+| `index.html` | Fix OG image URLs, improve description, add missing meta tags, add JSON-LD structured data |
+
+No backend or component changes needed -- this is purely an `index.html` metadata update.
 
