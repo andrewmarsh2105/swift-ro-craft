@@ -67,7 +67,7 @@ export default function Auth() {
             <Wrench className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">RO Tracker</h1>
+            <h1 className="text-2xl font-bold text-foreground">RO Navigator</h1>
             <p className="text-muted-foreground text-sm mt-1">
               Track your hours. Get paid right.
             </p>
@@ -150,7 +150,7 @@ export default function Auth() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground/60">
-          RO Tracker v1.0
+          RO Navigator v1.0
         </p>
       </div>
     </div>

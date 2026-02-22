@@ -758,7 +758,38 @@ export function SettingsTab() {
         <SettingsGroup title="Data">
           <SettingsRow
             label="Export All Data"
-            onClick={() => {}}
+            onClick={() => {
+              if (ros.length === 0) {
+                toast.info('No ROs to export');
+                return;
+              }
+              const exportData = ros.map(ro => ({
+                roNumber: ro.roNumber,
+                date: ro.date,
+                advisor: ro.advisor,
+                customerName: ro.customerName,
+                vehicle: ro.vehicle,
+                mileage: ro.mileage,
+                notes: ro.notes,
+                paidDate: ro.paidDate,
+                lines: ro.lines.map(l => ({
+                  lineNo: l.lineNo,
+                  description: l.description,
+                  laborType: l.laborType,
+                  hoursPaid: l.hoursPaid,
+                  isTbd: l.isTbd,
+                })),
+              }));
+              const json = JSON.stringify(exportData, null, 2);
+              const blob = new Blob([json], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `ro-navigator-export-${new Date().toISOString().split('T')[0]}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success(`Exported ${ros.length} ROs`);
+            }}
           />
           <div className="w-full p-4 flex items-center justify-between tap-target touch-feedback">
             <div>
@@ -782,11 +813,10 @@ export function SettingsTab() {
 
         {/* About */}
         <SettingsGroup title="About">
-          <SettingsRow
-            label="Version"
-            value="1.0.0"
-            onClick={() => {}}
-          />
+          <div className="w-full p-4 flex items-center justify-between">
+            <span className="font-medium">Version</span>
+            <span className="text-sm text-muted-foreground">1.0.0</span>
+          </div>
         </SettingsGroup>
 
         {/* Account */}

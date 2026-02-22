@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 const PRO_PRODUCT_ID = 'prod_TytAJ1A0OZTgh0';
 
@@ -82,6 +83,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('Failed to start checkout:', err);
+      toast.error('Could not open checkout. Please try again.');
     }
   }, []);
 
@@ -94,6 +96,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('Failed to open portal:', err);
+      toast.error('Could not open billing portal. Please try again.');
     }
   }, []);
 

@@ -8,7 +8,7 @@ import { ROProvider } from "@/contexts/ROContext";
 import { FlagProvider } from "@/contexts/FlagContext";
 import { OfflineProvider } from "@/contexts/OfflineContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { DevDebugPanel } from "@/components/debug/DevDebugPanel";
+
 import Index from "./pages/Index";
 import AddRO from "./pages/AddRO";
 import FlagInboxPage from "./pages/FlagInboxPage";
@@ -65,7 +65,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <DevDebugPanel />
+            
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
