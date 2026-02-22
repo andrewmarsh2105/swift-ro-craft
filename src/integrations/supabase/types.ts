@@ -86,6 +86,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ro_flags: {
         Row: {
           cleared_at: string | null

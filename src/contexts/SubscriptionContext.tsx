@@ -32,7 +32,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.functions.invoke('check-subscription');
       if (error) throw error;
 
-      const subscribed = data?.subscribed === true && data?.product_id === PRO_PRODUCT_ID;
+      const subscribed = data?.subscribed === true && (data?.product_id === PRO_PRODUCT_ID || data?.product_id === 'override');
       setIsPro(subscribed);
       setSubscriptionEnd(data?.subscription_end || null);
     } catch (err) {
