@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star, Crown } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -320,6 +321,7 @@ function TemplatesSection() {
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const { userSettings, updateUserSetting } = useFlagContext();
   const { isPro, subscriptionEnd, openPortal } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
@@ -331,6 +333,21 @@ export function SettingsTab() {
   const [showClearAllDialog, setShowClearAllDialog] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [showFinalConfirm, setShowFinalConfirm] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const { data } = await (await import('@/integrations/supabase/client')).supabase.functions.invoke('admin-manage-overrides', {
+          body: { action: 'check-admin' },
+        });
+        setIsAdmin(data?.isAdmin === true);
+      } catch {
+        setIsAdmin(false);
+      }
+    }
+    if (user) checkAdmin();
+  }, [user]);
 
   // Preset form state
   const [presetName, setPresetName] = useState('');
@@ -655,6 +672,16 @@ export function SettingsTab() {
             <div className="p-4 text-sm text-muted-foreground truncate">
               {user.email}
             </div>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => navigate('/admin')}
+              className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-primary"
+            >
+              <Shield className="h-5 w-5" />
+              <span className="font-medium">Admin Panel</span>
+              <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
+            </button>
           )}
           <button
             onClick={signOut}

@@ -1,1 +1,4 @@
 project_id = "lgoymdnoziqnykxbfspw"
+
+[functions.admin-manage-overrides]
+verify_jwt = false

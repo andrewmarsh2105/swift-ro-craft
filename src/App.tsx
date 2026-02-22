@@ -14,6 +14,7 @@ import AddRO from "./pages/AddRO";
 import FlagInboxPage from "./pages/FlagInboxPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
                 <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
