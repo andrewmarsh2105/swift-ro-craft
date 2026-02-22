@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ROListPanel } from './ROListPanel';
 import { ROEditor } from './ROEditor';
 import { SettingsTab } from '@/components/tabs/SettingsTab';
@@ -13,6 +14,12 @@ import { SpreadsheetView } from '@/components/shared/SpreadsheetView';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { toast } from 'sonner';
+
+const panelVariants = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1] as const } },
+  exit: { opacity: 0, y: -4, transition: { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] as const } },
+};
 
 type RightPanel = 'editor' | 'settings' | 'summary' | 'none';
 type ViewMode = 'split' | 'spreadsheet';
@@ -177,37 +184,41 @@ export function DesktopWorkspace() {
           </div>
 
           {/* Right Panel */}
-          <div className="flex-1 min-w-0">
-            {rightPanel === 'settings' ? (
-              <div className="h-full overflow-y-auto">
-                <SettingsTab />
-              </div>
-            ) : rightPanel === 'summary' ? (
-              <div className="h-full overflow-y-auto">
-                <SummaryTab />
-              </div>
-            ) : showEditor ? (
-              <ROEditor
-                ro={selectedRO}
-                isNew={isAddingNew}
-                focusLineId={focusLineId}
-                onSave={handleSave}
-                onCancel={handleCancel}
-                onSaveAndAddAnother={handleSaveAndAddAnother}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center bg-muted/10">
-                <div className="text-center text-muted-foreground space-y-5">
-                  <div className="mx-auto w-20 h-20 rounded-2xl bg-primary/5 flex items-center justify-center">
-                    <FileText className="h-10 w-10 text-primary/20" />
+          <div className="flex-1 min-w-0 relative">
+            <AnimatePresence mode="wait">
+              {rightPanel === 'settings' ? (
+                <motion.div key="settings" variants={panelVariants} initial="initial" animate="animate" exit="exit" className="h-full overflow-y-auto absolute inset-0">
+                  <SettingsTab />
+                </motion.div>
+              ) : rightPanel === 'summary' ? (
+                <motion.div key="summary" variants={panelVariants} initial="initial" animate="animate" exit="exit" className="h-full overflow-y-auto absolute inset-0">
+                  <SummaryTab />
+                </motion.div>
+              ) : showEditor ? (
+                <motion.div key={`editor-${selectedRO?.id ?? 'new'}`} variants={panelVariants} initial="initial" animate="animate" exit="exit" className="h-full absolute inset-0">
+                  <ROEditor
+                    ro={selectedRO}
+                    isNew={isAddingNew}
+                    focusLineId={focusLineId}
+                    onSave={handleSave}
+                    onCancel={handleCancel}
+                    onSaveAndAddAnother={handleSaveAndAddAnother}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div key="empty" variants={panelVariants} initial="initial" animate="animate" exit="exit" className="h-full flex items-center justify-center bg-muted/10 absolute inset-0">
+                  <div className="text-center text-muted-foreground space-y-5">
+                    <div className="mx-auto w-20 h-20 rounded-2xl bg-primary/5 flex items-center justify-center">
+                      <FileText className="h-10 w-10 text-primary/20" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold tracking-tight text-foreground/70">Select an RO or create a new one</p>
+                      <p className="text-sm mt-1 text-muted-foreground">Choose from the list on the left to get started</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-lg font-semibold tracking-tight text-foreground/70">Select an RO or create a new one</p>
-                    <p className="text-sm mt-1 text-muted-foreground">Choose from the list on the left to get started</p>
-                  </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       )}
