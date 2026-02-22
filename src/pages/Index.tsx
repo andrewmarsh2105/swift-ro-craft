@@ -14,6 +14,7 @@ import type { RepairOrder } from '@/types/ro';
 function MobileApp() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'ros' | 'summary' | 'settings'>('ros');
+  const [roViewMode, setRoViewMode] = useState<'cards' | 'spreadsheet'>('cards');
 
   const handleEditRO = (ro: RepairOrder) => {
     navigate('/add-ro', { state: { editingROId: ro.id } });
@@ -28,13 +29,13 @@ function MobileApp() {
       <OfflineStatusBar />
       {/* Main Content Area */}
       <main className="flex-1 overflow-auto">
-        {activeTab === 'ros' && <ROsTab onEditRO={handleEditRO} />}
+        {activeTab === 'ros' && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}
         {activeTab === 'summary' && <SummaryTab />}
         {activeTab === 'settings' && <SettingsTab />}
       </main>
 
-      {/* Floating Action Button - only on ROs tab */}
-      {activeTab === 'ros' && (
+      {/* Floating Action Button - only on ROs tab in card view */}
+      {activeTab === 'ros' && roViewMode !== 'spreadsheet' && (
         <FloatingActionButton
           onClick={handleAddRO}
           icon={<Plus className="h-6 w-6" />}
