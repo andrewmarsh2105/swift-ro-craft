@@ -1,68 +1,37 @@
 
 
-# Improve SEO / Social Share Preview for RO Navigator
+## Fix 3 Database Security Warnings
 
-## Problem
+### 1. Audit Trail Tampering Risk (`audit_log`)
+Add explicit restrictive policies that deny UPDATE and DELETE on `audit_log`, making the audit trail append-only and tamper-proof.
 
-When someone searches for "RO Navigator" on Google or shares the link on social media, the result shows a generic description and no preview image (the OG image URL points to `https://ronavigator.com/og-image.png` which may not resolve since the app is hosted at `swift-ro-craft.lovable.app`).
+### 2. Premium Feature Exploitation (`pro_overrides`)
+Add explicit restrictive policies that deny INSERT, UPDATE, and DELETE on `pro_overrides` from regular users. Only the service role (used by edge functions) should be able to modify this table.
 
-## Changes
+### 3. User Role Self-Elevation (`user_roles`)
+Add explicit restrictive policies that deny INSERT, UPDATE, and DELETE on `user_roles` from regular users. Only the service role should manage role assignments.
 
-### 1. Fix OG Image URL (`index.html`)
+### Technical Details
 
-The current `og:image` and `twitter:image` tags point to `https://ronavigator.com/og-image.png`, but the app is published at `https://swift-ro-craft.lovable.app`. Update these to use the correct published URL so the image actually loads:
+A single database migration will add six "deny-all" RLS policies using `false` as the condition:
 
-```
-og:image → https://swift-ro-craft.lovable.app/og-image.png
-twitter:image → https://swift-ro-craft.lovable.app/og-image.png
-```
+```sql
+-- audit_log: prevent tampering (append-only)
+CREATE POLICY "Deny update audit_log" ON public.audit_log FOR UPDATE USING (false);
+CREATE POLICY "Deny delete audit_log" ON public.audit_log FOR DELETE USING (false);
 
-Also add missing tags:
-- `og:url` -- tells search engines the canonical page URL
-- `twitter:title` and `twitter:description` -- ensures Twitter/X renders a proper card
-- `og:site_name` -- shows "RO Navigator" as the site name in previews
+-- pro_overrides: prevent user self-grant
+CREATE POLICY "Deny insert pro_overrides" ON public.pro_overrides FOR INSERT WITH CHECK (false);
+CREATE POLICY "Deny update pro_overrides" ON public.pro_overrides FOR UPDATE USING (false);
+CREATE POLICY "Deny delete pro_overrides" ON public.pro_overrides FOR DELETE USING (false);
 
-### 2. Improve the Description (`index.html`)
-
-Replace the generic description with something more specific and compelling:
-
-**Current:** "Track your automotive repair orders, hours, and pay summaries. Free for techs."
-
-**New:** "The free app built for auto techs to log repair orders, track paid hours by pay period, flag pay discrepancies, and make sure every hour counts -- even offline."
-
-This will appear under the title in Google results and social cards.
-
-### 3. Add Structured Data (`index.html`)
-
-Add a JSON-LD `WebApplication` schema block so Google can show richer results (app type, category, price):
-
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "RO Navigator",
-  "url": "https://swift-ro-craft.lovable.app",
-  "description": "...",
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
-}
+-- user_roles: prevent self-elevation
+CREATE POLICY "Deny insert user_roles" ON public.user_roles FOR INSERT WITH CHECK (false);
+CREATE POLICY "Deny update user_roles" ON public.user_roles FOR UPDATE USING (false);
+CREATE POLICY "Deny delete user_roles" ON public.user_roles FOR DELETE USING (false);
 ```
 
-### 4. Add `og:image` dimensions (`index.html`)
+These policies block all authenticated users from performing these operations. The edge functions (which use the service role key) bypass RLS entirely, so admin functionality remains unaffected.
 
-Adding width/height meta tags helps platforms render the image correctly:
-
-```html
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-```
-
-## Summary of Changes
-
-| File | Change |
-|------|--------|
-| `index.html` | Fix OG image URLs, improve description, add missing meta tags, add JSON-LD structured data |
-
-No backend or component changes needed -- this is purely an `index.html` metadata update.
+After applying, the 3 security findings will be marked as resolved.
 
