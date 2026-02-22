@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { Search, SlidersHorizontal, Filter, Table2, LayoutList } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -125,7 +126,7 @@ function getTwoWeekStart(weekStartDay: number): string {
 }
 
 export function ROsTab({ onEditRO }: ROsTabProps) {
-  const { ros, settings, deleteRO, duplicateRO } = useRO();
+  const { ros, settings, deleteRO, duplicateRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   
@@ -356,7 +357,28 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-32">
-          {filteredROs.length === 0 ? (
+          {loadingROs ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="card-mobile p-4 rounded-xl space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-4 w-14 rounded-md" />
+                      </div>
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-3 w-44" />
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Skeleton className="h-7 w-14 rounded-full" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredROs.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p className="text-lg font-medium">No ROs found</p>
               <p className="text-sm mt-1">Try adjusting your search or filters</p>

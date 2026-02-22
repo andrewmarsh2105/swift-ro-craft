@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { Search, SlidersHorizontal, Plus, Filter } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
@@ -39,7 +40,7 @@ function getTwoWeekStart(weekStartDay: number): string {
 }
 
 export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsChange }: ROListPanelProps) {
-  const { ros, deleteRO, duplicateRO } = useRO();
+  const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'pay_period'>('all');
@@ -269,7 +270,29 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
 
       {/* RO List */}
       <div className="flex-1 overflow-y-auto">
-        {groupedROs.length === 0 ? (
+        {loadingROs ? (
+          <div>
+            {[0, 1].map(group => (
+              <div key={group}>
+                <div className="px-4 py-2.5 bg-muted/40 border-b border-border/40">
+                  <Skeleton className="h-3 w-20" />
+                </div>
+                {Array.from({ length: group === 0 ? 3 : 2 }).map((_, i) => (
+                  <div key={i} className="px-4 py-3 flex items-center gap-3 border-b border-border/40">
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                      </div>
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                    <Skeleton className="h-6 w-12" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : groupedROs.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <p className="font-medium">No ROs found</p>
             <p className="text-sm mt-1">Try adjusting your search or filters</p>
