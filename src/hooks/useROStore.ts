@@ -101,13 +101,15 @@ export function useROStore() {
       const { data: roRows, error } = await supabase
         .from('ros')
         .select('*')
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .limit(10000);
       if (error) throw error;
 
       const { data: lineRows, error: lErr } = await supabase
         .from('ro_lines')
         .select('*')
-        .order('line_no', { ascending: true });
+        .order('line_no', { ascending: true })
+        .limit(10000);
       if (lErr) throw lErr;
 
       const linesByRO = new Map<string, any[]>();
@@ -263,9 +265,17 @@ export function useROStore() {
       }
     }
 
-    await fetchROs();
-    return dbToRO(newRow, ro.lines as any[]);
-  }, [user, fetchROs, isOnline, queueAction]);
+    // Optimistic update: build RO locally instead of refetching everything
+    const { data: insertedLines } = await supabase
+      .from('ro_lines')
+      .select('*')
+      .eq('ro_id', newRow.id)
+      .order('line_no', { ascending: true });
+
+    const newRO = dbToRO(newRow, insertedLines || []);
+    setROs(prev => [newRO, ...prev]);
+    return newRO;
+  }, [user, isOnline, queueAction]);
 
   const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>) => {
     if (!user) return;
@@ -329,8 +339,24 @@ export function useROStore() {
       }
     }
 
-    await fetchROs();
-  }, [user, fetchROs, isOnline, queueAction]);
+    // Optimistic update: fetch only this RO's lines and update local state
+    const { data: updatedRow } = await supabase
+      .from('ros')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    const { data: updatedLines } = await supabase
+      .from('ro_lines')
+      .select('*')
+      .eq('ro_id', id)
+      .order('line_no', { ascending: true });
+
+    if (updatedRow) {
+      const updatedRO = dbToRO(updatedRow, updatedLines || []);
+      setROs(prev => prev.map(r => r.id === id ? updatedRO : r));
+    }
+  }, [user, isOnline, queueAction]);
 
   const deleteRO = useCallback(async (id: string) => {
     if (!user) return;
