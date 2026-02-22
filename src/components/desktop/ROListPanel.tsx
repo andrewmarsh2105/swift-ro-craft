@@ -13,6 +13,7 @@ import type { FlagType } from '@/types/flags';
 import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
+import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 
 interface ROListPanelProps {
   selectedROId: string | null;
@@ -41,7 +42,11 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
   const { ros, deleteRO, duplicateRO } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'pay_period'>('all');
+
+  const hasCustomPayPeriod = userSettings.payPeriodType === 'custom' && 
+    Array.isArray(userSettings.payPeriodEndDates) && 
+    userSettings.payPeriodEndDates.length > 0;
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [searchScopes, setSearchScopes] = useState<Set<string>>(new Set(['ro', 'vehicle', 'advisor', 'work']));
   const [showScopes, setShowScopes] = useState(false);
@@ -99,6 +104,12 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       const monthAgoStr = `${monthAgo.getFullYear()}-${String(monthAgo.getMonth() + 1).padStart(2, '0')}-${String(monthAgo.getDate()).padStart(2, '0')}`;
       result = result.filter((ro) => ro.date >= monthAgoStr);
+    } else if (dateFilter === 'pay_period' && hasCustomPayPeriod) {
+      const { start, end } = getCustomPayPeriodRange(userSettings.payPeriodEndDates!, new Date());
+      result = result.filter((ro) => {
+        const effectiveDate = ro.paidDate || ro.date;
+        return effectiveDate >= start && effectiveDate <= end;
+      });
     }
 
     return result;
@@ -240,6 +251,19 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
                 : filter}
             </button>
           ))}
+          {hasCustomPayPeriod && (
+            <button
+              onClick={() => setDateFilter('pay_period')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                dateFilter === 'pay_period'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
+              )}
+            >
+              Pay Period
+            </button>
+          )}
         </div>
       </div>
 

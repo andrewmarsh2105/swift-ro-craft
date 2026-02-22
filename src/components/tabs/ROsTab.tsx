@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal, Filter, Table2, LayoutList } from 'lucide-re
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
+import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
@@ -100,7 +101,7 @@ const ROCard = memo(function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag,
 interface FilterState {
   advisors: string[];
   laborTypes: LaborType[];
-  dateRange: 'all' | 'today' | 'week' | 'month';
+  dateRange: 'all' | 'today' | 'week' | 'month' | 'pay_period';
 }
 
 interface ROsTabProps {
@@ -127,6 +128,11 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
   const { ros, settings, deleteRO, duplicateRO } = useRO();
   const { isPro } = useSubscription();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
+  
+  const hasCustomPayPeriod = userSettings.payPeriodType === 'custom' && 
+    Array.isArray(userSettings.payPeriodEndDates) && 
+    userSettings.payPeriodEndDates.length > 0;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
@@ -203,6 +209,12 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       const monthAgoStr = `${monthAgo.getFullYear()}-${String(monthAgo.getMonth() + 1).padStart(2, '0')}-${String(monthAgo.getDate()).padStart(2, '0')}`;
       result = result.filter((ro) => ro.date >= monthAgoStr);
+    } else if (filters.dateRange === 'pay_period' && hasCustomPayPeriod) {
+      const { start, end } = getCustomPayPeriodRange(userSettings.payPeriodEndDates!, new Date());
+      result = result.filter((ro) => {
+        const effectiveDate = ro.paidDate || ro.date;
+        return effectiveDate >= start && effectiveDate <= end;
+      });
     }
 
     return result;
@@ -430,9 +442,10 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
                 { value: 'today', label: 'Today' },
                 { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Weeks' : '1 Week' },
                 { value: 'month', label: 'Month' },
+                ...(hasCustomPayPeriod ? [{ value: 'pay_period', label: 'Pay Period' }] : []),
               ]}
               value={filters.dateRange}
-              onChange={(value) => setFilters((prev) => ({ ...prev, dateRange: value }))}
+              onChange={(value) => setFilters((prev) => ({ ...prev, dateRange: value as FilterState['dateRange'] }))}
             />
           </div>
 
