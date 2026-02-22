@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Printer, Download } from 'lucide-react';
@@ -32,9 +32,12 @@ interface DateSeparatorRow {
 type TableRow = FlatRow | DateSeparatorRow;
 
 const TOTAL_COLUMNS = 9;
+const ROW_BATCH_SIZE = 100;
 
 export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
   const tableRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(ROW_BATCH_SIZE);
+
   const { rows, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
     const allRows: TableRow[] = [];
     let hours = 0;
@@ -122,6 +125,14 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
 
     return { rows: allRows, totalHours: hours, totalLines: lines, warrantyHours: wHours, cpHours: cHours, internalHours: iHours };
   }, [ros]);
+
+  // Reset visible count when data changes
+  useEffect(() => {
+    setVisibleCount(ROW_BATCH_SIZE);
+  }, [ros]);
+
+  const visibleRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
+  const hasMore = visibleCount < rows.length;
 
   const handleSaveCSV = useCallback(() => {
     const headers = ['RO #', 'Date', 'Advisor', 'Vehicle', 'Line', 'Description', 'Type', 'Hours', 'RO Total'];
@@ -221,7 +232,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => {
+            {visibleRows.map((row, i) => {
               if (row.type === 'date-separator') {
                 return (
                   <tr key={`sep-${i}`} className="bg-muted/60">
@@ -337,6 +348,18 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                 </tr>
               );
             })}
+            {hasMore && (
+              <tr>
+                <td colSpan={TOTAL_COLUMNS} className="text-center py-3">
+                  <button
+                    onClick={() => setVisibleCount(c => c + ROW_BATCH_SIZE)}
+                    className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Show more ({rows.length - visibleCount} remaining)
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { Search, SlidersHorizontal, Plus, Filter } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -45,6 +45,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [searchScopes, setSearchScopes] = useState<Set<string>>(new Set(['ro', 'vehicle', 'advisor', 'work']));
   const [showScopes, setShowScopes] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const toggleScope = useCallback((scope: string) => {
     setSearchScopes(prev => {
@@ -107,8 +108,13 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
     onFilteredROsChange?.(filteredROs);
   }, [filteredROs, onFilteredROsChange]);
 
-  // Group ROs by date
-  const groupedROs = useMemo(() => {
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [searchQuery, dateFilter, searchScopes]);
+
+  // Group ROs by date, then slice to visibleCount
+  const { groupedROs, totalVisible, hasMore } = useMemo(() => {
     const groups: { [date: string]: RepairOrder[] } = {};
     filteredROs.forEach((ro) => {
       if (!groups[ro.date]) {
@@ -116,8 +122,20 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
       }
       groups[ro.date].push(ro);
     });
-    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [filteredROs]);
+    const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+    
+    // Slice to visibleCount across groups
+    let count = 0;
+    const sliced: [string, RepairOrder[]][] = [];
+    for (const [date, dateROs] of sorted) {
+      if (count >= visibleCount) break;
+      const remaining = visibleCount - count;
+      const take = dateROs.slice(0, remaining);
+      sliced.push([date, take]);
+      count += take.length;
+    }
+    return { groupedROs: sliced, totalVisible: count, hasMore: count < filteredROs.length };
+  }, [filteredROs, visibleCount]);
 
   const formatDate = (dateStr: string) => {
     const now = new Date();
@@ -309,12 +327,24 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
             </div>
           ))
         )}
+        {hasMore && (
+          <div className="px-4 py-3 text-center border-b border-border/50">
+            <button
+              onClick={() => setVisibleCount(c => c + 50)}
+              className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Show more ({filteredROs.length - totalVisible} remaining)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Footer Summary */}
       <div className="flex-shrink-0 px-4 py-3 border-t border-border bg-muted/30">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">{filteredROs.length} ROs</span>
+          <span className="text-muted-foreground">
+            {filteredROs.length} ROs{hasMore ? ` (showing ${totalVisible})` : ''}
+          </span>
           <span className="font-semibold">
             {filteredROs.reduce((sum, ro) => {
               const hours = ro.lines?.length

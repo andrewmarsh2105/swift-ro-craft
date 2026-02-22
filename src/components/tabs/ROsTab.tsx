@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { Search, SlidersHorizontal, Filter, Table2, LayoutList } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
@@ -34,7 +34,7 @@ interface ROCardProps {
   existingRONumbers: string[];
 }
 
-function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers }: ROCardProps) {
+const ROCard = memo(function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers }: ROCardProps) {
   const formattedDate = new Date(ro.date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -95,7 +95,7 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flag
       </div>
     </div>
   );
-}
+});
 
 interface FilterState {
   advisors: string[];
@@ -135,6 +135,7 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
   const [searchScopes, setSearchScopes] = useState<Set<string>>(new Set(['ro', 'vehicle', 'advisor', 'work']));
   const [showScopes, setShowScopes] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'spreadsheet'>('cards');
+  const [visibleCount, setVisibleCount] = useState(50);
   const [filters, setFilters] = useState<FilterState>({
     advisors: [],
     laborTypes: [],
@@ -206,6 +207,14 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
 
     return result;
   }, [ros, searchQuery, filters, searchScopes]);
+
+  // Reset visible count when filters/search change
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [searchQuery, filters, searchScopes]);
+
+  const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
+  const hasMoreCards = visibleCount < filteredROs.length;
 
   const handleConvertToFlag = useCallback((issue: ReviewIssue, flagType: FlagType, note?: string) => {
     addFlag(issue.roId, flagType, note || issue.detail, issue.lineId);
@@ -341,31 +350,41 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               <p className="text-sm mt-1">Try adjusting your search or filters</p>
             </div>
           ) : (
-            filteredROs.map((ro) => (
-              <ROCard
-                key={ro.id}
-                ro={ro}
-                flags={getFlagsForRO(ro.id)}
-                onClearFlag={clearFlag}
-                reviewIssues={getReviewIssues(ro, ros)}
-                onConvertToFlag={handleConvertToFlag}
-                onEdit={() => onEditRO(ro)}
-                onFlag={() => setFlaggingRO(ro)}
-                onDuplicate={(newRONumber) => {
-                  duplicateRO(ro.id, newRONumber);
-                  toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
-                }}
-                onDelete={() => {
-                  deleteRO(ro.id);
-                  toast.success(`Deleted RO #${ro.roNumber}`);
-                }}
-                onViewDetails={() => {
-                  setSelectedRO(ro);
-                  setShowDetail(true);
-                }}
-                existingRONumbers={ros.map(r => r.roNumber)}
-              />
-            ))
+            <>
+              {visibleROs.map((ro) => (
+                <ROCard
+                  key={ro.id}
+                  ro={ro}
+                  flags={getFlagsForRO(ro.id)}
+                  onClearFlag={clearFlag}
+                  reviewIssues={getReviewIssues(ro, ros)}
+                  onConvertToFlag={handleConvertToFlag}
+                  onEdit={() => onEditRO(ro)}
+                  onFlag={() => setFlaggingRO(ro)}
+                  onDuplicate={(newRONumber) => {
+                    duplicateRO(ro.id, newRONumber);
+                    toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
+                  }}
+                  onDelete={() => {
+                    deleteRO(ro.id);
+                    toast.success(`Deleted RO #${ro.roNumber}`);
+                  }}
+                  onViewDetails={() => {
+                    setSelectedRO(ro);
+                    setShowDetail(true);
+                  }}
+                  existingRONumbers={ros.map(r => r.roNumber)}
+                />
+              ))}
+              {hasMoreCards && (
+                <button
+                  onClick={() => setVisibleCount(c => c + 50)}
+                  className="w-full py-3 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  Show more ({filteredROs.length - visibleCount} remaining)
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
