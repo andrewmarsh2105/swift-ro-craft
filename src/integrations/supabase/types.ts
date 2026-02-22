@@ -74,6 +74,7 @@ export type Database = {
           created_at: string
           default_hours: number | null
           id: string
+          is_favorite: boolean
           keywords: string[] | null
           labor_type_default: Database["public"]["Enums"]["labor_type"]
           name: string
@@ -86,6 +87,7 @@ export type Database = {
           created_at?: string
           default_hours?: number | null
           id?: string
+          is_favorite?: boolean
           keywords?: string[] | null
           labor_type_default?: Database["public"]["Enums"]["labor_type"]
           name: string
@@ -98,6 +100,7 @@ export type Database = {
           created_at?: string
           default_hours?: number | null
           id?: string
+          is_favorite?: boolean
           keywords?: string[] | null
           labor_type_default?: Database["public"]["Enums"]["labor_type"]
           name?: string

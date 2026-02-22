@@ -85,9 +85,10 @@ interface PresetItemProps {
   preset: Preset;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleFavorite: () => void;
 }
 
-function PresetItem({ preset, onEdit, onDelete }: PresetItemProps) {
+function PresetItem({ preset, onEdit, onDelete, onToggleFavorite }: PresetItemProps) {
   const typeLabel = {
     'warranty': 'W',
     'customer-pay': 'CP',
@@ -96,6 +97,9 @@ function PresetItem({ preset, onEdit, onDelete }: PresetItemProps) {
 
   return (
     <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3 overflow-hidden">
+      <button onClick={onToggleFavorite} className="p-1.5 tap-target touch-feedback flex-shrink-0">
+        <Star className={cn('h-4 w-4', preset.isFavorite ? 'fill-primary text-primary' : 'text-muted-foreground')} />
+      </button>
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{preset.name}</div>
         <div className="text-xs text-muted-foreground">
@@ -526,6 +530,7 @@ export function SettingsTab() {
       laborType: presetLaborType,
       defaultHours: presetHours ? parseFloat(presetHours) : undefined,
       workTemplate: presetTemplate || undefined,
+      isFavorite: editingPreset?.isFavorite,
     };
 
     if (editingPreset) {
@@ -720,6 +725,11 @@ export function SettingsTab() {
                 preset={preset}
                 onEdit={() => openPresetEditor(preset)}
                 onDelete={() => deletePreset(preset.id)}
+                onToggleFavorite={() => {
+                  updatePresets(settings.presets.map(p =>
+                    p.id === preset.id ? { ...p, isFavorite: !p.isFavorite } : p
+                  ));
+                }}
               />
             ))}
           </div>

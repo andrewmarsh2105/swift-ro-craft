@@ -76,6 +76,7 @@ function dbToPreset(row: any): Preset {
     laborType: row.labor_type_default as LaborType,
     defaultHours: row.default_hours ? Number(row.default_hours) : undefined,
     workTemplate: row.name,
+    isFavorite: !!row.is_favorite,
   };
 }
 
@@ -415,6 +416,7 @@ export function useROStore() {
           default_hours: p.defaultHours || 0,
           sort_order: i,
           active: true,
+          is_favorite: !!p.isFavorite,
         }));
         await supabase.from('labor_references').insert(rows);
       }

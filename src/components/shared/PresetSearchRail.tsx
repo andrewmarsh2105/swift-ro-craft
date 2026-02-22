@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
-import { Search, X, Plus, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
+import { Search, X, Plus, Check, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Preset } from '@/types/ro';
 
@@ -21,14 +21,21 @@ export function PresetSearchRail({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const filtered = presets.filter((p) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(q) ||
-      (p.workTemplate && p.workTemplate.toLowerCase().includes(q))
-    );
-  });
+  const filtered = useMemo(() => {
+    const list = presets.filter((p) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.workTemplate && p.workTemplate.toLowerCase().includes(q))
+      );
+    });
+    // Sort favorites first
+    return list.sort((a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0));
+  }, [presets, search]);
+
+  const hasFavorites = filtered.some(p => p.isFavorite);
+  const firstNonFavIndex = hasFavorites ? filtered.findIndex(p => !p.isFavorite) : -1;
 
   const checkScroll = useCallback(() => {
     const el = railRef.current;
@@ -107,31 +114,40 @@ export function PresetSearchRail({
                 No presets found
               </span>
             )}
-            {filtered.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => onSelect(preset)}
-                className={cn(
-                  'flex-shrink-0 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all duration-150',
-                  isMobile
-                    ? 'py-2.5 tap-target'
-                    : 'py-1.5',
-                  animatingId === preset.id
-                    ? 'bg-primary text-primary-foreground border-primary scale-95 shadow-none'
-                    : 'bg-card border-border text-foreground hover:border-primary/50 hover:bg-primary/5 active:scale-95',
+            {filtered.map((preset, idx) => (
+              <React.Fragment key={preset.id}>
+                {/* Separator between favorites and rest */}
+                {idx === firstNonFavIndex && firstNonFavIndex > 0 && (
+                  <div className="flex-shrink-0 w-px bg-border mx-1 self-stretch" />
                 )}
-                style={animatingId !== preset.id ? { boxShadow: '0 1px 3px 0 hsl(0 0% 0% / 0.08)' } : undefined}
-              >
-                {animatingId === preset.id ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Plus className="h-3 w-3" />
-                )}
-                {preset.name}
-                {preset.defaultHours != null && preset.defaultHours > 0 && (
-                  <span className="opacity-60">({preset.defaultHours}h)</span>
-                )}
-              </button>
+                <button
+                  onClick={() => onSelect(preset)}
+                  className={cn(
+                    'flex-shrink-0 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all duration-150',
+                    isMobile
+                      ? 'py-2.5 tap-target'
+                      : 'py-1.5',
+                    animatingId === preset.id
+                      ? 'bg-primary text-primary-foreground border-primary scale-95 shadow-none'
+                      : preset.isFavorite
+                        ? 'bg-primary/10 border-primary/30 text-foreground hover:border-primary/50 hover:bg-primary/15 active:scale-95'
+                        : 'bg-card border-border text-foreground hover:border-primary/50 hover:bg-primary/5 active:scale-95',
+                  )}
+                  style={animatingId !== preset.id ? { boxShadow: '0 1px 3px 0 hsl(0 0% 0% / 0.08)' } : undefined}
+                >
+                  {animatingId === preset.id ? (
+                    <Check className="h-3 w-3" />
+                  ) : preset.isFavorite ? (
+                    <Star className="h-3 w-3 fill-primary text-primary" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
+                  {preset.name}
+                  {preset.defaultHours != null && preset.defaultHours > 0 && (
+                    <span className="opacity-60">({preset.defaultHours}h)</span>
+                  )}
+                </button>
+              </React.Fragment>
             ))}
           </div>
 

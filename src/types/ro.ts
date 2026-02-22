@@ -47,6 +47,7 @@ export interface Preset {
   laborType: LaborType;
   defaultHours?: number;
   workTemplate?: string;
+  isFavorite?: boolean;
 }
 
 export interface DaySummary {
