@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Download, Copy, FileText, AlertTriangle, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Download, Copy, FileText, AlertTriangle, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -9,7 +10,8 @@ import { StatusPill } from '@/components/mobile/StatusPill';
 import { ProofPack } from '@/components/reports/ProofPack';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
-import { cn } from '@/lib/utils';
+import { cn, localDateStr } from '@/lib/utils';
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -106,6 +108,46 @@ function WeekBlock({ days, label, todayStr }: { days: DayBreakdown[]; label: str
   );
 }
 
+function PeriodDatePicker({ label, start, end, onStartChange, onEndChange, color }: {
+  label: string; start?: Date; end?: Date;
+  onStartChange: (d?: Date) => void; onEndChange: (d?: Date) => void;
+  color: string;
+}) {
+  return (
+    <div className="card-mobile p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <div className={cn('w-3 h-3 rounded-full', color)} />
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+      </div>
+      <div className="flex gap-2 items-center">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !start && 'text-muted-foreground')}>
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              {start ? format(start, 'MMM d, yyyy') : 'Start'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={start} onSelect={onStartChange} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+        <span className="text-muted-foreground">–</span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !end && 'text-muted-foreground')}>
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              {end ? format(end, 'MMM d, yyyy') : 'End'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={end} onSelect={onEndChange} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+}
+
 function MultiPeriodComparison({
   start1, end1, start2, end2,
   onStart1Change, onEnd1Change, onStart2Change, onEnd2Change,
@@ -115,10 +157,10 @@ function MultiPeriodComparison({
   onStart2Change: (d?: Date) => void; onEnd2Change: (d?: Date) => void;
 }) {
   const range1 = start1 && end1
-    ? { start: start1.toISOString().split('T')[0], end: end1.toISOString().split('T')[0] }
+    ? { start: localDateStr(start1), end: localDateStr(end1) }
     : null;
   const range2 = start2 && end2
-    ? { start: start2.toISOString().split('T')[0], end: end2.toISOString().split('T')[0] }
+    ? { start: localDateStr(start2), end: localDateStr(end2) }
     : null;
 
   const report1 = usePayPeriodReport(range1?.start || '', range1?.end || '');
@@ -129,96 +171,150 @@ function MultiPeriodComparison({
   const delta = hasData ? report1.totalHours - report2.totalHours : 0;
   const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
   const deltaColor = delta > 0 ? 'text-green-600 dark:text-green-400' : delta < 0 ? 'text-red-500' : 'text-muted-foreground';
+  const deltaBg = delta > 0 ? 'bg-green-100 dark:bg-green-900/30' : delta < 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted';
+
+  // Build daily comparison data aligned by index (day 1 vs day 1)
+  const dailyData = useMemo(() => {
+    if (!hasData) return [];
+    const maxLen = Math.max(report1.byDay.length, report2.byDay.length);
+    const rows = [];
+    for (let i = 0; i < maxLen; i++) {
+      const dayA = report1.byDay[i];
+      const dayB = report2.byDay[i];
+      const aHours = dayA?.totalHours || 0;
+      const bHours = dayB?.totalHours || 0;
+      const aDate = dayA ? new Date(dayA.date + 'T12:00:00') : null;
+      const bDate = dayB ? new Date(dayB.date + 'T12:00:00') : null;
+      const dayLabel = aDate ? dayNames[aDate.getDay()] : bDate ? dayNames[bDate.getDay()] : `Day ${i + 1}`;
+      rows.push({
+        dayLabel,
+        dayIndex: i,
+        aDate: dayA?.date,
+        bDate: dayB?.date,
+        periodA: aHours,
+        periodB: bHours,
+        delta: aHours - bHours,
+      });
+    }
+    return rows;
+  }, [hasData, report1.byDay, report2.byDay]);
+
+  const totalA = hasData ? report1.totalHours : 0;
+  const totalB = hasData ? report2.totalHours : 0;
 
   return (
-    <div className="space-y-4 pt-6">
-      <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">Period Comparison</h3>
-
-      {/* Period 1 Picker */}
-      <div className="card-mobile p-3 space-y-2">
-        <span className="text-xs font-semibold text-muted-foreground">Period A</span>
-        <div className="flex gap-2 items-center">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !start1 && 'text-muted-foreground')}>
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                {start1 ? format(start1, 'MMM d, yyyy') : 'Start'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={start1} onSelect={onStart1Change} initialFocus className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
-          <span className="text-muted-foreground">–</span>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !end1 && 'text-muted-foreground')}>
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                {end1 ? format(end1, 'MMM d, yyyy') : 'End'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={end1} onSelect={onEnd1Change} initialFocus className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 px-1">
+        <BarChart3 className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Period Comparison</h3>
       </div>
 
-      {/* Period 2 Picker */}
-      <div className="card-mobile p-3 space-y-2">
-        <span className="text-xs font-semibold text-muted-foreground">Period B</span>
-        <div className="flex gap-2 items-center">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !start2 && 'text-muted-foreground')}>
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                {start2 ? format(start2, 'MMM d, yyyy') : 'Start'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={start2} onSelect={onStart2Change} initialFocus className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
-          <span className="text-muted-foreground">–</span>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left', !end2 && 'text-muted-foreground')}>
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                {end2 ? format(end2, 'MMM d, yyyy') : 'End'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={end2} onSelect={onEnd2Change} initialFocus className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+      {/* Date Pickers */}
+      <PeriodDatePicker label="Period A" start={start1} end={end1} onStartChange={onStart1Change} onEndChange={onEnd1Change} color="bg-primary" />
+      <PeriodDatePicker label="Period B" start={start2} end={end2} onStartChange={onStart2Change} onEndChange={onEnd2Change} color="bg-violet-500" />
 
-      {/* Comparison Results */}
       {hasData && (
-        <div className="card-mobile p-4 space-y-4">
-          {/* Total Hours Comparison */}
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Period A</div>
-              <div className="text-2xl font-bold tabular-nums">{report1.totalHours.toFixed(1)}h</div>
-              <div className="text-[11px] text-muted-foreground">{report1.totalROs} ROs</div>
+        <>
+          {/* Enhanced Summary Cards */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="card-mobile p-3 text-center border-t-2 border-primary">
+              <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period A</div>
+              <div className="text-2xl font-bold tabular-nums">{report1.totalHours.toFixed(1)}<span className="text-lg opacity-60">h</span></div>
+              <div className="text-[11px] text-muted-foreground">{report1.totalROs} ROs · {report1.totalLines} lines</div>
+              <div className="flex flex-wrap gap-1 mt-2 justify-center">
+                {report1.byLaborType.map(lt => (
+                  <span key={lt.laborType} className="px-1.5 py-0.5 bg-primary/10 rounded-full text-[10px] font-medium text-primary">
+                    {lt.label.slice(0, 1)}: {lt.totalHours.toFixed(1)}
+                  </span>
+                ))}
+              </div>
             </div>
+
             <div className="flex flex-col items-center justify-center">
-              <DeltaIcon className={cn('h-5 w-5 mb-1', deltaColor)} />
-              <span className={cn('text-sm font-bold tabular-nums', deltaColor)}>
-                {delta > 0 ? '+' : ''}{delta.toFixed(1)}h
-              </span>
+              <div className={cn('rounded-xl px-3 py-2 flex flex-col items-center', deltaBg)}>
+                <DeltaIcon className={cn('h-5 w-5 mb-0.5', deltaColor)} />
+                <span className={cn('text-lg font-bold tabular-nums', deltaColor)}>
+                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}h
+                </span>
+              </div>
             </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Period B</div>
-              <div className="text-2xl font-bold tabular-nums">{report2.totalHours.toFixed(1)}h</div>
-              <div className="text-[11px] text-muted-foreground">{report2.totalROs} ROs</div>
+
+            <div className="card-mobile p-3 text-center border-t-2 border-violet-500">
+              <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period B</div>
+              <div className="text-2xl font-bold tabular-nums">{report2.totalHours.toFixed(1)}<span className="text-lg opacity-60">h</span></div>
+              <div className="text-[11px] text-muted-foreground">{report2.totalROs} ROs · {report2.totalLines} lines</div>
+              <div className="flex flex-wrap gap-1 mt-2 justify-center">
+                {report2.byLaborType.map(lt => (
+                  <span key={lt.laborType} className="px-1.5 py-0.5 bg-violet-500/10 rounded-full text-[10px] font-medium text-violet-600 dark:text-violet-400">
+                    {lt.label.slice(0, 1)}: {lt.totalHours.toFixed(1)}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
+          {/* Bar Chart */}
+          <div className="card-mobile p-4">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Daily Hours Comparison</h4>
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailyData} barGap={2} barCategoryGap="20%">
+                  <XAxis dataKey="dayLabel" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '0.75rem', fontSize: '0.8rem', border: '1px solid hsl(var(--border))' }}
+                    formatter={(value: number, name: string) => [`${value.toFixed(1)}h`, name]}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
+                  <Bar dataKey="periodA" name="Period A" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="periodB" name="Period B" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Daily Breakdown Table */}
+          <div className="card-mobile overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Day</TableHead>
+                  <TableHead className="text-xs text-right">Period A</TableHead>
+                  <TableHead className="text-xs text-right">Period B</TableHead>
+                  <TableHead className="text-xs text-right">Delta</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dailyData.map((row) => {
+                  const dColor = row.delta > 0 ? 'text-green-600 dark:text-green-400' : row.delta < 0 ? 'text-red-500' : 'text-muted-foreground';
+                  const dBg = row.delta > 0 ? 'bg-green-50 dark:bg-green-900/10' : row.delta < 0 ? 'bg-red-50 dark:bg-red-900/10' : '';
+                  return (
+                    <TableRow key={row.dayIndex}>
+                      <TableCell className="text-sm font-medium py-2">{row.dayLabel}</TableCell>
+                      <TableCell className="text-sm text-right tabular-nums py-2">{row.periodA.toFixed(1)}h</TableCell>
+                      <TableCell className="text-sm text-right tabular-nums py-2">{row.periodB.toFixed(1)}h</TableCell>
+                      <TableCell className={cn('text-sm text-right tabular-nums font-semibold py-2 rounded-r', dColor, dBg)}>
+                        {row.delta > 0 ? '+' : ''}{row.delta.toFixed(1)}h
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell className="font-bold text-sm py-2">Total</TableCell>
+                  <TableCell className="font-bold text-sm text-right tabular-nums py-2">{totalA.toFixed(1)}h</TableCell>
+                  <TableCell className="font-bold text-sm text-right tabular-nums py-2">{totalB.toFixed(1)}h</TableCell>
+                  <TableCell className={cn('font-bold text-sm text-right tabular-nums py-2', deltaColor, deltaBg, 'rounded-r')}>
+                    {delta > 0 ? '+' : ''}{delta.toFixed(1)}h
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
+
           {/* Labor Type Breakdown */}
-          <div className="border-t border-border pt-3 space-y-2">
+          <div className="card-mobile p-4 space-y-2">
             <span className="text-xs font-semibold text-muted-foreground uppercase">By Labor Type</span>
             {['Warranty', 'Customer Pay', 'Internal'].map((label, i) => {
               const key = ['warranty', 'customer-pay', 'internal'][i];
@@ -231,7 +327,9 @@ function MultiPeriodComparison({
                   <span className="text-muted-foreground">{label}</span>
                   <div className="flex items-center gap-3 tabular-nums">
                     <span>{a.toFixed(1)}h</span>
-                    <span className={cn('text-xs font-medium', d > 0 ? 'text-green-600 dark:text-green-400' : d < 0 ? 'text-red-500' : 'text-muted-foreground')}>
+                    <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
+                      d > 0 ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' :
+                      d < 0 ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-muted-foreground')}>
                       {d > 0 ? '+' : ''}{d.toFixed(1)}
                     </span>
                     <span>{b.toFixed(1)}h</span>
@@ -240,7 +338,7 @@ function MultiPeriodComparison({
               );
             })}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -407,7 +505,14 @@ export function SummaryTab() {
           </div>
         </div>
 
-        {/* Warnings */}
+        {/* Multi-Period Comparison - Pro only — prominent placement */}
+        {isPro && <MultiPeriodComparison
+          start1={compareStart1} end1={compareEnd1}
+          start2={compareStart2} end2={compareEnd2}
+          onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
+          onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
+        />}
+
         {(report.missingHoursCount > 0 || report.flaggedCount > 0) && (
           <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
             {report.missingHoursCount > 0 && (
@@ -496,13 +601,6 @@ export function SummaryTab() {
           </div>
         </div>
 
-        {/* Multi-Period Comparison - Pro only */}
-        {isPro && <MultiPeriodComparison
-          start1={compareStart1} end1={compareEnd1}
-          start2={compareStart2} end2={compareEnd2}
-          onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
-          onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
-        />}
       </div>
 
       {/* Proof Pack */}
