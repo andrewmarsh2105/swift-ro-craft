@@ -13,6 +13,7 @@ import Index from "./pages/Index";
 import AddRO from "./pages/AddRO";
 import FlagInboxPage from "./pages/FlagInboxPage";
 import Auth from "./pages/Auth";
+import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import { Loader2 } from "lucide-react";
@@ -35,6 +36,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+function HomeRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return user ? <Index /> : <Landing />;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
@@ -69,7 +84,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/" element={<HomeRoute />} />
                 <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
                 <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
