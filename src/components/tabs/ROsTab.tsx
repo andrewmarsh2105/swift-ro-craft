@@ -107,6 +107,7 @@ interface FilterState {
 
 interface ROsTabProps {
   onEditRO: (ro: RepairOrder) => void;
+  onViewModeChange?: (mode: 'cards' | 'spreadsheet') => void;
 }
 
 function getWeekStart(weekStartDay: number): string {
@@ -125,7 +126,7 @@ function getTwoWeekStart(weekStartDay: number): string {
   return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 }
 
-export function ROsTab({ onEditRO }: ROsTabProps) {
+export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const { ros, settings, deleteRO, duplicateRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
@@ -142,6 +143,10 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
   const [searchScopes, setSearchScopes] = useState<Set<string>>(new Set(['ro', 'vehicle', 'advisor', 'work']));
   const [showScopes, setShowScopes] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'spreadsheet'>('cards');
+
+  useEffect(() => {
+    onViewModeChange?.(viewMode);
+  }, [viewMode, onViewModeChange]);
   const [visibleCount, setVisibleCount] = useState(50);
   const [filters, setFilters] = useState<FilterState>({
     advisors: [],
