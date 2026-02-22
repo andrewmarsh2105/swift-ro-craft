@@ -375,6 +375,8 @@ export type Database = {
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
           id: string
           keyword_autofill: boolean
+          pay_period_end_dates: number[] | null
+          pay_period_type: string
           show_scan_confidence: boolean | null
           show_vehicle_chips: boolean | null
           theme: string | null
@@ -390,6 +392,8 @@ export type Database = {
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
           keyword_autofill?: boolean
+          pay_period_end_dates?: number[] | null
+          pay_period_type?: string
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           theme?: string | null
@@ -405,6 +409,8 @@ export type Database = {
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           id?: string
           keyword_autofill?: boolean
+          pay_period_end_dates?: number[] | null
+          pay_period_type?: string
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           theme?: string | null
