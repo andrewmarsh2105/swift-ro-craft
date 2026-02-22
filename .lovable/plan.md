@@ -1,138 +1,85 @@
 
+# UI Polish and Professional Cleanup
 
-# Rework Summary Page and Pay Period Settings
-
-## Overview
-
-Restructure the Summary page into two clean top-level tabs ("Summary" and "Compare") using the Radix Tabs component for a professional look. Add custom pay period dates in Settings so techs can define their own pay cycle (e.g., periods ending on the 15th and 28th).
+After reviewing all screens (Auth, ROs, Summary, Settings, AddRO, NotFound), here are the issues and fixes organized by priority.
 
 ---
 
-## 1. Summary Page Layout (SummaryTab.tsx)
+## 1. Sign-In Page (Auth.tsx) -- Major Overhaul
 
-### Top-Level Tabs: Summary | Compare
-Replace the current `SegmentedControl` (which mixes date ranges with the compare feature) with a proper `Tabs` component at the top of the page.
+**Current issues:**
+- Plain, generic look with no visual identity -- feels like a template
+- Raw HTML inputs instead of proper styled components
+- No card container -- content floats on a flat background
+- No app icon/logo -- just text
+- Missing "Forgot Password?" link (expected by users, looks incomplete without it)
+- No subtle branding or visual anchor
 
-- **Summary tab**: Contains the Total Card, daily breakdown, advisors, labor refs, export buttons
-- **Compare tab** (Pro only): Contains the full `MultiPeriodComparison` UI with its own date pickers, chart, table, and labor breakdown
-
-### Date Range Selector Inside Summary Tab
-Instead of the `SegmentedControl` for 1 Week / 2 Weeks / Custom, use a compact dropdown (`Select` component) positioned in the header next to the period label. This keeps the UI clean -- one line showing something like:
-
-```
-[1 Week v]    Feb 17 - Feb 23
-```
-
-The dropdown options:
-- 1 Week
-- 2 Weeks
-- Custom (shows date pickers below)
-- Pay Period (only if custom pay dates are configured in Settings -- auto-calculates the current period)
-
-When "Custom" is selected, date pickers appear inline. When "Pay Period" is selected, it auto-calculates the current pay period based on the user's configured end dates.
+**Fixes:**
+- Wrap form in a `Card` component with subtle shadow for depth
+- Add a wrench/tool icon or the app icon above the title for visual identity
+- Use the project's `input-base` class or the `Input` component for consistent styling
+- Add a "Forgot Password?" link under the password field (even if just a placeholder toast for now)
+- Add a subtle tagline like "Track your hours. Get paid right." below the title
+- Add a version or footer line at the bottom ("RO Tracker v1.0") for polish
+- Increase spacing between the sign-in/sign-up toggle and the form
 
 ---
 
-## 2. Settings: Pay Period Range (SettingsTab.tsx)
+## 2. Summary Tab Header (SummaryTab.tsx)
 
-### Rename Section
-Rename "Summary Range" to "Pay Period Range"
+**Current issues:**
+- The top Tabs ("Summary | Compare") use `rounded-none bg-muted/50` which looks flat and unfinished next to the rest of the polished UI
+- The `Select` dropdown for date range sits flush with no visual grouping -- feels disconnected from the date label beside it
 
-### Add Custom Pay Period Option
-Add a third option to the existing `SegmentedControl`: `{ value: 'custom', label: 'Custom' }`
-
-When "Custom" is selected, show a UI to configure pay period end dates:
-- A list of day-of-month values (e.g., 15, 28)
-- An "Add date" button to add a new end date
-- Each date has a delete button
-- These dates define when pay periods end (e.g., the 15th and 28th means periods run 16th-28th and 29th-15th)
-
-### Database Changes
-Add two columns to `user_settings`:
-- `pay_period_type` (text, default `'week'`) -- values: `'week'`, `'two_weeks'`, `'custom'`
-- `pay_period_end_dates` (integer array, default `null`) -- e.g., `[15, 28]`
-
-### Hook Changes (useUserSettings.ts)
-- Add `payPeriodType` and `payPeriodEndDates` to the `UserSettings` interface
-- Map to/from DB column names in fetch/update logic
+**Fixes:**
+- Style the `TabsList` with a subtle bottom border and slightly more padding for a cleaner tab bar look
+- Group the Select + date label in a small card or bordered container row so they read as one cohesive unit
 
 ---
 
-## 3. Pay Period Auto-Calculation
+## 3. NotFound Page (NotFound.tsx)
 
-### New Utility: `getCustomPayPeriodRange(endDates: number[], referenceDate: Date)`
-Given an array of end dates (e.g., `[15, 28]`) and today's date, calculate which period we're currently in:
-- Sort the end dates
-- Find the current period's start and end based on where today falls
-- Handle month boundaries (e.g., period ending on 15th starts on 29th of previous month)
+**Current issues:**
+- Very plain -- no icon, no personality
+- Uses `bg-muted` which is inconsistent with `bg-background` used everywhere else
 
-This will be added as a helper in `SummaryTab.tsx` or a shared utility.
+**Fixes:**
+- Change background to `bg-background` for consistency
+- Add a search or compass icon above the 404
+- Use a `Button` component for the "Return to Home" link instead of a raw anchor
 
 ---
 
-## 4. Files to Change
+## 4. App.css Cleanup
+
+**Current issues:**
+- Contains default Vite template CSS (`.logo`, `.logo-spin`, `.read-the-docs`, `.card`) that is never used
+- The `#root` styles (max-width, padding, text-align center) actively conflict with the app layout -- they just happen to be overridden by other styles
+
+**Fix:**
+- Delete all content from `App.css` or remove the file entirely and its import from `main.tsx` (if imported)
+
+---
+
+## 5. Minor Polish Items
+
+| Location | Issue | Fix |
+|----------|-------|-----|
+| Auth.tsx | Submit button missing `cursor-pointer` | Add `cursor-pointer` class |
+| Auth.tsx | Toggle link ("Sign Up" / "Sign In") has no button cursor either | Already a `<button>` but add explicit cursor |
+| SummaryTab.tsx | Export buttons at bottom use raw `<button>` with inline classes | Use `Button` component for consistency |
+| SummaryTab.tsx | "Proof Pack" button uses raw `<button>` | Use `Button` with proper sizing |
+| SettingsTab.tsx | "Custom" segmented control for pay period is selected but no end dates are shown -- empty state text says to add dates but the placeholder "Day (1-31)" is vague | Add a small info note: "Add at least 2 dates to define your pay cycle" |
+
+---
+
+## Files to Change
 
 | File | Changes |
 |------|---------|
-| `src/components/tabs/SummaryTab.tsx` | Replace SegmentedControl with Tabs (Summary / Compare). Add Select dropdown for date range inside Summary tab. Add pay period auto-calc. |
-| `src/components/tabs/SettingsTab.tsx` | Rename "Summary Range" to "Pay Period Range". Add Custom option with end-date picker UI. |
-| `src/hooks/useUserSettings.ts` | Add `payPeriodType` and `payPeriodEndDates` fields. |
-| Database migration | Add `pay_period_type` and `pay_period_end_dates` columns to `user_settings`. |
-
----
-
-## 5. Visual Structure
-
-### Summary Page - Summary Tab
-```text
-+----------------------------------+
-|  [ Summary ]  [ Compare ]       |  <-- Tabs (top)
-+----------------------------------+
-|  [1 Week v]   Feb 17 - Feb 23   |  <-- Select + date label
-+----------------------------------+
-|  +--------------------------+    |
-|  |   WEEK TOTAL             |    |  <-- Total Card (primary)
-|  |   33.0h                  |    |
-|  |   16 ROs . 58 lines      |    |
-|  |   W: 1.4h  CP: 31.6h     |    |
-|  +--------------------------+    |
-|                                  |
-|  Daily Breakdown                 |
-|  [day cards...]                  |
-|                                  |
-|  By Advisor                      |
-|  [advisor cards...]              |
-|                                  |
-|  By Labor Reference              |
-|  [ref cards...]                  |
-|                                  |
-|  [Proof Pack]                    |
-|  [Copy Summary] [Export CSV]     |
-+----------------------------------+
-```
-
-### Summary Page - Compare Tab
-```text
-+----------------------------------+
-|  [ Summary ]  [ Compare ]       |
-+----------------------------------+
-|  Period A: [Start] - [End]       |
-|  Period B: [Start] - [End]       |
-+----------------------------------+
-|  [Period A] [Delta] [Period B]   |  <-- Summary cards
-|  [Bar Chart]                     |
-|  [Daily Table with deltas]       |
-|  [Labor Type Breakdown]          |
-+----------------------------------+
-```
-
----
-
-## Technical Notes
-
-- The Tabs component from Radix (`@radix-ui/react-tabs`) is already installed and available at `src/components/ui/tabs.tsx`
-- The Select component is available at `src/components/ui/select.tsx`
-- The Compare tab will be wrapped in a Pro gate -- non-Pro users see an upgrade prompt
-- The `defaultSummaryRange` user setting will be replaced by `payPeriodType` for the default selection
-- Backward compatibility: existing `week`/`two_weeks` values in `default_summary_range` will continue to work as fallback
-
+| `src/pages/Auth.tsx` | Card wrapper, icon, tagline, Input components, forgot password link, footer |
+| `src/pages/NotFound.tsx` | Background fix, icon, Button component |
+| `src/App.css` | Remove all unused Vite template CSS |
+| `src/components/tabs/SummaryTab.tsx` | Tab styling, Select grouping, Button components for export |
+| `src/components/tabs/SettingsTab.tsx` | Better empty state text for custom pay period |
