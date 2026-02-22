@@ -410,12 +410,13 @@ export function SummaryTab() {
     return `${format(s, 'MMM d')} – ${format(e, 'MMM d')}`;
   }, [effectiveRange, dateRange, customStart, customEnd]);
 
-  const segmentValue = rangeOverride === 'default'
+  const segmentValue: string = rangeOverride === 'default'
     ? (defaultRange === 'two_weeks' ? 'two_weeks' : 'week')
     : rangeOverride;
 
   const handleSegmentChange = (v: string) => {
-    if (v === 'week') setRangeOverride(defaultRange === 'week' ? 'default' : 'week');
+    if (v === 'compare') setRangeOverride('compare' as any);
+    else if (v === 'week') setRangeOverride(defaultRange === 'week' ? 'default' : 'week');
     else if (v === 'two_weeks') setRangeOverride(defaultRange === 'two_weeks' ? 'default' : 'two_weeks');
     else setRangeOverride(v as any);
   };
@@ -441,11 +442,12 @@ export function SummaryTab() {
             { value: 'week', label: '1 Week' },
             { value: 'two_weeks', label: '2 Weeks' },
             { value: 'custom', label: 'Custom' },
+            ...(isPro ? [{ value: 'compare', label: 'Compare' }] : []),
           ]}
           value={segmentValue}
           onChange={handleSegmentChange}
         />
-        {effectiveRange === 'custom' && (
+        {segmentValue !== 'compare' && effectiveRange === 'custom' && (
           <div className="flex gap-2 items-center">
             <Popover>
               <PopoverTrigger asChild>
@@ -472,13 +474,24 @@ export function SummaryTab() {
             </Popover>
           </div>
         )}
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-lg">{viewModeLabel}</span>
-        </div>
+        {segmentValue !== 'compare' && (
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-lg">{viewModeLabel}</span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
       <div className={cn('flex-1 overflow-y-auto p-4 space-y-4', isMobile && 'pb-32')}>
+        {segmentValue === 'compare' ? (
+          <MultiPeriodComparison
+            start1={compareStart1} end1={compareEnd1}
+            start2={compareStart2} end2={compareEnd2}
+            onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
+            onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
+          />
+        ) : (
+        <>
         {/* Total Card — solid primary fill, strong hierarchy */}
         <div className="bg-primary text-primary-foreground rounded-2xl p-5" style={{ boxShadow: '0 4px 20px -4px hsl(var(--primary) / 0.5)' }}>
           <div className="flex items-center justify-between mb-2">
@@ -504,14 +517,6 @@ export function SummaryTab() {
             ))}
           </div>
         </div>
-
-        {/* Multi-Period Comparison - Pro only — prominent placement */}
-        {isPro && <MultiPeriodComparison
-          start1={compareStart1} end1={compareEnd1}
-          start2={compareStart2} end2={compareEnd2}
-          onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
-          onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
-        />}
 
         {(report.missingHoursCount > 0 || report.flaggedCount > 0) && (
           <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
@@ -600,7 +605,8 @@ export function SummaryTab() {
             </button>
           </div>
         </div>
-
+        </>
+        )}
       </div>
 
       {/* Proof Pack */}
