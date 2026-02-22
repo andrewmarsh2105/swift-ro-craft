@@ -1,6 +1,7 @@
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
 import { Printer, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadCSV } from '@/lib/exportUtils';
@@ -181,7 +182,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
         .summary .label { font-weight: 600; }
         @media print { body { margin: 0; } }
       </style></head><body>
-      ${printContent.innerHTML}
+      ${DOMPurify.sanitize(printContent.innerHTML)}
       <table class="summary">
         <tr><td class="label">Warranty (W):</td><td>${warrantyHours.toFixed(1)}h</td></tr>
         <tr><td class="label">Customer Pay (CP):</td><td>${cpHours.toFixed(1)}h</td></tr>
