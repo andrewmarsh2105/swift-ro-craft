@@ -86,6 +86,9 @@ export function DesktopWorkspace() {
       setRightPanel(panel);
       setSelectedRO(null);
       setIsAddingNew(false);
+      if (viewMode === 'spreadsheet') {
+        setViewMode('split');
+      }
     }
   };
 
@@ -111,10 +114,10 @@ export function DesktopWorkspace() {
               onClick={() => {
                 setViewMode(v => v === 'spreadsheet' ? 'split' : 'spreadsheet');
                 if (viewMode === 'split') {
-                  setSelectedRO(null);
-                  setIsAddingNew(false);
                   setRightPanel('none');
                 }
+                setSelectedRO(null);
+                setIsAddingNew(false);
               }}
               className={cn(
                 'p-1.5 rounded-md transition-colors',
