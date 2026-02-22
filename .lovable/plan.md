@@ -1,63 +1,39 @@
 
 
-# Elevate Pay Period Comparison
+# Fix: Period B Hours Missing from Daily Table and Chart
 
-## Current State
-The period comparison is hidden at the bottom of the summary page, below export buttons. It only shows total hours and labor type deltas -- no daily breakdown, no charts.
+## Root Cause
 
-## What Changes
+A timezone bug in `usePayPeriodReport.ts` at line 94-97. When building the day-by-day map:
 
-### 1. Move Comparison Up and Make It Prominent
-- Move the `MultiPeriodComparison` section from the bottom of the page to directly below the "Total Card" (the big primary-colored hero card)
-- This puts it front-and-center as the second thing users see
+```
+const start = new Date("2025-02-09");  // Parsed as UTC midnight
+d.getDate()                             // Returns LOCAL date = Feb 8 in US timezones
+```
 
-### 2. Add Daily Breakdown Table
-When both periods are selected, show a day-by-day comparison:
-- Each row = a day (Mon, Tue, Wed, etc.)
-- Columns: Day name | Period A hours | Period B hours | Delta
-- Delta column is color-coded: green for positive, red for negative
-- A "Total" row at the bottom with the grand totals and overall delta
+The dayMap ends up with shifted date keys (e.g., "2025-02-08" instead of "2025-02-09"). When RO dates (stored as correct local strings like "2025-02-09") are looked up via `dayMap.get(effectiveDate)`, they don't match, so hours silently stay at 0.
 
-### 3. Add a Bar Chart Visualization
-Using the already-installed `recharts` library:
-- Grouped bar chart showing Period A vs Period B hours per day
-- Period A bars in blue/primary color, Period B bars in a secondary color (e.g., violet/purple)
-- X-axis = day labels (Mon, Tue, etc.)
-- Clean, readable, with a legend
+The total hours in the summary cards work correctly because they're calculated directly from the filtered lines array, bypassing the dayMap entirely.
 
-### 4. Enhanced Summary Cards
-Replace the current simple 3-column grid with more visually distinct cards:
-- Period A and Period B each get their own card with labor type pills
-- The delta indicator gets a larger, more prominent display with a colored background pill (green bg for positive, red bg for negative)
+This bug affects BOTH periods, but can appear to work for one period if its RO dates happen to coincide with the shifted keys.
 
-### 5. Date Handling
-The `usePayPeriodReport` hook already uses `ro.paidDate || ro.date` for all grouping -- no changes needed there. The comparison dates are converted using `toISOString().split('T')[0]` which will be changed to use the `localDateStr` utility for timezone safety.
+## Fix
 
-## Technical Details
+**File: `src/hooks/usePayPeriodReport.ts`** (lines 94-95)
 
-### File: `src/components/tabs/SummaryTab.tsx`
+Change:
+```
+const start = new Date(startDate);
+const end = new Date(endDate);
+```
 
-**Move placement**: The `MultiPeriodComparison` JSX block moves from after the export buttons (line 499) to right after the Total Card (after line 408), still wrapped in `isPro &&`.
+To:
+```
+const start = new Date(startDate + 'T12:00:00');
+const end = new Date(endDate + 'T12:00:00');
+```
 
-**Rewrite `MultiPeriodComparison` component** to include:
-- Fix date formatting to use `localDateStr` instead of `toISOString().split('T')[0]`
-- Keep the date pickers (Period A / Period B) as-is
-- Add a `BarChart` from recharts showing daily hours for both periods side by side
-- Add a daily breakdown table below the chart with color-coded delta column
-- Enhanced total comparison cards with colored delta pill
-- The daily data comes from `report1.byDay` and `report2.byDay`, aligned by day-of-week
+Appending `T12:00:00` forces local-time parsing (noon), eliminating the UTC midnight shift. This is the same pattern already used elsewhere in `SummaryTab.tsx` (e.g., line 45: `new Date(summary.date + 'T12:00:00')`).
 
-**Chart specifics**:
-- `BarChart` with `Bar` components for Period A and Period B
-- Colors: Period A = primary/blue (`hsl(var(--primary))`), Period B = violet/purple (`#8b5cf6`)
-- `XAxis` with day abbreviations, `YAxis` with hours
-- `Tooltip` showing exact values
-- `Legend` at top
-- Wrapped in a `ResponsiveContainer` for proper sizing
-
-**Daily table specifics**:
-- Uses existing `Table` UI components
-- Rows for each day in the range (aligned by weekday)
-- Delta cell: green text + background tint for positive, red for negative, muted for zero
-- Bold total row at bottom
+That's it -- a two-character-level fix on two lines. No other files need changes.
 
