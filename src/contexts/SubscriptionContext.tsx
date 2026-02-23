@@ -31,7 +31,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
-      if (error) throw error;
+      if (error) {
+        // Silently handle auth errors (expired session, etc.)
+        if (error.message?.includes('non-2xx')) {
+          setIsPro(false);
+          return;
+        }
+        throw error;
+      }
 
       const subscribed = data?.subscribed === true && (data?.product_id === PRO_PRODUCT_ID || data?.product_id === 'override');
       setIsPro(subscribed);
