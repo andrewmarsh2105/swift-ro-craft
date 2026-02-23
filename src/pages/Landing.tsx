@@ -153,8 +153,80 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Pro */}
+      <section id="pro" className="py-20 px-4 scroll-mt-16">
+        <div className="max-w-3xl mx-auto text-center space-y-6">
+          <motion.h2
+            className="text-2xl md:text-3xl font-bold tracking-tight"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={fadeUp}
+            custom={0}
+          >
+            RO Navigator Pro
+          </motion.h2>
+          <motion.p
+            className="text-muted-foreground leading-relaxed max-w-2xl mx-auto"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={fadeUp}
+            custom={1}
+          >
+            Unlock multi-period reports, spreadsheet exports, and advanced pay-period analytics.
+            Pro gives you the full picture so you never leave money on the table.
+          </motion.p>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-20 px-4 bg-muted/40 scroll-mt-16">
+        <div className="max-w-3xl mx-auto text-center space-y-8">
+          <motion.h2
+            className="text-2xl md:text-3xl font-bold tracking-tight"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={fadeUp}
+            custom={0}
+          >
+            Simple Pricing
+          </motion.h2>
+          <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <motion.div
+              className="bg-card rounded-2xl p-8 shadow-card space-y-3 text-left"
+              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }} variants={fadeUp} custom={1}
+            >
+              <h3 className="font-semibold text-lg">Free</h3>
+              <p className="text-3xl font-extrabold tracking-tight">$0<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+              <ul className="text-sm text-muted-foreground space-y-1.5 pt-2">
+                <li>✓ Unlimited ROs &amp; lines</li>
+                <li>✓ Pay period summaries</li>
+                <li>✓ Flag inbox</li>
+                <li>✓ Offline mode</li>
+              </ul>
+            </motion.div>
+            <motion.div
+              className="bg-card rounded-2xl p-8 shadow-card ring-2 ring-primary space-y-3 text-left relative"
+              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }} variants={fadeUp} custom={2}
+            >
+              <span className="absolute -top-3 left-6 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">Popular</span>
+              <h3 className="font-semibold text-lg">Pro</h3>
+              <p className="text-3xl font-extrabold tracking-tight">$4.99<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+              <ul className="text-sm text-muted-foreground space-y-1.5 pt-2">
+                <li>✓ Everything in Free</li>
+                <li>✓ Multi-period reports</li>
+                <li>✓ Spreadsheet export</li>
+                <li>✓ Proof packs</li>
+              </ul>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* How it works */}
-      <section className="py-20 px-4">
+      <section id="how-it-works" className="py-20 px-4 scroll-mt-16">
         <div className="max-w-3xl mx-auto">
           <motion.h2
             className="text-2xl md:text-3xl font-bold text-center mb-14 tracking-tight"
