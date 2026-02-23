@@ -93,18 +93,18 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (dateFilter === 'today') {
-      result = result.filter((ro) => ro.date === today);
+      result = result.filter((ro) => (ro.paidDate || ro.date) === today);
     } else if (dateFilter === 'week') {
       const useTwoWeeks = userSettings.defaultSummaryRange === 'two_weeks';
       const weekStart = useTwoWeeks
         ? getTwoWeekStart(userSettings.weekStartDay ?? 0)
         : getWeekStart(userSettings.weekStartDay ?? 0);
-      result = result.filter((ro) => ro.date >= weekStart);
+      result = result.filter((ro) => (ro.paidDate || ro.date) >= weekStart);
     } else if (dateFilter === 'month') {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       const monthAgoStr = `${monthAgo.getFullYear()}-${String(monthAgo.getMonth() + 1).padStart(2, '0')}-${String(monthAgo.getDate()).padStart(2, '0')}`;
-      result = result.filter((ro) => ro.date >= monthAgoStr);
+      result = result.filter((ro) => (ro.paidDate || ro.date) >= monthAgoStr);
     } else if (dateFilter === 'pay_period' && hasCustomPayPeriod) {
       const { start, end } = getCustomPayPeriodRange(userSettings.payPeriodEndDates!, new Date());
       result = result.filter((ro) => {
@@ -129,10 +129,11 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
   const { groupedROs, totalVisible, hasMore } = useMemo(() => {
     const groups: { [date: string]: RepairOrder[] } = {};
     filteredROs.forEach((ro) => {
-      if (!groups[ro.date]) {
-        groups[ro.date] = [];
+      const effectiveDate = ro.paidDate || ro.date;
+      if (!groups[effectiveDate]) {
+        groups[effectiveDate] = [];
       }
-      groups[ro.date].push(ro);
+      groups[effectiveDate].push(ro);
     });
     const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
     

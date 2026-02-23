@@ -454,7 +454,7 @@ export function useROStore() {
     const summaries: DaySummary[] = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dayROs = ros.filter(ro => ro.date === dateStr);
+      const dayROs = ros.filter(ro => (ro.paidDate || ro.date) === dateStr);
       const allLines = dayROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
       summaries.push({
         date: dateStr,
@@ -471,7 +471,7 @@ export function useROStore() {
   const getAdvisorSummaries = useCallback((startDate?: string, endDate?: string): AdvisorSummary[] => {
     let filteredROs = ros;
     if (startDate && endDate) {
-      filteredROs = ros.filter(ro => ro.date >= startDate && ro.date <= endDate);
+      filteredROs = ros.filter(ro => (ro.paidDate || ro.date) >= startDate && (ro.paidDate || ro.date) <= endDate);
     }
     const advisorMap = new Map<string, AdvisorSummary>();
     filteredROs.forEach(ro => {
@@ -487,7 +487,7 @@ export function useROStore() {
   }, [ros]);
 
   const getWeekTotal = useCallback((startDate: string, endDate: string) => {
-    const weekROs = ros.filter(ro => ro.date >= startDate && ro.date <= endDate);
+    const weekROs = ros.filter(ro => (ro.paidDate || ro.date) >= startDate && (ro.paidDate || ro.date) <= endDate);
     const allLines = weekROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
     return {
       totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0),
