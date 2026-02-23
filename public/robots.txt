@@ -1,4 +1,10 @@
 User-agent: *
+Disallow: /auth
+Disallow: /login
+Disallow: /signin
+Disallow: /add-ro
+Disallow: /flag-inbox
+Disallow: /admin
 Allow: /
 
 Sitemap: https://ronavigator.com/sitemap.xml
