@@ -174,7 +174,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      paidDate: paidDate.trim() || undefined,
+      paidDate: paidDate.trim() || (ro ? '' : undefined),
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
