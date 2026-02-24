@@ -23,7 +23,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
 
   const checkSubscription = useCallback(async () => {
-    if (!session) {
+    if (!session?.access_token) {
       setIsPro(false);
       setLoading(false);
       return;
