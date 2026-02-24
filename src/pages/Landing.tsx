@@ -174,8 +174,8 @@ export default function Landing() {
             variants={fadeUp}
             custom={1}
           >
-            Unlock multi-period reports, spreadsheet exports, and advanced pay-period analytics.
-            Pro gives you the full picture so you never leave money on the table.
+            Scan ROs with your phone, create unlimited repair orders, and unlock multi-period reports,
+            spreadsheet exports, and advanced pay-period analytics. Pro gives you the full picture so you never leave money on the table.
           </motion.p>
         </div>
       </section>
