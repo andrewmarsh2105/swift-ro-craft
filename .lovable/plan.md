@@ -1,18 +1,27 @@
 
 
-## Sort Advisors Alphabetically
+## Show More/Less for Presets and Advisors in Settings
 
-Sort the advisor list alphabetically by name in all advisor dropdown/selection UIs across the app.
+Add a "Show More" toggle to both the Quick Presets and Advisors lists in Settings, displaying only the first 6 items by default and revealing the rest when expanded.
 
 ### Changes
 
-**1. `src/components/desktop/AdvisorCombobox.tsx`**
-- Sort the `filtered` advisors array alphabetically by `a.name` before rendering.
+**`src/components/tabs/SettingsTab.tsx`**
 
-**2. `src/components/sheets/QuickAddSheet.tsx`**
-- Sort `settings.advisors` alphabetically before slicing the first 4 chips and before rendering the full advisor list in the bottom sheet.
+1. **Quick Presets section (around lines 721-735)**
+   - Add state: `showAllPresets` (default `false`)
+   - Slice `settings.presets` to first 6 when collapsed
+   - Add a "Show More (N)" / "Show Less" button below the list when there are more than 6 presets
+
+2. **Advisors section (around lines 752-761)**
+   - Add state: `showAllAdvisors` (default `false`)
+   - Slice `settings.advisors` to first 6 when collapsed
+   - Add a "Show More (N)" / "Show Less" button below the list when there are more than 6 advisors
 
 ### Technical Details
 
-In both files, apply `.sort((a, b) => a.name.localeCompare(b.name))` to the advisors array before mapping. A copy will be sorted (using spread or `.slice()`) to avoid mutating the original array.
+- Two new `useState<boolean>` hooks in the `SettingsTab` component
+- The toggle buttons will use `ChevronDown`/`ChevronUp` icons already imported
+- Pattern: `const visiblePresets = showAllPresets ? settings.presets : settings.presets.slice(0, 6)`
+- The "Show More" button displays the count of hidden items, e.g., "Show More (4)"
 
