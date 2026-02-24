@@ -216,9 +216,9 @@ export default function Landing() {
               <p className="text-3xl font-extrabold tracking-tight">$8.99<span className="text-base font-normal text-muted-foreground">/mo</span></p>
               <ul className="text-sm text-muted-foreground space-y-1.5 pt-2">
                 <li>✓ Everything in Free</li>
-                <li>✓ Multi-period reports</li>
-                <li>✓ Spreadsheet export</li>
-                <li>✓ Proof packs</li>
+                <li>✓ Unlimited RO creation</li>
+                <li>✓ Scan ROs with your phone</li>
+                <li>✓ Multi-period reports &amp; spreadsheet export</li>
               </ul>
             </motion.div>
           </div>
