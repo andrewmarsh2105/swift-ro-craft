@@ -15,6 +15,7 @@ import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
+import { maskHours } from '@/lib/maskHours';
 
 interface ROListPanelProps {
   selectedROId: string | null;
@@ -394,12 +395,12 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew, onFilteredROsC
             {filteredROs.length} ROs{hasMore ? ` (showing ${totalVisible})` : ''}
           </span>
           <span className="font-semibold">
-            {filteredROs.reduce((sum, ro) => {
+            {maskHours(filteredROs.reduce((sum, ro) => {
               const hours = ro.lines?.length
                 ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
                 : ro.paidHours;
               return sum + hours;
-            }, 0).toFixed(1)}h total
+            }, 0), userSettings.hideTotals ?? false)}h total
           </span>
         </div>
       </div>
