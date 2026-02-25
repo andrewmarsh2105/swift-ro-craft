@@ -139,7 +139,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
 
   const handleScanApply = (data: ScanApplyData) => {
     if (data.roNumber) setRoNumber(data.roNumber);
-    
+    if (data.advisor) setAdvisor(data.advisor);
     if (data.date) setDate(data.date);
     if (data.customerName) setCustomerName(data.customerName);
     if (data.vehicle) setVehicle(data.vehicle);
