@@ -188,10 +188,10 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
       </style></head><body>
       ${DOMPurify.sanitize(printContent.innerHTML)}
       <table class="summary">
-        <tr><td class="label">Warranty (W):</td><td>${warrantyHours.toFixed(1)}h</td></tr>
-        <tr><td class="label">Customer Pay (CP):</td><td>${cpHours.toFixed(1)}h</td></tr>
-        <tr><td class="label">Internal (I):</td><td>${internalHours.toFixed(1)}h</td></tr>
-        <tr><td class="label" style="font-size:14px;">Total:</td><td style="font-size:14px;font-weight:bold;">${totalHours.toFixed(1)}h</td></tr>
+        <tr><td class="label">Warranty (W):</td><td>${hideTotals ? '--.-' : warrantyHours.toFixed(1)}h</td></tr>
+        <tr><td class="label">Customer Pay (CP):</td><td>${hideTotals ? '--.-' : cpHours.toFixed(1)}h</td></tr>
+        <tr><td class="label">Internal (I):</td><td>${hideTotals ? '--.-' : internalHours.toFixed(1)}h</td></tr>
+        <tr><td class="label" style="font-size:14px;">Total:</td><td style="font-size:14px;font-weight:bold;">${hideTotals ? '--.-' : totalHours.toFixed(1)}h</td></tr>
       </table>
       </body></html>
     `);
