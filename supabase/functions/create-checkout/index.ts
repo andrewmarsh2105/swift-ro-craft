@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PRICES: Record<string, string> = {
+  monthly: "price_1T4ho7QViI7PZv2KuEFblmXS",
+  yearly: "price_1T4i2KQViI7PZv2KS0I87NX0",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +29,17 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
+    // Parse plan from request body
+    let plan = "monthly";
+    try {
+      const body = await req.json();
+      if (body?.plan === "yearly") plan = "yearly";
+    } catch {
+      // No body or invalid JSON — default to monthly
+    }
+
+    const priceId = PRICES[plan];
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
@@ -38,7 +54,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1T0vODQViI7PZv2K8M9McWMn",
+          price: priceId,
           quantity: 1,
         },
       ],

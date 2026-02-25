@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Crown, Check, X, Camera, Table2, BarChart3, Infinity } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { cn } from '@/lib/utils';
 import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.jpg';
 import multiperiodPreview from '@/assets/pro-multiperiod-preview.jpg';
 
@@ -24,10 +26,11 @@ const features = [
 
 export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) {
   const { startCheckout } = useSubscription();
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
 
   const handleCheckout = async () => {
     onOpenChange(false);
-    await startCheckout();
+    await startCheckout(selectedPlan);
   };
 
   return (
@@ -42,11 +45,43 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground mt-2">
-            Unlock the full power of your RO tracker for <span className="font-semibold text-foreground">$8.99/month</span>.
+            Unlock the full power of your RO tracker.
           </p>
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Plan Toggle */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setSelectedPlan('monthly')}
+              className={cn(
+                'rounded-xl border-2 p-4 text-left transition-all',
+                selectedPlan === 'monthly'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-muted-foreground/30'
+              )}
+            >
+              <p className="text-sm font-medium text-muted-foreground">Monthly</p>
+              <p className="text-lg font-bold">$8.99<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+            </button>
+            <button
+              onClick={() => setSelectedPlan('yearly')}
+              className={cn(
+                'rounded-xl border-2 p-4 text-left transition-all relative',
+                selectedPlan === 'yearly'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-muted-foreground/30'
+              )}
+            >
+              <span className="absolute -top-2.5 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
+                Save 26%
+              </span>
+              <p className="text-sm font-medium text-muted-foreground">Yearly</p>
+              <p className="text-lg font-bold">$79.99<span className="text-sm font-normal text-muted-foreground">/yr</span></p>
+              <p className="text-xs text-muted-foreground">~$6.67/mo</p>
+            </button>
+          </div>
+
           {/* Comparison Table */}
           <div className="rounded-xl border overflow-hidden">
             <table className="w-full text-sm">
@@ -132,7 +167,7 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
           {/* CTA */}
           <Button onClick={handleCheckout} className="w-full py-6 text-base font-semibold rounded-xl">
             <Crown className="h-5 w-5 mr-2" />
-            Subscribe — $8.99/month
+            {selectedPlan === 'monthly' ? 'Subscribe — $8.99/month' : 'Subscribe — $79.99/year'}
           </Button>
           <p className="text-[11px] text-center text-muted-foreground">
             Cancel anytime. Managed through Stripe.

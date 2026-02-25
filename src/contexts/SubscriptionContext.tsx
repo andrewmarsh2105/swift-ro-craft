@@ -3,14 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
-const PRO_PRODUCT_ID = 'prod_TytAJ1A0OZTgh0';
+const PRO_PRODUCT_IDS = ['prod_TytAJ1A0OZTgh0', 'prod_U2nOsuL3zAYIwa', 'prod_U2ndu4y9M2upB3'];
 
 interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
   subscriptionEnd: string | null;
   checkSubscription: () => Promise<void>;
-  startCheckout: () => Promise<void>;
+  startCheckout: (plan?: 'monthly' | 'yearly') => Promise<void>;
   openPortal: () => Promise<void>;
 }
 
@@ -40,7 +40,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw error;
       }
 
-      const subscribed = data?.subscribed === true && (data?.product_id === PRO_PRODUCT_ID || data?.product_id === 'override');
+      const subscribed = data?.subscribed === true && (PRO_PRODUCT_IDS.includes(data?.product_id) || data?.product_id === 'override');
       setIsPro(subscribed);
       setSubscriptionEnd(data?.subscription_end || null);
     } catch (err) {
@@ -81,9 +81,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [checkSubscription]);
 
-  const startCheckout = useCallback(async () => {
+  const startCheckout = useCallback(async (plan?: 'monthly' | 'yearly') => {
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout');
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan: plan || 'monthly' },
+      });
       if (error) throw error;
       if (data?.url) {
         window.location.href = data.url;
