@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { FileText, Download, Copy, Share2, Flag, AlertTriangle, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFlagContext } from '@/contexts/FlagContext';
+import { maskHours } from '@/lib/maskHours';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,8 @@ interface ProofPackProps {
 function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClose: () => void }) {
   const [showROs, setShowROs] = useState(false);
   const [flaggedOnly, setFlaggedOnly] = useState(false);
+  const { userSettings } = useFlagContext();
+  const hide = userSettings.hideTotals ?? false;
 
   const handleExportCSV = () => {
     const csv = generateLineCSV(report);
@@ -53,7 +57,7 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
         <p className="text-sm text-primary-foreground/70 mb-3">
           {new Date(report.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(report.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </p>
-        <div className="text-4xl font-bold mb-2">{report.totalHours.toFixed(1)}h</div>
+        <div className="text-4xl font-bold mb-2">{maskHours(report.totalHours, hide)}h</div>
         <p className="text-primary-foreground/70 text-sm">{report.totalROs} ROs · {report.totalLines} lines</p>
       </div>
 
@@ -82,7 +86,7 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
           {report.byLaborType.map(lt => (
             <div key={lt.laborType} className="flex justify-between items-center py-1.5 px-3 bg-card rounded-lg">
               <span className="text-sm font-medium">{lt.label}</span>
-              <span className="text-sm font-bold">{lt.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({lt.lineCount})</span></span>
+              <span className="text-sm font-bold">{maskHours(lt.totalHours, hide)}h <span className="text-muted-foreground font-normal">({lt.lineCount})</span></span>
             </div>
           ))}
         </div>
@@ -97,7 +101,7 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
             return (
               <div key={d.date} className="flex justify-between items-center py-1.5 px-3 bg-card rounded-lg">
                 <span className="text-sm">{date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                <span className="text-sm font-bold">{d.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({d.roCount} ROs)</span></span>
+                <span className="text-sm font-bold">{maskHours(d.totalHours, hide)}h <span className="text-muted-foreground font-normal">({d.roCount} ROs)</span></span>
               </div>
             );
           })}
@@ -114,7 +118,7 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
                 <span className="text-sm font-medium">{a.advisor}</span>
                 <span className="text-xs text-muted-foreground ml-2">{a.roCount} ROs</span>
               </div>
-              <span className="text-sm font-bold">{a.totalHours.toFixed(1)}h</span>
+              <span className="text-sm font-bold">{maskHours(a.totalHours, hide)}h</span>
             </div>
           ))}
         </div>
@@ -128,7 +132,7 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
             {report.byLaborRef.map(r => (
               <div key={r.referenceId} className="flex justify-between items-center py-1.5 px-3 bg-card rounded-lg">
                 <span className="text-sm font-medium">{r.referenceName}</span>
-                <span className="text-sm font-bold">{r.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
+                <span className="text-sm font-bold">{maskHours(r.totalHours, hide)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
               </div>
             ))}
           </div>

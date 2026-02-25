@@ -270,7 +270,7 @@ function MultiPeriodComparison({
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
                   <Tooltip
                     contentStyle={{ borderRadius: '0.75rem', fontSize: '0.8rem', border: '1px solid hsl(var(--border))' }}
-                    formatter={(value: number, name: string) => [`${value.toFixed(1)}h`, name]}
+                    formatter={(value: number, name: string) => [hide ? '--.-h' : `${value.toFixed(1)}h`, name]}
                   />
                   <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
                   <Bar dataKey="periodA" name="Period A" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
