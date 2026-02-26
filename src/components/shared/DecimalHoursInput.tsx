@@ -35,8 +35,8 @@ export function DecimalHoursInput({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let v = e.target.value;
-    // Replace comma with dot
-    v = v.replace(',', '.');
+    // Replace ALL commas and locale decimal separators with dot
+    v = v.replace(/[,،٫⎖]/g, '.');
     // Allow only digits and one dot
     v = v.replace(/[^0-9.]/g, '');
     // Prevent multiple dots
@@ -79,6 +79,9 @@ export function DecimalHoursInput({
       ref={inputRef}
       type="text"
       inputMode="decimal"
+      pattern="[0-9]*[.,]?[0-9]*"
+      autoComplete="off"
+      autoCorrect="off"
       value={rawValue}
       onChange={handleChange}
       onFocus={handleFocus}
