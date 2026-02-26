@@ -1,0 +1,1 @@
+ALTER TABLE public.ros ADD COLUMN vehicle_vin text;

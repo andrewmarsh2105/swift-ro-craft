@@ -29,8 +29,8 @@ function deriveLaborType(lines: any[]): LaborType {
 
 function dbToRO(row: any, lines: any[]): RepairOrder {
   const vehicle: VehicleInfo | undefined =
-    (row.vehicle_year || row.vehicle_make || row.vehicle_model)
-      ? { year: row.vehicle_year ?? undefined, make: row.vehicle_make ?? undefined, model: row.vehicle_model ?? undefined, trim: row.vehicle_trim ?? undefined }
+    (row.vehicle_year || row.vehicle_make || row.vehicle_model || row.vehicle_vin)
+      ? { year: row.vehicle_year ?? undefined, make: row.vehicle_make ?? undefined, model: row.vehicle_model ?? undefined, trim: row.vehicle_trim ?? undefined, vin: row.vehicle_vin ?? undefined }
       : undefined;
 
     return {
@@ -227,6 +227,7 @@ export function useROStore() {
         vehicle_make: ro.vehicle?.make ?? null,
         vehicle_model: ro.vehicle?.model ?? null,
         vehicle_trim: ro.vehicle?.trim ?? null,
+        vehicle_vin: ro.vehicle?.vin ?? null,
         paid_date: ro.paidDate || null,
       })
       .select()
@@ -332,6 +333,7 @@ export function useROStore() {
       dbUpdates.vehicle_make = updates.vehicle?.make ?? null;
       dbUpdates.vehicle_model = updates.vehicle?.model ?? null;
       dbUpdates.vehicle_trim = updates.vehicle?.trim ?? null;
+      dbUpdates.vehicle_vin = updates.vehicle?.vin ?? null;
     }
 
     if (Object.keys(dbUpdates).length > 0) {

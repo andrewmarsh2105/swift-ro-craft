@@ -88,6 +88,12 @@ export function DetailsCollapsible({
                   <span className="text-foreground truncate">{mileage} mi</span>
                 </>
               )}
+              {vehicle.vin && (
+                <>
+                  <span className="text-border">·</span>
+                  <span className="text-foreground truncate font-mono text-[10px]">VIN {vehicle.vin.slice(-6)}</span>
+                </>
+              )}
               {paidDateChip && (
                 <>
                   <span className="text-border">·</span>
@@ -187,6 +193,17 @@ export function DetailsCollapsible({
                 )}
               </div>
               <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground w-16 flex-shrink-0">VIN</label>
+                <input
+                  type="text"
+                  value={vehicle.vin || ''}
+                  onChange={(e) => onVehicleChange({ ...vehicle, vin: e.target.value.toUpperCase() })}
+                  placeholder="VIN (optional)"
+                  maxLength={17}
+                  className="w-48 h-8 px-2 bg-muted rounded text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex items-center gap-2">
                 <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Mileage</label>
                 <input
                   type="text"
@@ -277,6 +294,17 @@ export function DetailsCollapsible({
                   </button>
                 </div>
               )}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-16">VIN</span>
+                <input
+                  type="text"
+                  value={vehicle.vin || ''}
+                  onChange={(e) => onVehicleChange({ ...vehicle, vin: e.target.value.toUpperCase() })}
+                  placeholder="VIN (optional)"
+                  maxLength={17}
+                  className="flex-1 h-8 px-2 bg-muted rounded text-xs font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-16">Mileage</span>
                 <input

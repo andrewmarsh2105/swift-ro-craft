@@ -5,6 +5,7 @@ export interface VehicleInfo {
   make?: string;
   model?: string;
   trim?: string;
+  vin?: string;
 }
 
 export interface ROLine {
