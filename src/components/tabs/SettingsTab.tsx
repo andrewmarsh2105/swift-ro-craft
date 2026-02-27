@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -885,6 +885,21 @@ export function SettingsTab() {
             <LogOut className="h-5 w-5" />
             <span className="font-medium">Sign Out</span>
           </button>
+        </SettingsGroup>
+
+        {/* Support */}
+        <SettingsGroup title="Support">
+          <a
+            href="mailto:ronavigator@outlook.com"
+            className="w-full p-4 flex items-center gap-3 tap-target touch-feedback"
+          >
+            <Mail className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <span className="font-medium">Contact Support</span>
+              <p className="text-xs text-muted-foreground">ronavigator@outlook.com</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </a>
         </SettingsGroup>
       </div>
 
