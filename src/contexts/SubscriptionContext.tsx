@@ -83,15 +83,24 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const startCheckout = useCallback(async (plan?: 'monthly' | 'yearly') => {
     try {
+      console.log('[CHECKOUT] Starting checkout with plan:', plan || 'monthly');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: plan || 'monthly' },
       });
-      if (error) throw error;
+      console.log('[CHECKOUT] Response:', { data, error });
+      if (error) {
+        console.error('[CHECKOUT] Edge function error:', error);
+        throw error;
+      }
       if (data?.url) {
+        console.log('[CHECKOUT] Redirecting to:', data.url);
         window.location.href = data.url;
+      } else {
+        console.error('[CHECKOUT] No URL in response:', data);
+        toast.error('Checkout URL not received. Please try again.');
       }
     } catch (err) {
-      console.error('Failed to start checkout:', err);
+      console.error('[CHECKOUT] Failed to start checkout:', err);
       toast.error('Could not open checkout. Please try again.');
     }
   }, []);
