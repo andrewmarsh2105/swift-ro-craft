@@ -305,13 +305,17 @@ export default function Landing() {
           <p className="text-sm text-muted-foreground leading-relaxed">
             We're here to help. Reach out anytime and we'll get back to you.
           </p>
-          <a
-            href="mailto:ronavigator@outlook.com"
-            className="inline-flex items-center gap-2 text-primary font-semibold hover:underline"
+          <button
+            onClick={() => {
+              window.open('mailto:ronavigator@outlook.com', '_blank');
+              navigator.clipboard.writeText('ronavigator@outlook.com');
+              import('sonner').then(({ toast }) => toast.success('Email copied to clipboard!'));
+            }}
+            className="inline-flex items-center gap-2 text-primary font-semibold hover:underline cursor-pointer"
           >
             <Mail className="h-4 w-4" />
             ronavigator@outlook.com
-          </a>
+          </button>
         </motion.div>
       </section>
 
