@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Wrench, ClipboardList, BarChart3, Flag, WifiOff, ArrowRight, UserPlus, FileText, CheckCircle } from 'lucide-react';
+import { Wrench, ClipboardList, BarChart3, Flag, WifiOff, ArrowRight, UserPlus, FileText, CheckCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -285,6 +285,33 @@ export default function Landing() {
               Create Your Free Account <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
+        </motion.div>
+      </section>
+
+      {/* Contact / Support */}
+      <section id="contact" className="py-16 px-4 scroll-mt-16">
+        <motion.div
+          className="max-w-md mx-auto text-center space-y-4"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-50px' }}
+          variants={fadeUp}
+          custom={0}
+        >
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
+            <Mail className="h-6 w-6 text-primary" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold tracking-tight">Questions?</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            We're here to help. Reach out anytime and we'll get back to you.
+          </p>
+          <a
+            href="mailto:ronavigator@outlook.com"
+            className="inline-flex items-center gap-2 text-primary font-semibold hover:underline"
+          >
+            <Mail className="h-4 w-4" />
+            ronavigator@outlook.com
+          </a>
         </motion.div>
       </section>
 
