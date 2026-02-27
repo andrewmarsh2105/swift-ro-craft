@@ -1,21 +1,26 @@
 
 
-## Plan: Add VIN Field to RO Details Section
+## Plan: Add VIN to RO Scan Flow
 
-### Database
-- Add `vehicle_vin text` column (nullable) to the `ros` table via migration.
+### 1. OCR Edge Function — extract VIN
+- Add `"vehicleVin": "string or null (17-character VIN if visible)"` to the JSON schema in the system prompt in `supabase/functions/ocr-extract/index.ts`.
 
-### Type Update
-- Add `vin?: string` to `VehicleInfo` interface in `src/types/ro.ts`.
+### 2. State Machine Types — add VIN field
+- Add `vehicleVin: string | null` to `ExtractedData` interface in `src/lib/scanStateMachine.ts`.
+- Include `vehicleVin` in `mergePageIntoSession` merge logic (same pattern as `vehicleMake`/`vehicleModel`).
 
-### Data Layer (`src/hooks/useROStore.ts`)
-- Map `vehicle_vin` in `dbToRO()` to `vehicle.vin`.
-- Include `vehicle_vin` in `addRO()` insert and `updateRO()` update objects.
+### 3. Scan Flow Hook — map VIN from OCR response
+- In `src/hooks/useScanFlow.ts`, map `ocrResult.vehicleVin` into `pageExtractedData`.
 
-### UI (`src/components/shared/DetailsCollapsible.tsx`)
-- Add a VIN input field in both desktop and mobile layouts, placed after the Vehicle row.
-- Show VIN in collapsed summary when present.
+### 4. Scan Review Screen — add VIN input (compact)
+- In `src/components/scan/ScanReviewScreen.tsx`, add a VIN input **below** the Year/Make/Model row within the same Vehicle section. Use a single full-width input with `font-mono`, `maxLength={17}`, auto-uppercase, and `placeholder="VIN (optional)"`. This keeps it clean — one extra row, not cluttered.
 
-### No changes needed to:
-- `SpreadsheetView`, `SummaryTab`, `ProofPack` -- VIN is metadata only, not displayed in reports unless requested later.
+### 5. Apply Data — pass VIN to RO
+- In `buildApplyData` inside `ScanReviewScreen.tsx`, include `vin` in the vehicle object when present (alongside year/make/model).
+
+### Technical Details
+- The VIN field uses the same compact styling as Year/Make/Model inputs
+- Auto-uppercases input (VINs are always uppercase)
+- `maxLength={17}` enforces standard VIN length
+- Placed on its own row below the Year/Make/Model trio to avoid cramping
 
