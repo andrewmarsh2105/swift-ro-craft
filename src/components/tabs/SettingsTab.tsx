@@ -853,14 +853,6 @@ export function SettingsTab() {
           </div>
         </SettingsGroup>
 
-        {/* About */}
-        <SettingsGroup title="About">
-          <div className="w-full p-4 flex items-center justify-between">
-            <span className="font-medium">Version</span>
-            <span className="text-sm text-muted-foreground">1.0.0</span>
-          </div>
-        </SettingsGroup>
-
         {/* Account */}
         <SettingsGroup title="Account">
           {user && (
