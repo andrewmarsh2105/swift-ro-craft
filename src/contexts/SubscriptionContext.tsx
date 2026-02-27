@@ -82,28 +82,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [checkSubscription]);
 
   const startCheckout = useCallback(async (plan?: 'monthly' | 'yearly') => {
-    // Open a blank page synchronously to preserve Safari's user-gesture context
-    const checkoutWindow = window.open('about:blank', '_self');
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: plan || 'monthly' },
       });
       if (error) throw error;
       if (data?.url) {
-        if (checkoutWindow) {
-          checkoutWindow.location.href = data.url;
-        } else {
-          window.location.href = data.url;
-        }
+        window.location.href = data.url;
       } else {
-        // Restore if no URL
-        if (checkoutWindow) checkoutWindow.location.href = window.location.href;
         toast.error('Checkout URL not received. Please try again.');
       }
     } catch (err) {
       console.error('[CHECKOUT] Failed:', err);
-      // Restore on error
-      if (checkoutWindow) checkoutWindow.location.href = window.location.href;
       toast.error('Could not open checkout. Please try again.');
     }
   }, []);
