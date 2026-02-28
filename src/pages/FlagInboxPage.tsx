@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flag, ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { Flag, ArrowLeft, Check, Loader2, Clock } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useROSafe } from '@/contexts/ROContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
+import { StatusPill } from '@/components/mobile/StatusPill';
 
 const FLAG_OPTIONS: FlagType[] = ['needs_time', 'questionable', 'waiting', 'advisor_question', 'other'];
 const DATE_RANGES = [
@@ -16,26 +17,55 @@ const DATE_RANGES = [
   { value: 'all', label: 'All' },
 ];
 
+interface TbdItem {
+  roId: string;
+  roNumber: string;
+  lineId: string;
+  lineNo: number;
+  description: string;
+  laborType?: string;
+}
+
 export default function FlagInboxPage() {
   const navigate = useNavigate();
   const { flags, clearFlag, activeCount, loading, refetch } = useFlagContext();
   const roContext = useROSafe();
   const ros = roContext?.ros ?? [];
-  const [typeFilter, setTypeFilter] = useState<FlagType | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<FlagType | 'all' | 'tbd'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
 
-  // Fresh fetch on mount
   useEffect(() => {
     refetch();
   }, [refetch]);
 
-  const filteredFlags = useMemo(() => {
-    let result = flags;
+  const tbdItems = useMemo<TbdItem[]>(() => {
+    const items: TbdItem[] = [];
+    for (const ro of ros) {
+      for (const line of ro.lines ?? []) {
+        if (line.isTbd) {
+          items.push({
+            roId: ro.id,
+            roNumber: ro.roNumber,
+            lineId: line.id,
+            lineNo: line.lineNo,
+            description: line.description || '—',
+            laborType: line.laborType,
+          });
+        }
+      }
+    }
+    return items;
+  }, [ros]);
 
+  const isTbdActive = typeFilter === 'tbd';
+  const totalBadge = activeCount + tbdItems.length;
+
+  const filteredFlags = useMemo(() => {
+    if (isTbdActive) return [];
+    let result = flags;
     if (typeFilter !== 'all') {
       result = result.filter(f => f.flagType === typeFilter);
     }
-
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     if (dateRange === 'today') {
@@ -49,9 +79,8 @@ export default function FlagInboxPage() {
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       result = result.filter(f => new Date(f.createdAt) >= monthAgo);
     }
-
     return result;
-  }, [flags, typeFilter, dateRange]);
+  }, [flags, typeFilter, dateRange, isTbdActive]);
 
   const getRoNumber = (roId: string) => {
     const ro = ros.find(r => r.id === roId);
@@ -101,32 +130,32 @@ export default function FlagInboxPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-lg font-semibold flex-1">Flag Inbox</h1>
-        {activeCount > 0 && (
-          <span className="text-xs text-muted-foreground">{activeCount} active</span>
+        {totalBadge > 0 && (
+          <span className="text-xs text-muted-foreground">{totalBadge} active</span>
         )}
       </div>
 
       {/* Filters */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-border space-y-3">
-        {/* Date Range */}
-        <div className="flex gap-1.5">
-          {DATE_RANGES.map((dr) => (
-            <button
-              key={dr.value}
-              onClick={() => setDateRange(dr.value)}
-              className={cn(
-                'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                dateRange === dr.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              )}
-            >
-              {dr.label}
-            </button>
-          ))}
-        </div>
+        {!isTbdActive && (
+          <div className="flex gap-1.5">
+            {DATE_RANGES.map((dr) => (
+              <button
+                key={dr.value}
+                onClick={() => setDateRange(dr.value)}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                  dateRange === dr.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                {dr.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* Type Filter */}
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setTypeFilter('all')}
@@ -139,6 +168,19 @@ export default function FlagInboxPage() {
           >
             All ({flags.length})
           </button>
+          {tbdItems.length > 0 && (
+            <button
+              onClick={() => setTypeFilter('tbd')}
+              className={cn(
+                'px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors flex-shrink-0',
+                typeFilter === 'tbd'
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              TBD ({tbdItems.length})
+            </button>
+          )}
           {FLAG_OPTIONS.map((type) => {
             const count = flags.filter(f => f.flagType === type).length;
             if (count === 0) return null;
@@ -162,10 +204,46 @@ export default function FlagInboxPage() {
 
       {/* Scrollable List */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        {loading ? (
+        {loading && !isTbdActive ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        ) : isTbdActive ? (
+          tbdItems.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="font-medium">No TBD lines</p>
+              <p className="text-sm mt-1">Lines marked TBD will appear here</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {tbdItems.map((item) => (
+                <div
+                  key={`${item.roId}-${item.lineId}`}
+                  className="px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors"
+                  onClick={() => handleFlagTap(item.roId, item.lineId)}
+                >
+                  <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        TBD
+                      </span>
+                      <span className="text-sm font-semibold">#{item.roNumber}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      L{item.lineNo}: {item.description}
+                    </p>
+                    {item.laborType && (
+                      <div className="mt-1">
+                        <StatusPill type={item.laborType as any} size="sm" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : filteredFlags.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Flag className="h-8 w-8 mx-auto mb-2 opacity-30" />

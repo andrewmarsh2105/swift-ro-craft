@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flag, Check } from 'lucide-react';
+import { Flag, Check, Clock } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useROSafe } from '@/contexts/ROContext';
@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
+import { StatusPill } from '@/components/mobile/StatusPill';
 
 const FLAG_OPTIONS: FlagType[] = ['needs_time', 'questionable', 'waiting', 'advisor_question', 'other'];
 const DATE_RANGES = [
@@ -21,6 +22,15 @@ const DATE_RANGES = [
   { value: 'this_month', label: 'This Month' },
   { value: 'all', label: 'All' },
 ];
+
+interface TbdItem {
+  roId: string;
+  roNumber: string;
+  lineId: string;
+  lineNo: number;
+  description: string;
+  laborType?: string;
+}
 
 interface FlagInboxProps {
   onNavigateToRO?: (roId: string, lineId?: string | null) => void;
@@ -33,12 +43,31 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
   const { flags, clearFlag, activeCount, refetch } = useFlagContext();
   const roContext = useROSafe();
   const ros = roContext?.ros ?? [];
-  const [typeFilter, setTypeFilter] = useState<FlagType | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<FlagType | 'all' | 'tbd'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
 
   useEffect(() => {
     if (open) refetch();
   }, [open, refetch]);
+
+  const tbdItems = useMemo<TbdItem[]>(() => {
+    const items: TbdItem[] = [];
+    for (const ro of ros) {
+      for (const line of ro.lines ?? []) {
+        if (line.isTbd) {
+          items.push({
+            roId: ro.id,
+            roNumber: ro.roNumber,
+            lineId: line.id,
+            lineNo: line.lineNo,
+            description: line.description || '—',
+            laborType: line.laborType,
+          });
+        }
+      }
+    }
+    return items;
+  }, [ros]);
 
   const handleOpen = () => {
     if (isMobile) {
@@ -56,6 +85,7 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
   };
 
   const filteredFlags = (() => {
+    if (typeFilter === 'tbd') return [];
     let result = flags;
     if (typeFilter !== 'all') {
       result = result.filter(f => f.flagType === typeFilter);
@@ -88,26 +118,31 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
     return line ? `L${line.lineNo}: ${line.description || '—'}` : null;
   };
 
+  const isTbdActive = typeFilter === 'tbd';
+  const totalBadge = activeCount + tbdItems.length;
+
   const desktopContent = (
     <div>
       {/* Filters */}
       <div className="px-4 py-3 border-b border-border space-y-3">
-        <div className="flex gap-1.5">
-          {DATE_RANGES.map((dr) => (
-            <button
-              key={dr.value}
-              onClick={() => setDateRange(dr.value)}
-              className={cn(
-                'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                dateRange === dr.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              )}
-            >
-              {dr.label}
-            </button>
-          ))}
-        </div>
+        {!isTbdActive && (
+          <div className="flex gap-1.5">
+            {DATE_RANGES.map((dr) => (
+              <button
+                key={dr.value}
+                onClick={() => setDateRange(dr.value)}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                  dateRange === dr.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                {dr.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setTypeFilter('all')}
@@ -120,6 +155,19 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
           >
             All ({flags.length})
           </button>
+          {tbdItems.length > 0 && (
+            <button
+              onClick={() => setTypeFilter('tbd')}
+              className={cn(
+                'px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors flex-shrink-0',
+                typeFilter === 'tbd'
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              TBD ({tbdItems.length})
+            </button>
+          )}
           {FLAG_OPTIONS.map((type) => {
             const count = flags.filter(f => f.flagType === type).length;
             if (count === 0) return null;
@@ -141,9 +189,51 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
         </div>
       </div>
 
-      {/* Flag List */}
+      {/* Content */}
       <div>
-        {filteredFlags.length === 0 ? (
+        {isTbdActive ? (
+          tbdItems.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="font-medium">No TBD lines</p>
+              <p className="text-sm mt-1">Lines marked TBD will appear here</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {tbdItems.map((item) => {
+                const isClickable = !!onNavigateToRO;
+                return (
+                  <div
+                    key={`${item.roId}-${item.lineId}`}
+                    className={cn(
+                      'px-4 py-3 flex items-start gap-3',
+                      isClickable && 'cursor-pointer hover:bg-muted/50 transition-colors'
+                    )}
+                    onClick={isClickable ? () => handleFlagClick(item.roId, item.lineId) : undefined}
+                  >
+                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                          TBD
+                        </span>
+                        <span className="text-sm font-semibold">#{item.roNumber}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        L{item.lineNo}: {item.description}
+                      </p>
+                      {item.laborType && (
+                        <div className="mt-1">
+                          <StatusPill type={item.laborType as any} size="sm" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : filteredFlags.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Flag className="h-8 w-8 mx-auto mb-2 opacity-30" />
             <p className="font-medium">No flags</p>
@@ -199,25 +289,23 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
 
   return (
     <>
-      {/* Inbox Trigger Button */}
       <button
         onClick={handleOpen}
         className={cn(
           'relative p-2 rounded-lg transition-colors',
           'text-muted-foreground hover:text-foreground hover:bg-muted',
-          activeCount > 0 && 'text-orange-500'
+          totalBadge > 0 && 'text-orange-500'
         )}
         title="Flag Inbox"
       >
         <Flag className="h-5 w-5" />
-        {activeCount > 0 && (
+        {totalBadge > 0 && (
           <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-            {activeCount > 9 ? '9+' : activeCount}
+            {totalBadge > 9 ? '9+' : totalBadge}
           </span>
         )}
       </button>
 
-      {/* Desktop Dialog only */}
       {!isMobile && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-lg max-h-[70vh] flex flex-col rounded-2xl p-0 overflow-hidden">
@@ -225,8 +313,8 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
               <DialogTitle className="flex items-center gap-2">
                 <Flag className="h-4 w-4" />
                 Flag Inbox
-                {activeCount > 0 && (
-                  <span className="text-xs font-normal text-muted-foreground">({activeCount} active)</span>
+                {totalBadge > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">({totalBadge} active)</span>
                 )}
               </DialogTitle>
             </DialogHeader>
