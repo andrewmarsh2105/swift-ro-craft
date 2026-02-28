@@ -543,6 +543,21 @@ export function useROStore() {
     };
   }, [ros]);
 
+  const clearAllTbdLines = useCallback(async () => {
+    if (!user) return;
+    // Collect all TBD line IDs
+    const tbdLineIds = ros.flatMap(ro => ro.lines.filter(l => l.isTbd).map(l => l.id));
+    if (tbdLineIds.length === 0) return;
+
+    const { error } = await supabase.from('ro_lines').delete().in('id', tbdLineIds);
+    if (error) {
+      toast.error('Failed to clear TBD lines');
+      return;
+    }
+    toast.success(`Cleared ${tbdLineIds.length} TBD line(s)`);
+    await fetchROs();
+  }, [user, ros, fetchROs]);
+
   return {
     ros,
     settings,
@@ -552,6 +567,7 @@ export function useROStore() {
     deleteRO,
     duplicateRO,
     clearAllROs,
+    clearAllTbdLines,
     updateSettings,
     updatePresets,
     updateAdvisors,

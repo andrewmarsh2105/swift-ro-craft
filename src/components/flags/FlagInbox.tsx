@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flag, Check, Clock } from 'lucide-react';
+import { Flag, Check, Clock, Trash2 } from 'lucide-react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useROSafe } from '@/contexts/ROContext';
+import { useRO } from '@/contexts/ROContext';
 import {
   Dialog,
   DialogContent,
@@ -43,8 +44,10 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
   const { flags, clearFlag, activeCount, refetch } = useFlagContext();
   const roContext = useROSafe();
   const ros = roContext?.ros ?? [];
+  const clearAllTbdLines = roContext?.clearAllTbdLines;
   const [typeFilter, setTypeFilter] = useState<FlagType | 'all' | 'tbd'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
+  const [confirmClearTbd, setConfirmClearTbd] = useState(false);
 
   useEffect(() => {
     if (open) refetch();
@@ -199,39 +202,68 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
               <p className="text-sm mt-1">Lines marked TBD will appear here</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {tbdItems.map((item) => {
-                const isClickable = !!onNavigateToRO;
-                return (
-                  <div
-                    key={`${item.roId}-${item.lineId}`}
-                    className={cn(
-                      'px-4 py-3 flex items-start gap-3',
-                      isClickable && 'cursor-pointer hover:bg-muted/50 transition-colors'
-                    )}
-                    onClick={isClickable ? () => handleFlagClick(item.roId, item.lineId) : undefined}
-                  >
-                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                          TBD
-                        </span>
-                        <span className="text-sm font-semibold">#{item.roNumber}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        L{item.lineNo}: {item.description}
-                      </p>
-                      {item.laborType && (
-                        <div className="mt-1">
-                          <StatusPill type={item.laborType as any} size="sm" />
-                        </div>
+            <>
+              <div className="divide-y divide-border">
+                {tbdItems.map((item) => {
+                  const isClickable = !!onNavigateToRO;
+                  return (
+                    <div
+                      key={`${item.roId}-${item.lineId}`}
+                      className={cn(
+                        'px-4 py-3 flex items-start gap-3',
+                        isClickable && 'cursor-pointer hover:bg-muted/50 transition-colors'
                       )}
+                      onClick={isClickable ? () => handleFlagClick(item.roId, item.lineId) : undefined}
+                    >
+                      <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                            TBD
+                          </span>
+                          <span className="text-sm font-semibold">#{item.roNumber}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          L{item.lineNo}: {item.description}
+                        </p>
+                        {item.laborType && (
+                          <div className="mt-1">
+                            <StatusPill type={item.laborType as any} size="sm" />
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+              <div className="px-4 py-3 border-t border-border">
+                {confirmClearTbd ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-destructive font-medium flex-1">Delete all {tbdItems.length} TBD line(s)?</p>
+                    <button
+                      onClick={() => { clearAllTbdLines?.(); setConfirmClearTbd(false); }}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmClearTbd(false)}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                );
-              })}
-            </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmClearTbd(true)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Clear All TBD Lines
+                  </button>
+                )}
+              </div>
+            </>
           )
         ) : filteredFlags.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
