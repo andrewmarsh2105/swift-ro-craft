@@ -4,8 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ALLOWED_ORIGINS = [
   "https://ronavigator.com",
   "https://www.ronavigator.com",
-  "https://swift-ro-craft.lovable.app",
-  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
+  "https://app.ronavigator.com",
 ];
 
 function getSafeOrigin(req: Request): string | null {
