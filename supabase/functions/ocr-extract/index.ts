@@ -1,22 +1,57 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://ronavigator.com",
+  "https://www.ronavigator.com",
+  "https://swift-ro-craft.lovable.app",
+  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
+];
+
+function getSafeOrigin(req: Request): string | null {
+  const origin = req.headers.get("origin");
+  if (origin && ALLOWED_ORIGINS.includes(origin)) return origin;
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try {
+      const refOrigin = new URL(referer).origin;
+      if (ALLOWED_ORIGINS.includes(refOrigin)) return refOrigin;
+    } catch { /* invalid referer */ }
+  }
+  return null;
+}
+
+function corsHeaders(origin: string) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
+  };
+}
 
 serve(async (req) => {
+  const safeOrigin = getSafeOrigin(req);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    if (!safeOrigin) return new Response(null, { status: 403 });
+    return new Response("ok", { headers: corsHeaders(safeOrigin) });
   }
+
+  if (!safeOrigin) {
+    return new Response(JSON.stringify({ error: "Forbidden origin" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const headers = { ...corsHeaders(safeOrigin), "Content-Type": "application/json" };
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -31,7 +66,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -40,7 +75,7 @@ serve(async (req) => {
     if (!storagePath) {
       return new Response(JSON.stringify({ error: "storagePath is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -52,7 +87,7 @@ serve(async (req) => {
     if (signedUrlError || !signedUrlData?.signedUrl) {
       return new Response(JSON.stringify({ error: "Failed to get image URL" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -163,7 +198,7 @@ Other rules:
       console.error("AI Gateway error:", errText);
       return new Response(JSON.stringify({ error: "OCR processing failed" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -183,7 +218,7 @@ Other rules:
         rawContent: content,
       }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -193,11 +228,9 @@ Other rules:
 
     const now = new Date();
     const currentYear = now.getFullYear();
-    // Local today as YYYY-MM-DD
     const todayStr = `${currentYear}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     function daysBetween(a: string, b: string): number {
-      // Pure date-only diff (no TZ issues)
       const [ay, am, ad] = a.split("-").map(Number);
       const [by, bm, bd] = b.split("-").map(Number);
       const da = Date.UTC(ay, am - 1, ad);
@@ -223,25 +256,19 @@ Other rules:
       }));
 
     if (validCandidates.length > 0) {
-      // Sort: primary window (<=30d) first, then secondary (<=180d), then rest
-      // Within each tier: smallest diff wins; tie-break: header > text, 4-digit year preferred
       validCandidates.sort((a, b) => {
         const tierA = a.diff <= 30 ? 0 : a.diff <= 180 ? 1 : 2;
         const tierB = b.diff <= 30 ? 0 : b.diff <= 180 ? 1 : 2;
         if (tierA !== tierB) return tierA - tierB;
         if (a.diff !== b.diff) return a.diff - b.diff;
-        // Prefer header source
         if (a.source === "header" && b.source !== "header") return -1;
         if (b.source === "header" && a.source !== "header") return 1;
-        // Prefer 4-digit year
         if (a.has4DigitYear && !b.has4DigitYear) return -1;
         if (b.has4DigitYear && !a.has4DigitYear) return 1;
         return 0;
       });
 
-      // Set the best candidate as the selected date
       extracted.date = validCandidates[0].value;
-      // Return top 3 candidates
       extracted.candidateDates = validCandidates.slice(0, 3).map(({ value, source, originalFormat }) => ({
         value,
         source,
@@ -251,14 +278,16 @@ Other rules:
       extracted.candidateDates = [];
     }
 
-    return new Response(JSON.stringify(extracted), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify(extracted), { headers });
   } catch (err) {
     console.error("OCR extraction error:", err);
+    const safeOriginFallback = getSafeOrigin(req);
+    const errHeaders = safeOriginFallback
+      ? { ...corsHeaders(safeOriginFallback), "Content-Type": "application/json" }
+      : { "Content-Type": "application/json" };
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: errHeaders,
     });
   }
 });
