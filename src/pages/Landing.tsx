@@ -358,23 +358,22 @@ export default function Landing() {
       <section id="faq" className="py-14 md:py-24 px-4 bg-muted/40 scroll-mt-16">
         <div className="max-w-[700px] mx-auto">
           <motion.h2
-            className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-14 tracking-tight"
+            className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10 tracking-tight"
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={fadeUp} custom={0}
           >
             Frequently Asked Questions
           </motion.h2>
-          <div className="space-y-2 md:space-y-3">
+          <div className="bg-card rounded-2xl border border-border/60 shadow-card overflow-hidden divide-y divide-border/40">
             {faqs.map((faq, i) => (
               <motion.div
                 key={i}
-                className="bg-card rounded-xl border border-border/50 overflow-hidden"
                 initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-20px' }} variants={fadeUp} custom={i + 1}
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full px-4 md:px-5 py-3.5 md:py-4 flex items-center justify-between text-left cursor-pointer"
+                  className="w-full px-5 md:px-6 py-4 md:py-5 flex items-center justify-between text-left cursor-pointer"
                 >
-                  <span className="font-medium text-sm pr-4">{faq.q}</span>
+                  <span className="font-semibold text-sm md:text-base pr-4">{faq.q}</span>
                   {openFaq === i ? (
                     <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   ) : (
@@ -382,7 +381,7 @@ export default function Landing() {
                   )}
                 </button>
                 {openFaq === i && (
-                  <div className="px-4 md:px-5 pb-3.5 md:pb-4">
+                  <div className="px-5 md:px-6 pb-4 md:pb-5">
                     <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
                   </div>
                 )}
