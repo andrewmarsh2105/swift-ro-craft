@@ -611,8 +611,17 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto [scrollbar-gutter:stable]" ref={tableRef}>
-        <table className={cn('min-w-full border-collapse', textSize)} style={{ paddingRight: 'env(scrollbar-width, 0px)' }}>
+      <div className="flex-1 overflow-auto pr-1" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
+        <table className={cn('w-full border-collapse table-fixed', textSize)}>
+          <colgroup>
+            {activeCols.map((col) => {
+              // Description gets remaining space via auto; others get fixed widths
+              if (col.id === 'description') {
+                return <col key={col.id} />;
+              }
+              return <col key={col.id} style={{ width: col.minWidth }} />;
+            })}
+          </colgroup>
           <thead className="sticky top-0 z-10 bg-card border-b-2 border-border">
             <tr>
               {activeCols.map((col) => {
@@ -622,14 +631,13 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     key={col.id}
                     className={cn(
                       cellPx, cellPy,
-                      'font-semibold text-muted-foreground whitespace-nowrap bg-card',
+                      'font-semibold text-muted-foreground whitespace-nowrap bg-card overflow-hidden',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center',
                       col.id === 'roTotal' && 'bg-primary/5',
                     )}
                     style={{
                       ...(sticky ? { ...sticky, zIndex: 11 } : {}),
-                      minWidth: col.minWidth,
                     }}
                   >
                     {col.label}
@@ -711,7 +719,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                           cellPx, cellPy,
                           col.align === 'right' && 'text-right',
                           col.align === 'center' && 'text-center',
-                          col.id === 'description' ? 'max-w-[300px] truncate' : 'whitespace-nowrap',
+                          col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
                           col.id === 'roTotal' && 'bg-primary/5',
                           isFirstCol && `border-l-[3px] ${borderColorClass}`,
                           'align-top bg-card',
@@ -719,7 +727,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                         )}
                         style={{
                           ...(sticky ? { ...sticky, zIndex: 1 } : {}),
-                          minWidth: col.minWidth,
                         }}
                       >
                         {renderCellValue(col.id, row)}
