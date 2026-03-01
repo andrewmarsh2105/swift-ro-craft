@@ -119,14 +119,59 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
   };
 
   const handleExportCSV = () => {
-    const header = 'RO#,Date,Advisor,Customer,Vehicle,Line#,Description,Labor Type,Hours,TBD';
-    const rows = ros.flatMap(ro =>
-      ro.lines.map(l =>
-        [ro.roNumber, ro.roDate, ro.advisor, ro.customerName || '', ro.vehicle || '', l.lineNo, `"${l.description.replace(/"/g, '""')}"`, l.laborType, l.hours.toFixed(2), l.isTbd ? 'Y' : 'N'].join(',')
-      )
-    );
-    const csv = [header, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csvCell = (v: unknown) =>
+      `"${String(v ?? '').replace(/"/g, '""').replace(/\r?\n|\r/g, ' ')}"`;
+    const typeCode = (lt: string) =>
+      lt === 'warranty' ? 'W' : lt === 'internal' ? 'I' : 'CP';
+
+    const header = ['RO#', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Work Performed', 'Hours', 'Type'].map(csvCell).join(',');
+
+    // Sort ROs by date then RO number
+    const sorted = [...ros].sort((a, b) => a.roDate.localeCompare(b.roDate) || a.roNumber.localeCompare(b.roNumber));
+
+    // Group by date for day totals
+    const csvRows: string[] = [];
+    let currentDate = '';
+    let dayTotal = 0;
+
+    for (const ro of sorted) {
+      const paidLines = ro.lines.filter(l => !l.isTbd);
+      if (paidLines.length === 0) continue;
+
+      // If new date, emit day total for previous date
+      if (currentDate && ro.roDate !== currentDate) {
+        csvRows.push(['', csvCell(currentDate), '', '', '', csvCell('DAY TOTAL'), csvCell(dayTotal.toFixed(2)), ''].join(','));
+        dayTotal = 0;
+      }
+      currentDate = ro.roDate;
+
+      paidLines.forEach((l, idx) => {
+        const isFirst = idx === 0;
+        dayTotal += l.hours;
+        csvRows.push([
+          isFirst ? csvCell(ro.roNumber) : '',
+          isFirst ? csvCell(ro.roDate) : '',
+          isFirst ? csvCell(ro.advisor) : '',
+          isFirst ? csvCell(ro.customerName || '') : '',
+          isFirst ? csvCell(ro.vehicle || '') : '',
+          csvCell(l.description),
+          csvCell(l.hours.toFixed(2)),
+          csvCell(typeCode(l.laborType)),
+        ].join(','));
+      });
+    }
+
+    // Final day total
+    if (currentDate) {
+      csvRows.push(['', csvCell(currentDate), '', '', '', csvCell('DAY TOTAL'), csvCell(dayTotal.toFixed(2)), ''].join(','));
+    }
+
+    // Period total
+    const periodTotal = sorted.reduce((sum, ro) => sum + ro.totalPaidHours, 0);
+    csvRows.push(['', csvCell(`${closeout.periodStart}\u2013${closeout.periodEnd}`), '', '', '', csvCell('PERIOD TOTAL'), csvCell(periodTotal.toFixed(2)), ''].join(','));
+
+    const csv = [header, ...csvRows].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
