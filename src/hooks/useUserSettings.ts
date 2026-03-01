@@ -18,6 +18,8 @@ interface UserSettings {
   payPeriodType: PayPeriodType;
   payPeriodEndDates: number[] | null;
   hideTotals: boolean;
+  spreadsheetViewMode: string;
+  spreadsheetDensity: string;
 }
 
 const defaults: UserSettings = {
@@ -33,6 +35,8 @@ const defaults: UserSettings = {
   payPeriodType: 'week',
   payPeriodEndDates: null,
   hideTotals: false,
+  spreadsheetViewMode: 'payroll',
+  spreadsheetDensity: 'comfortable',
 };
 
 export function useUserSettings() {
@@ -61,6 +65,8 @@ export function useUserSettings() {
         payPeriodType: ((data as any).pay_period_type as PayPeriodType) || 'week',
         payPeriodEndDates: (data as any).pay_period_end_dates || null,
         hideTotals: (data as any).hide_totals ?? false,
+        spreadsheetViewMode: (data as any).spreadsheet_view_mode || 'payroll',
+        spreadsheetDensity: (data as any).spreadsheet_density || 'comfortable',
       });
     }
     setLoaded(true);
@@ -83,6 +89,8 @@ export function useUserSettings() {
       : key === 'payPeriodType' ? 'pay_period_type'
       : key === 'payPeriodEndDates' ? 'pay_period_end_dates'
       : key === 'hideTotals' ? 'hide_totals'
+      : key === 'spreadsheetViewMode' ? 'spreadsheet_view_mode'
+      : key === 'spreadsheetDensity' ? 'spreadsheet_density'
       : key;
     
     const { error } = await supabase

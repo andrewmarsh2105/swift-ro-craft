@@ -449,6 +449,8 @@ export type Database = {
           pay_period_type: string
           show_scan_confidence: boolean | null
           show_vehicle_chips: boolean | null
+          spreadsheet_density: string | null
+          spreadsheet_view_mode: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -467,6 +469,8 @@ export type Database = {
           pay_period_type?: string
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
+          spreadsheet_density?: string | null
+          spreadsheet_view_mode?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -485,6 +489,8 @@ export type Database = {
           pay_period_type?: string
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
+          spreadsheet_density?: string | null
+          spreadsheet_view_mode?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
