@@ -1,11 +1,56 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Wrench, ArrowLeft, Mail, Clock, MessageSquare } from 'lucide-react';
+import { Wrench, ArrowLeft, Send, CheckCircle, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function Support() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    if (name.length > 100 || email.length > 255 || message.length > 2000) {
+      toast.error('One or more fields exceed the maximum length');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Get current user if logged in
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase.from('support_requests').insert({
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+        user_id: user?.id || null,
+      });
+
+      if (error) throw error;
+      setSubmitted(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container flex items-center justify-between h-14 max-w-5xl mx-auto px-4">
+        <div className="container flex items-center justify-between h-14 max-w-[1100px] mx-auto px-4">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
               <Wrench className="h-[18px] w-[18px] text-primary" />
@@ -18,87 +63,95 @@ export default function Support() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-16 space-y-12">
-        <div className="space-y-4 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Support</h1>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Need help with RO Navigator? We're here for you. Reach out and we'll get back to you as soon as possible.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-6">
-          <div className="bg-card rounded-2xl p-7 shadow-card space-y-4">
-            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Mail className="h-5 w-5 text-primary" />
+      <main className="max-w-[600px] mx-auto px-4 py-20 space-y-10">
+        {submitted ? (
+          <div className="text-center space-y-4 py-12">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <CheckCircle className="h-8 w-8 text-primary" />
             </div>
-            <h2 className="font-semibold text-lg tracking-tight">Email Us</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Send us an email and we'll respond within 24 hours on business days.
+            <h1 className="text-2xl font-bold tracking-tight">Message Sent</h1>
+            <p className="text-muted-foreground max-w-sm mx-auto">
+              Thanks for reaching out. We'll get back to you within 24 hours.
             </p>
-            <a
-              href="mailto:ronavigator@outlook.com"
-              className="inline-flex items-center gap-2 text-primary font-semibold hover:underline text-sm"
-            >
-              <Mail className="h-4 w-4" />
-              ronavigator@outlook.com
-            </a>
+            <Link to="/">
+              <Button variant="outline" className="mt-4">Back to Home</Button>
+            </Link>
           </div>
-
-          <div className="bg-card rounded-2xl p-7 shadow-card space-y-4">
-            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Clock className="h-5 w-5 text-primary" />
+        ) : (
+          <>
+            <div className="space-y-3 text-center">
+              <h1 className="text-3xl font-bold tracking-tight">Contact Support</h1>
+              <p className="text-muted-foreground">
+                Have a question, issue, or feedback? Send us a message and we'll respond within 24 hours.
+              </p>
             </div>
-            <h2 className="font-semibold text-lg tracking-tight">Response Time</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              We aim to respond within 24 hours. Pro subscribers receive priority support.
-            </p>
-          </div>
-        </div>
 
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold tracking-tight">Frequently Asked Questions</h2>
-
-          <div className="space-y-4">
-            {[
-              {
-                q: 'How do I reset my password?',
-                a: 'On the sign-in page, enter your email and tap "Forgot Password?" to receive a reset link.',
-              },
-              {
-                q: 'How do I cancel my Pro subscription?',
-                a: 'Go to Settings → Manage Subscription to open the billing portal, where you can cancel anytime.',
-              },
-              {
-                q: 'Is my data safe?',
-                a: 'Yes. Your data is encrypted and secured with row-level access controls. Only you can see your repair orders.',
-              },
-              {
-                q: 'What happens when I hit the 150 RO limit?',
-                a: 'Free accounts are limited to 150 ROs per calendar month. You can upgrade to Pro for unlimited ROs or wait until the next month.',
-              },
-              {
-                q: 'Can I export my data?',
-                a: 'Pro subscribers can export data as CSV, XLSX, or PDF. Free users can view summaries in-app.',
-              },
-            ].map((faq) => (
-              <div key={faq.q} className="bg-card rounded-xl p-5 shadow-card space-y-2">
-                <div className="flex items-start gap-3">
-                  <MessageSquare className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-sm">{faq.q}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{faq.a}</p>
-                  </div>
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                  maxLength={100}
+                  className="h-11"
+                />
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  maxLength={255}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="message">Message</Label>
+                <Textarea
+                  id="message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Describe your question or issue..."
+                  required
+                  maxLength={2000}
+                  rows={5}
+                />
+                <p className="text-xs text-muted-foreground text-right">{message.length}/2000</p>
+              </div>
+              <Button type="submit" disabled={loading} className="w-full h-11">
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Sending...</>
+                ) : (
+                  <><Send className="h-4 w-4 mr-2" /> Send Message</>
+                )}
+              </Button>
+            </form>
+
+            <div className="text-center space-y-2 pt-4">
+              <p className="text-sm text-muted-foreground">Pro subscribers receive priority support.</p>
+            </div>
+          </>
+        )}
       </main>
 
       <footer className="border-t border-border py-8 px-4">
-        <p className="text-center text-xs text-muted-foreground/50">
-          © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
-        </p>
+        <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground/50">
+            © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
+          </p>
+          <nav className="flex items-center gap-4">
+            <Link to="/privacy" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">Privacy</Link>
+            <Link to="/terms" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">Terms</Link>
+            <Link to="/support" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">Support</Link>
+          </nav>
+        </div>
       </footer>
     </div>
   );
