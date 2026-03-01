@@ -77,8 +77,10 @@ export default function Landing() {
             </div>
             <span className="font-bold text-lg tracking-tight">RO Navigator</span>
           </div>
-          <div className="flex items-center gap-3">
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground hidden sm:inline transition-colors">Pricing</a>
+          <div className="flex items-center gap-4">
+            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground hidden md:inline transition-colors">Features</a>
+            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground hidden md:inline transition-colors">Pricing</a>
+            <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground hidden md:inline transition-colors">FAQ</a>
             <Link to="/auth">
               <Button size="sm" className="cursor-pointer">Sign In</Button>
             </Link>
@@ -87,7 +89,7 @@ export default function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="py-14 md:py-24 px-4 relative overflow-hidden">
+      <section className="py-10 md:py-16 px-4 relative overflow-hidden">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -95,14 +97,14 @@ export default function Landing() {
           }}
         />
         <div className="max-w-[1100px] mx-auto relative">
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-[1fr_1.4fr] gap-8 lg:gap-10 items-center">
             <motion.div
-              className="space-y-5"
+              className="space-y-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.1]">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1]">
                 Track Your Hours.{' '}
                 <span className="text-primary">Get Paid Right.</span>
               </h1>
@@ -122,17 +124,11 @@ export default function Landing() {
                   See a demo ↓
                 </a>
               </div>
-              <div className="flex flex-col gap-1.5 pt-1">
-                {[
-                  'Log RO lines in seconds',
-                  'Close out a period for payroll',
-                  'Works offline in the shop',
-                ].map((text) => (
-                  <div key={text} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span>{text}</span>
-                  </div>
-                ))}
+              {/* Trust strip */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground/70">
+                <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary flex-shrink-0" /> Works on desktop + mobile</span>
+                <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary flex-shrink-0" /> No credit card required</span>
+                <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary flex-shrink-0" /> Close out pay periods (Pro)</span>
               </div>
               <p className="text-xs text-muted-foreground/50">
                 Built for dealership and independent shop techs
@@ -148,7 +144,7 @@ export default function Landing() {
               <img
                 src={heroMockup}
                 alt="RO Navigator app showing repair order tracking on a mobile phone"
-                className="w-full max-w-lg mx-auto rounded-2xl shadow-raised"
+                className="w-full mx-auto rounded-xl border border-border/60 shadow-raised"
                 loading="eager"
               />
             </motion.div>
@@ -343,7 +339,7 @@ export default function Landing() {
       </section>
 
       {/* FAQ */}
-      <section className="py-14 md:py-24 px-4 bg-muted/40">
+      <section id="faq" className="py-14 md:py-24 px-4 bg-muted/40 scroll-mt-16">
         <div className="max-w-[700px] mx-auto">
           <motion.h2
             className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-14 tracking-tight"
