@@ -201,7 +201,7 @@ export default function Landing() {
               <h3 className="font-semibold text-lg">Free</h3>
               <p className="text-3xl font-extrabold tracking-tight">$0<span className="text-base font-normal text-muted-foreground">/mo</span></p>
               <ul className="text-sm text-muted-foreground space-y-1.5 pt-2">
-                <li>✓ Unlimited ROs</li>
+                <li>✓ Up to 150 ROs/month</li>
                 <li>✓ Pay period summaries</li>
                 <li>✓ Flag inbox</li>
                 <li>✓ Offline mode</li>

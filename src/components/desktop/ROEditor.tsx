@@ -34,7 +34,14 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const { userSettings } = useFlagContext();
   const { isPro, startCheckout } = useSubscription();
 
-  const isAtCap = false; // No RO cap — unlimited for all users
+  // RO cap for free users
+  const monthlyROCount = useMemo(() => {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+  }, [ros]);
+  const RO_CAP = 150;
+  const isAtCap = !isPro && isNew && monthlyROCount >= RO_CAP;
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
   const [advisor, setAdvisor] = useState(ro?.advisor || '');
@@ -154,6 +161,11 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   const handleSave = (addAnother: boolean = false) => {
+    if (isAtCap) {
+      toast.error(`Monthly limit reached (${RO_CAP} ROs). Upgrade to Pro for unlimited ROs.`);
+      startCheckout();
+      return;
+    }
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
     
     const roData = {
