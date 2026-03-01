@@ -48,7 +48,16 @@ export default function AddRO() {
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
-  const isAtCap = false; // No RO cap — unlimited for all users
+  const [showCapSheet, setShowCapSheet] = useState(false);
+
+  // RO cap: count ROs created this calendar month
+  const monthlyROCount = useMemo(() => {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+  }, [ros]);
+  const RO_CAP = 150;
+  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_CAP;
 
   const filteredAdvisors = settings.advisors.filter(a =>
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
@@ -190,7 +199,11 @@ export default function AddRO() {
       isSimpleMode: false,
     };
 
-    // RO cap removed — unlimited for all users
+    // Check RO cap for free users
+    if (isAtCap) {
+      setShowCapSheet(true);
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -555,6 +568,36 @@ export default function AddRO() {
         existingLineDescriptions={lines.map(l => l.description)}
       />
 
+      {/* RO Cap Reached Sheet */}
+      <BottomSheet
+        isOpen={showCapSheet}
+        onClose={() => setShowCapSheet(false)}
+        title="Monthly Limit Reached"
+      >
+        <div className="p-6 space-y-4 text-center">
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP} ROs per month.
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Upgrade to Pro for unlimited ROs plus OCR scanning, spreadsheet view, and more.
+          </p>
+          <button
+            onClick={() => {
+              setShowCapSheet(false);
+              startCheckout();
+            }}
+            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold"
+          >
+            Upgrade to Pro — $8.99/mo
+          </button>
+          <button
+            onClick={() => setShowCapSheet(false)}
+            className="w-full py-3 text-muted-foreground text-sm"
+          >
+            Maybe later
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }
