@@ -30,12 +30,6 @@ function corsHeaders(origin: string) {
   };
 }
 
-// Fallback CORS for when origin can't be determined (e.g. server-side calls)
-const fallbackCors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
@@ -43,13 +37,20 @@ const logStep = (step: string, details?: any) => {
 
 serve(async (req) => {
   const safeOrigin = getSafeOrigin(req);
-  const cors = safeOrigin ? corsHeaders(safeOrigin) : fallbackCors;
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors });
+    if (!safeOrigin) return new Response(null, { status: 403 });
+    return new Response(null, { headers: corsHeaders(safeOrigin) });
   }
 
-  const headers = { ...cors, "Content-Type": "application/json" };
+  if (!safeOrigin) {
+    return new Response(JSON.stringify({ error: "Forbidden origin" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const headers = { ...corsHeaders(safeOrigin), "Content-Type": "application/json" };
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
