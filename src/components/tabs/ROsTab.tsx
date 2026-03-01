@@ -48,15 +48,16 @@ const ROCard = memo(function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag,
     : ro.paidHours;
 
   return (
-    <div className="card-mobile p-4 rounded-xl group hover:shadow-raised transition-shadow duration-200">
-      <div className="flex items-start gap-3">
+    <div className="card-mobile p-3 rounded-xl group hover:shadow-raised transition-shadow duration-200">
+      <div className="flex items-center gap-3">
         {/* Tappable content area */}
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[17px] font-bold tracking-tight">#{ro.roNumber}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[15px] font-bold tracking-tight">#{ro.roNumber}</span>
+            <span className="text-[12px] text-muted-foreground font-medium">{formattedDate} · {ro.advisor}</span>
             {hasLines && (
               <span className="text-[11px] font-medium text-muted-foreground bg-secondary border border-border px-1.5 py-0.5 rounded-md">
-                {ro.lines.length} lines
+                {ro.lines.length}
               </span>
             )}
             <FlagBadge flags={flags} onClear={onClearFlag} />
@@ -67,32 +68,20 @@ const ROCard = memo(function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag,
               />
             )}
           </div>
-          <div className="text-[13px] text-muted-foreground mb-1 font-medium">
-            {formattedDate} · {ro.advisor}
-          </div>
-          <div className="text-[13px] text-foreground/70 truncate">
-            {hasLines 
-              ? ro.lines.map(l => l.description).filter(Boolean).join(', ') || ro.workPerformed
-              : ro.workPerformed
-            }
-          </div>
         </div>
-        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5">
-            {/* Hours — primary "pop" element */}
-            <span className="hours-pill text-base tabular-nums">
-              {totalHours.toFixed(1)}h
-            </span>
-            <ROActionMenu
-              roNumber={ro.roNumber}
-              onEdit={onEdit}
-              onDuplicate={onDuplicate}
-              onDelete={onDelete}
-              onFlag={onFlag}
-              existingRONumbers={existingRONumbers}
-            />
-          </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <StatusPill type={ro.laborType} />
+          <span className="hours-pill text-sm tabular-nums">
+            {totalHours.toFixed(1)}h
+          </span>
+          <ROActionMenu
+            roNumber={ro.roNumber}
+            onEdit={onEdit}
+            onDuplicate={onDuplicate}
+            onDelete={onDelete}
+            onFlag={onFlag}
+            existingRONumbers={existingRONumbers}
+          />
         </div>
       </div>
     </div>
@@ -276,7 +265,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Search and Filter Bar */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 py-2 border-b border-border">
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -285,12 +274,12 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search ROs..."
-              className="w-full h-11 pl-10 pr-4 bg-secondary rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full h-10 pl-10 pr-4 bg-secondary rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <button
             onClick={() => setShowScopes(s => !s)}
-            className={`h-11 w-11 flex items-center justify-center rounded-xl transition-colors ${
+            className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${
               showScopes || searchScopes.size < 4
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary text-muted-foreground'
@@ -302,7 +291,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           {isPro && (
             <button
               onClick={() => setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards')}
-              className={`h-11 w-11 flex items-center justify-center rounded-xl transition-colors ${
+              className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${
                 viewMode === 'spreadsheet'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary text-muted-foreground'
@@ -314,7 +303,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           )}
           <button
             onClick={() => setShowFilters(true)}
-            className="h-11 px-4 bg-secondary rounded-xl flex items-center gap-2 tap-target touch-feedback relative"
+            className="h-10 px-4 bg-secondary rounded-xl flex items-center gap-2 tap-target touch-feedback relative"
           >
             <SlidersHorizontal className="h-5 w-5" />
             {activeFiltersCount > 0 && (
@@ -361,7 +350,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-32">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 pb-32">
           {loadingROs ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
