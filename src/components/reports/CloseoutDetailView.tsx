@@ -139,29 +139,29 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
           if (h === 'Date') return csvCell(currentDate);
           if (h === 'Work Performed') return csvCell('DAY TOTAL');
           if (h === 'Hours') return csvCell(dayTotal.toFixed(2));
-          return '';
+          return csvCell('');
         });
         csvRows.push(totalRow);
         dayTotal = 0;
       }
       currentDate = ro.roDate;
 
-      paidLines.forEach((l, idx) => {
-        const isFirst = idx === 0;
+      paidLines.forEach((l) => {
         dayTotal += l.hours;
+        // Repeat RO-level fields on EVERY row
         const base = [
-          isFirst ? csvCell(ro.roNumber) : '',
-          isFirst ? csvCell(ro.roDate) : '',
-          isFirst ? csvCell(ro.advisor) : '',
-          isFirst ? csvCell(ro.customerName || '') : '',
-          isFirst ? csvCell(ro.vehicle || '') : '',
+          csvCell(ro.roNumber),
+          csvCell(ro.roDate),
+          csvCell(ro.advisor),
+          csvCell(ro.customerName || ''),
+          csvCell(ro.vehicle || ''),
           csvCell(l.description),
           csvCell(l.hours.toFixed(2)),
           csvCell(typeCode(l.laborType)),
         ];
         if (mode === 'full') {
           base.push(csvCell(l.lineNo));
-          base.push(isFirst ? csvCell(ro.mileage || '') : '');
+          base.push(csvCell(ro.mileage || ''));
         }
         csvRows.push(base);
       });
@@ -172,7 +172,7 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
         if (h === 'Date') return csvCell(currentDate);
         if (h === 'Work Performed') return csvCell('DAY TOTAL');
         if (h === 'Hours') return csvCell(dayTotal.toFixed(2));
-        return '';
+        return csvCell('');
       });
       csvRows.push(totalRow);
     }
@@ -182,7 +182,7 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
       if (h === 'Date') return csvCell(`${closeout.periodStart}\u2013${closeout.periodEnd}`);
       if (h === 'Work Performed') return csvCell('PERIOD TOTAL');
       if (h === 'Hours') return csvCell(periodTotal.toFixed(2));
-      return '';
+      return csvCell('');
     });
     csvRows.push(periodRow);
 

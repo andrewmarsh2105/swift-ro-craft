@@ -4,12 +4,15 @@ import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, Eye,
+  Rows3, Rows4, FileSpreadsheet, Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
+} from '@/components/ui/select';
 import { maskHours } from '@/lib/maskHours';
 import { csvCell, typeCode, downloadCSVFile, buildCSV } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -17,8 +20,8 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { LineTextModal } from '@/components/shared/LineTextModal';
 import { ColumnChooser } from '@/components/shared/spreadsheet/ColumnChooser';
 import {
-  ALL_COLUMNS, PAYROLL_COLUMNS, AUDIT_COLUMNS, getColumnsForMode,
-  type ColumnId, type ViewMode, type Density, type ColumnDef,
+  ALL_COLUMNS, PAYROLL_COLUMNS, AUDIT_COLUMNS,
+  type ColumnId, type ViewMode, type Density,
 } from '@/components/shared/spreadsheet/types';
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
@@ -29,41 +32,46 @@ interface SpreadsheetViewProps {
   ros: RepairOrder[];
   onSelectRO: (ro: RepairOrder) => void;
   rangeLabel?: string;
+  /** When true, default group-by-date with all groups expanded */
+  isCloseout?: boolean;
 }
+
+/* ─── Grouping ─── */
+type GroupBy = 'none' | 'date' | 'ro' | 'advisor';
 
 /* ─── Row types ─── */
 interface FlatRow {
   type: 'data';
   ro: RepairOrder;
   lineIndex: number;
-  isFirstOfGroup: boolean;
-  groupSize: number;
-  groupIndex: number;
+  isFirstOfRO: boolean;
+  roLineCount: number;
   roTotal: number;
-  dateKey: string;
+  groupKey: string;     // key for the current group
+  groupIndex: number;   // alternating index for zebra
 }
 
-interface DateSepRow {
-  type: 'date-separator';
-  dateKey: string;
-  dateLabel: string;
+interface GroupHeaderRow {
+  type: 'group-header';
+  groupKey: string;
+  label: string;
   roCount: number;
-  dayHours: number;
+  groupHours: number;
 }
 
-interface DayTotalRow {
-  type: 'day-total';
-  dateKey: string;
-  dateLabel: string;
-  dayHours: number;
+interface GroupTotalRow {
+  type: 'group-total';
+  groupKey: string;
+  label: string;
+  groupHours: number;
 }
 
-type TableRow = FlatRow | DateSepRow | DayTotalRow;
+type TableRow = FlatRow | GroupHeaderRow | GroupTotalRow;
 
 const ROW_BATCH = 120;
 
 /* ─── Component ─── */
-export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetViewProps) {
+export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: SpreadsheetViewProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { userSettings, updateUserSetting } = useFlagContext();
   const { isPro } = useSubscription();
@@ -74,8 +82,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
     ((userSettings as any).spreadsheetViewMode as ViewMode) || 'payroll'
   );
   const [density, setDensity] = useState<Density>(
-    ((userSettings as any).spreadsheetDensity as Density) || 'comfortable'
+    ((userSettings as any).spreadsheetDensity as Density) || 'compact'
   );
+  const [groupBy, setGroupBy] = useState<GroupBy>(isCloseout ? 'date' : 'none');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     viewMode === 'payroll' ? PAYROLL_COLUMNS : AUDIT_COLUMNS
   );
@@ -100,12 +109,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
     );
   };
 
-  // Collapsible dates
+  // Collapsible groups
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const toggleCollapse = (dateKey: string) =>
+  const toggleCollapse = (key: string) =>
     setCollapsed(prev => {
       const next = new Set(prev);
-      next.has(dateKey) ? next.delete(dateKey) : next.add(dateKey);
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
 
@@ -137,35 +146,43 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
     return map;
   }, [activeCols]);
 
+  /* ─── Helpers ─── */
+  const getGroupKey = useCallback((ro: RepairOrder): string => {
+    switch (groupBy) {
+      case 'date': return (ro.paidDate || ro.date).slice(0, 10);
+      case 'ro': return ro.id;
+      case 'advisor': return ro.advisor || 'Unknown';
+      default: return '__all__';
+    }
+  }, [groupBy]);
+
+  const getGroupLabel = useCallback((key: string, sampleRO: RepairOrder): string => {
+    switch (groupBy) {
+      case 'date': {
+        const [y, m, d] = key.split('-').map(Number);
+        return format(new Date(y, m - 1, d), 'EEE, MMM d');
+      }
+      case 'ro': return `#${sampleRO.roNumber}`;
+      case 'advisor': return key;
+      default: return '';
+    }
+  }, [groupBy]);
+
   /* ─── Data processing ─── */
   const { rows, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
     const allRows: TableRow[] = [];
-    let hours = 0, lines = 0, wH = 0, cH = 0, iH = 0, groupIdx = 0;
+    let hours = 0, lines = 0, wH = 0, cH = 0, iH = 0;
 
-    // Group by date desc
-    const byDate = new Map<string, RepairOrder[]>();
+    // Sort ROs
     const sorted = [...ros].sort((a, b) => {
       const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
-      return bD.localeCompare(aD);
+      return bD.localeCompare(aD) || a.roNumber.localeCompare(b.roNumber);
     });
-    for (const ro of sorted) {
-      const key = (ro.paidDate || ro.date).slice(0, 10);
-      if (!byDate.has(key)) byDate.set(key, []);
-      byDate.get(key)!.push(ro);
-    }
 
-    for (const [dateKey, dayROs] of byDate) {
-      let dayHours = 0;
-      for (const ro of dayROs) {
-        const hasL = ro.lines?.length > 0;
-        dayHours += hasL ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0) : ro.paidHours;
-      }
-
-      const [y, m, d] = dateKey.split('-').map(Number);
-      const dateLabel = format(new Date(y, m - 1, d), 'EEE, MMM d');
-      allRows.push({ type: 'date-separator', dateKey, dateLabel, roCount: dayROs.length, dayHours });
-
-      for (const ro of dayROs) {
+    if (groupBy === 'none') {
+      // Flat: no grouping
+      let groupIdx = 0;
+      for (const ro of sorted) {
         const hasL = ro.lines?.length > 0;
         const roTotal = hasL
           ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
@@ -182,8 +199,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
             }
             lines++;
             allRows.push({
-              type: 'data', ro, lineIndex: i, isFirstOfGroup: i === 0,
-              groupSize: ro.lines.length, groupIndex: groupIdx, roTotal, dateKey,
+              type: 'data', ro, lineIndex: i, isFirstOfRO: i === 0,
+              roLineCount: ro.lines.length, groupIndex: groupIdx, roTotal, groupKey: '__all__',
             });
           });
         } else {
@@ -193,30 +210,85 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
           else iH += ro.paidHours;
           lines++;
           allRows.push({
-            type: 'data', ro, lineIndex: -1, isFirstOfGroup: true,
-            groupSize: 1, groupIndex: groupIdx, roTotal, dateKey,
+            type: 'data', ro, lineIndex: -1, isFirstOfRO: true,
+            roLineCount: 1, groupIndex: groupIdx, roTotal, groupKey: '__all__',
           });
         }
         groupIdx++;
       }
+    } else {
+      // Grouped
+      const groups = new Map<string, RepairOrder[]>();
+      for (const ro of sorted) {
+        const key = getGroupKey(ro);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(ro);
+      }
 
-      // Day total row
-      allRows.push({ type: 'day-total', dateKey, dateLabel, dayHours });
+      let groupIdx = 0;
+      for (const [key, groupROs] of groups) {
+        let groupHours = 0;
+        const label = getGroupLabel(key, groupROs[0]);
+
+        // Compute group hours
+        for (const ro of groupROs) {
+          const hasL = ro.lines?.length > 0;
+          groupHours += hasL ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0) : ro.paidHours;
+        }
+
+        allRows.push({
+          type: 'group-header', groupKey: key, label,
+          roCount: groupROs.length, groupHours,
+        });
+
+        for (const ro of groupROs) {
+          const hasL = ro.lines?.length > 0;
+          const roTotal = hasL
+            ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
+            : ro.paidHours;
+
+          if (hasL) {
+            ro.lines.forEach((line, i) => {
+              if (!line.isTbd) {
+                hours += line.hoursPaid;
+                const lt = line.laborType ?? ro.laborType;
+                if (lt === 'warranty') wH += line.hoursPaid;
+                else if (lt === 'customer-pay') cH += line.hoursPaid;
+                else iH += line.hoursPaid;
+              }
+              lines++;
+              allRows.push({
+                type: 'data', ro, lineIndex: i, isFirstOfRO: i === 0,
+                roLineCount: ro.lines.length, groupIndex: groupIdx, roTotal, groupKey: key,
+              });
+            });
+          } else {
+            hours += ro.paidHours;
+            if (ro.laborType === 'warranty') wH += ro.paidHours;
+            else if (ro.laborType === 'customer-pay') cH += ro.paidHours;
+            else iH += ro.paidHours;
+            lines++;
+            allRows.push({
+              type: 'data', ro, lineIndex: -1, isFirstOfRO: true,
+              roLineCount: 1, groupIndex: groupIdx, roTotal, groupKey: key,
+            });
+          }
+          groupIdx++;
+        }
+
+        // Group total row
+        allRows.push({ type: 'group-total', groupKey: key, label, groupHours });
+      }
     }
 
     return { rows: allRows, totalHours: hours, totalLines: lines, warrantyHours: wH, cpHours: cH, internalHours: iH };
-  }, [ros]);
+  }, [ros, groupBy, getGroupKey, getGroupLabel]);
 
   /* ─── Visible rows (collapsed + pagination) ─── */
   const visibleRows = useMemo(() => {
     const filtered = rows.filter(r => {
-      if (r.type === 'date-separator') return true;
-      const key = r.type === 'data' ? r.dateKey : r.dateKey;
-      if (collapsed.has(key)) return r.type === 'day-total'; // Show day total even when collapsed? Actually no, hide everything
-      return true;
-    }).filter(r => {
-      // If date collapsed, hide data + day-total for that date
-      if (r.type !== 'date-separator' && collapsed.has(r.dateKey)) return false;
+      if (r.type === 'group-header') return true;
+      if (collapsed.has(r.groupKey)) return false;
       return true;
     });
     return filtered.slice(0, visibleCount);
@@ -235,18 +307,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
       case 'date': {
         const ed = row.ro.paidDate || row.ro.date;
         const [y, m, d] = ed.split('-').map(Number);
-        const fmt = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const diff = row.ro.paidDate && row.ro.paidDate !== row.ro.date;
-        return (
-          <>
-            {fmt}
-            {diff && (
-              <div className="text-[10px] text-muted-foreground/60">
-                RO: {(() => { const [oy, om, od] = row.ro.date.split('-').map(Number); return new Date(oy, om - 1, od).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); })()}
-              </div>
-            )}
-          </>
-        );
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
       case 'advisor': return row.ro.advisor || '—';
       case 'customer': return row.ro.customerName || '—';
@@ -278,7 +339,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
         );
       }
       case 'type': {
-        const tl = laborType === 'warranty' ? 'W' : laborType === 'customer-pay' ? 'CP' : 'INT';
+        const tl = laborType === 'warranty' ? 'W' : laborType === 'customer-pay' ? 'CP' : 'I';
         const tc = laborType === 'warranty'
           ? 'text-[hsl(var(--status-warranty))]'
           : laborType === 'customer-pay'
@@ -300,12 +361,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
     }
   }, [hideTotals]);
 
-  /* ─── Export handlers ─── */
+  /* ─── Export helpers ─── */
   const buildExportRows = useCallback((columns: ColumnId[]) => {
     const headers = columns.map(id => ALL_COLUMNS.find(c => c.id === id)!.label);
     const dataRows = rows.filter((r): r is FlatRow => r.type === 'data');
 
-    // Group by date for day totals
     const csvRows: string[][] = [];
     let currentDate = '';
     let dayTotal = 0;
@@ -317,16 +377,15 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
 
     for (const row of sorted) {
       const line = row.lineIndex >= 0 ? row.ro.lines[row.lineIndex] : null;
-      if (line?.isTbd) continue; // Skip TBD lines
+      if (line?.isTbd) continue;
       const dateKey = (row.ro.paidDate || row.ro.date).slice(0, 10);
 
       if (currentDate && dateKey !== currentDate) {
-        // Day total row
         const totalRow = columns.map(id => {
           if (id === 'date') return csvCell(currentDate);
           if (id === 'description') return csvCell('DAY TOTAL');
           if (id === 'hours') return csvCell(dayTotal.toFixed(2));
-          return '';
+          return csvCell('');
         });
         csvRows.push(totalRow);
         dayTotal = 0;
@@ -336,24 +395,25 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
       const hrs = line ? line.hoursPaid : row.ro.paidHours;
       dayTotal += hrs;
 
+      // ALWAYS repeat RO-level fields on every row
       const vals = columns.map(id => {
         const laborType = line?.laborType ?? row.ro.laborType;
         switch (id) {
-          case 'roNumber': return row.isFirstOfGroup ? csvCell(row.ro.roNumber) : '';
-          case 'date': return row.isFirstOfGroup ? csvCell(row.ro.paidDate || row.ro.date) : '';
-          case 'advisor': return row.isFirstOfGroup ? csvCell(row.ro.advisor) : '';
-          case 'customer': return row.isFirstOfGroup ? csvCell(row.ro.customerName || '') : '';
-          case 'vehicle': return row.isFirstOfGroup ? csvCell(formatVehicleChip(row.ro.vehicle) || '') : '';
+          case 'roNumber': return csvCell(row.ro.roNumber);
+          case 'date': return csvCell(row.ro.paidDate || row.ro.date);
+          case 'advisor': return csvCell(row.ro.advisor || '');
+          case 'customer': return csvCell(row.ro.customerName || '');
+          case 'vehicle': return csvCell(formatVehicleChip(row.ro.vehicle) || '');
           case 'lineNo': return csvCell(line ? line.lineNo : 1);
           case 'description': return csvCell(line ? line.description : row.ro.workPerformed);
           case 'hours': return csvCell(hrs.toFixed(2));
           case 'type': return csvCell(typeCode(laborType));
-          case 'roTotal': return row.isFirstOfGroup ? csvCell(row.roTotal.toFixed(2)) : '';
+          case 'roTotal': return csvCell(row.roTotal.toFixed(2));
           case 'tbd': return csvCell(line?.isTbd ? 'Y' : 'N');
           case 'notes': return csvCell(row.ro.notes || '');
           case 'mileage': return csvCell(row.ro.mileage || '');
           case 'vin': return csvCell(row.ro.vehicle?.vin || '');
-          default: return '';
+          default: return csvCell('');
         }
       });
       csvRows.push(vals);
@@ -365,7 +425,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
         if (id === 'date') return csvCell(currentDate);
         if (id === 'description') return csvCell('DAY TOTAL');
         if (id === 'hours') return csvCell(dayTotal.toFixed(2));
-        return '';
+        return csvCell('');
       });
       csvRows.push(totalRow);
     }
@@ -379,7 +439,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
     const periodRow = columns.map(id => {
       if (id === 'description') return csvCell('PERIOD TOTAL');
       if (id === 'hours') return csvCell(periodTotal.toFixed(2));
-      return '';
+      return csvCell('');
     });
     csvRows.push(periodRow);
 
@@ -408,7 +468,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
       const cols: ColumnId[] = activeColIds;
       const { headers, csvRows } = buildExportRows(cols);
 
-      // Parse csvRows back to plain values
       const parseCell = (c: string) => {
         if (!c) return '';
         if (c.startsWith('"') && c.endsWith('"')) return c.slice(1, -1).replace(/""/g, '"');
@@ -417,16 +476,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
       const data = [headers, ...csvRows.map(r => r.map(parseCell))];
 
       const ws = XLSX.utils.aoa_to_sheet(data);
-
-      // Column widths
-      ws['!cols'] = headers.map((h, i) => {
+      ws['!cols'] = headers.map((h) => {
         if (h === 'Work Performed' || h === 'Description') return { wch: 40 };
         if (h === 'VIN') return { wch: 20 };
         if (h === 'Notes') return { wch: 24 };
         return { wch: Math.max(h.length + 2, 12) };
       });
-
-      // Freeze header row
       ws['!freeze'] = { xSplit: 0, ySplit: 1 };
 
       const wb = XLSX.utils.book_new();
@@ -450,8 +505,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
         table{width:100%;border-collapse:collapse;font-size:12px}
         th,td{padding:4px 8px;border:1px solid #ddd;text-align:left}
         th{background:#f5f5f5;font-weight:600}
-        .sep{background:#eee;font-weight:bold;text-transform:uppercase;font-size:11px}
-        .total-row{background:#f0f0f0;font-weight:bold}
         @media print{body{margin:0}}
       </style></head><body>${DOMPurify.sanitize(el.innerHTML)}</body></html>`);
     w.document.close();
@@ -498,6 +551,20 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
               </button>
             ))}
           </div>
+
+          {/* Group by */}
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+            <SelectTrigger className="h-7 w-[120px] text-xs border-border">
+              <Layers className="h-3 w-3 mr-1 flex-shrink-0" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No grouping</SelectItem>
+              <SelectItem value="date">By Date</SelectItem>
+              <SelectItem value="ro">By RO</SelectItem>
+              <SelectItem value="advisor">By Advisor</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-center gap-1">
@@ -546,7 +613,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
         <table className={cn('w-full border-collapse', textSize)}>
           <thead className="sticky top-0 z-10 bg-card border-b-2 border-border">
             <tr>
-              {activeCols.map((col, ci) => {
+              {activeCols.map((col) => {
                 const sticky = stickyStyles[col.id];
                 return (
                   <th
@@ -571,14 +638,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
           </thead>
           <tbody>
             {visibleRows.map((row, i) => {
-              if (row.type === 'date-separator') {
-                const isCollapsed = collapsed.has(row.dateKey);
+              if (row.type === 'group-header') {
+                const isCollapsed = collapsed.has(row.groupKey);
                 return (
-                  <tr key={`sep-${row.dateKey}`} className="bg-muted/60">
+                  <tr key={`hdr-${row.groupKey}`} className="bg-muted/60">
                     <td
                       colSpan={activeCols.length}
                       className={cn(cellPx, 'py-1.5 font-bold text-foreground text-xs uppercase tracking-wider cursor-pointer select-none')}
-                      onClick={() => toggleCollapse(row.dateKey)}
+                      onClick={() => toggleCollapse(row.groupKey)}
                     >
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
@@ -586,10 +653,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
                             ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                             : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                           }
-                          {row.dateLabel}
+                          {row.label}
                         </span>
                         <span className="text-muted-foreground font-medium normal-case tracking-normal">
-                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.dayHours, hideTotals)}h
+                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.groupHours, hideTotals)}h
                         </span>
                       </div>
                     </td>
@@ -597,14 +664,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
                 );
               }
 
-              if (row.type === 'day-total') {
+              if (row.type === 'group-total') {
                 return (
-                  <tr key={`dtot-${row.dateKey}`} className="bg-muted/30 border-t border-border">
+                  <tr key={`gtot-${row.groupKey}`} className="bg-muted/30 border-t border-border">
                     {activeCols.map(col => {
                       if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground uppercase')}>Day Total</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground uppercase')}>
+                          {groupBy === 'date' ? 'Day Total' : 'Group Total'}
+                        </td>;
                       if (col.id === 'hours')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.dayHours, hideTotals)}h</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.groupHours, hideTotals)}h</td>;
                       return <td key={col.id} className={cn(cellPx, cellPy)} />;
                     })}
                   </tr>
@@ -612,11 +681,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
               }
 
               // Data row
-              const line = row.lineIndex >= 0 ? row.ro.lines[row.lineIndex] : null;
-              const laborType = line?.laborType ?? row.ro.laborType;
-              const borderColorClass = row.ro.laborType === 'warranty'
+              const laborType = (row.lineIndex >= 0 ? row.ro.lines[row.lineIndex]?.laborType : null) ?? row.ro.laborType;
+              const borderColorClass = laborType === 'warranty'
                 ? 'border-l-[hsl(var(--status-warranty))]'
-                : row.ro.laborType === 'customer-pay'
+                : laborType === 'customer-pay'
                   ? 'border-l-[hsl(var(--status-customer-pay))]'
                   : 'border-l-[hsl(var(--status-internal))]';
 
@@ -625,16 +693,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
                   key={`${row.ro.id}-${row.lineIndex}`}
                   className={cn(
                     'cursor-pointer hover:bg-accent/50 transition-colors',
-                    row.isFirstOfGroup ? 'border-t-2 border-border' : 'border-t border-border/30',
-                    row.groupIndex % 2 === 1 && 'bg-muted/20', // zebra
+                    row.isFirstOfRO ? 'border-t border-border' : 'border-t border-border/30',
+                    row.groupIndex % 2 === 1 && 'bg-muted/20',
                   )}
                   onClick={() => onSelectRO(row.ro)}
                 >
                   {activeCols.map((col, ci) => {
-                    const isRoLevel = col.isRoLevel;
-                    // For RO-level columns, only render on first row of group
-                    if (isRoLevel && !row.isFirstOfGroup) return null;
-
                     const sticky = stickyStyles[col.id];
                     const isFirstCol = ci === 0;
 
@@ -645,9 +709,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
                           cellPx, cellPy,
                           col.align === 'right' && 'text-right',
                           col.align === 'center' && 'text-center',
-                          col.wrap ? 'break-words' : 'whitespace-nowrap truncate',
+                          col.id === 'description' ? 'max-w-[300px] truncate' : 'whitespace-nowrap',
                           col.id === 'roTotal' && 'bg-primary/5',
-                          col.id === 'description' && 'max-w-[300px]',
                           isFirstCol && `border-l-[3px] ${borderColorClass}`,
                           'align-top bg-card',
                           row.groupIndex % 2 === 1 && 'bg-muted/20',
@@ -656,7 +719,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetView
                           ...(sticky ? { ...sticky, zIndex: 1 } : {}),
                           minWidth: col.minWidth,
                         }}
-                        rowSpan={isRoLevel ? row.groupSize : undefined}
                       >
                         {renderCellValue(col.id, row)}
                       </td>
