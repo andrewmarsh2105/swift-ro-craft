@@ -157,10 +157,10 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-14 md:py-24 px-4 bg-muted/40 scroll-mt-16">
+      <section id="how-it-works" className="py-10 md:py-14 px-4 bg-muted/40 scroll-mt-16">
         <div className="max-w-[1100px] mx-auto">
           <motion.h2
-            className="text-2xl md:text-3xl font-bold text-center mb-10 md:mb-14 tracking-tight"
+            className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 tracking-tight"
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={fadeUp} custom={0}
           >
             How It Works
