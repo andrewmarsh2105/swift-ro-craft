@@ -32,6 +32,27 @@ export interface ScanApplyData {
 
 export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, existingLineDescriptions = [] }: ScanFlowProps) {
   const isMobile = useIsMobile();
+
+  // Lock screen orientation while scan flow is active to prevent disruption
+  useEffect(() => {
+    if (!isOpen) return;
+    const lock = async () => {
+      try {
+        // @ts-ignore – Screen Orientation API not fully typed
+        await screen.orientation?.lock?.('portrait');
+      } catch {
+        // lock() unsupported or denied – silently ignore
+      }
+    };
+    lock();
+    return () => {
+      try {
+        screen.orientation?.unlock?.();
+      } catch {
+        // ignore
+      }
+    };
+  }, [isOpen]);
   const { userSettings } = useFlagContext();
   const roContext = useROSafe();
   const presets = roContext?.settings?.presets ?? [];
