@@ -74,7 +74,7 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       return effectiveDate >= startDate && effectiveDate <= endDate;
     });
 
-    // Collect all non-TBD lines (lines with description)
+    // Collect all lines
     const linesInRange: { ro: RepairOrder; line: ROLine }[] = [];
     rosInRange.forEach(ro => {
       (ro.lines || []).forEach(line => {
@@ -86,7 +86,11 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
     const paidLines = linesInRange.filter(({ line }) => line.description.trim() !== '' && !line.isTbd);
     const tbdLines = linesInRange.filter(({ line }) => line.isTbd);
 
-    const totalHours = paidLines.reduce((s, { line }) => s + line.hoursPaid, 0);
+    // Simple-mode ROs (no lines) — fall back to ro.paidHours
+    const simpleROs = rosInRange.filter(ro => !ro.lines || ro.lines.length === 0);
+    const simpleHours = simpleROs.reduce((s, ro) => s + (ro.paidHours || 0), 0);
+
+    const totalHours = paidLines.reduce((s, { line }) => s + line.hoursPaid, 0) + simpleHours;
     const tbdHours = tbdLines.reduce((s, { line }) => s + line.hoursPaid, 0);
 
     // By day
@@ -113,6 +117,18 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       else if (lt === 'customer-pay') day.customerPayHours += line.hoursPaid;
       else if (lt === 'internal') day.internalHours += line.hoursPaid;
     });
+    // Include simple-mode ROs in day breakdown
+    simpleROs.forEach(ro => {
+      const effectiveDate = ro.paidDate || ro.date;
+      const day = dayMap.get(effectiveDate);
+      if (!day) return;
+      const h = ro.paidHours || 0;
+      day.totalHours += h;
+      const lt = ro.laborType || 'customer-pay';
+      if (lt === 'warranty') day.warrantyHours += h;
+      else if (lt === 'customer-pay') day.customerPayHours += h;
+      else if (lt === 'internal') day.internalHours += h;
+    });
     const byDay = Array.from(dayMap.values());
 
     // By advisor
@@ -137,6 +153,26 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
         });
       }
     });
+    // Include simple-mode ROs in advisor breakdown
+    simpleROs.forEach(ro => {
+      const adv = ro.advisor || '—';
+      const h = ro.paidHours || 0;
+      const lt = ro.laborType || 'customer-pay';
+      const existing = advMap.get(adv);
+      if (existing) {
+        existing.totalHours += h;
+        if (lt === 'warranty') existing.warrantyHours += h;
+        else if (lt === 'customer-pay') existing.customerPayHours += h;
+        else if (lt === 'internal') existing.internalHours += h;
+      } else {
+        advMap.set(adv, {
+          advisor: adv, totalHours: h, roCount: 0,
+          warrantyHours: lt === 'warranty' ? h : 0,
+          customerPayHours: lt === 'customer-pay' ? h : 0,
+          internalHours: lt === 'internal' ? h : 0,
+        });
+      }
+    });
     // Set RO counts
     rosInRange.forEach(ro => {
       const adv = ro.advisor || '—';
@@ -156,6 +192,18 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
         existing.lineCount += 1;
       } else {
         ltMap.set(lt, { totalHours: line.hoursPaid, lineCount: 1 });
+      }
+    });
+    // Include simple-mode ROs in labor type breakdown
+    simpleROs.forEach(ro => {
+      const lt = ro.laborType || 'customer-pay';
+      const h = ro.paidHours || 0;
+      const existing = ltMap.get(lt);
+      if (existing) {
+        existing.totalHours += h;
+        existing.lineCount += 1;
+      } else {
+        ltMap.set(lt, { totalHours: h, lineCount: 1 });
       }
     });
     const byLaborType: LaborTypeBreakdown[] = Array.from(ltMap.entries()).map(([lt, data]) => ({
@@ -203,7 +251,7 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       endDate,
       totalHours,
       totalROs: rosInRange.length,
-      totalLines: paidLines.length,
+      totalLines: paidLines.length + simpleROs.length,
       tbdLineCount: tbdLines.length,
       tbdHours,
       byDay,
