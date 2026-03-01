@@ -366,6 +366,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="flex-1 overflow-hidden">
           <SpreadsheetView
             ros={filteredROs}
+            rangeLabel={
+              filters.dateRange === 'all' ? 'All Time' :
+              filters.dateRange === 'today' ? 'Today' :
+              filters.dateRange === 'week' ? (userSettings.defaultSummaryRange === 'two_weeks' ? '2 Weeks' : '1 Week') :
+              filters.dateRange === 'month' ? 'Month' :
+              filters.dateRange === 'pay_period' ? 'Pay Period' : undefined
+            }
             onSelectRO={(ro) => {
               setSelectedRO(ro);
               setShowDetail(true);
