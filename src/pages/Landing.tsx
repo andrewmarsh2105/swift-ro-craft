@@ -225,25 +225,25 @@ export default function Landing() {
 
       {/* Screenshots Section */}
       <section id="screenshots" className="py-14 md:py-24 px-4 bg-muted/40 scroll-mt-16">
-        <div className="max-w-[1100px] mx-auto space-y-16 md:space-y-24">
+        <div className="max-w-[1100px] mx-auto space-y-16 md:space-y-20">
           {/* Spreadsheet View */}
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
+          <div className="space-y-4 md:space-y-6">
             <motion.div
-              className="space-y-4"
+              className="max-w-2xl"
               initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={fadeUp} custom={0}
             >
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
                 See every RO in one place
               </h2>
-              <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
+              <p className="text-sm md:text-base text-muted-foreground leading-relaxed mt-2">
                 Pro unlocks a full spreadsheet view with sorting, filtering, and export. Track warranty, customer-pay, and internal hours side by side.
               </p>
-              <div className="space-y-1.5">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs md:text-sm text-muted-foreground">
                 {['Sort & filter by date, advisor, or type', 'Export to CSV, XLSX, or PDF', 'Compare multiple pay periods'].map((t) => (
-                  <div key={t} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span key={t} className="flex items-center gap-1.5">
                     <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span>{t}</span>
-                  </div>
+                    {t}
+                  </span>
                 ))}
               </div>
             </motion.div>
@@ -253,7 +253,7 @@ export default function Landing() {
               <img
                 src={spreadsheetPreview}
                 alt="RO Navigator Pro spreadsheet view with RO data and hours columns"
-                className="rounded-xl md:rounded-2xl shadow-raised border border-border/50 w-full"
+                className="rounded-xl border border-border/60 shadow-raised w-full"
                 loading="lazy"
               />
             </motion.div>
