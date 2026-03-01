@@ -8,6 +8,7 @@ const ALLOWED_ORIGINS = [
   "https://app.ronavigator.com",
   "https://swift-ro-craft.lovable.app",
   "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
+  "https://8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovableproject.com",
 ];
 
 function getSafeOrigin(req: Request): string | null {
