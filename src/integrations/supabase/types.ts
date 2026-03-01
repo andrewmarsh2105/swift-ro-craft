@@ -118,7 +118,9 @@ export type Database = {
           period_end: string
           period_start: string
           proof_pack_url: string | null
+          range_type: string
           ro_ids: string[]
+          ro_snapshot: Json
           totals: Json
           user_id: string
         }
@@ -129,7 +131,9 @@ export type Database = {
           period_end: string
           period_start: string
           proof_pack_url?: string | null
+          range_type?: string
           ro_ids?: string[]
+          ro_snapshot?: Json
           totals?: Json
           user_id: string
         }
@@ -140,7 +144,9 @@ export type Database = {
           period_end?: string
           period_start?: string
           proof_pack_url?: string | null
+          range_type?: string
           ro_ids?: string[]
+          ro_snapshot?: Json
           totals?: Json
           user_id?: string
         }

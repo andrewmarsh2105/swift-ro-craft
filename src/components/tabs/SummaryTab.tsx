@@ -20,10 +20,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useCloseouts } from '@/hooks/useCloseouts';
 import { ClosedPeriodsList } from '@/components/reports/ClosedPeriodsList';
-import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
+import { CloseoutDetailView } from '@/components/reports/CloseoutDetailView';
+import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
@@ -289,10 +290,12 @@ export function SummaryTab() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Closeout state
-  const { closeouts, closeOutPeriod, isCurrentPeriodClosed, getCloseoutForPeriod } = useCloseouts();
+  const { closeouts, closeOutPeriod, isRangeClosed, getCloseoutForRange } = useCloseouts();
   const [showCloseoutConfirm, setShowCloseoutConfirm] = useState(false);
+  const [showAlreadyClosed, setShowAlreadyClosed] = useState(false);
   const [closeoutLoading, setCloseoutLoading] = useState(false);
   const [snapshotProofPack, setSnapshotProofPack] = useState<CloseoutSnapshot | null>(null);
+  const [detailCloseout, setDetailCloseout] = useState<CloseoutSnapshot | null>(null);
 
   // Compare state
   const [compareStart1, setCompareStart1] = useState<Date | undefined>();
@@ -337,16 +340,37 @@ export function SummaryTab() {
     toast.success('CSV downloaded');
   };
 
-  const isPayPeriodMode = rangeMode === 'pay_period';
-  const periodAlreadyClosed = isPayPeriodMode && isCurrentPeriodClosed(dateRange.start, dateRange.end);
+  const rangeTypeForCloseout: CloseoutRangeType = rangeMode === 'pay_period' ? 'pay_period'
+    : rangeMode === 'two_weeks' ? 'two_weeks'
+    : rangeMode === 'month' ? 'month'
+    : rangeMode === 'custom' ? 'custom'
+    : rangeMode === 'day' ? 'day' : 'week';
+
+  const periodAlreadyClosed = isRangeClosed(dateRange.start, dateRange.end);
+  const existingCloseout = getCloseoutForRange(dateRange.start, dateRange.end);
+
+  // Smart emphasis: is today within last 24h of range end?
+  const rangeEndDate = new Date(dateRange.end + 'T23:59:59');
+  const msUntilEnd = rangeEndDate.getTime() - today.getTime();
+  const isNearEnd = msUntilEnd >= 0 && msUntilEnd <= 24 * 60 * 60 * 1000;
+
+  const closeoutLabel = rangeMode === 'pay_period' ? 'Close Out Pay Period' : 'Close Out';
+
+  const handleCloseOutClick = () => {
+    if (periodAlreadyClosed) {
+      setShowAlreadyClosed(true);
+    } else {
+      setShowCloseoutConfirm(true);
+    }
+  };
 
   const handleCloseOut = async () => {
     setCloseoutLoading(true);
-    const ok = await closeOutPeriod(report);
+    const ok = await closeOutPeriod(report, rangeTypeForCloseout);
     setCloseoutLoading(false);
     setShowCloseoutConfirm(false);
-    if (ok) toast.success('Pay period closed');
-    else toast.error('Failed to close period');
+    if (ok) toast.success('Closed out');
+    else toast.error('Failed to close out');
   };
 
   // Advisors: show top 5 by default, expand to all
@@ -614,32 +638,40 @@ export function SummaryTab() {
               </Accordion>
             </div>
 
-            {/* ── Close Out Button (pay period only) ── */}
-            {isPayPeriodMode && (
-              <div className="px-4">
-                {periodAlreadyClosed ? (
-                  <div className="flex items-center gap-2 py-2.5 px-3 bg-muted/50 rounded-lg border border-border">
-                    <Lock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">This period is closed</span>
-                  </div>
-                ) : (
+            {/* ── Close Out Button (all ranges) ──── */}
+            <div className="px-4">
+              {periodAlreadyClosed ? (
+                <div className="flex items-center gap-2 py-2.5 px-3 bg-muted/50 rounded-lg border border-border">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">This period is closed</span>
+                  <button
+                    onClick={() => existingCloseout && setDetailCloseout(existingCloseout)}
+                    className="ml-auto text-xs font-semibold text-primary"
+                  >View</button>
+                </div>
+              ) : (
+                <div className="space-y-1">
                   <Button
-                    variant="outline"
-                    onClick={() => setShowCloseoutConfirm(true)}
+                    variant={isNearEnd ? 'default' : 'outline'}
+                    onClick={handleCloseOutClick}
                     className="w-full h-11 cursor-pointer"
                   >
                     <Lock className="h-4 w-4" />
-                    Close Out Pay Period
+                    {closeoutLabel}
                   </Button>
-                )}
-              </div>
-            )}
+                  {isNearEnd && (
+                    <p className="text-[11px] text-muted-foreground text-center">period ending</p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* ── Closed Periods List ─────────────────── */}
             <ClosedPeriodsList
               closeouts={closeouts}
               hideTotals={hideTotals}
               onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
+              onViewDetail={(c) => setDetailCloseout(c)}
             />
 
             {/* ── Export + Proof Pack ─────────────────── */}
@@ -687,11 +719,11 @@ export function SummaryTab() {
       <Dialog open={showCloseoutConfirm} onOpenChange={setShowCloseoutConfirm}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Close out pay period?</DialogTitle>
+            <DialogTitle>Close out?</DialogTitle>
+            <DialogDescription>
+              Close out {viewModeLabel}? This freezes totals as a snapshot — future edits to ROs in this range won't change it.
+            </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Close out {viewModeLabel}? This freezes totals as a snapshot — future edits to ROs in this range won't change it.
-          </p>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowCloseoutConfirm(false)}>Cancel</Button>
             <Button onClick={handleCloseOut} disabled={closeoutLoading}>
@@ -700,6 +732,33 @@ export function SummaryTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Already Closed Dialog */}
+      <Dialog open={showAlreadyClosed} onOpenChange={setShowAlreadyClosed}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Already closed</DialogTitle>
+            <DialogDescription>
+              This period ({viewModeLabel}) is already closed out.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowAlreadyClosed(false)}>Dismiss</Button>
+            <Button onClick={() => { setShowAlreadyClosed(false); if (existingCloseout) setDetailCloseout(existingCloseout); }}>
+              View Closeout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Closeout Detail View */}
+      {detailCloseout && (
+        <CloseoutDetailView
+          open={!!detailCloseout}
+          onClose={() => setDetailCloseout(null)}
+          closeout={detailCloseout}
+        />
+      )}
     </div>
   );
 }
