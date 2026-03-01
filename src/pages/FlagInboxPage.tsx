@@ -126,7 +126,7 @@ export default function FlagInboxPage() {
       {/* Sticky Header */}
       <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-background">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/')}
           className="p-2 -ml-2 rounded-lg hover:bg-muted transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
