@@ -611,7 +611,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto pr-1" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
+      <div className="flex-1 overflow-auto pr-5" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
         <table className={cn('w-full border-collapse table-fixed', textSize)}>
           <colgroup>
             {activeCols.map((col) => {
