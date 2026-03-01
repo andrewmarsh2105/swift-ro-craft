@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { trackSignupCompleted } from '@/lib/analytics';
 import { Loader2, Mail, Lock, Wrench } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,12 +36,13 @@ export default function Auth() {
         toast.success('Signed in');
         navigate('/');
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
+        if (data.user) trackSignupCompleted(data.user.id);
         toast.success('Check your email to confirm your account');
       }
     } catch (err: any) {

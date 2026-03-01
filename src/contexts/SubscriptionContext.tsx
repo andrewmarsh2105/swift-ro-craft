@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { trackCheckoutStarted, trackPurchaseCompleted } from '@/lib/analytics';
 
 const PRO_PRODUCT_IDS = ['prod_TytAJ1A0OZTgh0', 'prod_U2nOsuL3zAYIwa', 'prod_U2ndu4y9M2upB3'];
 
@@ -22,6 +23,7 @@ const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, session } = useAuth();
   const [isPro, setIsPro] = useState(false);
+  const prevIsPro = useRef(false);
   const [loading, setLoading] = useState(true);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -47,6 +49,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
 
       const subscribed = data?.subscribed === true && (PRO_PRODUCT_IDS.includes(data?.product_id) || data?.product_id === 'override');
+      // Track purchase_completed when Pro becomes active
+      if (subscribed && !prevIsPro.current && user) {
+        trackPurchaseCompleted(user.id);
+      }
+      prevIsPro.current = subscribed;
       setIsPro(subscribed);
       setSubscriptionEnd(data?.subscription_end || null);
     } catch (err) {
@@ -93,6 +100,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       if (data?.url) {
         console.log('[CHECKOUT] Redirecting via location.href...');
+        if (user) trackCheckoutStarted(user.id, plan || 'monthly');
         window.location.href = data.url;
         // If still here after 2s, Safari may have blocked — show fallback
         setTimeout(() => {
