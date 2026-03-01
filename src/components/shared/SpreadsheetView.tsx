@@ -611,8 +611,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto" ref={tableRef}>
-        <table className={cn('min-w-full border-collapse', textSize)}>
+      <div className="flex-1 overflow-auto [scrollbar-gutter:stable]" ref={tableRef}>
+        <table className={cn('min-w-full border-collapse', textSize)} style={{ paddingRight: 'env(scrollbar-width, 0px)' }}>
           <thead className="sticky top-0 z-10 bg-card border-b-2 border-border">
             <tr>
               {activeCols.map((col) => {
