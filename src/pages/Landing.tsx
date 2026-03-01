@@ -181,28 +181,44 @@ export default function Landing() {
       </section>
 
       {/* Key Outcomes */}
-      <section className="py-14 md:py-24 px-4 scroll-mt-16">
+      <section className="py-14 md:py-20 px-4 scroll-mt-16">
         <div className="max-w-[1100px] mx-auto">
           <motion.h2
-            className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-14 tracking-tight"
+            className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12 tracking-tight"
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={fadeUp} custom={0}
           >
             Stay on top of every dollar you earn
           </motion.h2>
-          <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-            {outcomes.map((o, i) => (
-              <motion.div
-                key={o.title}
-                className="bg-card rounded-xl md:rounded-2xl p-5 md:p-7 shadow-card space-y-3 md:space-y-4 border border-border/50"
-                initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }} variants={fadeUp} custom={i + 1}
-              >
-                <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <o.icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold text-base md:text-lg tracking-tight">{o.title}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{o.desc}</p>
-              </motion.div>
-            ))}
+          <div className="grid lg:grid-cols-[1fr_1.2fr] gap-6 lg:gap-10 items-center">
+            {/* Cards column */}
+            <div className="space-y-3 md:space-y-4">
+              {outcomes.map((o, i) => (
+                <motion.div
+                  key={o.title}
+                  className="bg-card rounded-xl p-4 md:p-5 shadow-card border border-border/50 flex items-start gap-4"
+                  initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }} variants={fadeUp} custom={i + 1}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <o.icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-sm md:text-base tracking-tight">{o.title}</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{o.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            {/* Screenshot column */}
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }} variants={fadeUp} custom={2}
+            >
+              <img
+                src={multiperiodPreview}
+                alt="RO Navigator closeout and compare periods view"
+                className="w-full rounded-xl border border-border/60 shadow-raised"
+                loading="lazy"
+              />
+            </motion.div>
           </div>
         </div>
       </section>
