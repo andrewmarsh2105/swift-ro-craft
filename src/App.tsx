@@ -20,6 +20,9 @@ const FlagInboxPage = lazy(() => import("./pages/FlagInboxPage"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Support = lazy(() => import("./pages/Support"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -105,6 +108,9 @@ const App = () => (
                   <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
                   <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/support" element={<Support />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

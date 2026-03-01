@@ -321,9 +321,16 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-border py-8 px-4">
-        <p className="text-center text-xs text-muted-foreground/50">
-          © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
-        </p>
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground/50">
+            © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
+          </p>
+          <nav className="flex items-center gap-4">
+            <Link to="/privacy" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">Privacy</Link>
+            <Link to="/terms" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">Terms</Link>
+            <Link to="/support" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">Support</Link>
+          </nav>
+        </div>
       </footer>
     </div>
   );
