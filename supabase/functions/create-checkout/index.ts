@@ -2,10 +2,34 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = [
+  "https://ronavigator.com",
+  "https://www.ronavigator.com",
+  "https://swift-ro-craft.lovable.app",
+  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
+];
+
+function getSafeOrigin(req: Request): string | null {
+  const origin = req.headers.get("origin");
+  if (origin && ALLOWED_ORIGINS.includes(origin)) return origin;
+  // Fallback: check referer
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try {
+      const refOrigin = new URL(referer).origin;
+      if (ALLOWED_ORIGINS.includes(refOrigin)) return refOrigin;
+    } catch { /* invalid referer */ }
+  }
+  return null;
+}
+
+function corsHeaders(origin: string) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
+  };
+}
 
 const PRICES: Record<string, string> = {
   monthly: "price_1T4ho7QViI7PZv2KuEFblmXS",
@@ -13,9 +37,21 @@ const PRICES: Record<string, string> = {
 };
 
 serve(async (req) => {
+  const safeOrigin = getSafeOrigin(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    if (!safeOrigin) return new Response(null, { status: 403 });
+    return new Response(null, { headers: corsHeaders(safeOrigin) });
   }
+
+  if (!safeOrigin) {
+    return new Response(JSON.stringify({ error: "Forbidden origin" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const headers = { ...corsHeaders(safeOrigin), "Content-Type": "application/json" };
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -40,31 +76,22 @@ serve(async (req) => {
 
     const priceId = PRICES[plan];
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "");
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
-
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       subscription_data: {
         trial_period_days: 7,
         trial_settings: {
-          end_behavior: {
-            missing_payment_method: "cancel",
-          },
+          end_behavior: { missing_payment_method: "cancel" },
         },
       },
       custom_text: {
@@ -72,21 +99,18 @@ serve(async (req) => {
           message: "Your 7-day free trial starts now — you won't be charged until the trial ends. Cancel anytime.",
         },
       },
-      success_url: `${origin}/?checkout=success`,
-      cancel_url: `${origin}/?checkout=cancel`,
+      success_url: `${safeOrigin}/?checkout=success`,
+      cancel_url: `${safeOrigin}/?checkout=cancel`,
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return new Response(JSON.stringify({ url: session.url }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const isAuthError = errorMessage.includes("not authenticated") || 
+    const isAuthError = errorMessage.includes("not authenticated") ||
                         errorMessage.includes("Authorization") ||
                         errorMessage.includes("Auth session");
     return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers,
       status: isAuthError ? 401 : 500,
     });
   }

@@ -2,7 +2,36 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-const corsHeaders = {
+const ALLOWED_ORIGINS = [
+  "https://ronavigator.com",
+  "https://www.ronavigator.com",
+  "https://swift-ro-craft.lovable.app",
+  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
+];
+
+function getSafeOrigin(req: Request): string | null {
+  const origin = req.headers.get("origin");
+  if (origin && ALLOWED_ORIGINS.includes(origin)) return origin;
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try {
+      const refOrigin = new URL(referer).origin;
+      if (ALLOWED_ORIGINS.includes(refOrigin)) return refOrigin;
+    } catch { /* invalid referer */ }
+  }
+  return null;
+}
+
+function corsHeaders(origin: string) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
+  };
+}
+
+// Fallback CORS for when origin can't be determined (e.g. server-side calls)
+const fallbackCors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -13,9 +42,14 @@ const logStep = (step: string, details?: any) => {
 };
 
 serve(async (req) => {
+  const safeOrigin = getSafeOrigin(req);
+  const cors = safeOrigin ? corsHeaders(safeOrigin) : fallbackCors;
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
+
+  const headers = { ...cors, "Content-Type": "application/json" };
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -52,21 +86,15 @@ serve(async (req) => {
         subscribed: true,
         product_id: "override",
         subscription_end: null,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      }), { headers, status: 200 });
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey);
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      return new Response(JSON.stringify({ subscribed: false }), { headers, status: 200 });
     }
 
     const customerId = customers.data[0].id;
@@ -95,25 +123,18 @@ serve(async (req) => {
       subscribed: hasActiveSub,
       product_id: productId,
       subscription_end: subscriptionEnd,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    
-    // Return 401 for auth errors so frontend can handle gracefully
-    const isAuthError = errorMessage.includes("Authentication error") || 
+
+    const isAuthError = errorMessage.includes("Authentication error") ||
                         errorMessage.includes("No authorization header") ||
                         errorMessage.includes("not authenticated");
-    
-    return new Response(JSON.stringify({ 
-      subscribed: false, 
-      error: errorMessage 
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: isAuthError ? 401 : 500,
-    });
+
+    return new Response(JSON.stringify({
+      subscribed: false,
+      error: errorMessage,
+    }), { headers, status: isAuthError ? 401 : 500 });
   }
 });
