@@ -13,6 +13,7 @@ import { formatVehicleChip } from '@/types/ro';
 interface SpreadsheetViewProps {
   ros: RepairOrder[];
   onSelectRO: (ro: RepairOrder) => void;
+  rangeLabel?: string;
 }
 
 interface FlatRow {
@@ -37,7 +38,7 @@ type TableRow = FlatRow | DateSeparatorRow;
 const TOTAL_COLUMNS = 9;
 const ROW_BATCH_SIZE = 100;
 
-export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
+export function SpreadsheetView({ ros, onSelectRO, rangeLabel }: SpreadsheetViewProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(ROW_BATCH_SIZE);
   const { userSettings } = useFlagContext();
@@ -212,7 +213,11 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex-shrink-0 flex items-center justify-end gap-2 px-3 py-1.5 border-b border-border bg-card">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-card">
+        {rangeLabel && (
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{rangeLabel}</span>
+        )}
+        <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={handleSaveCSV}>
           <Download className="h-3.5 w-3.5" />
           Save CSV
@@ -221,6 +226,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
           <Printer className="h-3.5 w-3.5" />
           Print
         </Button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto" ref={tableRef}>
         <table className="w-full border-collapse text-sm">
