@@ -97,7 +97,7 @@ export function ScanReviewScreen({
   const prevLinesRef = useRef<string[]>(data.lines.map(l => l.id));
   const latestExtracted = extractedData;
 
-  useMemo(() => {
+  useEffect(() => {
     const prevIds = new Set(prevLinesRef.current);
     const nextIds = latestExtracted.lines.map(l => l.id);
     const added = nextIds.filter(id => !prevIds.has(id));
@@ -107,7 +107,6 @@ export function ScanReviewScreen({
     }
     prevLinesRef.current = nextIds;
     setData(latestExtracted);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestExtracted]);
 
   // Auto-scroll to top when new page lines arrive
@@ -202,21 +201,7 @@ export function ScanReviewScreen({
     }
   };
 
-  /** Cross-page duplicate detection (within the draft itself) */
-  const findCrossPageDuplicates = (): { lineId: string; description: string }[] => {
-    const seen = new Map<string, string>();
-    const dupes: { lineId: string; description: string }[] = [];
-    for (const line of data.lines) {
-      const norm = normalizeDesc(line.description);
-      if (!norm) continue;
-      if (seen.has(norm)) {
-        dupes.push({ lineId: line.id, description: line.description });
-      } else {
-        seen.set(norm, line.id);
-      }
-    }
-    return dupes;
-  };
+
 
   const handleApplyClick = () => {
     if (hasExistingLines) {
@@ -246,8 +231,19 @@ export function ScanReviewScreen({
 
   const crossPageDupes = useMemo(() => {
     if (!isMultiPage) return [];
-    return findCrossPageDuplicates();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const seen = new Map<string, string>();
+    const dupes: { lineId: string; description: string }[] = [];
+    for (const line of data.lines) {
+      const norm = normalizeDesc(line.description);
+      if (!norm) continue;
+      const existingPage = seen.get(norm);
+      if (existingPage !== undefined && existingPage !== String(line.sourcePage ?? 1)) {
+        dupes.push({ lineId: line.id, description: line.description });
+      } else {
+        seen.set(norm, String(line.sourcePage ?? 1));
+      }
+    }
+    return dupes;
   }, [data.lines, isMultiPage]);
 
   // Header conflict dialog

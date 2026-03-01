@@ -38,8 +38,8 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
     if (!isOpen) return;
     const lock = async () => {
       try {
-        // @ts-ignore – Screen Orientation API not fully typed
-        await screen.orientation?.lock?.('portrait');
+        const orientation = screen.orientation as ScreenOrientation & { lock?: (type: string) => Promise<void> };
+        await orientation?.lock?.('portrait');
       } catch {
         // lock() unsupported or denied – silently ignore
       }

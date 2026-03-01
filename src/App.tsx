@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,13 +11,15 @@ import { OfflineProvider } from "@/contexts/OfflineContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 
 import Index from "./pages/Index";
-import AddRO from "./pages/AddRO";
-import FlagInboxPage from "./pages/FlagInboxPage";
-import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
-import NotFound from "./pages/NotFound";
-import Admin from "./pages/Admin";
 import { Loader2 } from "lucide-react";
+
+// Lazy-loaded heavy routes
+const AddRO = lazy(() => import("./pages/AddRO"));
+const FlagInboxPage = lazy(() => import("./pages/FlagInboxPage"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Admin = lazy(() => import("./pages/Admin"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +80,12 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const LazyFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -89,14 +98,16 @@ const App = () => (
             <Sonner />
             
             <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-                <Route path="/" element={<HomeRoute />} />
-                <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
-                <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<LazyFallback />}>
+                <Routes>
+                  <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                  <Route path="/" element={<HomeRoute />} />
+                  <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
+                  <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </TooltipProvider>
         </FlagProvider>
