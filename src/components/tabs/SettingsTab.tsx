@@ -679,12 +679,14 @@ export function SettingsTab() {
             toggleValue={darkMode}
             onToggle={toggleDarkMode}
           />
-          <SettingsRow
-            label="Show Scan Confidence"
-            toggle
-            toggleValue={userSettings.showScanConfidence}
-            onToggle={(v) => updateUserSetting('showScanConfidence', v)}
-          />
+          {isPro && (
+            <SettingsRow
+              label="Show Scan Confidence"
+              toggle
+              toggleValue={userSettings.showScanConfidence}
+              onToggle={(v) => updateUserSetting('showScanConfidence', v)}
+            />
+          )}
           <SettingsRow
             label="Show Vehicle on Lines"
             toggle
