@@ -48,7 +48,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw error;
       }
 
+      const subStatus = data?.status as string | null;
       const subscribed = data?.subscribed === true && (PRO_PRODUCT_IDS.includes(data?.product_id) || data?.product_id === 'override');
+      if (subscribed) console.log('[SUB] Pro active, stripe status:', subStatus);
       // Track purchase_completed when Pro becomes active
       if (subscribed && !prevIsPro.current && user) {
         trackPurchaseCompleted(user.id);
