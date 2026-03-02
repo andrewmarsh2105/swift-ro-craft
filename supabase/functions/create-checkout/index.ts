@@ -83,11 +83,15 @@ serve(async (req) => {
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+    } else {
+      // Create customer explicitly so email is always stored on the customer object
+      const newCustomer = await stripe.customers.create({ email: user.email });
+      customerId = newCustomer.id;
+      console.log("[CREATE-CHECKOUT] Created new Stripe customer", { customerId, email: user.email });
     }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       subscription_data: {
