@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Flag, AlertCircle, Download, Copy, Share2, FileSpreadsheet } from 'lucide-react';
+import { ChevronDown, ChevronRight, Flag, AlertCircle, Download, Copy, Share2, FileSpreadsheet, FileText } from 'lucide-react';
 import { maskHours } from '@/lib/maskHours';
 import { csvCell, typeCode, downloadCSVFile, buildCSV } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -192,6 +192,17 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
     toast.success(`${mode === 'full' ? 'Full' : 'Payroll'} CSV downloaded`);
   };
 
+  const handleExportPDF = async (mode: 'payroll' | 'audit') => {
+    try {
+      const { exportCloseoutPDF } = await import('@/lib/pdfExport');
+      exportCloseoutPDF(closeout, mode);
+      toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} PDF downloaded`);
+    } catch (err) {
+      console.error('PDF export failed', err);
+      toast.error('PDF export failed');
+    }
+  };
+
   return (
     <div className="space-y-4 p-4">
       {/* Header */}
@@ -266,19 +277,31 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
       </div>
 
       {/* Export */}
-      <div className="grid grid-cols-3 gap-2 pt-2 pb-4">
-        <Button variant="secondary" onClick={handleCopyText} className="h-11">
-          <Copy className="h-4 w-4" />
-          Copy
-        </Button>
-        <Button variant="secondary" onClick={() => handleExportCSV('payroll')} className="h-11">
-          <Download className="h-4 w-4" />
-          Payroll
-        </Button>
-        <Button variant="secondary" onClick={() => handleExportCSV('full')} className="h-11">
-          <FileSpreadsheet className="h-4 w-4" />
-          Full
-        </Button>
+      <div className="space-y-2 pt-2 pb-4">
+        <div className="grid grid-cols-3 gap-2">
+          <Button variant="secondary" onClick={handleCopyText} className="h-11">
+            <Copy className="h-4 w-4" />
+            Copy
+          </Button>
+          <Button variant="secondary" onClick={() => handleExportCSV('payroll')} className="h-11">
+            <Download className="h-4 w-4" />
+            CSV
+          </Button>
+          <Button variant="secondary" onClick={() => handleExportCSV('full')} className="h-11">
+            <FileSpreadsheet className="h-4 w-4" />
+            Audit CSV
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="secondary" onClick={() => handleExportPDF('payroll')} className="h-11">
+            <FileText className="h-4 w-4" />
+            Payroll PDF
+          </Button>
+          <Button variant="secondary" onClick={() => handleExportPDF('audit')} className="h-11">
+            <FileText className="h-4 w-4" />
+            Audit PDF
+          </Button>
+        </div>
       </div>
     </div>
   );

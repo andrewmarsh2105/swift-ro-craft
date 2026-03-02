@@ -5,6 +5,33 @@ import { ALL_COLUMNS, type ColumnId } from '@/components/shared/spreadsheet/type
 import { typeCode } from '@/lib/csvUtils';
 import { formatVehicleChip } from '@/types/ro';
 import type { RepairOrder } from '@/types/ro';
+import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
+
+/* ─── Shared helpers ─── */
+
+function addPageNumbers(doc: jsPDF) {
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 5);
+  }
+}
+
+function applyTypeColors(data: any, typeColIdx: number) {
+  if (data.section === 'body' && data.column.index === typeColIdx) {
+    const val = typeof data.cell.raw === 'string' ? data.cell.raw : '';
+    if (val === 'W') data.cell.styles.textColor = [37, 99, 235];
+    else if (val === 'CP') data.cell.styles.textColor = [22, 163, 74];
+    else if (val === 'I') data.cell.styles.textColor = [234, 88, 12];
+  }
+}
+
+const BOLD = { fontStyle: 'bold' as const };
+const PERIOD_STYLE = { fontStyle: 'bold' as const, fillColor: [230, 240, 255] as any };
+
+/* ─── Live Spreadsheet PDF ─── */
 
 interface FlatRow {
   ro: RepairOrder;
@@ -42,7 +69,6 @@ export function exportPDF(
 ) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-  // Title
   doc.setFontSize(14);
   doc.text(title, 14, 15);
   doc.setFontSize(9);
@@ -50,7 +76,6 @@ export function exportPDF(
   doc.text(`Generated ${format(new Date(), 'MMM d, yyyy h:mm a')}`, 14, 21);
   doc.setTextColor(0);
 
-  // Build flat rows sorted by date
   const sorted = [...ros].sort((a, b) => {
     const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
     return aD.localeCompare(bD) || a.roNumber.localeCompare(b.roNumber);
@@ -64,16 +89,13 @@ export function exportPDF(
       : ro.paidHours;
     if (hasL) {
       ro.lines.forEach((_, i) => {
-        if (!ro.lines[i].isTbd) {
-          flatRows.push({ ro, lineIndex: i, roTotal });
-        }
+        if (!ro.lines[i].isTbd) flatRows.push({ ro, lineIndex: i, roTotal });
       });
     } else {
       flatRows.push({ ro, lineIndex: -1, roTotal });
     }
   }
 
-  // Build table data with day totals
   const headers = columns.map(id => ALL_COLUMNS.find(c => c.id === id)!.label);
   const body: (string | { content: string; styles: Record<string, any> })[][] = [];
   let currentDate = '';
@@ -81,51 +103,41 @@ export function exportPDF(
 
   for (const row of flatRows) {
     const dateKey = (row.ro.paidDate || row.ro.date).slice(0, 10);
-
     if (currentDate && dateKey !== currentDate) {
-      // Day total row
-      const totalRow = columns.map(id => {
-        if (id === 'date') return { content: currentDate, styles: { fontStyle: 'bold' as const } };
-        if (id === 'description') return { content: 'DAY TOTAL', styles: { fontStyle: 'bold' as const } };
-        if (id === 'hours') return { content: dayTotal.toFixed(2), styles: { fontStyle: 'bold' as const } };
+      body.push(columns.map(id => {
+        if (id === 'date') return { content: currentDate, styles: BOLD };
+        if (id === 'description') return { content: 'DAY TOTAL', styles: BOLD };
+        if (id === 'hours') return { content: dayTotal.toFixed(2), styles: BOLD };
         return '';
-      });
-      body.push(totalRow);
+      }));
       dayTotal = 0;
     }
     currentDate = dateKey;
-
     const line = row.lineIndex >= 0 ? row.ro.lines[row.lineIndex] : null;
-    const hrs = line ? line.hoursPaid : row.ro.paidHours;
-    dayTotal += hrs;
-
+    dayTotal += line ? line.hoursPaid : row.ro.paidHours;
     body.push(columns.map(id => getPlainValue(id, row)));
   }
 
-  // Final day total
   if (currentDate) {
-    const totalRow = columns.map(id => {
-      if (id === 'date') return { content: currentDate, styles: { fontStyle: 'bold' as const } };
-      if (id === 'description') return { content: 'DAY TOTAL', styles: { fontStyle: 'bold' as const } };
-      if (id === 'hours') return { content: dayTotal.toFixed(2), styles: { fontStyle: 'bold' as const } };
+    body.push(columns.map(id => {
+      if (id === 'date') return { content: currentDate, styles: BOLD };
+      if (id === 'description') return { content: 'DAY TOTAL', styles: BOLD };
+      if (id === 'hours') return { content: dayTotal.toFixed(2), styles: BOLD };
       return '';
-    });
-    body.push(totalRow);
+    }));
   }
 
-  // Period total
   const periodTotal = flatRows.reduce((sum, r) => {
     const line = r.lineIndex >= 0 ? r.ro.lines[r.lineIndex] : null;
     return sum + (line ? line.hoursPaid : r.ro.paidHours);
   }, 0);
-  const periodRow = columns.map(id => {
-    if (id === 'description') return { content: 'PERIOD TOTAL', styles: { fontStyle: 'bold' as const, fillColor: [230, 240, 255] as any } };
-    if (id === 'hours') return { content: periodTotal.toFixed(2), styles: { fontStyle: 'bold' as const, fillColor: [230, 240, 255] as any } };
+  body.push(columns.map(id => {
+    if (id === 'description') return { content: 'PERIOD TOTAL', styles: PERIOD_STYLE };
+    if (id === 'hours') return { content: periodTotal.toFixed(2), styles: PERIOD_STYLE };
     return { content: '', styles: { fillColor: [230, 240, 255] as any } };
-  });
-  body.push(periodRow);
+  }));
 
-  // Render table
+  const typeColIdx = columns.indexOf('type');
   autoTable(doc, {
     head: [headers],
     body,
@@ -137,27 +149,114 @@ export function exportPDF(
       if (id === 'description') acc[i] = { cellWidth: 50 };
       return acc;
     }, {} as Record<number, any>),
-    didParseCell: (data) => {
-      // Style type column colors
-      const colIdx = columns.indexOf('type');
-      if (data.section === 'body' && data.column.index === colIdx) {
-        const val = typeof data.cell.raw === 'string' ? data.cell.raw : '';
-        if (val === 'W') data.cell.styles.textColor = [37, 99, 235];
-        else if (val === 'CP') data.cell.styles.textColor = [22, 163, 74];
-        else if (val === 'I') data.cell.styles.textColor = [234, 88, 12];
-      }
-    },
+    didParseCell: (data) => applyTypeColors(data, typeColIdx),
     margin: { left: 10, right: 10 },
   });
 
-  // Footer
-  const pageCount = (doc as any).internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(150);
-    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 5);
+  addPageNumbers(doc);
+  doc.save(filename);
+}
+
+/* ─── Closeout PDF ─── */
+
+export function exportCloseoutPDF(
+  closeout: CloseoutSnapshot,
+  mode: 'payroll' | 'audit',
+) {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const ros = closeout.roSnapshot || [];
+  const t = closeout.totals;
+
+  const rangeLabels: Record<string, string> = {
+    day: 'Day', week: 'Week', two_weeks: '2 Weeks',
+    pay_period: 'Pay Period', month: 'Month', custom: 'Custom',
+  };
+  const rangeLabel = rangeLabels[closeout.rangeType] || closeout.rangeType;
+  const title = `${rangeLabel} Closeout — ${mode === 'payroll' ? 'Payroll' : 'Audit'}`;
+
+  doc.setFontSize(14);
+  doc.text(title, 14, 12);
+  doc.setFontSize(9);
+  doc.setTextColor(80);
+  doc.text(`${closeout.periodStart} to ${closeout.periodEnd}`, 14, 18);
+  doc.text(
+    `Total: ${t.totalHours.toFixed(1)}h  |  CP: ${t.customerPayHours.toFixed(1)}h  |  W: ${t.warrantyHours.toFixed(1)}h  |  I: ${t.internalHours.toFixed(1)}h  |  ${t.totalROs} ROs  |  ${t.totalLines} lines`,
+    14, 23,
+  );
+  doc.setFontSize(7);
+  doc.text(`Closed: ${format(new Date(closeout.closedAt), 'MMM d, yyyy h:mm a')}`, 14, 27);
+  doc.setTextColor(0);
+
+  const payrollHeaders = ['RO#', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Work Performed', 'Hours', 'Type'];
+  const auditHeaders = [...payrollHeaders, 'Line#', 'Mileage'];
+  const headers = mode === 'audit' ? auditHeaders : payrollHeaders;
+
+  const sorted = [...ros].sort((a, b) => a.roDate.localeCompare(b.roDate) || a.roNumber.localeCompare(b.roNumber));
+
+  const body: (string | { content: string; styles: Record<string, any> })[][] = [];
+  let currentDate = '';
+  let dayTotal = 0;
+
+  for (const ro of sorted) {
+    const paidLines = ro.lines.filter(l => !l.isTbd);
+    if (paidLines.length === 0) continue;
+
+    if (currentDate && ro.roDate !== currentDate) {
+      body.push(headers.map(h => {
+        if (h === 'Date') return { content: currentDate, styles: BOLD };
+        if (h === 'Work Performed') return { content: 'DAY TOTAL', styles: BOLD };
+        if (h === 'Hours') return { content: dayTotal.toFixed(2), styles: BOLD };
+        return '';
+      }));
+      dayTotal = 0;
+    }
+    currentDate = ro.roDate;
+
+    for (const l of paidLines) {
+      dayTotal += l.hours;
+      const tc = l.laborType === 'warranty' ? 'W' : l.laborType === 'internal' ? 'I' : 'CP';
+      const base: string[] = [
+        ro.roNumber, ro.roDate, ro.advisor, ro.customerName || '',
+        ro.vehicle || '', l.description, l.hours.toFixed(2), tc,
+      ];
+      if (mode === 'audit') {
+        base.push(String(l.lineNo), ro.mileage || '');
+      }
+      body.push(base);
+    }
   }
 
-  doc.save(filename);
+  if (currentDate) {
+    body.push(headers.map(h => {
+      if (h === 'Date') return { content: currentDate, styles: BOLD };
+      if (h === 'Work Performed') return { content: 'DAY TOTAL', styles: BOLD };
+      if (h === 'Hours') return { content: dayTotal.toFixed(2), styles: BOLD };
+      return '';
+    }));
+  }
+
+  const periodTotal = sorted.reduce((sum, ro) => sum + ro.totalPaidHours, 0);
+  body.push(headers.map(h => {
+    if (h === 'Work Performed') return { content: 'PERIOD TOTAL', styles: PERIOD_STYLE };
+    if (h === 'Hours') return { content: periodTotal.toFixed(2), styles: PERIOD_STYLE };
+    return { content: '', styles: { fillColor: [230, 240, 255] as any } };
+  }));
+
+  const typeColIdx = headers.indexOf('Type');
+  autoTable(doc, {
+    head: [headers],
+    body,
+    startY: 31,
+    styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+    headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+    columnStyles: {
+      ...(headers.indexOf('Hours') >= 0 ? { [headers.indexOf('Hours')]: { halign: 'right' } } : {}),
+      ...(headers.indexOf('Work Performed') >= 0 ? { [headers.indexOf('Work Performed')]: { cellWidth: 50 } } : {}),
+    },
+    didParseCell: (data) => applyTypeColors(data, typeColIdx),
+    margin: { left: 10, right: 10 },
+  });
+
+  addPageNumbers(doc);
+  doc.save(`closeout-${mode}-${closeout.periodStart}-to-${closeout.periodEnd}.pdf`);
 }
