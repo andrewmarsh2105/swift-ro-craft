@@ -19,6 +19,18 @@ function addPageNumbers(doc: jsPDF) {
   }
 }
 
+/** Format a YYYY-MM-DD string to a readable short date like "Mar 1, 2025" */
+function fmtDate(d?: string | null): string {
+  if (!d) return '';
+  try {
+    const parts = d.split('-');
+    if (parts.length === 3) {
+      return format(new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])), 'MMM d, yyyy');
+    }
+    return d;
+  } catch { return d; }
+}
+
 function applyTypeColors(data: any, typeColIdx: number) {
   if (data.section === 'body' && data.column.index === typeColIdx) {
     const val = typeof data.cell.raw === 'string' ? data.cell.raw : '';
@@ -44,7 +56,7 @@ function getPlainValue(colId: ColumnId, row: FlatRow): string {
   const laborType = line?.laborType ?? row.ro.laborType;
   switch (colId) {
     case 'roNumber': return row.ro.roNumber;
-    case 'date': return row.ro.paidDate || row.ro.date;
+    case 'date': return fmtDate(row.ro.paidDate || row.ro.date);
     case 'advisor': return row.ro.advisor || '';
     case 'customer': return row.ro.customerName || '';
     case 'vehicle': return formatVehicleChip(row.ro.vehicle) || '';
@@ -105,7 +117,7 @@ export function exportPDF(
     const dateKey = (row.ro.paidDate || row.ro.date).slice(0, 10);
     if (currentDate && dateKey !== currentDate) {
       body.push(columns.map(id => {
-        if (id === 'date') return { content: currentDate, styles: BOLD };
+        if (id === 'date') return { content: fmtDate(currentDate), styles: BOLD };
         if (id === 'description') return { content: 'DAY TOTAL', styles: BOLD };
         if (id === 'hours') return { content: dayTotal.toFixed(2), styles: BOLD };
         return '';
@@ -120,7 +132,7 @@ export function exportPDF(
 
   if (currentDate) {
     body.push(columns.map(id => {
-      if (id === 'date') return { content: currentDate, styles: BOLD };
+      if (id === 'date') return { content: fmtDate(currentDate), styles: BOLD };
       if (id === 'description') return { content: 'DAY TOTAL', styles: BOLD };
       if (id === 'hours') return { content: dayTotal.toFixed(2), styles: BOLD };
       return '';
@@ -178,7 +190,7 @@ export function exportCloseoutPDF(
   doc.text(title, 14, 12);
   doc.setFontSize(9);
   doc.setTextColor(80);
-  doc.text(`${closeout.periodStart} to ${closeout.periodEnd}`, 14, 18);
+  doc.text(`${fmtDate(closeout.periodStart)} to ${fmtDate(closeout.periodEnd)}`, 14, 18);
   doc.text(
     `Total: ${t.totalHours.toFixed(1)}h  |  CP: ${t.customerPayHours.toFixed(1)}h  |  W: ${t.warrantyHours.toFixed(1)}h  |  I: ${t.internalHours.toFixed(1)}h  |  ${t.totalROs} ROs  |  ${t.totalLines} lines`,
     14, 23,
@@ -203,7 +215,7 @@ export function exportCloseoutPDF(
 
     if (currentDate && ro.roDate !== currentDate) {
       body.push(headers.map(h => {
-        if (h === 'Date') return { content: currentDate, styles: BOLD };
+        if (h === 'Date') return { content: fmtDate(currentDate), styles: BOLD };
         if (h === 'Work Performed') return { content: 'DAY TOTAL', styles: BOLD };
         if (h === 'Hours') return { content: dayTotal.toFixed(2), styles: BOLD };
         return '';
@@ -216,7 +228,7 @@ export function exportCloseoutPDF(
       dayTotal += l.hours;
       const tc = l.laborType === 'warranty' ? 'W' : l.laborType === 'internal' ? 'I' : 'CP';
       const base: string[] = [
-        ro.roNumber, ro.roDate, ro.advisor, ro.customerName || '',
+        ro.roNumber, fmtDate(ro.roDate), ro.advisor, ro.customerName || '',
         ro.vehicle || '', l.description, l.hours.toFixed(2), tc,
       ];
       if (mode === 'audit') {
@@ -250,6 +262,7 @@ export function exportCloseoutPDF(
     styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
     headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold', fontSize: 7 },
     columnStyles: {
+      ...(headers.indexOf('Date') >= 0 ? { [headers.indexOf('Date')]: { cellWidth: 28 } } : {}),
       ...(headers.indexOf('Hours') >= 0 ? { [headers.indexOf('Hours')]: { halign: 'right' } } : {}),
       ...(headers.indexOf('Work Performed') >= 0 ? { [headers.indexOf('Work Performed')]: { cellWidth: 50 } } : {}),
     },
