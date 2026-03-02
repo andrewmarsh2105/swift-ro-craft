@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, Layers,
+  Rows3, Rows4, FileSpreadsheet, Layers, FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -494,6 +494,30 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     }
   }, [activeColIds, buildExportRows]);
 
+  const handleExportPayrollPDF = useCallback(async () => {
+    try {
+      const { exportPDF } = await import('@/lib/pdfExport');
+      const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'description', 'hours', 'type'];
+      exportPDF(ros, cols, `payroll-${format(new Date(), 'yyyy-MM-dd')}.pdf`, `Payroll Report${rangeLabel ? ' — ' + rangeLabel : ''}`);
+      toast.success('Payroll PDF downloaded');
+    } catch (err) {
+      console.error('PDF export failed', err);
+      toast.error('PDF export failed');
+    }
+  }, [ros, rangeLabel]);
+
+  const handleExportAuditPDF = useCallback(async () => {
+    try {
+      const { exportPDF } = await import('@/lib/pdfExport');
+      const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'roTotal', 'notes', 'mileage', 'vin'];
+      exportPDF(ros, cols, `audit-${format(new Date(), 'yyyy-MM-dd')}.pdf`, `Audit Report${rangeLabel ? ' — ' + rangeLabel : ''}`);
+      toast.success('Audit PDF downloaded');
+    } catch (err) {
+      console.error('PDF export failed', err);
+      toast.error('PDF export failed');
+    }
+  }, [ros, rangeLabel]);
+
   const handlePrint = useCallback(() => {
     const el = tableRef.current;
     if (!el) return;
@@ -588,12 +612,18 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   Export
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
+               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={handleExportPayroll}>
                   <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportFull}>
-                  <Download className="h-3.5 w-3.5 mr-2" /> Full CSV (Audit)
+                  <Download className="h-3.5 w-3.5 mr-2" /> Audit CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPayrollPDF}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> Payroll PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportAuditPDF}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> Audit PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportXLSX}>
                   <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> XLSX
