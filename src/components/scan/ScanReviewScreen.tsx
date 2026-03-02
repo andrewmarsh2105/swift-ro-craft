@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2, Clock } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2, Clock, X, ZoomIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -85,6 +85,8 @@ export function ScanReviewScreen({
   const [conflictResolutions, setConflictResolutions] = useState<Record<string, 'keep' | 'replace'>>({});
   /** IDs of newly-added lines (from the most recent page append) — highlighted briefly */
   const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
+  /** Full-screen lightbox image URL */
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const addPageCameraRef = useRef<HTMLInputElement>(null);
   const addPagePhotoRef = useRef<HTMLInputElement>(null);
   const addPageDesktopRef = useRef<HTMLInputElement>(null);
@@ -354,9 +356,18 @@ export function ScanReviewScreen({
           <div className="px-4 pt-3">
             <div className="flex gap-2 overflow-x-auto pb-2">
               {pages.map(p => (
-                <div key={p.pageId} className="relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 border-primary/30 bg-muted">
+                <button
+                  key={p.pageId}
+                  onClick={() => p.imagePreviewUrl && setLightboxUrl(p.imagePreviewUrl)}
+                  className="relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 border-primary/30 bg-muted cursor-pointer active:scale-95 transition-transform"
+                >
                   {p.imagePreviewUrl ? (
-                    <img src={p.imagePreviewUrl} alt={`Page ${p.pageNumber}`} className="w-full h-full object-cover" />
+                    <>
+                      <img src={p.imagePreviewUrl} alt={`Page ${p.pageNumber}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                        <ZoomIn className="h-4 w-4 text-white drop-shadow" />
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <FileImage className="h-6 w-6 text-muted-foreground" />
@@ -365,7 +376,7 @@ export function ScanReviewScreen({
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] text-center py-0.5 font-bold">
                     Pg {p.pageNumber}
                   </div>
-                </div>
+                </button>
               ))}
               {/* "Add page" mini-slot */}
               <label className="flex-shrink-0 w-16 h-20 rounded-lg border-2 border-dashed border-primary/30 flex items-center justify-center cursor-pointer hover:border-primary/60 transition-colors">
@@ -384,15 +395,26 @@ export function ScanReviewScreen({
           </div>
         )}
 
-        {/* Image Preview */}
+        {/* Image Preview (single page) */}
         {imagePreviewUrl && !isMultiPage && (
-          <div className={cn('m-4 rounded-2xl overflow-hidden', isMobile ? 'aspect-video' : 'h-48')}>
+          <button
+            onClick={() => setLightboxUrl(imagePreviewUrl)}
+            className={cn('m-4 rounded-2xl overflow-hidden relative group cursor-pointer active:scale-[0.98] transition-transform', isMobile ? 'aspect-video' : 'h-48 w-auto')}
+          >
             <img
               src={imagePreviewUrl}
               alt="Scanned RO"
               className="w-full h-full object-cover"
             />
-          </div>
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <div className="bg-black/40 rounded-full p-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                <ZoomIn className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            <span className="absolute bottom-2 right-2 text-[10px] bg-black/50 text-white px-2 py-0.5 rounded-full font-medium">
+              Tap to inspect
+            </span>
+          </button>
         )}
 
         {/* Adding page spinner overlay */}
@@ -848,6 +870,33 @@ export function ScanReviewScreen({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Image Lightbox ─── */}
+      {lightboxUrl && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors safe-top z-10"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Scanned RO — full size"
+            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <p className="absolute bottom-6 left-0 right-0 text-center text-white/60 text-xs safe-bottom">
+            Tap outside or ✕ to close
+          </p>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
