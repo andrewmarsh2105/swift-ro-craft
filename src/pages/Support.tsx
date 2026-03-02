@@ -39,6 +39,12 @@ export default function Support() {
       });
 
       if (error) throw error;
+
+      // Fire-and-forget email notification
+      supabase.functions.invoke('send-support-email', {
+        body: { name: name.trim(), email: email.trim(), message: message.trim() },
+      }).catch(console.error);
+
       setSubmitted(true);
     } catch (err: any) {
       toast.error(err.message || 'Failed to send message. Please try again.');
