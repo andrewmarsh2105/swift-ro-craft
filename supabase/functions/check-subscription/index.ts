@@ -93,25 +93,32 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey);
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Search up to 10 customers sharing this email
+    const customers = await stripe.customers.list({ email: user.email, limit: 10 });
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
       return new Response(JSON.stringify({ subscribed: false }), { headers, status: 200 });
     }
 
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
+    logStep("Found Stripe customers", { count: customers.data.length, ids: customers.data.map(c => c.id) });
 
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      limit: 10,
-    });
-
-    // Find first active or trialing subscription
-    const validSub = subscriptions.data.find(
-      (s) => s.status === "active" || s.status === "trialing"
-    );
+    // Search all customers for an active or trialing subscription
+    let validSub: any = null;
+    for (const customer of customers.data) {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customer.id,
+        limit: 10,
+      });
+      const found = subscriptions.data.find(
+        (s: any) => s.status === "active" || s.status === "trialing"
+      );
+      if (found) {
+        validSub = found;
+        logStep("Valid subscription found on customer", { customerId: customer.id });
+        break;
+      }
+    }
 
     let subscribed = false;
     let productId = null;
@@ -125,7 +132,7 @@ serve(async (req) => {
       productId = validSub.items.data[0].price.product;
       logStep("Valid subscription found", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd });
     } else {
-      logStep("No active or trialing subscription");
+      logStep("No active or trialing subscription across all customers");
     }
 
     return new Response(JSON.stringify({
