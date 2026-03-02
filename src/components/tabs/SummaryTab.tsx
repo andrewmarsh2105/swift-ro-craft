@@ -450,12 +450,21 @@ export function SummaryTab() {
             {/* ── B) KPI Row ─────────────────────────── */}
             <div className="px-4">
               <HideTotalsContext.Provider value={hideTotals}>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                   {/* Total Hours */}
                   <div className="card-mobile p-4 border-l-4 border-l-primary">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Total Hours</div>
                     <div className="text-3xl font-bold tabular-nums tracking-tight">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
                     <div className="text-xs text-muted-foreground mt-1">{report.totalROs} ROs · {report.totalLines} lines</div>
+                  </div>
+
+                  {/* Avg Hours / RO */}
+                  <div className="card-mobile p-4">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Avg Hours / RO</div>
+                    <div className="text-3xl font-bold tabular-nums tracking-tight">
+                      {report.totalROs > 0 ? maskHours(Math.round((report.totalHours / report.totalROs) * 10) / 10, hideTotals) : '0'}<span className="text-xl ml-0.5 opacity-60">h</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">per repair order</div>
                   </div>
 
                   {/* CP / W / I Breakdown */}
