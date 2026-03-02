@@ -93,29 +93,48 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey);
+    // Log whether this is a test or live key
+    logStep("Stripe key prefix", { prefix: stripeKey.substring(0, 7) });
+
     // Search up to 10 customers sharing this email
+    logStep("Searching Stripe customers by email", { email: user.email });
     const customers = await stripe.customers.list({ email: user.email, limit: 10 });
 
     if (customers.data.length === 0) {
-      logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ subscribed: false }), { headers, status: 200 });
+      logStep("No Stripe customer found for email", { email: user.email });
+      return new Response(JSON.stringify({
+        subscribed: false,
+        debug: { step: "no_customer", email: user.email, stripeKeyPrefix: stripeKey.substring(0, 7) },
+      }), { headers, status: 200 });
     }
 
-    logStep("Found Stripe customers", { count: customers.data.length, ids: customers.data.map(c => c.id) });
+    logStep("Found Stripe customers", {
+      count: customers.data.length,
+      ids: customers.data.map(c => c.id),
+      emails: customers.data.map(c => c.email),
+    });
 
     // Search all customers for an active or trialing subscription
     let validSub: any = null;
+    let allSubStatuses: string[] = [];
     for (const customer of customers.data) {
       const subscriptions = await stripe.subscriptions.list({
         customer: customer.id,
         limit: 10,
       });
+      logStep("Subscriptions for customer", {
+        customerId: customer.id,
+        count: subscriptions.data.length,
+        statuses: subscriptions.data.map((s: any) => s.status),
+        productIds: subscriptions.data.map((s: any) => s.items.data[0]?.price?.product),
+      });
+      allSubStatuses.push(...subscriptions.data.map((s: any) => `${customer.id}:${s.status}`));
       const found = subscriptions.data.find(
         (s: any) => s.status === "active" || s.status === "trialing"
       );
       if (found) {
         validSub = found;
-        logStep("Valid subscription found on customer", { customerId: customer.id });
+        logStep("Valid subscription found on customer", { customerId: customer.id, subId: found.id, status: found.status });
         break;
       }
     }
@@ -130,9 +149,9 @@ serve(async (req) => {
       subStatus = validSub.status;
       subscriptionEnd = new Date(validSub.current_period_end * 1000).toISOString();
       productId = validSub.items.data[0].price.product;
-      logStep("Valid subscription found", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd });
+      logStep("RESULT: subscribed", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd });
     } else {
-      logStep("No active or trialing subscription across all customers");
+      logStep("RESULT: NOT subscribed", { allSubStatuses });
     }
 
     return new Response(JSON.stringify({
@@ -140,6 +159,7 @@ serve(async (req) => {
       status: subStatus,
       product_id: productId,
       subscription_end: subscriptionEnd,
+      debug: { step: subscribed ? "subscribed" : "no_active_sub", allSubStatuses, stripeKeyPrefix: stripeKey.substring(0, 7) },
     }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

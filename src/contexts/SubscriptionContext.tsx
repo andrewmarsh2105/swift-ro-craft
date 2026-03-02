@@ -40,8 +40,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
-      console.log('[SUB] check-subscription response:', JSON.stringify(data), 'error:', error?.message);
+      console.log('[SUB] check-subscription FULL response:', JSON.stringify(data));
+      if (data?.debug) {
+        console.warn('[SUB] DEBUG INFO:', JSON.stringify(data.debug));
+      }
       if (error) {
+        console.error('[SUB] invoke error:', error.message);
         if (error.message?.includes('non-2xx')) {
           setIsPro(false);
           return;
