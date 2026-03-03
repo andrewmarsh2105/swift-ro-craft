@@ -59,6 +59,12 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY") ?? "",
   );
 
+  // Service-role client for pro_overrides lookup (bypasses RLS)
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  );
+
   try {
     logStep("Function started");
 
@@ -76,7 +82,7 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Check pro_overrides table first
-    const { data: overrideRow } = await supabaseClient
+    const { data: overrideRow } = await supabaseAdmin
       .from("pro_overrides")
       .select("id")
       .eq("user_id", user.id)
