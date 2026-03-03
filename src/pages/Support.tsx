@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Wrench, ArrowLeft, Send, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, Loader2 } from 'lucide-react';
+import roLogo from '@/assets/ro-logo.jpeg';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,8 +59,8 @@ export default function Support() {
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="container flex items-center justify-between h-14 max-w-[1100px] mx-auto px-4">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Wrench className="h-[18px] w-[18px] text-primary" />
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center">
+              <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-lg tracking-tight">RO Navigator</span>
           </Link>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Wrench, ArrowRight, ClipboardCheck, Flag, BarChart3, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRight, ClipboardCheck, Flag, BarChart3, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import roLogo from '@/assets/ro-logo.jpeg';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
@@ -71,8 +72,8 @@ export default function Landing() {
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="max-w-[1100px] mx-auto flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Wrench className="h-[18px] w-[18px] text-primary" />
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center">
+              <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-lg tracking-tight">RO Navigator</span>
           </div>
