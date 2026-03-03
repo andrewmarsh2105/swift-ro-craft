@@ -6,7 +6,8 @@ import { SettingsTab } from '@/components/tabs/SettingsTab';
 import { SummaryTab } from '@/components/tabs/SummaryTab';
 import { FlagInbox } from '@/components/flags/FlagInbox';
 import { OfflineStatusBar } from '@/components/shared/OfflineStatusBar';
-import { FileText, Settings, BarChart3, X, Table2, Crown } from 'lucide-react';
+import { Settings, BarChart3, X, Table2, Crown, FileText } from 'lucide-react';
+import roLogo from '@/assets/ro-logo.jpeg';
 import { cn } from '@/lib/utils';
 import type { RepairOrder } from '@/types/ro';
 import { useRO } from '@/contexts/ROContext';
@@ -101,8 +102,8 @@ export function DesktopWorkspace() {
       <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border bg-card shadow-soft">
         {/* Left: Brand */}
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-            <FileText className="h-3.5 w-3.5 text-primary" />
+          <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center">
+            <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
           </div>
           <span className="font-bold text-sm tracking-tight text-foreground">RO Navigator</span>
         </div>
