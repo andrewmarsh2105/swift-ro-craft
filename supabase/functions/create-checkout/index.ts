@@ -33,8 +33,8 @@ function corsHeaders(origin: string) {
 }
 
 const PRICES: Record<string, string> = {
-  monthly: "price_1T4ho7QViI7PZv2KuEFblmXS",
-  yearly: "price_1T4i2KQViI7PZv2KS0I87NX0",
+  monthly: Deno.env.get("STRIPE_PRICE_MONTHLY") || "price_1T4ho7QViI7PZv2KuEFblmXS",
+  yearly: Deno.env.get("STRIPE_PRICE_YEARLY") || "price_1T4i2KQViI7PZv2KS0I87NX0",
 };
 
 serve(async (req) => {
