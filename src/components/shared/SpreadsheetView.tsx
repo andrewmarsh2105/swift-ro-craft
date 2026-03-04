@@ -1,4 +1,5 @@
 import { useMemo, useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
@@ -75,6 +76,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const tableRef = useRef<HTMLDivElement>(null);
   const { userSettings, updateUserSetting } = useFlagContext();
   const { isPro } = useSubscription();
+  const isMobile = useIsMobile();
   const hideTotals = userSettings.hideTotals ?? false;
 
   // Persisted prefs
@@ -135,6 +137,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Sticky styles for first 2 columns ─── */
   const stickyStyles = useMemo(() => {
+    if (isMobile) return {} as Record<string, React.CSSProperties>;
     const map: Record<string, React.CSSProperties> = {};
     let left = 0;
     activeCols.forEach((col, i) => {
@@ -144,7 +147,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       }
     });
     return map;
-  }, [activeCols]);
+  }, [activeCols, isMobile]);
 
   /* ─── Helpers ─── */
   const getGroupKey = useCallback((ro: RepairOrder): string => {
