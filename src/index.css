@@ -52,7 +52,7 @@
     --status-internal-bg: 25 85% 93%;
 
     /* Mobile-specific */
-    --tab-bar-height: 5.5rem;
+    --tab-bar-height: 5rem;
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
 
@@ -279,7 +279,7 @@
   }
 
   .tab-bar-item {
-    @apply flex flex-col items-center justify-center gap-1 flex-1 py-2.5 transition-colors;
+    @apply flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-colors;
   }
 
   .tab-bar-item-active {
