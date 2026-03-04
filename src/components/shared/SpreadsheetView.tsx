@@ -606,6 +606,20 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               </button>
             ))}
           </div>
+
+          {/* Group By */}
+          <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
+            <SelectTrigger className="h-7 w-[120px] text-[11px] font-semibold">
+              <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+              <SelectValue placeholder="Group by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">By Date</SelectItem>
+              <SelectItem value="ro">By RO</SelectItem>
+              <SelectItem value="advisor">By Advisor</SelectItem>
+              <SelectItem value="none">No Grouping</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-center gap-1">
