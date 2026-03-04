@@ -750,15 +750,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
               if (row.type === 'day-total') {
                 return (
-                  <tr key={`dtot-${row.date}`} className="bg-muted/40 border-t-2 border-border">
+                  <tr key={`dtot-${row.date}`} className="border-t-2 border-border">
                     {activeCols.map(col => {
                       const sticky = stickyStyles[col.id];
-                      const stickyClass = sticky ? 'bg-muted' : '';
                       if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase')}>{groupBy === 'advisor' ? 'Advisor Total' : 'Day Total'}</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase bg-card')}>{groupBy === 'advisor' ? 'Advisor Total' : 'Day Total'}</td>;
                       if (col.id === 'hours')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.dayTotal, hideTotals)}h</td>;
-                      return <td key={col.id} className={cn(cellPx, cellPy, stickyClass)} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground bg-card')}>{maskHours(row.dayTotal, hideTotals)}h</td>;
+                      return <td key={col.id} className={cn(cellPx, cellPy, 'bg-card')} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
                     })}
                   </tr>
                 );
