@@ -1,11 +1,11 @@
 import { useMemo, useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, FileText, Group,
+  Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
+import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import {
   buildSpreadsheetRows,
   PAYROLL_EXPORT_HEADERS,
