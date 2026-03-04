@@ -792,11 +792,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                           col.align === 'center' && 'text-center',
                           col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
                           isFirstCol && `border-l-[3px] ${borderColorClass}`,
-                          'align-top bg-card',
-                          row.dateIndex % 2 === 1 && 'bg-muted/20',
+                          'align-top',
+                          sticky ? 'bg-card' : (row.dateIndex % 2 === 1 ? 'bg-muted/20' : 'bg-card'),
                         )}
                         style={{
-                          ...(sticky ? { ...sticky, zIndex: 1 } : {}),
+                          ...(sticky ? { ...sticky, zIndex: 2 } : {}),
                         }}
                       >
                         {renderCellValue(col.id, row.ro, row.lineIndex)}
