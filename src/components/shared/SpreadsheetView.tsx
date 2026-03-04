@@ -720,7 +720,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                             ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                             : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                           }
-                          {formatDateLabel(row.date)}
+                          {groupBy === 'advisor' ? row.date : formatDateLabel(row.date)}
                         </span>
                         <span className="text-muted-foreground font-medium normal-case tracking-normal">
                           {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.dayTotal, hideTotals)}h
