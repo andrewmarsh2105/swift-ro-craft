@@ -641,8 +641,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto pr-5" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
-        <table className={cn('w-full border-collapse table-fixed', textSize)}>
+      <div className="flex-1 overflow-auto sm:pr-5" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
+        <table className={cn('min-w-full border-collapse table-fixed', textSize)}>
           <colgroup>
             {activeCols.map((col) => {
               // Description gets remaining space via auto; others get fixed widths
