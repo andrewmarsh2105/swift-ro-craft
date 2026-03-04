@@ -242,48 +242,81 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const { rows, hasMore } = useMemo(() => {
     const allRows: TableRow[] = [];
 
-    groupedDates.forEach((group, dateIndex) => {
-      // Date header
-      allRows.push({
-        type: 'date-header',
-        date: group.date,
-        dayTotal: group.dayTotal,
-        roCount: group.ros.length,
-      });
-
-      if (!collapsed.has(group.date)) {
-        group.ros.forEach((gro) => {
-          gro.lines.forEach((gl, i) => {
-            allRows.push({
-              type: 'line',
-              ro: gl.ro,
-              lineIndex: gl.lineIndex,
-              isFirstOfRO: i === 0,
-              roLineCount: gro.lines.length,
-              dateIndex,
-            });
-          });
-          // RO subtotal (only if RO has >1 line or always for clarity)
-          allRows.push({
-            type: 'ro-subtotal',
-            roNumber: gro.roNumber,
-            roTotal: gro.roTotal,
-            dateIndex,
-          });
-        });
-
-        // Day total
+    if (groupBy === 'none') {
+      // Flat list — no headers, no subtotals
+      const allLines: GroupedLine[] = [];
+      groupedDates.forEach(g => g.ros.forEach(gro => allLines.push(...gro.lines)));
+      allLines.forEach((gl, i) => {
         allRows.push({
-          type: 'day-total',
-          date: group.date,
-          dayTotal: group.dayTotal,
+          type: 'line',
+          ro: gl.ro,
+          lineIndex: gl.lineIndex,
+          isFirstOfRO: false,
+          roLineCount: 1,
+          dateIndex: 0,
         });
+      });
+    } else if (groupBy === 'ro') {
+      // Group by RO only — RO subtotals, no date headers
+      const roMap = new Map<string, GroupedRO>();
+      groupedDates.forEach(g => g.ros.forEach(gro => {
+        const existing = roMap.get(gro.roNumber);
+        if (existing) {
+          existing.lines.push(...gro.lines);
+          existing.roTotal += gro.roTotal;
+        } else {
+          roMap.set(gro.roNumber, { ...gro, lines: [...gro.lines] });
+        }
+      }));
+      let idx = 0;
+      for (const gro of roMap.values()) {
+        gro.lines.forEach((gl, i) => {
+          allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: i === 0, roLineCount: gro.lines.length, dateIndex: idx });
+        });
+        allRows.push({ type: 'ro-subtotal', roNumber: gro.roNumber, roTotal: gro.roTotal, dateIndex: idx });
+        idx++;
       }
-    });
+    } else if (groupBy === 'advisor') {
+      // Group by advisor
+      const advMap = new Map<string, { lines: GroupedLine[]; total: number }>();
+      groupedDates.forEach(g => g.ros.forEach(gro => {
+        const adv = gro.ro.advisor || 'Unassigned';
+        if (!advMap.has(adv)) advMap.set(adv, { lines: [], total: 0 });
+        const entry = advMap.get(adv)!;
+        entry.lines.push(...gro.lines);
+        entry.total += gro.roTotal;
+      }));
+      let idx = 0;
+      for (const [adv, data] of advMap) {
+        allRows.push({ type: 'date-header', date: adv, dayTotal: data.total, roCount: data.lines.length });
+        if (!collapsed.has(adv)) {
+          data.lines.forEach((gl, i) => {
+            allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: false, roLineCount: 1, dateIndex: idx });
+          });
+          allRows.push({ type: 'day-total', date: adv, dayTotal: data.total });
+        }
+        idx++;
+      }
+    } else {
+      // groupBy === 'date' (default) — full Date → RO grouping
+      groupedDates.forEach((group, dateIndex) => {
+        allRows.push({ type: 'date-header', date: group.date, dayTotal: group.dayTotal, roCount: group.ros.length });
+
+        if (!collapsed.has(group.date)) {
+          group.ros.forEach((gro) => {
+            gro.lines.forEach((gl, i) => {
+              allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: i === 0, roLineCount: gro.lines.length, dateIndex });
+            });
+            allRows.push({ type: 'ro-subtotal', roNumber: gro.roNumber, roTotal: gro.roTotal, dateIndex });
+          });
+          allRows.push({ type: 'day-total', date: group.date, dayTotal: group.dayTotal });
+        }
+      });
+    }
 
     const sliced = allRows.slice(0, visibleCount);
     return { rows: sliced, hasMore: visibleCount < allRows.length };
-  }, [groupedDates, collapsed, visibleCount]);
+  }, [groupedDates, collapsed, visibleCount, groupBy]);
 
   /* ─── Cell value renderer ─── */
   const renderCellValue = useCallback((colId: ColumnId, ro: RepairOrder, lineIndex: number): ReactNode => {
