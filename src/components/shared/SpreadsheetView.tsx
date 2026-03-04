@@ -777,7 +777,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   className={cn(
                     'cursor-pointer hover:bg-accent/50 transition-colors',
                     row.isFirstOfRO ? 'border-t border-border' : 'border-t border-border/30',
-                    row.dateIndex % 2 === 1 && 'bg-muted/20',
                   )}
                   onClick={() => onSelectRO(row.ro)}
                 >
@@ -794,8 +793,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                           col.align === 'center' && 'text-center',
                           col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
                           isFirstCol && `border-l-[3px] ${borderColorClass}`,
-                          'align-top',
-                          sticky ? 'bg-card' : (row.dateIndex % 2 === 1 ? 'bg-muted/20' : 'bg-card'),
+                          'align-top bg-card',
                         )}
                         style={{
                           ...(sticky ? { ...sticky, zIndex: 2 } : {}),
