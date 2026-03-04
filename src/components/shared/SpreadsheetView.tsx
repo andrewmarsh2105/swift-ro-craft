@@ -27,6 +27,15 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
+import {
+  buildSpreadsheetRows,
+  PAYROLL_EXPORT_HEADERS,
+  AUDIT_EXPORT_HEADERS,
+  rowToExportCells,
+  type SpreadsheetRow,
+  type SpreadsheetLineRow,
+  type SpreadsheetSubtotalRow,
+} from '@/lib/buildSpreadsheetRows';
 
 /* ─── Props ─── */
 interface SpreadsheetViewProps {
@@ -46,57 +55,6 @@ const DISPLAY_COLUMNS: ColumnId[] = [
 const AUDIT_DISPLAY_COLUMNS: ColumnId[] = [
   'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'tbd', 'notes', 'mileage', 'vin',
 ];
-
-/* ─── Grouped data structure ─── */
-interface GroupedLine {
-  ro: RepairOrder;
-  lineIndex: number; // -1 for legacy single-line ROs
-}
-
-interface GroupedRO {
-  ro: RepairOrder;
-  roNumber: string;
-  roTotal: number;
-  lines: GroupedLine[];
-}
-
-interface GroupedDate {
-  date: string;
-  dayTotal: number;
-  ros: GroupedRO[];
-}
-
-/* ─── Row types for rendering ─── */
-interface LineRow {
-  type: 'line';
-  ro: RepairOrder;
-  lineIndex: number;
-  isFirstOfRO: boolean;
-  roLineCount: number;
-  dateIndex: number; // for zebra
-}
-
-interface ROSubtotalRow {
-  type: 'ro-subtotal';
-  roNumber: string;
-  roTotal: number;
-  dateIndex: number;
-}
-
-interface DayTotalRow {
-  type: 'day-total';
-  date: string;
-  dayTotal: number;
-}
-
-interface DateHeaderRow {
-  type: 'date-header';
-  date: string;
-  dayTotal: number;
-  roCount: number;
-}
-
-type TableRow = LineRow | ROSubtotalRow | DayTotalRow | DateHeaderRow;
 
 const ROW_BATCH = 120;
 
@@ -119,7 +77,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
 
-  // Sync local state with persisted settings (handles async load & remount)
   useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
   useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
   useEffect(() => { setGroupBy(persistedGroupBy); }, [persistedGroupBy]);
@@ -141,20 +98,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     updateUserSetting('spreadsheetDensity' as any, next);
   };
   const handleToggleCol = (id: ColumnId) => {
-    if (id === 'roTotal') return; // no longer a column
+    if (id === 'roTotal') return;
     setActiveColIds(prev =>
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
   };
-
-  // Collapsible date groups
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const toggleCollapse = (key: string) =>
-    setCollapsed(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
 
   // Text modal
   const [textModal, setTextModal] = useState<{ open: boolean; lineNo: number; description: string }>({
@@ -165,344 +113,105 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [visibleCount, setVisibleCount] = useState(ROW_BATCH);
   useEffect(() => setVisibleCount(ROW_BATCH), [ros]);
 
-  /* ─── Active column defs ─── */
+  /* ─── Active column defs (no roTotal) ─── */
   const activeCols = useMemo(
     () => activeColIds.filter(id => id !== 'roTotal').map(id => ALL_COLUMNS.find(c => c.id === id)!).filter(Boolean),
     [activeColIds],
   );
 
-  /* ─── Sticky styles ─── */
-  const stickyStyles = useMemo(() => {
-    if (isMobile) return {} as Record<string, React.CSSProperties>;
-    const map: Record<string, React.CSSProperties> = {};
-    let left = 0;
-    activeCols.forEach((col, i) => {
-      if (i < 2) {
-        map[col.id] = { position: 'sticky', left, minWidth: col.minWidth };
-        left += col.minWidth;
-      }
-    });
-    return map;
-  }, [activeCols, isMobile]);
+  /* ─── Build rows using shared model ─── */
+  const allRows = useMemo(() => buildSpreadsheetRows({ ros, periodLabel: rangeLabel }), [ros, rangeLabel]);
 
-  /* ─── Build grouped data ─── */
-  const { groupedDates, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
-    let hours = 0, lines = 0, wH = 0, cH = 0, iH = 0;
+  /* ─── Compute totals from the period subtotal row ─── */
+  const periodRow = allRows.find(r => r.rowType === 'periodSubtotal') as SpreadsheetSubtotalRow | undefined;
+  const totalHours = periodRow?.hours ?? 0;
+  const warrantyHours = periodRow?.wHours ?? 0;
+  const cpHours = periodRow?.cpHours ?? 0;
+  const internalHours = periodRow?.iHours ?? 0;
+  const totalLines = allRows.filter(r => r.rowType === 'line').length;
 
-    const sorted = [...ros].sort((a, b) => {
-      const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
-      return bD.localeCompare(aD) || a.roNumber.localeCompare(b.roNumber);
-    });
-
-    const dateMap = new Map<string, GroupedRO[]>();
-    for (const ro of sorted) {
-      const dateKey = (ro.paidDate || ro.date).slice(0, 10);
-      if (!dateMap.has(dateKey)) dateMap.set(dateKey, []);
-
-      const hasL = ro.lines?.length > 0;
-      let roTotal = 0;
-      const groupedLines: GroupedLine[] = [];
-
-      if (hasL) {
-        ro.lines.forEach((line, i) => {
-          if (!line.isTbd) {
-            roTotal += line.hoursPaid;
-            hours += line.hoursPaid;
-            const lt = line.laborType ?? ro.laborType;
-            if (lt === 'warranty') wH += line.hoursPaid;
-            else if (lt === 'customer-pay') cH += line.hoursPaid;
-            else iH += line.hoursPaid;
-          }
-          lines++;
-          groupedLines.push({ ro, lineIndex: i });
-        });
-      } else {
-        roTotal = ro.paidHours;
-        hours += ro.paidHours;
-        if (ro.laborType === 'warranty') wH += ro.paidHours;
-        else if (ro.laborType === 'customer-pay') cH += ro.paidHours;
-        else iH += ro.paidHours;
-        lines++;
-        groupedLines.push({ ro, lineIndex: -1 });
-      }
-
-      dateMap.get(dateKey)!.push({ ro, roNumber: ro.roNumber, roTotal, lines: groupedLines });
-    }
-
-    const result: GroupedDate[] = [];
-    for (const [date, rosGroup] of dateMap) {
-      const dayTotal = rosGroup.reduce((s, r) => s + r.roTotal, 0);
-      result.push({ date, dayTotal, ros: rosGroup });
-    }
-
-    return { groupedDates: result, totalHours: hours, totalLines: lines, warrantyHours: wH, cpHours: cH, internalHours: iH };
-  }, [ros]);
-
-  /* ─── Flatten to renderable rows ─── */
-  const { rows, hasMore } = useMemo(() => {
-    const allRows: TableRow[] = [];
-
-    if (groupBy === 'none') {
-      // Flat list — no headers, no subtotals
-      const allLines: GroupedLine[] = [];
-      groupedDates.forEach(g => g.ros.forEach(gro => allLines.push(...gro.lines)));
-      allLines.forEach((gl, i) => {
-        allRows.push({
-          type: 'line',
-          ro: gl.ro,
-          lineIndex: gl.lineIndex,
-          isFirstOfRO: false,
-          roLineCount: 1,
-          dateIndex: 0,
-        });
-      });
-    } else if (groupBy === 'ro') {
-      // Group by RO only — RO subtotals, no date headers
-      const roMap = new Map<string, GroupedRO>();
-      groupedDates.forEach(g => g.ros.forEach(gro => {
-        const existing = roMap.get(gro.roNumber);
-        if (existing) {
-          existing.lines.push(...gro.lines);
-          existing.roTotal += gro.roTotal;
-        } else {
-          roMap.set(gro.roNumber, { ...gro, lines: [...gro.lines] });
-        }
-      }));
-      let idx = 0;
-      for (const gro of roMap.values()) {
-        gro.lines.forEach((gl, i) => {
-          allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: i === 0, roLineCount: gro.lines.length, dateIndex: idx });
-        });
-        allRows.push({ type: 'ro-subtotal', roNumber: gro.roNumber, roTotal: gro.roTotal, dateIndex: idx });
-        idx++;
-      }
-    } else if (groupBy === 'advisor') {
-      // Group by advisor
-      const advMap = new Map<string, { lines: GroupedLine[]; total: number }>();
-      groupedDates.forEach(g => g.ros.forEach(gro => {
-        const adv = gro.ro.advisor || 'Unassigned';
-        if (!advMap.has(adv)) advMap.set(adv, { lines: [], total: 0 });
-        const entry = advMap.get(adv)!;
-        entry.lines.push(...gro.lines);
-        entry.total += gro.roTotal;
-      }));
-      let idx = 0;
-      for (const [adv, data] of advMap) {
-        allRows.push({ type: 'date-header', date: adv, dayTotal: data.total, roCount: data.lines.length });
-        if (!collapsed.has(adv)) {
-          data.lines.forEach((gl, i) => {
-            allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: false, roLineCount: 1, dateIndex: idx });
-          });
-          allRows.push({ type: 'day-total', date: adv, dayTotal: data.total });
-        }
-        idx++;
-      }
-    } else {
-      // groupBy === 'date' (default) — full Date → RO grouping
-      groupedDates.forEach((group, dateIndex) => {
-        allRows.push({ type: 'date-header', date: group.date, dayTotal: group.dayTotal, roCount: group.ros.length });
-
-        if (!collapsed.has(group.date)) {
-          group.ros.forEach((gro) => {
-            gro.lines.forEach((gl, i) => {
-              allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: i === 0, roLineCount: gro.lines.length, dateIndex });
-            });
-            allRows.push({ type: 'ro-subtotal', roNumber: gro.roNumber, roTotal: gro.roTotal, dateIndex });
-          });
-          allRows.push({ type: 'day-total', date: group.date, dayTotal: group.dayTotal });
-        }
-      });
-    }
-
-    const sliced = allRows.slice(0, visibleCount);
-    return { rows: sliced, hasMore: visibleCount < allRows.length };
-  }, [groupedDates, collapsed, visibleCount, groupBy]);
+  /* ─── Paginate ─── */
+  const visibleRows = useMemo(() => allRows.slice(0, visibleCount), [allRows, visibleCount]);
+  const hasMore = visibleCount < allRows.length;
 
   /* ─── Cell value renderer ─── */
-  const renderCellValue = useCallback((colId: ColumnId, ro: RepairOrder, lineIndex: number): ReactNode => {
-    const line = lineIndex >= 0 ? ro.lines[lineIndex] : null;
-    const laborType = line?.laborType ?? ro.laborType;
-
+  const renderCellValue = useCallback((colId: ColumnId, row: SpreadsheetLineRow): ReactNode => {
     switch (colId) {
       case 'roNumber':
-        return <span className="font-bold">#{ro.roNumber}</span>;
+        return <span className="font-bold">#{row.roNumber}</span>;
       case 'date': {
-        const ed = ro.paidDate || ro.date;
-        const [y, m, d] = ed.split('-').map(Number);
+        const [y, m, d] = row.date.split('-').map(Number);
         return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
-      case 'advisor': return ro.advisor || '—';
-      case 'customer': return ro.customerName || '—';
-      case 'vehicle': return formatVehicleChip(ro.vehicle) || <span className="italic text-muted-foreground">—</span>;
-      case 'lineNo': return line ? line.lineNo : 1;
+      case 'advisor': return row.advisor || '—';
+      case 'customer': return row.customer || '—';
+      case 'vehicle': return row.vehicle || <span className="italic text-muted-foreground">—</span>;
+      case 'lineNo': return row.lineNo;
       case 'description': {
-        const desc = line ? line.description : ro.workPerformed;
         return (
           <button
             className="text-left truncate max-w-full hover:text-primary transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              setTextModal({ open: true, lineNo: line?.lineNo ?? 1, description: desc || '' });
+              setTextModal({ open: true, lineNo: row.lineNo, description: row.description || '' });
             }}
             title="Click to view full text"
           >
-            {desc || <span className="text-muted-foreground italic">—</span>}
+            {row.description || <span className="text-muted-foreground italic">—</span>}
           </button>
         );
       }
       case 'hours': {
-        const hrs = line ? line.hoursPaid : ro.paidHours;
-        const isTbd = line?.isTbd ?? false;
         return (
-          <span className={cn('tabular-nums font-medium', isTbd && 'line-through text-amber-500')}>
-            {hrs.toFixed(1)}
-            {isTbd && <span className="ml-1 text-[10px] font-semibold">TBD</span>}
+          <span className={cn('tabular-nums font-medium', row.isTbd && 'line-through text-amber-500')}>
+            {row.hours.toFixed(1)}
+            {row.isTbd && <span className="ml-1 text-[10px] font-semibold">TBD</span>}
           </span>
         );
       }
       case 'type': {
-        const tl = laborType === 'warranty' ? 'W' : laborType === 'customer-pay' ? 'CP' : 'I';
-        const tc = laborType === 'warranty'
+        const tc = row.laborType === 'warranty'
           ? 'text-[hsl(var(--status-warranty))]'
-          : laborType === 'customer-pay'
+          : row.laborType === 'customer-pay'
             ? 'text-[hsl(var(--status-customer-pay))]'
             : 'text-[hsl(var(--status-internal))]';
-        return <span className={cn('font-semibold text-xs', tc)}>{tl}</span>;
+        return <span className={cn('font-semibold text-xs', tc)}>{row.type}</span>;
       }
       case 'tbd':
-        return line?.isTbd ? <span className="text-amber-500 text-xs font-semibold">⏳</span> : '';
+        return row.isTbd ? <span className="text-amber-500 text-xs font-semibold">⏳</span> : '';
       case 'notes':
-        return <span className="text-xs text-muted-foreground truncate">{ro.notes || ''}</span>;
+        return <span className="text-xs text-muted-foreground truncate">{row.notes || ''}</span>;
       case 'mileage':
-        return <span className="text-xs tabular-nums">{ro.mileage || ''}</span>;
+        return <span className="text-xs tabular-nums">{row.mileage || ''}</span>;
       case 'vin':
-        return <span className="text-[11px] font-mono text-muted-foreground">{ro.vehicle?.vin || ''}</span>;
+        return <span className="text-[11px] font-mono text-muted-foreground">{row.vin || ''}</span>;
       default: return '';
     }
   }, []);
 
   /* ─── Export helpers ─── */
-  const buildExportRows = useCallback((columns: ColumnId[]) => {
-    const exportCols = columns.filter(id => id !== 'roTotal');
-    const headers = exportCols.map(id => ALL_COLUMNS.find(c => c.id === id)!.label);
-    const dataRows: { ro: RepairOrder; lineIndex: number }[] = [];
-
-    for (const group of groupedDates) {
-      for (const gro of group.ros) {
-        for (const gl of gro.lines) {
-          dataRows.push({ ro: gl.ro, lineIndex: gl.lineIndex });
-        }
-      }
-    }
-
-    const csvRows: string[][] = [];
-    let currentDate = '';
-    let dayTotal = 0;
-
-    const sorted = [...dataRows].sort((a, b) => {
-      const aD = a.ro.paidDate || a.ro.date, bD = b.ro.paidDate || b.ro.date;
-      return aD.localeCompare(bD) || a.ro.roNumber.localeCompare(b.ro.roNumber);
-    });
-
-    for (const row of sorted) {
-      const line = row.lineIndex >= 0 ? row.ro.lines[row.lineIndex] : null;
-      if (line?.isTbd) continue;
-      const dateKey = (row.ro.paidDate || row.ro.date).slice(0, 10);
-
-      if (currentDate && dateKey !== currentDate) {
-        const totalRow = exportCols.map(id => {
-          if (id === 'date') return csvCell(currentDate);
-          if (id === 'description') return csvCell('DAY TOTAL');
-          if (id === 'hours') return csvCell(dayTotal.toFixed(2));
-          return csvCell('');
-        });
-        csvRows.push(totalRow);
-        dayTotal = 0;
-      }
-      currentDate = dateKey;
-
-      const hrs = line ? line.hoursPaid : row.ro.paidHours;
-      dayTotal += hrs;
-
-      const vals = exportCols.map(id => {
-        const laborType = line?.laborType ?? row.ro.laborType;
-        switch (id) {
-          case 'roNumber': return csvCell(row.ro.roNumber);
-          case 'date': return csvCell(row.ro.paidDate || row.ro.date);
-          case 'advisor': return csvCell(row.ro.advisor || '');
-          case 'customer': return csvCell(row.ro.customerName || '');
-          case 'vehicle': return csvCell(formatVehicleChip(row.ro.vehicle) || '');
-          case 'lineNo': return csvCell(line ? line.lineNo : 1);
-          case 'description': return csvCell(line ? line.description : row.ro.workPerformed);
-          case 'hours': return csvCell(hrs.toFixed(2));
-          case 'type': return csvCell(typeCode(laborType));
-          case 'tbd': return csvCell(line?.isTbd ? 'Y' : 'N');
-          case 'notes': return csvCell(row.ro.notes || '');
-          case 'mileage': return csvCell(row.ro.mileage || '');
-          case 'vin': return csvCell(row.ro.vehicle?.vin || '');
-          default: return csvCell('');
-        }
-      });
-      csvRows.push(vals);
-    }
-
-    if (currentDate) {
-      const totalRow = exportCols.map(id => {
-        if (id === 'date') return csvCell(currentDate);
-        if (id === 'description') return csvCell('DAY TOTAL');
-        if (id === 'hours') return csvCell(dayTotal.toFixed(2));
-        return csvCell('');
-      });
-      csvRows.push(totalRow);
-    }
-
-    const periodTotal = sorted.reduce((sum, r) => {
-      const line = r.lineIndex >= 0 ? r.ro.lines[r.lineIndex] : null;
-      if (line?.isTbd) return sum;
-      return sum + (line ? line.hoursPaid : r.ro.paidHours);
-    }, 0);
-    const periodRow = exportCols.map(id => {
-      if (id === 'description') return csvCell('PERIOD TOTAL');
-      if (id === 'hours') return csvCell(periodTotal.toFixed(2));
-      return csvCell('');
-    });
-    csvRows.push(periodRow);
-
-    return { headers, csvRows };
-  }, [groupedDates]);
-
-  const handleExportPayroll = useCallback(() => {
-    const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'description', 'hours', 'type'];
-    const { headers, csvRows } = buildExportRows(cols);
-    const csv = buildCSV(headers, csvRows);
-    downloadCSVFile(csv, `payroll-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast.success('Payroll CSV downloaded');
-  }, [buildExportRows]);
-
-  const handleExportFull = useCallback(() => {
-    const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'tbd', 'notes', 'mileage', 'vin'];
-    const { headers, csvRows } = buildExportRows(cols);
-    const csv = buildCSV(headers, csvRows);
-    downloadCSVFile(csv, `audit-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast.success('Full CSV downloaded');
-  }, [buildExportRows]);
+  const handleExportCSV = useCallback((mode: 'payroll' | 'audit') => {
+    const headers = mode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
+    const exportRows = allRows
+      .filter(r => !(r.rowType === 'line' && (r as SpreadsheetLineRow).isTbd))
+      .map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
+    const csv = buildCSV(headers, exportRows);
+    downloadCSVFile(csv, `${mode}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} CSV downloaded`);
+  }, [allRows]);
 
   const handleExportXLSX = useCallback(async () => {
     try {
       const XLSX = await import('xlsx');
-      const cols: ColumnId[] = activeColIds.filter(id => id !== 'roTotal');
-      const { headers, csvRows } = buildExportRows(cols);
-
-      const parseCell = (c: string) => {
-        if (!c) return '';
-        if (c.startsWith('"') && c.endsWith('"')) return c.slice(1, -1).replace(/""/g, '"');
-        return c;
-      };
-      const data = [headers, ...csvRows.map(r => r.map(parseCell))];
+      const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
+      const exportRows = allRows
+        .filter(r => !(r.rowType === 'line' && (r as SpreadsheetLineRow).isTbd))
+        .map(r => rowToExportCells(r, headers));
+      const data = [headers, ...exportRows];
 
       const ws = XLSX.utils.aoa_to_sheet(data);
       ws['!cols'] = headers.map((h) => {
-        if (h === 'Work Performed' || h === 'Description') return { wch: 40 };
+        if (h === 'Work Performed') return { wch: 40 };
         if (h === 'VIN') return { wch: 20 };
         if (h === 'Notes') return { wch: 24 };
         return { wch: Math.max(h.length + 2, 12) };
@@ -517,31 +226,23 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       console.error('XLSX export failed', err);
       toast.error('XLSX export failed');
     }
-  }, [activeColIds, buildExportRows]);
+  }, [allRows, viewMode]);
 
-  const handleExportPayrollPDF = useCallback(async () => {
+  const handleExportPDF = useCallback(async (mode: 'payroll' | 'audit') => {
     try {
-      const { exportPDF } = await import('@/lib/pdfExport');
-      const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'description', 'hours', 'type'];
-      exportPDF(ros, cols, `payroll-${format(new Date(), 'yyyy-MM-dd')}.pdf`, `Payroll Report${rangeLabel ? ' — ' + rangeLabel : ''}`);
-      toast.success('Payroll PDF downloaded');
+      const { exportPDFFromRows } = await import('@/lib/pdfExport');
+      exportPDFFromRows(
+        allRows,
+        mode,
+        `${mode}-${format(new Date(), 'yyyy-MM-dd')}.pdf`,
+        `${mode === 'payroll' ? 'Payroll' : 'Audit'} Report${rangeLabel ? ' — ' + rangeLabel : ''}`,
+      );
+      toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} PDF downloaded`);
     } catch (err) {
       console.error('PDF export failed', err);
       toast.error('PDF export failed');
     }
-  }, [ros, rangeLabel]);
-
-  const handleExportAuditPDF = useCallback(async () => {
-    try {
-      const { exportPDF } = await import('@/lib/pdfExport');
-      const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'notes', 'mileage', 'vin'];
-      exportPDF(ros, cols, `audit-${format(new Date(), 'yyyy-MM-dd')}.pdf`, `Audit Report${rangeLabel ? ' — ' + rangeLabel : ''}`);
-      toast.success('Audit PDF downloaded');
-    } catch (err) {
-      console.error('PDF export failed', err);
-      toast.error('PDF export failed');
-    }
-  }, [ros, rangeLabel]);
+  }, [allRows, rangeLabel]);
 
   const handlePrint = useCallback(() => {
     const el = tableRef.current;
@@ -561,16 +262,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     w.print();
   }, []);
 
-  /* ─── Helpers ─── */
-  const formatDateLabel = (dateStr: string) => {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return format(new Date(y, m - 1, d), 'EEE, MMM d');
-  };
-
   /* ─── Density classes ─── */
   const cellPy = density === 'compact' ? 'py-1' : 'py-2';
   const cellPx = 'px-2.5';
   const textSize = density === 'compact' ? 'text-xs' : 'text-sm';
+
+  /* ─── Helpers ─── */
+  const getRowBg = (groupIndex: number) =>
+    groupIndex % 2 === 1 ? 'bg-muted/30' : 'bg-card';
 
   /* ─── Empty state ─── */
   if (ros.length === 0) {
@@ -589,7 +288,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           {rangeLabel && (
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{rangeLabel}</span>
           )}
-          {/* View mode */}
           <div className="flex rounded-lg border border-border overflow-hidden">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
@@ -607,7 +305,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             ))}
           </div>
 
-          {/* Group By */}
           <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
             <SelectTrigger className="h-7 w-[120px] text-[11px] font-semibold">
               <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
@@ -623,7 +320,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Density toggle */}
           <Button
             variant="ghost" size="sm" className="h-7 gap-1 text-xs"
             onClick={handleDensityChange}
@@ -634,7 +330,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
           <ColumnChooser activeColumns={activeColIds} onToggle={handleToggleCol} />
 
-          {/* Export dropdown - Pro only */}
           {isPro && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -644,16 +339,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </Button>
               </DropdownMenuTrigger>
                <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleExportPayroll}>
+                <DropdownMenuItem onClick={() => handleExportCSV('payroll')}>
                   <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportFull}>
+                <DropdownMenuItem onClick={() => handleExportCSV('audit')}>
                   <Download className="h-3.5 w-3.5 mr-2" /> Audit CSV
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPayrollPDF}>
+                <DropdownMenuItem onClick={() => handleExportPDF('payroll')}>
                   <FileText className="h-3.5 w-3.5 mr-2" /> Payroll PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportAuditPDF}>
+                <DropdownMenuItem onClick={() => handleExportPDF('audit')}>
                   <FileText className="h-3.5 w-3.5 mr-2" /> Audit PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportXLSX}>
@@ -672,151 +367,133 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto pr-3 sm:pr-5" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
-        <table className={cn('min-w-full border-collapse table-fixed', textSize)}>
-          <colgroup>
-            {activeCols.map((col) => {
-              if (col.id === 'description') return <col key={col.id} />;
-              return <col key={col.id} style={{ width: col.minWidth }} />;
-            })}
-          </colgroup>
+      <div className="flex-1 overflow-auto" ref={tableRef}>
+        <table className={cn('min-w-[900px] w-full border-collapse', textSize)}>
           <thead className="sticky top-0 z-10 bg-card border-b-2 border-border">
             <tr>
-              {activeCols.map((col) => {
-                const sticky = stickyStyles[col.id];
-                return (
-                  <th
-                    key={col.id}
-                    className={cn(
-                      cellPx, cellPy,
-                      'font-semibold text-muted-foreground whitespace-nowrap bg-card overflow-hidden',
-                      col.align === 'right' && 'text-right',
-                      col.align === 'center' && 'text-center',
-                    )}
-                    style={{
-                      ...(sticky ? { ...sticky, zIndex: 11 } : {}),
-                    }}
-                  >
-                    {col.label}
-                  </th>
-                );
-              })}
+              {activeCols.map((col) => (
+                <th
+                  key={col.id}
+                  className={cn(
+                    cellPx, cellPy,
+                    'font-semibold text-muted-foreground whitespace-nowrap bg-card overflow-hidden',
+                    col.align === 'right' && 'text-right',
+                    col.align === 'center' && 'text-center',
+                  )}
+                  style={{ minWidth: col.minWidth }}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => {
-              if (row.type === 'date-header') {
-                const isCollapsed = collapsed.has(row.date);
+            {visibleRows.map((row, i) => {
+              /* ─── Subtotal rows ─── */
+              if (row.rowType === 'roSubtotal') {
+                const sub = row as SpreadsheetSubtotalRow;
+                // Find how many columns before 'hours'
+                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                const typeIdx = activeCols.findIndex(c => c.id === 'type');
+                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                const afterCols = activeCols.length - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
+
                 return (
-                  <tr key={`dh-${row.date}`} className="bg-muted/40">
-                    <td
-                      colSpan={activeCols.length}
-                      className={cn(cellPx, 'py-1.5 font-bold text-foreground text-xs uppercase tracking-wider cursor-pointer select-none')}
-                      onClick={() => toggleCollapse(row.date)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5">
-                          {isCollapsed
-                            ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                          }
-                          {groupBy === 'advisor' ? row.date : formatDateLabel(row.date)}
-                        </span>
-                        <span className="text-muted-foreground font-medium normal-case tracking-normal">
-                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.dayTotal, hideTotals)}h
-                        </span>
-                      </div>
+                  <tr key={`rosub-${i}`} className="border-t border-border/50 bg-muted/15">
+                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-xs text-right')}>
+                      {sub.label}
                     </td>
+                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary')}>
+                      {maskHours(sub.hours, hideTotals)}h
+                    </td>
+                    {typeIdx > hrsIdx && (
+                      <td className={cn(cellPx, cellPy, 'text-xs text-muted-foreground')}>
+                        {[
+                          sub.cpHours ? `CP: ${sub.cpHours.toFixed(1)}` : '',
+                          sub.wHours ? `W: ${sub.wHours.toFixed(1)}` : '',
+                          sub.iHours ? `I: ${sub.iHours.toFixed(1)}` : '',
+                        ].filter(Boolean).join(' ')}
+                      </td>
+                    )}
+                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
                   </tr>
                 );
               }
 
-              if (row.type === 'ro-subtotal') {
+              if (row.rowType === 'daySubtotal') {
+                const sub = row as SpreadsheetSubtotalRow;
+                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                const afterCols = activeCols.length - spanCols - 1;
+
                 return (
-                  <tr key={`rosub-${row.roNumber}-${i}`} className="border-t border-border/50">
-                    {activeCols.map(col => {
-                      const sticky = stickyStyles[col.id];
-                      if (col.id === 'roNumber')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground bg-card')} style={sticky ? { ...sticky, zIndex: 2 } : undefined}>#{row.roNumber}</td>;
-                      if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground bg-card')}>RO Total</td>;
-                      if (col.id === 'hours')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary bg-card')}>{maskHours(row.roTotal, hideTotals)}h</td>;
-                      return <td key={col.id} className={cn(cellPx, cellPy, 'bg-card')} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
-                    })}
+                  <tr key={`daysub-${i}`} className="border-t-2 border-border bg-muted/40">
+                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
+                      {sub.label}
+                    </td>
+                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
+                      {maskHours(sub.hours, hideTotals)}h
+                    </td>
+                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
                   </tr>
                 );
               }
 
-              if (row.type === 'day-total') {
+              if (row.rowType === 'periodSubtotal') {
+                const sub = row as SpreadsheetSubtotalRow;
+                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                const afterCols = activeCols.length - spanCols - 1;
+
                 return (
-                  <tr key={`dtot-${row.date}`} className="border-t-2 border-border">
-                    {activeCols.map(col => {
-                      const sticky = stickyStyles[col.id];
-                      if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase bg-card')}>{groupBy === 'advisor' ? 'Advisor Total' : 'Day Total'}</td>;
-                      if (col.id === 'hours')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground bg-card')}>{maskHours(row.dayTotal, hideTotals)}h</td>;
-                      return <td key={col.id} className={cn(cellPx, cellPy, 'bg-card')} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
-                    })}
+                  <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/5">
+                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-xs text-right')}>
+                      {sub.label}
+                    </td>
+                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground text-base')}>
+                      {maskHours(sub.hours, hideTotals)}h
+                    </td>
+                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
                   </tr>
                 );
               }
 
-              // Data row
-              const laborType = (row.lineIndex >= 0 ? row.ro.lines[row.lineIndex]?.laborType : null) ?? row.ro.laborType;
-              const borderColorClass = laborType === 'warranty'
+              /* ─── Line row ─── */
+              const line = row as SpreadsheetLineRow;
+              const rowBg = getRowBg(line.groupIndex);
+              const borderColorClass = line.laborType === 'warranty'
                 ? 'border-l-[hsl(var(--status-warranty))]'
-                : laborType === 'customer-pay'
+                : line.laborType === 'customer-pay'
                   ? 'border-l-[hsl(var(--status-customer-pay))]'
                   : 'border-l-[hsl(var(--status-internal))]';
 
               return (
                 <tr
-                  key={`${row.ro.id}-${row.lineIndex}-${i}`}
+                  key={`line-${i}`}
                   className={cn(
-                    'cursor-pointer hover:bg-accent/50 transition-colors',
-                    row.isFirstOfRO ? 'border-t border-border' : 'border-t border-border/30',
+                    'cursor-pointer hover:bg-accent/50 transition-colors border-t border-border/30',
+                    rowBg,
                   )}
-                  onClick={() => onSelectRO(row.ro)}
+                  onClick={() => line.ro && onSelectRO(line.ro)}
                 >
-                  {activeCols.map((col, ci) => {
-                    const sticky = stickyStyles[col.id];
-                    const isFirstCol = ci === 0;
-
-                    return (
-                      <td
-                        key={col.id}
-                        className={cn(
-                          cellPx, cellPy,
-                          col.align === 'right' && 'text-right',
-                          col.align === 'center' && 'text-center',
-                          col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
-                          isFirstCol && `border-l-[3px] ${borderColorClass}`,
-                          'align-top bg-card',
-                        )}
-                        style={{
-                          ...(sticky ? { ...sticky, zIndex: 2 } : {}),
-                        }}
-                      >
-                        {renderCellValue(col.id, row.ro, row.lineIndex)}
-                      </td>
-                    );
-                  })}
+                  {activeCols.map((col, ci) => (
+                    <td
+                      key={col.id}
+                      className={cn(
+                        cellPx, cellPy,
+                        col.align === 'right' && 'text-right',
+                        col.align === 'center' && 'text-center',
+                        col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
+                        ci === 0 && `border-l-[3px] ${borderColorClass}`,
+                        'align-top',
+                      )}
+                    >
+                      {renderCellValue(col.id, line)}
+                    </td>
+                  ))}
                 </tr>
               );
             })}
-
-            {/* Period total row */}
-            <tr className="border-t-2 border-border bg-primary/5">
-              {activeCols.map(col => {
-                if (col.id === 'description')
-                  return <td key={col.id} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-xs')}>Period Total</td>;
-                if (col.id === 'hours')
-                  return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground text-base')}>{maskHours(totalHours, hideTotals)}h</td>;
-                return <td key={col.id} className={cn(cellPx, cellPy)} />;
-              })}
-            </tr>
 
             {hasMore && (
               <tr>
@@ -851,7 +528,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* Text modal */}
       <LineTextModal
         open={textModal.open}
-        onClose={() => setTextModal(prev => ({ ...prev, open: false }))}
+        onOpenChange={(open) => setTextModal(prev => ({ ...prev, open }))}
         lineNo={textModal.lineNo}
         description={textModal.description}
       />
