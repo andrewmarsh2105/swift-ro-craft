@@ -36,6 +36,8 @@ interface SpreadsheetViewProps {
   isCloseout?: boolean;
 }
 
+type GroupBy = 'date' | 'ro' | 'advisor' | 'none';
+
 /* ─── Columns (no roTotal) ─── */
 const DISPLAY_COLUMNS: ColumnId[] = [
   'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'description', 'hours', 'type',
