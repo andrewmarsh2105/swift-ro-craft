@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS spreadsheet_group_by text NOT NULL DEFAULT 'date';

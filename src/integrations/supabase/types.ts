@@ -480,6 +480,7 @@ export type Database = {
           show_scan_confidence: boolean | null
           show_vehicle_chips: boolean | null
           spreadsheet_density: string | null
+          spreadsheet_group_by: string
           spreadsheet_view_mode: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -505,6 +506,7 @@ export type Database = {
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null
+          spreadsheet_group_by?: string
           spreadsheet_view_mode?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -530,6 +532,7 @@ export type Database = {
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null
+          spreadsheet_group_by?: string
           spreadsheet_view_mode?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
