@@ -752,7 +752,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   <tr key={`dtot-${row.date}`} className="bg-muted/40 border-t-2 border-border">
                     {activeCols.map(col => {
                       if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase')}>Day Total</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase')}>{groupBy === 'advisor' ? 'Advisor Total' : 'Day Total'}</td>;
                       if (col.id === 'hours')
                         return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.dayTotal, hideTotals)}h</td>;
                       return <td key={col.id} className={cn(cellPx, cellPy)} />;
