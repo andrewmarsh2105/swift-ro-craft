@@ -528,7 +528,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* Text modal */}
       <LineTextModal
         open={textModal.open}
-        onOpenChange={(open) => setTextModal(prev => ({ ...prev, open }))}
+        onClose={() => setTextModal(prev => ({ ...prev, open: false }))}
         lineNo={textModal.lineNo}
         description={textModal.description}
       />
