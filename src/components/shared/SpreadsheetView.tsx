@@ -1,11 +1,11 @@
 import { useMemo, useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, FileText, Group,
+  Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
+import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import {
   buildSpreadsheetRows,
   PAYROLL_EXPORT_HEADERS,
@@ -45,6 +46,7 @@ interface SpreadsheetViewProps {
   isCloseout?: boolean;
 }
 
+type DateRange = 'all' | 'week' | 'month' | 'pay_period';
 type GroupBy = 'date' | 'ro' | 'advisor' | 'none';
 
 /* ─── Columns (no roTotal) ─── */
@@ -73,9 +75,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
   const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
+  const [dateRange, setDateRange] = useState<DateRange>('week');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
+
+  const hasCustomPayPeriod = userSettings.payPeriodType === 'custom' &&
+    Array.isArray(userSettings.payPeriodEndDates) &&
+    (userSettings.payPeriodEndDates as number[]).length > 0;
 
   useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
   useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
@@ -119,8 +126,57 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     [activeColIds],
   );
 
+  /* ─── Filter ROs by selected date range ─── */
+  const { filteredROs, computedRangeLabel } = useMemo(() => {
+    const now = new Date();
+    const localDate = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    if (isCloseout || dateRange === 'all') {
+      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
+    }
+
+    let startStr: string;
+    let endStr: string;
+
+    if (dateRange === 'week') {
+      const ws = startOfWeek(now, { weekStartsOn: 0 });
+      const we = endOfWeek(now, { weekStartsOn: 0 });
+      startStr = localDate(ws);
+      endStr = localDate(we);
+    } else if (dateRange === 'month') {
+      const ms = startOfMonth(now);
+      const me = endOfMonth(now);
+      startStr = localDate(ms);
+      endStr = localDate(me);
+    } else {
+      // pay_period
+      const ppDates = (userSettings.payPeriodEndDates || []) as number[];
+      const { start, end } = getCustomPayPeriodRange(ppDates, now);
+      startStr = start;
+      endStr = end;
+    }
+
+    const filtered = ros.filter(ro => {
+      const d = ro.paidDate || ro.date;
+      return d >= startStr && d <= endStr;
+    });
+
+    const fmtLabel = (s: string, e: string) => {
+      try {
+        const [sy, sm, sd] = s.split('-').map(Number);
+        const [ey, em, ed] = e.split('-').map(Number);
+        const sf = format(new Date(sy, sm - 1, sd), 'MMM d');
+        const ef = format(new Date(ey, em - 1, ed), 'MMM d');
+        return `${sf} – ${ef}`;
+      } catch { return `${s} – ${e}`; }
+    };
+
+    return { filteredROs: filtered, computedRangeLabel: fmtLabel(startStr, endStr) };
+  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType]);
+
   /* ─── Build rows using shared model ─── */
-  const allRows = useMemo(() => buildSpreadsheetRows({ ros, periodLabel: rangeLabel }), [ros, rangeLabel]);
+  const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel }), [filteredROs, computedRangeLabel]);
 
   /* ─── Compute totals from the period subtotal row ─── */
   const periodRow = allRows.find(r => r.rowType === 'periodSubtotal') as SpreadsheetSubtotalRow | undefined;
@@ -272,10 +328,41 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     groupIndex % 2 === 1 ? 'bg-muted/30' : 'bg-card';
 
   /* ─── Empty state ─── */
-  if (ros.length === 0) {
+  if (filteredROs.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p className="text-lg font-medium">No ROs to display</p>
+      <div className="h-full flex flex-col">
+        {/* Still show toolbar so user can change range */}
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border bg-card">
+          {!isCloseout && (
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              {([
+                { value: 'week' as DateRange, label: 'Week' },
+                { value: 'month' as DateRange, label: 'Month' },
+                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateRange, label: 'Pay Period' }] : []),
+                { value: 'all' as DateRange, label: 'All' },
+              ]).map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setDateRange(opt.value)}
+                  className={cn(
+                    'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
+                    dateRange === opt.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground hover:bg-muted',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {computedRangeLabel && (
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{computedRangeLabel}</span>
+          )}
+        </div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <p className="text-lg font-medium">No ROs in this range</p>
+        </div>
       </div>
     );
   }
@@ -285,9 +372,36 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* ─── Toolbar ─── */}
       <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-card flex-wrap">
         <div className="flex items-center gap-2">
-          {rangeLabel && (
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{rangeLabel}</span>
+          {/* Date range selector */}
+          {!isCloseout && (
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              {([
+                { value: 'week' as DateRange, label: 'Week' },
+                { value: 'month' as DateRange, label: 'Month' },
+                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateRange, label: 'Pay Period' }] : []),
+                { value: 'all' as DateRange, label: 'All' },
+              ]).map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setDateRange(opt.value)}
+                  className={cn(
+                    'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
+                    dateRange === opt.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground hover:bg-muted',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           )}
+
+          {computedRangeLabel && (
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{computedRangeLabel}</span>
+          )}
+
+          {/* View mode */}
           <div className="flex rounded-lg border border-border overflow-hidden">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
@@ -514,7 +628,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* ─── Footer ─── */}
       <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2 flex items-center justify-between text-sm">
         <div className="flex gap-4 text-muted-foreground">
-          <span><strong className="text-foreground">{ros.length}</strong> ROs</span>
+          <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
         <div className="flex items-center gap-3 tabular-nums">
