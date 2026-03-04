@@ -279,7 +279,7 @@
   }
 
   .tab-bar-item {
-    @apply flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-colors;
+    @apply flex flex-col items-center justify-center gap-1.5 flex-1 py-2 transition-colors;
   }
 
   .tab-bar-item-active {

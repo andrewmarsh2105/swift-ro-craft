@@ -26,8 +26,8 @@ export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
               activeTab === id ? 'tab-bar-item-active' : 'tab-bar-item-inactive'
             )}
           >
-            <Icon className="h-6 w-6" strokeWidth={activeTab === id ? 2.5 : 2} />
-            <span className="text-xs font-medium">{label}</span>
+            <Icon size={28} strokeWidth={activeTab === id ? 2.4 : 1.8} />
+            <span className="text-sm font-semibold">{label}</span>
           </button>
         ))}
       </div>
