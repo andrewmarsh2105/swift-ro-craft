@@ -110,22 +110,19 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   const persistedViewMode = ((userSettings as any).spreadsheetViewMode as ViewMode) || 'payroll';
   const persistedDensity = ((userSettings as any).spreadsheetDensity as Density) || 'compact';
+  const persistedGroupBy = ((userSettings as any).spreadsheetGroupBy as GroupBy) || 'date';
 
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
+  const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
 
   // Sync local state with persisted settings (handles async load & remount)
-  useEffect(() => {
-    setViewMode(persistedViewMode);
-  }, [persistedViewMode]);
-
-  useEffect(() => {
-    setDensity(persistedDensity);
-  }, [persistedDensity]);
-
+  useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
+  useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
+  useEffect(() => { setGroupBy(persistedGroupBy); }, [persistedGroupBy]);
   useEffect(() => {
     setActiveColIds(viewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS);
   }, [viewMode]);
@@ -133,6 +130,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const handleViewModeChange = (m: ViewMode) => {
     setViewMode(m);
     updateUserSetting('spreadsheetViewMode' as any, m);
+  };
+  const handleGroupByChange = (g: GroupBy) => {
+    setGroupBy(g);
+    updateUserSetting('spreadsheetGroupBy' as any, g);
   };
   const handleDensityChange = () => {
     const next: Density = density === 'comfortable' ? 'compact' : 'comfortable';
