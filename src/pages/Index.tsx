@@ -28,7 +28,7 @@ function MobileApp() {
     <div className="min-h-screen bg-background flex flex-col">
       <OfflineStatusBar />
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         {activeTab === 'ros' && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}
         {activeTab === 'summary' && <SummaryTab />}
         {activeTab === 'settings' && <SettingsTab />}
