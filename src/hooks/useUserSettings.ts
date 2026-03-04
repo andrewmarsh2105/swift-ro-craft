@@ -69,6 +69,7 @@ export function useUserSettings() {
         hideTotals: (data as any).hide_totals ?? false,
         spreadsheetViewMode: (data as any).spreadsheet_view_mode || 'payroll',
         spreadsheetDensity: (data as any).spreadsheet_density || 'comfortable',
+        spreadsheetGroupBy: (data as any).spreadsheet_group_by || 'date',
       });
     }
     setLoaded(true);
