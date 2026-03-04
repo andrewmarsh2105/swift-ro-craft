@@ -103,15 +103,23 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const isMobile = useIsMobile();
   const hideTotals = userSettings.hideTotals ?? false;
 
-  const [viewMode, setViewMode] = useState<ViewMode>(
-    ((userSettings as any).spreadsheetViewMode as ViewMode) || 'payroll'
-  );
-  const [density, setDensity] = useState<Density>(
-    ((userSettings as any).spreadsheetDensity as Density) || 'compact'
-  );
+  const persistedViewMode = ((userSettings as any).spreadsheetViewMode as ViewMode) || 'payroll';
+  const persistedDensity = ((userSettings as any).spreadsheetDensity as Density) || 'compact';
+
+  const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
+  const [density, setDensity] = useState<Density>(persistedDensity);
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
-    viewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
+    persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
+
+  // Sync local state with persisted settings (handles async load & remount)
+  useEffect(() => {
+    setViewMode(persistedViewMode);
+  }, [persistedViewMode]);
+
+  useEffect(() => {
+    setDensity(persistedDensity);
+  }, [persistedDensity]);
 
   useEffect(() => {
     setActiveColIds(viewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS);
