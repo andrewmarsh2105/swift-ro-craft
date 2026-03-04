@@ -149,7 +149,6 @@
     @apply bg-background text-foreground antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     line-height: 1.6;
-    padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom));
     padding-top: var(--safe-area-inset-top);
   }
 
@@ -271,11 +270,11 @@
     box-shadow: 0 2px 6px -1px hsl(var(--primary) / 0.35);
   }
 
-  /* Tab bar */
-  .tab-bar {
+  /* Tab bar — PWA safe-area aware */
+  .tab-bar-pwa {
     @apply fixed inset-x-0 bottom-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border;
-    height: var(--tab-bar-height);
-    padding-bottom: var(--safe-area-inset-bottom);
+    min-height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .tab-bar-item {
