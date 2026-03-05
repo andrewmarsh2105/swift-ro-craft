@@ -5,7 +5,8 @@ import type { ROSnapshot } from '@/hooks/useCloseouts';
 
 /* ─── Row types ─── */
 
-export type SpreadsheetRowType = 'line' | 'roSubtotal' | 'daySubtotal' | 'periodSubtotal';
+export type SpreadsheetRowType = 'line' | 'roSubtotal' | 'daySubtotal' | 'advisorSubtotal' | 'periodSubtotal';
+export type GroupByMode = 'date' | 'ro' | 'advisor' | 'none';
 
 export interface SpreadsheetLineRow {
   rowType: 'line';
