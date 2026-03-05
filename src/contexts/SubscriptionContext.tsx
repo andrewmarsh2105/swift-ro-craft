@@ -32,7 +32,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const clearCheckoutFallback = useCallback(() => setCheckoutFallbackUrl(null), []);
 
   const checkSubscription = useCallback(async () => {
-    if (!session?.access_token) {
+    // Always get fresh session to avoid stale closures (e.g. post-checkout redirect)
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) {
       setIsPro(false);
       setLoading(false);
       return;
@@ -40,7 +43,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       console.log('[SUB] check-subscription FULL response:', JSON.stringify(data));
       if (data?.debug) {
@@ -69,7 +72,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
