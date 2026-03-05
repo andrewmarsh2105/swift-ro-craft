@@ -572,7 +572,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 );
               }
 
-
+              if (row.rowType === 'periodSubtotal') {
                 const sub = row as SpreadsheetSubtotalRow;
                 const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
                 const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
