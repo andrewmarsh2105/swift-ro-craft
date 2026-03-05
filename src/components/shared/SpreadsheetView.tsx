@@ -176,7 +176,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType]);
 
   /* ─── Build rows using shared model ─── */
-  const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel }), [filteredROs, computedRangeLabel]);
+  const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy }), [filteredROs, computedRangeLabel, groupBy]);
 
   /* ─── Compute totals from the period subtotal row ─── */
   const periodRow = allRows.find(r => r.rowType === 'periodSubtotal') as SpreadsheetSubtotalRow | undefined;

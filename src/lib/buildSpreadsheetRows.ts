@@ -51,7 +51,82 @@ export interface BuildRowsOptions {
   groupBy?: GroupByMode;
 }
 
-export function buildSpreadsheetRows({ ros, periodLabel }: BuildRowsOptions): SpreadsheetRow[] {
+export function buildSpreadsheetRows({ ros, periodLabel, groupBy = 'date' }: BuildRowsOptions): SpreadsheetRow[] {
+  switch (groupBy) {
+    case 'ro': return buildGroupedByRO(ros, periodLabel);
+    case 'advisor': return buildGroupedByAdvisor(ros, periodLabel);
+    case 'none': return buildFlat(ros, periodLabel);
+    case 'date':
+    default: return buildGroupedByDate(ros, periodLabel);
+  }
+}
+
+/* ─── Shared: emit lines for a single RO, return type totals ─── */
+
+function emitROLines(
+  ro: RepairOrder,
+  rows: SpreadsheetRow[],
+  groupIndex: number,
+): { total: number; cp: number; w: number; i: number } {
+  let roTotal = 0, roCP = 0, roW = 0, roI = 0;
+  const hasLines = ro.lines?.length > 0;
+
+  if (hasLines) {
+    for (let i = 0; i < ro.lines.length; i++) {
+      const line = ro.lines[i];
+      const lt = line.laborType ?? ro.laborType;
+      const hrs = line.isTbd ? 0 : line.hoursPaid;
+      roTotal += hrs;
+      if (lt === 'warranty') roW += hrs;
+      else if (lt === 'customer-pay') roCP += hrs;
+      else roI += hrs;
+
+      rows.push({
+        rowType: 'line', groupIndex,
+        roNumber: ro.roNumber, date: ro.paidDate || ro.date,
+        advisor: ro.advisor || '', customer: ro.customerName || '',
+        vehicle: formatVehicleChip(ro.vehicle) || '',
+        lineNo: line.lineNo, description: line.description,
+        hours: line.hoursPaid, type: typeCode(lt), laborType: lt,
+        isTbd: line.isTbd || false, notes: ro.notes || '',
+        mileage: ro.mileage || '', vin: ro.vehicle?.vin || '',
+        ro, lineIndex: i,
+      });
+    }
+  } else {
+    roTotal = ro.paidHours;
+    const lt = ro.laborType;
+    if (lt === 'warranty') roW += ro.paidHours;
+    else if (lt === 'customer-pay') roCP += ro.paidHours;
+    else roI += ro.paidHours;
+
+    rows.push({
+      rowType: 'line', groupIndex,
+      roNumber: ro.roNumber, date: ro.paidDate || ro.date,
+      advisor: ro.advisor || '', customer: ro.customerName || '',
+      vehicle: formatVehicleChip(ro.vehicle) || '',
+      lineNo: 1, description: ro.workPerformed || '',
+      hours: ro.paidHours, type: typeCode(lt), laborType: lt,
+      isTbd: false, notes: ro.notes || '',
+      mileage: ro.mileage || '', vin: ro.vehicle?.vin || '',
+      ro, lineIndex: -1,
+    });
+  }
+
+  return { total: roTotal, cp: roCP, w: roW, i: roI };
+}
+
+function pushPeriodSubtotal(rows: SpreadsheetRow[], periodLabel: string | undefined, hours: number, cp: number, w: number, i: number) {
+  rows.push({
+    rowType: 'periodSubtotal', groupIndex: -1,
+    label: periodLabel ? `Period total (${periodLabel})` : 'Period total',
+    hours, cpHours: cp, wHours: w, iHours: i,
+  });
+}
+
+/* ─── Group by Date (original behaviour) ─── */
+
+function buildGroupedByDate(ros: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
   const sorted = [...ros].sort((a, b) => {
     const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
     return aD.localeCompare(bD) || a.roNumber.localeCompare(b.roNumber);
@@ -60,7 +135,6 @@ export function buildSpreadsheetRows({ ros, periodLabel }: BuildRowsOptions): Sp
   const rows: SpreadsheetRow[] = [];
   let groupIndex = 0;
 
-  // Group by date
   const dateMap = new Map<string, RepairOrder[]>();
   for (const ro of sorted) {
     const dateKey = (ro.paidDate || ro.date).slice(0, 10);
@@ -68,121 +142,100 @@ export function buildSpreadsheetRows({ ros, periodLabel }: BuildRowsOptions): Sp
     dateMap.get(dateKey)!.push(ro);
   }
 
-  let periodTotal = 0;
-  let periodCP = 0, periodW = 0, periodI = 0;
+  let pT = 0, pCP = 0, pW = 0, pI = 0;
 
   for (const [dateKey, dateROs] of dateMap) {
-    let dayTotal = 0;
-    let dayCP = 0, dayW = 0, dayI = 0;
+    let dT = 0, dCP = 0, dW = 0, dI = 0;
 
     for (const ro of dateROs) {
-      const hasLines = ro.lines?.length > 0;
-      let roTotal = 0;
-      let roCP = 0, roW = 0, roI = 0;
-
-      if (hasLines) {
-        for (let i = 0; i < ro.lines.length; i++) {
-          const line = ro.lines[i];
-          const lt = line.laborType ?? ro.laborType;
-          const hrs = line.isTbd ? 0 : line.hoursPaid;
-          roTotal += hrs;
-          if (lt === 'warranty') roW += hrs;
-          else if (lt === 'customer-pay') roCP += hrs;
-          else roI += hrs;
-
-          rows.push({
-            rowType: 'line',
-            groupIndex,
-            roNumber: ro.roNumber,
-            date: ro.paidDate || ro.date,
-            advisor: ro.advisor || '',
-            customer: ro.customerName || '',
-            vehicle: formatVehicleChip(ro.vehicle) || '',
-            lineNo: line.lineNo,
-            description: line.description,
-            hours: line.hoursPaid,
-            type: typeCode(lt),
-            laborType: lt,
-            isTbd: line.isTbd || false,
-            notes: ro.notes || '',
-            mileage: ro.mileage || '',
-            vin: ro.vehicle?.vin || '',
-            ro,
-            lineIndex: i,
-          });
-        }
-      } else {
-        roTotal = ro.paidHours;
-        const lt = ro.laborType;
-        if (lt === 'warranty') roW += ro.paidHours;
-        else if (lt === 'customer-pay') roCP += ro.paidHours;
-        else roI += ro.paidHours;
-
-        rows.push({
-          rowType: 'line',
-          groupIndex,
-          roNumber: ro.roNumber,
-          date: ro.paidDate || ro.date,
-          advisor: ro.advisor || '',
-          customer: ro.customerName || '',
-          vehicle: formatVehicleChip(ro.vehicle) || '',
-          lineNo: 1,
-          description: ro.workPerformed || '',
-          hours: ro.paidHours,
-          type: typeCode(lt),
-          laborType: lt,
-          isTbd: false,
-          notes: ro.notes || '',
-          mileage: ro.mileage || '',
-          vin: ro.vehicle?.vin || '',
-          ro,
-          lineIndex: -1,
-        });
-      }
-
-      rows.push({
-        rowType: 'roSubtotal',
-        groupIndex,
-        label: `RO #${ro.roNumber} total`,
-        hours: roTotal,
-        cpHours: roCP,
-        wHours: roW,
-        iHours: roI,
-      });
-
-      dayTotal += roTotal;
-      dayCP += roCP;
-      dayW += roW;
-      dayI += roI;
+      const t = emitROLines(ro, rows, groupIndex);
+      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+      dT += t.total; dCP += t.cp; dW += t.w; dI += t.i;
       groupIndex++;
     }
 
-    rows.push({
-      rowType: 'daySubtotal',
-      groupIndex: -1,
-      label: `Day total (${fmtShortDate(dateKey)})`,
-      hours: dayTotal,
-      cpHours: dayCP,
-      wHours: dayW,
-      iHours: dayI,
-    });
-
-    periodTotal += dayTotal;
-    periodCP += dayCP;
-    periodW += dayW;
-    periodI += dayI;
+    rows.push({ rowType: 'daySubtotal', groupIndex: -1, label: `Day total (${fmtShortDate(dateKey)})`, hours: dT, cpHours: dCP, wHours: dW, iHours: dI });
+    pT += dT; pCP += dCP; pW += dW; pI += dI;
   }
 
-  rows.push({
-    rowType: 'periodSubtotal',
-    groupIndex: -1,
-    label: periodLabel ? `Period total (${periodLabel})` : 'Period total',
-    hours: periodTotal,
-    cpHours: periodCP,
-    wHours: periodW,
-    iHours: periodI,
+  pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
+  return rows;
+}
+
+/* ─── Group by RO ─── */
+
+function buildGroupedByRO(ros: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
+  const sorted = [...ros].sort((a, b) => a.roNumber.localeCompare(b.roNumber));
+  const rows: SpreadsheetRow[] = [];
+  let groupIndex = 0;
+  let pT = 0, pCP = 0, pW = 0, pI = 0;
+
+  for (const ro of sorted) {
+    const t = emitROLines(ro, rows, groupIndex);
+    rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+    pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
+    groupIndex++;
+  }
+
+  pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
+  return rows;
+}
+
+/* ─── Group by Advisor ─── */
+
+function buildGroupedByAdvisor(ros: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
+  const sorted = [...ros].sort((a, b) =>
+    (a.advisor || '').localeCompare(b.advisor || '') || a.roNumber.localeCompare(b.roNumber),
+  );
+
+  const advMap = new Map<string, RepairOrder[]>();
+  for (const ro of sorted) {
+    const key = ro.advisor || '(none)';
+    if (!advMap.has(key)) advMap.set(key, []);
+    advMap.get(key)!.push(ro);
+  }
+
+  const rows: SpreadsheetRow[] = [];
+  let groupIndex = 0;
+  let pT = 0, pCP = 0, pW = 0, pI = 0;
+
+  for (const [advisor, advROs] of advMap) {
+    let aT = 0, aCP = 0, aW = 0, aI = 0;
+
+    for (const ro of advROs) {
+      const t = emitROLines(ro, rows, groupIndex);
+      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+      aT += t.total; aCP += t.cp; aW += t.w; aI += t.i;
+      groupIndex++;
+    }
+
+    rows.push({ rowType: 'advisorSubtotal', groupIndex: -1, label: `${advisor} total`, hours: aT, cpHours: aCP, wHours: aW, iHours: aI });
+    pT += aT; pCP += aCP; pW += aW; pI += aI;
+  }
+
+  pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
+  return rows;
+}
+
+/* ─── No grouping (flat) ─── */
+
+function buildFlat(ros: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
+  const sorted = [...ros].sort((a, b) => {
+    const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
+    return aD.localeCompare(bD) || a.roNumber.localeCompare(b.roNumber);
   });
 
+  const rows: SpreadsheetRow[] = [];
+  let groupIndex = 0;
+  let pT = 0, pCP = 0, pW = 0, pI = 0;
+
+  for (const ro of sorted) {
+    const t = emitROLines(ro, rows, groupIndex);
+    pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
+    groupIndex++;
+  }
+
+  pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
   return rows;
 }
 
