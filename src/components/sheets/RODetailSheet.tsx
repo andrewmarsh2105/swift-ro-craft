@@ -1,9 +1,20 @@
-import { useState, useEffect } from 'react';
-import { Pencil, Copy, Trash2, Calendar, User, Clock, Wrench, ChevronDown, ChevronUp, List, FileText, Settings2, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { StatusPill } from '@/components/mobile/StatusPill';
-import { Button } from '@/components/ui/button';
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  Calendar,
+  Flag,
+  Copy,
+  FileText,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { BottomSheet } from "@/components/mobile/BottomSheet";
+import { StatusPill } from "@/components/mobile/StatusPill";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +22,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import type { RepairOrder } from '@/types/ro';
+} from "@/components/ui/dialog";
+import { SectionCard } from "@/components/layout/SectionCard";
+import { EmptyState } from "@/components/states/EmptyState";
+
+import { useFlagContext } from "@/contexts/FlagContext";
+import { useRO } from "@/contexts/ROContext";
+import { FlagBadge } from "@/components/flags/FlagBadge";
+import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
+
+import { maskHours } from "@/lib/maskHours";
+import { getReviewIssues, type ReviewIssue } from "@/lib/reviewRules";
+
+import type { RepairOrder } from "@/types/ro";
 
 interface RODetailSheetProps {
   isOpen: boolean;
@@ -29,54 +46,123 @@ interface RODetailSheetProps {
   existingRONumbers?: string[];
 }
 
-export function RODetailSheet({ 
-  isOpen, 
-  onClose, 
-  ro, 
-  onEdit, 
-  onDuplicate, 
+function formatDateLong(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatDateShort(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+  });
+}
+
+function vehicleLabel(ro: RepairOrder): string {
+  const v = ro.vehicle;
+  if (!v) return "—";
+  const parts = [v.year?.toString(), v.make, v.model].filter(Boolean);
+  return parts.length ? parts.join(" ") : "—";
+}
+
+function calcHours(ro: RepairOrder): number {
+  if (ro.lines?.length) {
+    return ro.lines.filter((l) => !l.isTbd).reduce((s, l) => s + (l.hoursPaid || 0), 0);
+  }
+  return ro.paidHours || 0;
+}
+
+async function copyToClipboard(label: string, value: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  } catch {
+    toast.error("Copy failed");
+  }
+}
+
+function ChecksPanel(props: { issues: ReviewIssue[]; onConvert: (issue: ReviewIssue) => void }) {
+  if (!props.issues.length) return null;
+
+  return (
+    <div className="space-y-2">
+      {props.issues.map((i, idx) => (
+        <div
+          key={idx}
+          className="flex gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3"
+        >
+          <div className="flex gap-2 flex-1 min-w-0">
+            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">{i.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{i.detail}</p>
+              <div className="mt-1.5">
+                <button
+                  onClick={() => props.onConvert(i)}
+                  className="text-[11px] font-semibold text-primary hover:underline"
+                >
+                  <Flag className="h-3 w-3 inline mr-1" />
+                  Convert to flag
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function RODetailSheet({
+  isOpen,
+  onClose,
+  ro,
+  onEdit,
+  onDuplicate,
   onDelete,
   existingRONumbers = [],
 }: RODetailSheetProps) {
+  const { ros } = useRO();
+  const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showLines, setShowLines] = useState(true);
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [dupRONumber, setDupRONumber] = useState('');
+  const [dupRONumber, setDupRONumber] = useState("");
   const [dupWarning, setDupWarning] = useState<string | null>(null);
 
+  const [flagDialogOpen, setFlagDialogOpen] = useState(false);
+  const [convertingIssue, setConvertingIssue] = useState<ReviewIssue | null>(null);
+
   useEffect(() => {
-    if (showDuplicateDialog) {
-      setDupRONumber('');
-      setDupWarning(null);
-    }
+    if (!showDuplicateDialog) return;
+    setDupRONumber("");
+    setDupWarning(null);
   }, [showDuplicateDialog]);
 
-  const handleDuplicateConfirm = (force: boolean = false) => {
+  const flags = useMemo(() => (ro ? getFlagsForRO(ro.id) : []), [getFlagsForRO, ro]);
+  const issues = useMemo(() => (ro ? getReviewIssues(ro, ros) : []), [ro, ros]);
+  const hours = useMemo(() => (ro ? calcHours(ro) : 0), [ro]);
+
+  const showPaidDate = !!ro?.paidDate && ro?.paidDate !== ro?.date;
+
+  const handleDuplicateConfirm = (force: boolean) => {
     const trimmed = dupRONumber.trim();
     if (!trimmed) return;
+
     if (!force && existingRONumbers.includes(trimmed)) {
       setDupWarning(`RO #${trimmed} already exists.`);
       return;
     }
+
     setShowDuplicateDialog(false);
     onDuplicate(trimmed);
     onClose();
   };
-
-  if (!ro) return null;
-
-  const [fy, fm, fd] = ro.date.split('-').map(Number);
-  const formattedDate = new Date(fy, fm - 1, fd).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const hasDifferentPaidDate = ro.paidDate && ro.paidDate !== ro.date;
-  const formattedPaidDate = hasDifferentPaidDate
-    ? (() => { const [py, pm, pd] = ro.paidDate!.split('-').map(Number); return new Date(py, pm - 1, pd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); })()
-    : null;
 
   const handleConfirmDelete = () => {
     onDelete();
@@ -84,295 +170,335 @@ export function RODetailSheet({
     onClose();
   };
 
-  const hasLines = ro.lines && ro.lines.length > 0;
-  const linesTotalHours = hasLines 
-    ? ro.lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0) 
-    : ro.paidHours;
+  const openFlagDialog = () => {
+    setConvertingIssue(null);
+    setFlagDialogOpen(true);
+  };
+
+  const openConvertDialog = (issue: ReviewIssue) => {
+    setConvertingIssue(issue);
+    setFlagDialogOpen(true);
+  };
 
   return (
     <>
-      <BottomSheet 
-        isOpen={isOpen} 
-        onClose={onClose} 
-        title=""
-        fullHeight
-      >
-        <div className="flex flex-col h-full">
-          {/* Minimal Sticky Header Strip */}
-          <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3">
-            {/* Primary row: RO #, Advisor, Date, Total Hours */}
-            <div className="flex items-center gap-3">
-              {/* RO # */}
-              <div className="flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="font-bold text-lg">#{ro.roNumber}</span>
-              </div>
-              
-              {/* Advisor */}
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <User className="h-3.5 w-3.5" />
-                <span>{ro.advisor}</span>
-              </div>
-              
-              {/* Date */}
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
-                <span>{hasDifferentPaidDate ? formattedPaidDate : formattedDate}</span>
-                {hasDifferentPaidDate && (
-                  <span className="text-[10px] text-muted-foreground/60">(RO: {formattedDate})</span>
-                )}
-              </div>
-              
-              <div className="flex-1" />
-              
-              {/* Total Hours - Prominent */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary rounded-lg">
-                <Clock className="h-4 w-4 text-primary-foreground" />
-                <span className="text-lg font-bold text-primary-foreground">{linesTotalHours.toFixed(1)}h</span>
-              </div>
-            </div>
-
-            {/* Collapsible More Details */}
-            <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
-              <CollapsibleTrigger asChild>
-                <button className="w-full mt-2 py-1.5 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                  <Settings2 className="h-3 w-3" />
-                  {showMoreDetails ? 'Hide' : 'More'} details
-                  {showMoreDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="pt-2 space-y-2 border-t border-border/50 mt-2">
-                  {ro.customerName && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-20">Customer</span>
-                      <span className="text-sm">{ro.customerName}</span>
-                    </div>
-                  )}
+      <BottomSheet isOpen={isOpen} onClose={onClose} title="" fullHeight>
+        {!ro ? (
+          <EmptyState
+            icon={FileText}
+            title="No RO selected"
+            actions={
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Close
+              </Button>
+            }
+          />
+        ) : (
+          <div className="flex flex-col h-full">
+            {/* ── Header ── */}
+            <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-20">Labor Type</span>
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-base font-bold tracking-tight">RO #{ro.roNumber}</span>
+                      <button
+                        className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        onClick={() => copyToClipboard("RO #", ro.roNumber)}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {formatDateShort(ro.date)}
+                    </span>
+                    {showPaidDate ? (
+                      <Badge variant="outline" className="text-[10px]">Paid: {formatDateShort(ro.paidDate!)}</Badge>
+                    ) : ro.paidDate ? (
+                      <Badge variant="secondary" className="text-[10px]">Paid</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">Unpaid</Badge>
+                    )}
+                    <span>{ro.advisor}</span>
                     <StatusPill type={ro.laborType} size="sm" />
                   </div>
-                  {ro.notes && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs text-muted-foreground w-20">Notes</span>
-                      <p className="text-sm flex-1">{ro.notes}</p>
-                    </div>
-                  )}
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            {/* Lines Section */}
-            {hasLines && (
-              <div className="border-b border-border">
-                <button
-                  onClick={() => setShowLines(!showLines)}
-                  className="w-full px-4 py-3 flex items-center justify-between touch-feedback bg-muted/30"
-                >
-                  <div className="flex items-center gap-2">
-                    <List className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-sm">Line Items</span>
-                    <span className="text-xs text-muted-foreground">({ro.lines.length})</span>
+                <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                  <div className="hours-pill text-base font-bold text-primary">
+                    {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
                   </div>
-                  {showLines ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-                
-                <AnimatePresence initial={false}>
-                  {showLines && (
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: 'auto' }}
-                      exit={{ height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="divide-y divide-border/50">
-                        {ro.lines.map((line) => (
-                          <div key={line.id} className="px-4 py-2.5 bg-background">
-                            {/* Row 1: Line # + Description */}
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                L{line.lineNo}
-                              </span>
-                              <span className="flex-1 text-sm font-medium truncate">
-                                {line.description || 'No description'}
-                              </span>
-                              <span className="text-sm font-bold text-primary flex-shrink-0">
-                                {line.hoursPaid.toFixed(1)}h
-                              </span>
-                            </div>
-                            {/* Row 2: Labor Type */}
-                            {line.laborType && (
-                              <div className="pl-7">
-                                <StatusPill type={line.laborType} size="sm" />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* Lines Total */}
-                      <div className="px-4 py-2.5 bg-primary/5 border-t border-border flex items-center justify-between">
-                        <span className="font-semibold text-sm">Total</span>
-                        <span className="text-lg font-bold text-primary">
-                          {linesTotalHours.toFixed(1)}h
-                        </span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
 
-            {/* Work Performed (for simple mode or additional info) */}
-            {(!hasLines && ro.workPerformed) && (
-              <div className="px-4 py-3 border-b border-border">
-                <div className="flex items-start gap-2">
-                  <Wrench className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={openFlagDialog}>
+                      <Flag className="h-3 w-3 mr-1" />
+                      Flag
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onEdit}>
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {flags.map((f) => (
+                  <FlagBadge key={f.id} flag={f} onClear={() => clearFlag(f.id)} />
+                ))}
+                {issues.length > 0 ? (
+                  <Badge variant="destructive" className="text-[10px]">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {issues.length} check{issues.length === 1 ? "" : "s"}
+                  </Badge>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">No checks</span>
+                )}
+              </div>
+            </div>
+
+            {/* ── Content ── */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+              <SectionCard title="Details">
+                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
                   <div>
-                    <div className="text-xs text-muted-foreground mb-0.5">Work Performed</div>
-                    <p className="text-sm whitespace-pre-wrap">{ro.workPerformed}</p>
+                    <p className="text-[11px] text-muted-foreground">RO date</p>
+                    <p className="font-medium">{formatDateLong(ro.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Paid date</p>
+                    <p className="font-medium">{ro.paidDate ? formatDateLong(ro.paidDate) : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Advisor</p>
+                    <p className="font-medium">{ro.advisor}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Customer</p>
+                    <p className="font-medium">{ro.customerName || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Mileage</p>
+                    <p className="font-medium">{ro.mileage || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Labor type</p>
+                    <p className="font-medium">{ro.laborType.replace("-", " ")}</p>
                   </div>
                 </div>
-              </div>
-            )}
+              </SectionCard>
 
-            {/* Quick Actions */}
-            <div className="px-4 py-4 space-y-3">
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={onEdit}
-                  className="flex-1 tap-target"
-                >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDuplicateDialog(true)}
-                  className="flex-1 tap-target"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
+              <SectionCard
+                title="Vehicle"
+                rightSlot={
+                  ro.vehicle?.vin ? (
+                    <button
+                      className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                      onClick={() => copyToClipboard("VIN", ro.vehicle?.vin || "")}
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy VIN
+                    </button>
+                  ) : null
+                }
+              >
+                <div className="grid grid-cols-3 gap-y-2 gap-x-4 text-sm">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Vehicle</p>
+                    <p className="font-medium">{vehicleLabel(ro)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Trim</p>
+                    <p className="font-medium">{ro.vehicle?.trim || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">VIN</p>
+                    <p className="font-medium">{ro.vehicle?.vin || "—"}</p>
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title="Lines"
+                rightSlot={
+                  ro.lines?.length ? (
+                    <button
+                      className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                      onClick={() =>
+                        copyToClipboard("Lines", ro.lines.map((l) => l.description).filter(Boolean).join("\n"))
+                      }
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy
+                    </button>
+                  ) : null
+                }
+              >
+                {ro.lines?.length ? (
+                  <div className="space-y-0">
+                    <div className="grid grid-cols-[2.5rem_1fr_3.5rem] text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pb-1 border-b border-border">
+                      <span>Line</span>
+                      <span>Description</span>
+                      <span className="text-right">Hours</span>
+                    </div>
+
+                    <div className="divide-y divide-border/50">
+                      {ro.lines.map((l) => (
+                        <div key={l.id} className="grid grid-cols-[2.5rem_1fr_3.5rem] py-1.5 items-start text-sm">
+                          <span className="text-[11px] font-bold text-muted-foreground">L{l.lineNo}</span>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{l.description || "—"}</p>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <StatusPill type={l.laborType} size="sm" />
+                              {l.isTbd ? <Badge variant="outline" className="text-[9px]">TBD</Badge> : null}
+                            </div>
+                          </div>
+                          <span className="text-right font-bold text-primary tabular-nums">
+                            {maskHours(Number(l.hoursPaid.toFixed(1)), userSettings.hideTotals ?? false)}h
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-[2.5rem_1fr_3.5rem] pt-1.5 border-t border-border text-sm font-bold">
+                      <span />
+                      <span>Total (paid)</span>
+                      <span className="text-right text-primary tabular-nums">
+                        {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                      </span>
+                    </div>
+                  </div>
+                ) : ro.workPerformed ? (
+                  <p className="text-sm whitespace-pre-wrap">{ro.workPerformed}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">—</p>
+                )}
+              </SectionCard>
+
+              {issues.length ? (
+                <SectionCard title="Checks">
+                  <ChecksPanel issues={issues} onConvert={openConvertDialog} />
+                </SectionCard>
+              ) : null}
+
+              <SectionCard title="Notes">
+                {ro.notes ? (
+                  <p className="text-sm whitespace-pre-wrap">{ro.notes}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">—</p>
+                )}
+              </SectionCard>
+            </div>
+
+            {/* ── Footer ── */}
+            <div className="flex-shrink-0 px-4 py-3 border-t border-border bg-card safe-area-bottom">
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-9" onClick={() => setShowDuplicateDialog(true)}>
+                  <Copy className="h-4 w-4 mr-1.5" />
                   Duplicate
+                </Button>
+                <Button variant="destructive" className="flex-1 h-9" onClick={() => setShowDeleteConfirm(true)}>
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Delete
                 </Button>
               </div>
             </div>
           </div>
-
-          {/* Delete button - fixed at bottom */}
-          <div className="flex-shrink-0 px-4 py-4 border-t border-border bg-background safe-area-bottom">
-            <Button
-              variant="destructive"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full tap-target"
-              size="lg"
-            >
-              <Trash2 className="h-5 w-5 mr-2" />
-              Delete RO
-            </Button>
-          </div>
-        </div>
+        )}
       </BottomSheet>
 
-      {/* Delete confirmation dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-md">
           <DialogHeader>
-            <DialogTitle>Delete RO #{ro.roNumber}?</DialogTitle>
+            <DialogTitle>Delete RO #{ro?.roNumber}?</DialogTitle>
             <DialogDescription>
               This action cannot be undone. This will permanently delete the repair order and all associated data.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex-row gap-3 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 tap-target"
-            >
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="outline" className="flex-1 h-9" onClick={() => setShowDeleteConfirm(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              className="flex-1 tap-target"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
+            <Button variant="destructive" className="flex-1 h-9" onClick={handleConfirmDelete}>
               Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Duplicate RO dialog */}
       <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-md">
           <DialogHeader>
-            <DialogTitle>Duplicate RO #{ro.roNumber}</DialogTitle>
-            <DialogDescription>
-              Enter a new RO number for the duplicate. Advisor and line items will be copied.
-            </DialogDescription>
+            <DialogTitle>Duplicate RO #{ro?.roNumber}</DialogTitle>
+            <DialogDescription>Enter a new RO number for the duplicate.</DialogDescription>
           </DialogHeader>
+
           <div className="space-y-3 py-2">
-            <input
-              type="text"
-              inputMode="numeric"
+            <Input
               value={dupRONumber}
               onChange={(e) => {
                 setDupRONumber(e.target.value);
                 setDupWarning(null);
               }}
               placeholder="New RO #"
-              className="w-full h-10 px-3 bg-muted rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              className="h-9"
+              inputMode="numeric"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && dupRONumber.trim()) {
-                  handleDuplicateConfirm();
-                }
+                if (e.key === "Enter" && dupRONumber.trim()) handleDuplicateConfirm(false);
               }}
             />
-            {dupWarning && (
-              <div className="flex items-start gap-2 p-2.5 bg-warning/10 border border-warning/30 rounded-lg text-sm">
-                <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-warning font-medium">{dupWarning}</p>
-                  <button
-                    onClick={() => handleDuplicateConfirm(true)}
-                    className="text-xs text-primary underline mt-1"
-                  >
-                    Continue anyway
-                  </button>
+
+            {dupWarning ? (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
+                <div className="flex items-start gap-2 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-destructive">{dupWarning}</p>
+                    <button
+                      className="text-xs text-primary underline mt-1"
+                      onClick={() => handleDuplicateConfirm(true)}
+                    >
+                      Continue anyway
+                    </button>
+                  </div>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
-          <DialogFooter className="flex-row gap-3 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowDuplicateDialog(false)}
-              className="flex-1 tap-target"
-            >
+
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="outline" className="flex-1 h-9" onClick={() => setShowDuplicateDialog(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={() => handleDuplicateConfirm()}
-              disabled={!dupRONumber.trim()}
-              className="flex-1 tap-target"
-            >
-              <Copy className="h-4 w-4 mr-2" />
+            <Button className="flex-1 h-9" disabled={!dupRONumber.trim()} onClick={() => handleDuplicateConfirm(false)}>
               Duplicate
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddFlagDialog
+        open={flagDialogOpen}
+        onClose={() => {
+          setFlagDialogOpen(false);
+          setConvertingIssue(null);
+        }}
+        defaultNote={convertingIssue?.detail}
+        title={convertingIssue ? `Convert check → flag` : ro ? `Flag RO #${ro.roNumber}` : "Add Flag"}
+        onSubmit={(flagType, note) => {
+          if (!ro) return;
+          const finalNote = note?.trim() || convertingIssue?.detail || undefined;
+          addFlag(ro.id, flagType, finalNote, convertingIssue?.lineId || undefined);
+          setFlagDialogOpen(false);
+          setConvertingIssue(null);
+        }}
+      />
     </>
   );
 }
