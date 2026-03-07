@@ -57,6 +57,7 @@ function getTwoWeekStart(weekStartDay: number): string {
   return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
 }
 
+function SortHeader(props: {
   label: string;
   active: boolean;
   dir: SortDir;
