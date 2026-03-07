@@ -53,7 +53,7 @@ const ROCard = memo(function ROCard({
   ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails,
   flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers, hideTotals,
 }: ROCardProps) {
-  const effectiveDate = ro.paidDate || ro.date;
+  const roEffectiveDate = effectiveDate(ro);
   const hours = calcHours(ro);
   const hasLines = ro.lines && ro.lines.length > 0;
 
