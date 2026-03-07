@@ -120,6 +120,12 @@ export default function AddRO() {
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
   const tbdCount = lines.filter(l => l.isTbd).length;
 
+  const quickPresets = useMemo(() => {
+    const favorites = settings.presets.filter(p => p.isFavorite);
+    const rest = settings.presets.filter(p => !p.isFavorite);
+    return [...favorites, ...rest].slice(0, 8);
+  }, [settings.presets]);
+
   const handleScanApply = (data: ScanApplyData) => {
     if (data.roNumber) setRoNumber(data.roNumber);
     if (data.advisor) setAdvisor(data.advisor);
@@ -344,7 +350,7 @@ export default function AddRO() {
             </div>
           ) : (
             <button
-              onClick={() => setPaidDate(localDateStr())}
+              onClick={() => { setPaidDate(localDateStr()); setShowMoreFields(true); }}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1"
             >
               <CalendarCheck className="h-3.5 w-3.5" />
@@ -372,50 +378,6 @@ export default function AddRO() {
         </Collapsible>
       </div>
 
-      {/* Presets */}
-      {settings.presets.length > 0 && (
-        <div className="flex-shrink-0 border-b border-border bg-muted/20 px-2 py-1.5 overflow-hidden">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            {recentlyAddedPresets.length > 0 && (
-              <>
-                <span className="text-[10px] text-muted-foreground flex-shrink-0">Recent:</span>
-                {recentlyAddedPresets.map(id => {
-                  const preset = settings.presets.find(p => p.id === id);
-                  return preset ? (
-                    <span key={id} className="flex-shrink-0 px-1.5 py-0.5 bg-primary/15 rounded-md text-[10px] text-primary font-medium border border-primary/20">
-                      {preset.name}
-                    </span>
-                  ) : null;
-                })}
-                <div className="w-px h-4 bg-border flex-shrink-0 mx-1" />
-              </>
-            )}
-            {settings.presets.map(preset => (
-              <PresetButton
-                key={preset.id}
-                preset={preset}
-                onAdd={newLineId => {
-                  const newLine: ROLine = {
-                    id: newLineId, lineNo: 1,
-                    description: preset.workTemplate || preset.name,
-                    hoursPaid: preset.defaultHours || 0,
-                    laborType: preset.laborType,
-                    matchedReferenceId: preset.id,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  };
-                  const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
-                  setLines(updatedLines);
-                  setHighlightedLineIds([newLineId]);
-                  handlePresetAdd(preset.id);
-                  toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Lines */}
       <main ref={linesContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-3 pb-48">
@@ -429,17 +391,6 @@ export default function AddRO() {
           />
         </div>
       </main>
-
-      {/* Add line button */}
-      <div className="fixed bottom-[140px] left-3 right-3 z-40 safe-bottom">
-        <button
-          onClick={handleAddLine}
-          className="w-auto mx-auto flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium text-muted-foreground hover:text-primary bg-muted/60 hover:bg-muted border border-border active:scale-[0.96] transition-all"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Line
-        </button>
-      </div>
 
       {/* Bottom action bar */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
@@ -474,6 +425,68 @@ export default function AddRO() {
               + Add
             </button>
           )}
+        </div>
+
+        {/* Sticky quick actions: one-tap add line + quick presets */}
+        <div className="px-3 pb-3 pt-1 border-t border-border/50">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAddLine}
+              className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Line
+            </button>
+
+            {quickPresets.length > 0 ? (
+              <div className="flex-1 overflow-hidden">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                  {recentlyAddedPresets.length > 0 && (
+                    <>
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0">Recent:</span>
+                      {recentlyAddedPresets.map(id => {
+                        const preset = settings.presets.find(p => p.id === id);
+                        return preset ? (
+                          <span key={id} className="flex-shrink-0 px-1.5 py-0.5 bg-primary/15 rounded-md text-[10px] text-primary font-medium border border-primary/20">
+                            {preset.name}
+                          </span>
+                        ) : null;
+                      })}
+                      <div className="w-px h-4 bg-border flex-shrink-0 mx-1" />
+                    </>
+                  )}
+
+                  {quickPresets.map(preset => (
+                    <PresetButton
+                      key={preset.id}
+                      preset={preset}
+                      onAdd={newLineId => {
+                        const newLine: ROLine = {
+                          id: newLineId,
+                          lineNo: 1,
+                          description: preset.workTemplate || preset.name,
+                          hoursPaid: preset.defaultHours || 0,
+                          laborType: preset.laborType,
+                          matchedReferenceId: preset.id,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                        };
+                        const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
+                        setLines(updatedLines);
+                        setHighlightedLineIds([newLineId]);
+                        handlePresetAdd(preset.id);
+                        toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">
+                No presets yet — add some in Settings.
+              </span>
+            )}
+          </div>
         </div>
       </footer>
 
