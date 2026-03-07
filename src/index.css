@@ -2,50 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* RO Tracker - Mobile-First Design System */
-
 @layer base {
   :root {
-    /* Core brand - Professional blue */
-    --background: 220 20% 96%;
-    --foreground: 222 47% 9%;
+    /* Violet-forward neutral palette (intentional, not "vibe-coded") */
+    --background: 255 30% 99%;
+    --foreground: 252 19% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 9%;
+    --card: 255 30% 99%;
+    --card-foreground: 252 19% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 9%;
+    --popover: 255 30% 99%;
+    --popover-foreground: 252 19% 12%;
 
-    /* Professional blue primary */
-    --primary: 213 94% 42%;
+    /* === PRIMARY BRAND COLOR ===
+       Change this HSL to recolor the entire app.
+       Example teal: 173 80% 40%
+       Example orange: 24 95% 53%
+    */
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 28% 91%;
-    --secondary-foreground: 222 47% 14%;
+    --secondary: 255 18% 96%;
+    --secondary-foreground: 252 19% 12%;
 
-    --muted: 210 28% 91%;
-    --muted-foreground: 215 18% 44%;
+    --muted: 255 18% 96%;
+    --muted-foreground: 252 10% 45%;
 
-    --accent: 210 28% 91%;
-    --accent-foreground: 222 47% 14%;
+    --accent: 255 18% 96%;
+    --accent-foreground: 252 19% 12%;
 
-    --destructive: 0 84% 58%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 26% 88%;
-    --input: 214 26% 89%;
-    --ring: 213 94% 42%;
+    --border: 252 14% 90%;
+    --input: 252 14% 90%;
+    --ring: 262 83% 58%;
 
-    --radius: 0.875rem;
+    --radius: 0.75rem;
 
-    /* RO Status Colors */
+    /* Sidebar tokens */
+    --sidebar-background: 255 30% 99%;
+    --sidebar-foreground: 252 19% 12%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 255 18% 96%;
+    --sidebar-accent-foreground: 252 19% 12%;
+    --sidebar-border: 252 14% 90%;
+    --sidebar-ring: 262 83% 58%;
+
+    /* Misc */
+    --shadow-fab: 0 10px 25px -10px hsl(var(--primary) / 0.4);
+
+    /* RO Status Colors (preserved for existing components) */
     --status-warranty: 142 65% 38%;
     --status-warranty-foreground: 0 0% 100%;
     --status-warranty-bg: 142 60% 93%;
 
-    --status-customer-pay: 213 94% 42%;
+    --status-customer-pay: 262 83% 58%;
     --status-customer-pay-foreground: 0 0% 100%;
-    --status-customer-pay-bg: 213 80% 93%;
+    --status-customer-pay-bg: 262 70% 93%;
 
     --status-internal: 25 90% 48%;
     --status-internal-foreground: 0 0% 100%;
@@ -56,82 +71,70 @@
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
 
-    /* Shadows — refined for cleaner float */
+    /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
-    --shadow-card: 0 1px 3px 0 hsl(214 30% 0% / 0.05), 0 0 0 1px hsl(214 26% 88% / 0.7);
-    --shadow-raised: 0 4px 12px -2px hsl(214 30% 0% / 0.08), 0 0 0 1px hsl(214 26% 88% / 0.6);
-    --shadow-soft: 0 2px 8px -2px hsl(214 30% 0% / 0.06);
-    --shadow-fab: 0 4px 16px -2px hsl(213 94% 42% / 0.4);
+    --shadow-card: 0 1px 3px 0 hsl(252 14% 0% / 0.05), 0 0 0 1px hsl(252 14% 90% / 0.7);
+    --shadow-raised: 0 4px 12px -2px hsl(252 14% 0% / 0.08), 0 0 0 1px hsl(252 14% 90% / 0.6);
+    --shadow-soft: 0 2px 8px -2px hsl(252 14% 0% / 0.06);
     --shadow-sheet: 0 -4px 24px 0 hsl(0 0% 0% / 0.12);
-
-    /* Sidebar vars for compatibility */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    color-scheme: dark;
-    --background: 222 47% 7%;
-    --foreground: 210 40% 97%;
+    --background: 252 19% 9%;
+    --foreground: 255 30% 99%;
 
-    --card: 222 38% 11%;
-    --card-foreground: 210 40% 97%;
+    --card: 252 19% 9%;
+    --card-foreground: 255 30% 99%;
 
-    --popover: 222 38% 11%;
-    --popover-foreground: 210 40% 97%;
+    --popover: 252 19% 9%;
+    --popover-foreground: 255 30% 99%;
 
-    --primary: 213 94% 58%;
-    --primary-foreground: 222 47% 6%;
+    --primary: 262 83% 62%;
+    --primary-foreground: 252 19% 9%;
 
-    --secondary: 217 26% 16%;
-    --secondary-foreground: 210 40% 90%;
+    --secondary: 252 14% 14%;
+    --secondary-foreground: 255 30% 99%;
 
-    --muted: 217 26% 16%;
-    --muted-foreground: 215 18% 58%;
+    --muted: 252 14% 14%;
+    --muted-foreground: 252 10% 70%;
 
-    --accent: 217 26% 16%;
-    --accent-foreground: 210 40% 90%;
+    --accent: 252 14% 14%;
+    --accent-foreground: 255 30% 99%;
 
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 255 30% 99%;
 
-    --border: 217 26% 18%;
-    --input: 217 26% 19%;
-    --ring: 213 94% 58%;
+    --border: 252 14% 18%;
+    --input: 252 14% 18%;
+    --ring: 262 83% 62%;
+
+    --sidebar-background: 252 19% 9%;
+    --sidebar-foreground: 255 30% 99%;
+    --sidebar-primary: 262 83% 62%;
+    --sidebar-primary-foreground: 252 19% 9%;
+    --sidebar-accent: 252 14% 14%;
+    --sidebar-accent-foreground: 255 30% 99%;
+    --sidebar-border: 252 14% 18%;
+    --sidebar-ring: 262 83% 62%;
 
     /* Status colors - dark mode */
     --status-warranty: 142 68% 52%;
     --status-warranty-foreground: 142 90% 10%;
     --status-warranty-bg: 142 55% 12%;
 
-    --status-customer-pay: 213 94% 58%;
-    --status-customer-pay-foreground: 213 90% 10%;
-    --status-customer-pay-bg: 213 70% 13%;
+    --status-customer-pay: 262 83% 62%;
+    --status-customer-pay-foreground: 262 90% 10%;
+    --status-customer-pay-bg: 262 70% 13%;
 
     --status-internal: 25 90% 60%;
     --status-internal-foreground: 25 90% 10%;
     --status-internal-bg: 25 70% 12%;
 
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(217 26% 18% / 0.9);
-    --shadow-raised: 0 4px 12px -2px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(217 26% 18% / 0.8);
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(252 14% 18% / 0.9);
+    --shadow-raised: 0 4px 12px -2px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(252 14% 18% / 0.8);
     --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.2);
-    --shadow-fab: 0 4px 16px -2px hsl(213 94% 58% / 0.5);
+    --shadow-fab: 0 4px 16px -2px hsl(262 83% 62% / 0.5);
     --shadow-sheet: 0 -4px 24px 0 hsl(0 0% 0% / 0.4);
-
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -152,43 +155,37 @@
     padding-top: var(--safe-area-inset-top);
   }
 
-  /* Prevent overscroll bounce on iOS */
   html, body {
     overscroll-behavior: none;
   }
 }
 
-/* Dark mode: make native date picker icons visible in blue */
+/* Dark mode: make native date picker icons visible */
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1) sepia(1) saturate(5) hue-rotate(195deg) brightness(1.2);
 }
 
 @layer components {
-  /* Mobile tap target sizing */
   .tap-target {
     @apply min-h-[44px] min-w-[44px];
   }
 
-  /* Card styling — card floats off background with ring + shadow */
   .card-mobile {
     @apply bg-card rounded-xl;
     box-shadow: var(--shadow-card);
   }
 
-  /* Card with a bit more lift — for selected / important cards */
   .card-raised {
     @apply bg-card rounded-xl;
     box-shadow: var(--shadow-raised);
   }
 
-  /* Hours "pop" pill — accent background, strong contrast */
   .hours-pill {
     @apply inline-flex items-center px-3 py-1 rounded-full font-bold text-primary-foreground;
     background: hsl(var(--primary));
     box-shadow: 0 2px 8px -1px hsl(var(--primary) / 0.4);
   }
 
-  /* Status pill variants */
   .status-pill {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
@@ -211,7 +208,6 @@
     color: hsl(var(--status-internal));
   }
 
-  /* Bottom sheet styling */
   .bottom-sheet {
     @apply fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-3xl;
     box-shadow: var(--shadow-sheet);
@@ -222,7 +218,6 @@
     @apply w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto my-3;
   }
 
-  /* Floating Action Button */
   .fab {
     @apply fixed z-40 flex items-center justify-center bg-primary text-primary-foreground rounded-2xl font-semibold;
     box-shadow: var(--shadow-fab);
@@ -236,7 +231,6 @@
     @apply fab px-5 gap-2;
   }
 
-  /* Segmented control */
   .segmented-control {
     @apply inline-flex p-1 bg-muted rounded-xl;
   }
@@ -254,7 +248,6 @@
     @apply text-muted-foreground hover:text-foreground/80 transition-colors;
   }
 
-  /* Chip styling — slightly elevated for tactility */
   .chip {
     @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-border rounded-full text-sm font-medium tap-target transition-all duration-150;
     box-shadow: 0 1px 2px 0 hsl(0 0% 0% / 0.06);
@@ -270,7 +263,6 @@
     box-shadow: 0 2px 6px -1px hsl(var(--primary) / 0.35);
   }
 
-  /* Tab bar — PWA safe-area aware */
   .tab-bar-pwa {
     @apply fixed inset-x-0 bottom-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border;
     min-height: calc(56px + env(safe-area-inset-bottom, 0px));
@@ -289,7 +281,6 @@
     @apply text-muted-foreground;
   }
 
-  /* Swipe card actions */
   .swipe-action {
     @apply absolute inset-y-0 flex items-center justify-center px-6;
   }
@@ -303,18 +294,15 @@
     background: hsl(var(--status-warranty));
   }
 
-  /* Numeric input */
   .numeric-input {
     @apply text-center text-3xl font-bold bg-transparent border-0 focus:outline-none focus:ring-0 w-full;
   }
 
-  /* Quick increment button — elevated pill */
   .increment-btn {
     @apply px-4 py-2 bg-secondary border border-border rounded-lg text-sm font-semibold tap-target active:scale-95 transition-all duration-100;
     box-shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.08);
   }
 
-  /* Standard focus ring for inputs */
   .input-base {
     @apply bg-card border border-input rounded-[10px] text-foreground placeholder:text-muted-foreground/60;
     @apply focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-shadow;
@@ -322,7 +310,6 @@
 }
 
 @layer utilities {
-  /* Safe area utilities */
   .safe-top {
     padding-top: var(--safe-area-inset-top);
   }
@@ -335,7 +322,6 @@
     padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom));
   }
 
-  /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -345,12 +331,10 @@
     display: none;
   }
 
-  /* Touch feedback */
   .touch-feedback {
     @apply active:opacity-75 active:scale-[0.98] transition-all duration-100;
   }
 
-  /* Monospaced numerals for hours */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
