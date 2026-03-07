@@ -138,19 +138,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     Array.isArray(userSettings.payPeriodEndDates) &&
     userSettings.payPeriodEndDates.length > 0;
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useLocalStorageState('ui.mobile.roTab.search.v1', '');
+  const deferredSearch = useDeferredValue(searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'spreadsheet'>('cards');
+  const [viewMode, setViewMode] = useLocalStorageState<'cards' | 'spreadsheet'>('ui.mobile.roTab.viewMode.v1', 'cards');
   const [visibleCount, setVisibleCount] = useState(50);
 
   useEffect(() => {
     onViewModeChange?.(viewMode);
   }, [viewMode, onViewModeChange]);
 
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters, setFilters] = useLocalStorageState<FilterState>('ui.mobile.roTab.filters.v1', {
     advisors: [],
     laborTypes: [],
     dateRange: 'all',
