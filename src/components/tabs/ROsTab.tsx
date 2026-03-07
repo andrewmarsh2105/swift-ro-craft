@@ -163,9 +163,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const filteredROs = useMemo(() => {
     let result = ros;
 
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    // Search (deferred)
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
       result = result.filter(ro => {
         const vehicleStr = [ro.vehicle?.year?.toString(), ro.vehicle?.make, ro.vehicle?.model].filter(Boolean).join(' ').toLowerCase();
         return (
