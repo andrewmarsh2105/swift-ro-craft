@@ -341,7 +341,7 @@ export const ROListPanel = memo(function ROListPanel({
               </p>
             </div>
           ) : (
-            <Table>
+            <Table className={cn(isCompact ? "min-w-[720px]" : "min-w-[980px]")}>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="h-8 px-3">
@@ -360,14 +360,16 @@ export const ROListPanel = memo(function ROListPanel({
                       onClick={() => toggleSort("ro")}
                     />
                   </TableHead>
-                  <TableHead className="h-8 px-2">
-                    <SortHeader
-                      label="Advisor"
-                      active={sortKey === "advisor"}
-                      dir={sortDir}
-                      onClick={() => toggleSort("advisor")}
-                    />
-                  </TableHead>
+                  {!isCompact && (
+                    <TableHead className="h-8 px-2">
+                      <SortHeader
+                        label="Advisor"
+                        active={sortKey === "advisor"}
+                        dir={sortDir}
+                        onClick={() => toggleSort("advisor")}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="h-8 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Info
                   </TableHead>
