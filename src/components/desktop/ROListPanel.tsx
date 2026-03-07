@@ -30,7 +30,33 @@ import { maskHours } from "@/lib/maskHours";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
 import { effectiveDate, formatDateShort, vehicleLabel, calcHours } from "@/lib/roDisplay";
 
-function SortHeader(props: {
+interface ROListPanelProps {
+  selectedROId: string | null;
+  onSelectRO: (ro: RepairOrder) => void;
+  onAddNew: () => void;
+  onFilteredROsChange?: (ros: RepairOrder[]) => void;
+}
+
+type DateFilter = "all" | "today" | "week" | "month" | "pay_period";
+type SortKey = "date" | "ro" | "advisor" | "hours";
+type SortDir = "asc" | "desc";
+
+function getWeekStart(weekStartDay: number): string {
+  const now = new Date();
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff);
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+}
+
+function getTwoWeekStart(weekStartDay: number): string {
+  const now = new Date();
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff - 7);
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+}
+
   label: string;
   active: boolean;
   dir: SortDir;
