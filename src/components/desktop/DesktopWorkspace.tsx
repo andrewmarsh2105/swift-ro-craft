@@ -229,17 +229,24 @@ export function DesktopWorkspace() {
         </div>
       ) : (
         <div className="flex-1 flex min-h-0">
-          {/* Left Panel — wider for table layout */}
-          <div className="w-[420px] flex-shrink-0">
+          {/* Left Panel: expand when not editing */}
+          <div
+            className={cn(
+              "min-w-0 transition-all duration-200 ease-out",
+              isListExpanded ? "flex-1" : "w-[520px] flex-shrink-0",
+            )}
+          >
             <ROListPanel
               selectedROId={selectedRO?.id || null}
               onSelectRO={handleSelectRO}
               onAddNew={handleAddNew}
               onFilteredROsChange={setFilteredROs}
+              compact={!isListExpanded}
             />
           </div>
 
           {/* Right Panel */}
+          {!isListExpanded && (
           <div className="flex-1 min-w-0 relative">
             <AnimatePresence mode="wait">
               {rightPanel === "settings" ? (
