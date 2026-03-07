@@ -1,11 +1,10 @@
 import { lazy, Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, Settings, BarChart3, X, Table2, Crown, FileText } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
-import { Settings, BarChart3, X, Table2, Crown, FileText } from "lucide-react";
 import roLogo from "@/assets/ro-logo.jpeg";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
@@ -74,6 +73,7 @@ function IconButton(props: {
 export function DesktopWorkspace() {
   const { ros } = useRO();
   const { isPro } = useSubscription();
+
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -136,7 +136,7 @@ export function DesktopWorkspace() {
   };
 
   const showEditor = rightPanel === "editor" && (selectedRO || isAddingNew);
-  const isListExpanded = rightPanel === "none";
+  const isWideList = rightPanel === "none" && !showEditor;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -170,9 +170,7 @@ export function DesktopWorkspace() {
               title="Spreadsheet View"
               active={viewMode === "spreadsheet"}
               onClick={() => {
-                setViewMode((v) =>
-                  v === "spreadsheet" ? "split" : "spreadsheet"
-                );
+                setViewMode((v) => (v === "spreadsheet" ? "split" : "spreadsheet"));
                 if (viewMode === "split") setRightPanel("none");
                 setSelectedRO(null);
                 setIsAddingNew(false);
@@ -195,17 +193,13 @@ export function DesktopWorkspace() {
             active={rightPanel === "settings"}
             onClick={() => togglePanel("settings")}
           >
-            {rightPanel === "settings" ? (
-              <X className="h-4 w-4" />
-            ) : (
-              <Settings className="h-4 w-4" />
-            )}
+            {rightPanel === "settings" ? <X className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
           </IconButton>
 
           {!isPro && (
             <button
               onClick={() => setShowUpgradeDialog(true)}
-              className="ml-1 h-8 px-3 rounded-md border bg-background text-[11px] font-semibold text-primary hover:bg-accent transition-colors flex items-center gap-1.5"
+              className="ml-1 h-9 px-3 rounded-md border bg-background text-[11px] font-semibold text-primary hover:bg-accent transition-colors flex items-center gap-2"
               title="Upgrade to Pro"
             >
               <Crown className="h-3 w-3" />
@@ -229,11 +223,11 @@ export function DesktopWorkspace() {
         </div>
       ) : (
         <div className="flex-1 flex min-h-0">
-          {/* Left Panel: expand when not editing */}
+          {/* Left Panel: expands when no editor is open */}
           <div
             className={cn(
               "min-w-0 transition-all duration-200 ease-out",
-              isListExpanded ? "flex-1" : "w-[520px] flex-shrink-0",
+              isWideList ? "flex-1" : "w-[520px] flex-shrink-0",
             )}
           >
             <ROListPanel
@@ -241,84 +235,84 @@ export function DesktopWorkspace() {
               onSelectRO={handleSelectRO}
               onAddNew={handleAddNew}
               onFilteredROsChange={setFilteredROs}
-              compact={!isListExpanded}
+              compact={!isWideList}
             />
           </div>
 
-          {/* Right Panel */}
-          {!isListExpanded && (
-          <div className="flex-1 min-w-0 relative">
-            <AnimatePresence mode="wait">
-              {rightPanel === "settings" ? (
-                <motion.div
-                  key="settings"
-                  variants={panelVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="h-full overflow-y-auto absolute inset-0"
-                >
-                  <Suspense fallback={<PanelFallback />}>
-                    <SettingsTab />
-                  </Suspense>
-                </motion.div>
-              ) : rightPanel === "summary" ? (
-                <motion.div
-                  key="summary"
-                  variants={panelVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="h-full overflow-y-auto absolute inset-0"
-                >
-                  <Suspense fallback={<PanelFallback />}>
-                    <SummaryTab />
-                  </Suspense>
-                </motion.div>
-              ) : showEditor ? (
-                <motion.div
-                  key={`editor-${selectedRO?.id ?? "new"}`}
-                  variants={panelVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="h-full absolute inset-0"
-                >
-                  <ROEditor
-                    ro={selectedRO}
-                    isNew={isAddingNew}
-                    focusLineId={focusLineId}
-                    onSave={handleSave}
-                    onCancel={handleCancel}
-                    onSaveAndAddAnother={handleSaveAndAddAnother}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="empty"
-                  variants={panelVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="h-full flex items-center justify-center bg-muted/10 absolute inset-0"
-                >
-                  <div className="text-center text-muted-foreground space-y-4">
-                    <div className="mx-auto w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center">
-                      <FileText className="h-8 w-8 text-muted-foreground/30" />
+          {/* Right Panel: hidden when list is expanded */}
+          {!isWideList && (
+            <div className="flex-1 min-w-0 relative">
+              <AnimatePresence mode="wait">
+                {rightPanel === "settings" ? (
+                  <motion.div
+                    key="settings"
+                    variants={panelVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="h-full overflow-y-auto absolute inset-0"
+                  >
+                    <Suspense fallback={<PanelFallback />}>
+                      <SettingsTab />
+                    </Suspense>
+                  </motion.div>
+                ) : rightPanel === "summary" ? (
+                  <motion.div
+                    key="summary"
+                    variants={panelVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="h-full overflow-y-auto absolute inset-0"
+                  >
+                    <Suspense fallback={<PanelFallback />}>
+                      <SummaryTab />
+                    </Suspense>
+                  </motion.div>
+                ) : showEditor ? (
+                  <motion.div
+                    key={`editor-${selectedRO?.id ?? "new"}`}
+                    variants={panelVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="h-full absolute inset-0"
+                  >
+                    <ROEditor
+                      ro={selectedRO}
+                      isNew={isAddingNew}
+                      focusLineId={focusLineId}
+                      onSave={handleSave}
+                      onCancel={handleCancel}
+                      onSaveAndAddAnother={handleSaveAndAddAnother}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="empty"
+                    variants={panelVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="h-full flex items-center justify-center bg-muted/10 absolute inset-0"
+                  >
+                    <div className="text-center text-muted-foreground space-y-4">
+                      <div className="mx-auto w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center">
+                        <FileText className="h-8 w-8 text-muted-foreground/30" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold tracking-tight text-foreground/70">
+                          Select an RO or create a new one
+                        </p>
+                        <p className="text-xs mt-1 text-muted-foreground">
+                          Choose from the list on the left to get started
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold tracking-tight text-foreground/70">
-                        Select an RO or create a new one
-                      </p>
-                      <p className="text-xs mt-1 text-muted-foreground">
-                        Choose from the table on the left to get started
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
       )}
