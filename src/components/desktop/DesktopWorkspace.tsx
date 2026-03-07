@@ -319,6 +319,7 @@ export function DesktopWorkspace() {
               )}
             </AnimatePresence>
           </div>
+          )}
         </div>
       )}
 
