@@ -1,43 +1,42 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, CalendarCheck, User, Clock, ChevronDown, ChevronUp, FileText, Settings2, Image, X } from 'lucide-react';
+import { Camera, Plus, Loader2, CalendarCheck, User, FileText, X } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { SectionCard } from '@/components/layout/SectionCard';
+import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFlagContext } from '@/contexts/FlagContext';
 import type { LaborType, ROLine, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
-import { formatVehicleChip } from '@/types/ro';
-import { useFlagContext } from '@/contexts/FlagContext';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Desktop imports
 import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
 
-const LABOR_TYPES: { value: LaborType; label: string; short: string }[] = [
-  { value: 'warranty', label: 'Warranty', short: 'W' },
-  { value: 'customer-pay', label: 'Customer Pay', short: 'CP' },
-  { value: 'internal', label: 'Internal', short: 'Int' },
+const LABOR_TYPES: { value: LaborType; label: string }[] = [
+  { value: 'warranty', label: 'Warranty' },
+  { value: 'customer-pay', label: 'Customer Pay' },
+  { value: 'internal', label: 'Internal' },
 ];
 
 export default function AddRO() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
+  const { settings, addRO, updateRO, updateAdvisors, ros, loadingROs } = useRO();
   const { userSettings } = useFlagContext();
   const { isPro, startCheckout } = useSubscription();
-  // Get editing RO from location state
+
   const editingROId = (location.state as { editingROId?: string; focusLineId?: string })?.editingROId;
   const focusLineId = (location.state as { editingROId?: string; focusLineId?: string })?.focusLineId;
   const editingRO = editingROId ? ros.find(r => r.id === editingROId) : undefined;
@@ -50,7 +49,7 @@ export default function AddRO() {
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [showCapSheet, setShowCapSheet] = useState(false);
 
-  // RO cap: count ROs created this calendar month
+  // RO cap
   const monthlyROCount = useMemo(() => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -63,7 +62,7 @@ export default function AddRO() {
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
   );
   const linesContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
@@ -74,11 +73,9 @@ export default function AddRO() {
   const [vehicle, setVehicle] = useState<VehicleInfo>(editingRO?.vehicle || {});
   const [mileage, setMileage] = useState(editingRO?.mileage || '');
   const [paidDate, setPaidDate] = useState(editingRO?.paidDate || '');
-  
+
   const [lines, setLines] = useState<ROLine[]>(() => {
-    if (editingRO?.lines?.length) {
-      return editingRO.lines;
-    }
+    if (editingRO?.lines?.length) return editingRO.lines;
     if (editingRO && editingRO.paidHours > 0) {
       return [{
         id: Date.now().toString(),
@@ -93,27 +90,23 @@ export default function AddRO() {
     return [createEmptyLine(1)];
   });
 
-  // Lock body scroll when this page is mounted (mobile only)
+  // Lock body scroll on mobile
   useEffect(() => {
     if (isMobile) {
       document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
+      return () => { document.body.style.overflow = ''; };
     }
   }, [isMobile]);
 
-  // Clear highlights after 2.5 seconds
+  // Clear highlights
   useEffect(() => {
     if (highlightedLineIds.length > 0) {
-      const timer = setTimeout(() => {
-        setHighlightedLineIds([]);
-      }, 2500);
+      const timer = setTimeout(() => setHighlightedLineIds([]), 2500);
       return () => clearTimeout(timer);
     }
   }, [highlightedLineIds]);
 
-  // Focus + highlight a specific line when navigated from Flag Inbox
+  // Focus line from flag nav
   useEffect(() => {
     if (!focusLineId) return;
     setHighlightedLineIds([focusLineId]);
@@ -124,7 +117,6 @@ export default function AddRO() {
     return () => clearTimeout(timer);
   }, [focusLineId]);
 
-  // Calculate total hours from lines (exclude TBD)
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
   const tbdCount = lines.filter(l => l.isTbd).length;
 
@@ -137,21 +129,16 @@ export default function AddRO() {
     if (data.mileage) setMileage(data.mileage);
 
     const newLineIds = data.lines.map(l => l.id);
-
     if (data.mode === 'replace') {
       setLines(data.lines.map((l, i) => ({ ...l, lineNo: i + 1 })));
     } else {
-      // Prepend: add at top
       setLines(prev => {
         const filtered = prev.filter(l => l.description || l.hoursPaid > 0);
         return [...data.lines, ...filtered].map((l, i) => ({ ...l, lineNo: i + 1 }));
       });
     }
-
     setHighlightedLineIds(newLineIds);
     setShowScanFlow(false);
-
-    // Scroll to top to show new lines
     setTimeout(() => {
       linesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
@@ -160,50 +147,35 @@ export default function AddRO() {
   const handleAddLine = () => {
     if ('vibrate' in navigator) navigator.vibrate(10);
     const newLine = createEmptyLine(1);
-    const updatedLines = [newLine, ...lines].map((line, i) => ({
-      ...line,
-      lineNo: i + 1,
-    }));
+    const updatedLines = [newLine, ...lines].map((line, i) => ({ ...line, lineNo: i + 1 }));
     setLines(updatedLines);
     setHighlightedLineIds([newLine.id]);
     toast.success('New line added');
   };
 
-  const handlePresetAdd = (presetId: string, presetName: string, hours: number, newLineId: string) => {
-    setHighlightedLineIds([newLineId]);
-    setRecentlyAddedPresets(prev => {
-      const updated = [presetId, ...prev.filter(id => id !== presetId)].slice(0, 3);
-      return updated;
-    });
+  const handlePresetAdd = (presetId: string) => {
+    setRecentlyAddedPresets(prev => [presetId, ...prev.filter(id => id !== presetId)].slice(0, 3));
   };
 
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async (addAnother: boolean = false) => {
+    if (!roNumber.trim()) { toast.error('RO number is required'); return; }
+    if (!advisor.trim()) { toast.error('Advisor is required'); return; }
+
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
-    
     const roData = {
-      roNumber,
-      advisor,
+      roNumber, advisor,
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
       paidDate: paidDate.trim() || (editingRO ? '' : undefined),
-      paidHours: totalHours,
-      laborType,
-      workPerformed: computedWorkPerformed,
-      notes,
-      date,
-      photos: editingRO?.photos,
-      lines,
-      isSimpleMode: false,
+      paidHours: totalHours, laborType,
+      workPerformed: computedWorkPerformed, notes, date,
+      photos: editingRO?.photos, lines, isSimpleMode: false,
     };
 
-    // Check RO cap for free users
-    if (isAtCap) {
-      setShowCapSheet(true);
-      return;
-    }
+    if (isAtCap) { setShowCapSheet(true); return; }
 
     setIsSaving(true);
     try {
@@ -214,18 +186,14 @@ export default function AddRO() {
         await addRO(roData);
         toast.success('RO created');
       }
-
       if (addAnother) {
-        setRoNumber('');
-        setCustomerName('');
-        setNotes('');
-        setPaidDate('');
+        setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
         setLines([createEmptyLine(1)]);
       } else {
         navigate(-1);
       }
     } catch (err: any) {
-      toast.error(`Save failed: ${err?.message || 'Unknown error'}. Your data is still here — try again.`);
+      toast.error(`Save failed: ${err?.message || 'Unknown error'}. Try again.`);
     } finally {
       setIsSaving(false);
     }
@@ -233,80 +201,119 @@ export default function AddRO() {
 
   const isValid = roNumber.trim() !== '';
 
-  // Desktop: Use the full workspace instead
-  if (!isMobile) {
-    return <DesktopWorkspace />;
+  // Desktop: use workspace
+  if (!isMobile) return <DesktopWorkspace />;
+
+  // If editing but RO not found (and not loading)
+  if (editingROId && !editingRO && !loadingROs) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        <PageHeader title="Edit RO" onBack={() => navigate(-1)} />
+        <EmptyState
+          icon={FileText}
+          title="RO not found"
+          description="The repair order you're looking for doesn't exist or was deleted."
+          actions={
+            <button onClick={() => navigate(-1)} className="text-sm font-medium text-primary">Go back</button>
+          }
+        />
+      </div>
+    );
   }
 
-  // Mobile layout
+  // Loading skeleton for edit mode
+  if (editingROId && loadingROs) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        <PageHeader title="Loading..." onBack={() => navigate(-1)} />
+        <div className="flex-1 p-4 space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
-      {/* Top Header Bar - Compact */}
-      <header className="flex-shrink-0 flex items-center justify-between px-3 h-12 border-b border-border bg-card safe-top">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1 text-primary font-medium min-w-[44px] min-h-[44px] justify-center -ml-2"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h1 className="text-base font-semibold">
-          {editingRO ? 'Edit RO' : 'Add RO'}
-        </h1>
-        {isPro && (
-          <button
-            onClick={() => setShowScanFlow(true)}
-            className="flex items-center gap-1 text-primary font-medium min-w-[44px] min-h-[44px] justify-center -mr-2"
-          >
-            <Camera className="h-5 w-5" />
-          </button>
-        )}
-        {!isPro && <div className="min-w-[44px]" />}
-      </header>
+      {/* Header */}
+      <PageHeader
+        title={editingRO ? `Edit RO #${editingRO.roNumber}` : 'New Repair Order'}
+        subtitle={`${totalHours.toFixed(1)}h${tbdCount > 0 ? ` · ${tbdCount} TBD` : ''} · ${lines.length} lines`}
+        onBack={() => navigate(-1)}
+        rightActions={
+          <div className="flex items-center gap-1">
+            {isPro && (
+              <button
+                onClick={() => setShowScanFlow(true)}
+                className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              onClick={() => handleSave(false)}
+              disabled={!isValid || isSaving}
+              className={cn(
+                'h-8 px-3 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors',
+                isValid && !isSaving
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+              {editingRO ? 'Update' : 'Save'}
+            </button>
+          </div>
+        }
+      />
 
-      {/* Minimal Sticky RO Header Strip - Only essential fields */}
+      {/* Core fields strip */}
       <div className="flex-shrink-0 border-b border-border bg-card">
-        {/* Primary row: RO #, Advisor, Date, Total */}
         <div className="px-3 py-2 flex items-center gap-2">
-          {/* RO # */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <FileText className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
               inputMode="numeric"
               value={roNumber}
-              onChange={(e) => setRoNumber(e.target.value)}
+              onChange={e => setRoNumber(e.target.value)}
               placeholder="RO #"
-              className="w-20 h-8 px-2 bg-muted rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-20 h-8 px-2 bg-muted rounded-md border border-input text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          
-          {/* Advisor */}
+
           <button
             onClick={() => setShowAdvisorList(true)}
             className={cn(
-              'flex-1 h-8 px-2 rounded text-xs text-left flex items-center gap-1.5 min-w-0 truncate',
+              'flex-1 h-8 px-2 rounded-md border border-input text-xs text-left flex items-center gap-1.5 min-w-0 truncate',
               advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
             )}
           >
             <User className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="truncate">{advisor || 'Advisor'}</span>
           </button>
-          
-          {/* Date */}
+
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-8 px-1.5 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary w-[100px] flex-shrink-0"
+            onChange={e => setDate(e.target.value)}
+            className="h-8 px-1.5 bg-muted rounded-md border border-input text-xs focus:outline-none focus:ring-2 focus:ring-ring w-[100px] flex-shrink-0"
           />
-          
-          {/* Total Hours - Prominent */}
-          <div className="flex items-center gap-1 px-2 py-1 bg-primary rounded flex-shrink-0">
-            <span className="text-sm font-bold text-primary-foreground">{totalHours.toFixed(1)}h</span>
-          </div>
+
+          <select
+            value={laborType}
+            onChange={e => setLaborType(e.target.value as LaborType)}
+            className="h-8 px-1.5 bg-muted rounded-md border border-input text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
         </div>
 
-        {/* Details collapsed summary row */}
+        {/* Details collapsible */}
         <DetailsCollapsible
           vehicle={vehicle}
           onVehicleChange={setVehicle}
@@ -319,7 +326,7 @@ export default function AddRO() {
           layout="mobile"
         />
 
-        {/* Paid Date - Distinct row outside collapsible */}
+        {/* Paid date */}
         <div className="px-3 py-1.5 border-t border-border/50">
           {paidDate ? (
             <div className="flex items-center gap-2">
@@ -328,57 +335,36 @@ export default function AddRO() {
               <input
                 type="date"
                 value={paidDate}
-                onChange={(e) => setPaidDate(e.target.value)}
-                className="h-7 px-1.5 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={e => setPaidDate(e.target.value)}
+                className="h-7 px-1.5 bg-muted rounded-md border border-input text-xs focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <button
-                onClick={() => setPaidDate('')}
-                className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                title="Clear paid date"
-              >
+              <button onClick={() => setPaidDate('')} className="p-1 rounded hover:bg-muted text-muted-foreground">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
           ) : (
             <button
-              onClick={() => {
-                // Set to today and let user change
-                setPaidDate(localDateStr());
-              }}
+              onClick={() => setPaidDate(localDateStr())}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1"
             >
               <CalendarCheck className="h-3.5 w-3.5" />
-              <span>Paid on a different day? Tap to set</span>
+              <span>Set paid date</span>
             </button>
           )}
         </div>
 
-        {/* Collapsible More Fields (Labor Type, Notes) */}
+        {/* Notes in collapsible */}
         <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
           <CollapsibleContent>
-            <div className="px-3 py-2 space-y-2 bg-muted/20">
-              {/* Labor Type */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-16">Labor</span>
-                <select
-                  value={laborType}
-                  onChange={(e) => setLaborType(e.target.value as LaborType)}
-                  className="flex-1 h-8 px-2 bg-muted rounded text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  {LABOR_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-              {/* Notes */}
+            <div className="px-3 py-2 bg-muted/20">
               <div className="flex items-start gap-2">
-                <span className="text-xs text-muted-foreground w-16 pt-2">Notes</span>
+                <span className="text-xs text-muted-foreground w-12 pt-2">Notes</span>
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={e => setNotes(e.target.value)}
                   placeholder="Additional notes..."
                   rows={2}
-                  className="flex-1 p-2 bg-muted rounded text-xs resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="flex-1 p-2 bg-muted rounded-md border border-input text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
@@ -386,18 +372,17 @@ export default function AddRO() {
         </Collapsible>
       </div>
 
-      {/* Presets Toolbar - Single row with recent chips inline */}
+      {/* Presets */}
       {settings.presets.length > 0 && (
         <div className="flex-shrink-0 border-b border-border bg-muted/20 px-2 py-1.5 overflow-hidden">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            {/* Recent chips (smaller, inline) */}
             {recentlyAddedPresets.length > 0 && (
               <>
                 <span className="text-[10px] text-muted-foreground flex-shrink-0">Recent:</span>
                 {recentlyAddedPresets.map(id => {
                   const preset = settings.presets.find(p => p.id === id);
                   return preset ? (
-                    <span key={id} className="flex-shrink-0 px-1.5 py-0.5 bg-primary/20 rounded text-[10px] text-primary font-medium">
+                    <span key={id} className="flex-shrink-0 px-1.5 py-0.5 bg-primary/15 rounded-md text-[10px] text-primary font-medium border border-primary/20">
                       {preset.name}
                     </span>
                   ) : null;
@@ -405,15 +390,13 @@ export default function AddRO() {
                 <div className="w-px h-4 bg-border flex-shrink-0 mx-1" />
               </>
             )}
-            {/* Preset buttons */}
-            {settings.presets.map((preset) => (
+            {settings.presets.map(preset => (
               <PresetButton
                 key={preset.id}
                 preset={preset}
-                onAdd={(newLineId) => {
+                onAdd={newLineId => {
                   const newLine: ROLine = {
-                    id: newLineId,
-                    lineNo: 1,
+                    id: newLineId, lineNo: 1,
                     description: preset.workTemplate || preset.name,
                     hoursPaid: preset.defaultHours || 0,
                     laborType: preset.laborType,
@@ -423,7 +406,8 @@ export default function AddRO() {
                   };
                   const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
                   setLines(updatedLines);
-                  handlePresetAdd(preset.id, preset.name, preset.defaultHours || 0, newLineId);
+                  setHighlightedLineIds([newLineId]);
+                  handlePresetAdd(preset.id);
                   toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
                 }}
               />
@@ -432,10 +416,9 @@ export default function AddRO() {
         </div>
       )}
 
-      {/* Scrollable Content - Lines Grid */}
+      {/* Lines */}
       <main ref={linesContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-3 pb-48">
-          {/* Compact Lines Grid */}
           <CompactLinesGrid
             lines={lines}
             onLinesChange={setLines}
@@ -447,53 +430,45 @@ export default function AddRO() {
         </div>
       </main>
 
-      {/* Sticky Add Line Button */}
+      {/* Add line button */}
       <div className="fixed bottom-[140px] left-3 right-3 z-40 safe-bottom">
         <button
           onClick={handleAddLine}
-          className="w-auto mx-auto flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium text-muted-foreground hover:text-primary bg-muted/60 hover:bg-muted active:scale-[0.96] transition-all"
+          className="w-auto mx-auto flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium text-muted-foreground hover:text-primary bg-muted/60 hover:bg-muted border border-border active:scale-[0.96] transition-all"
         >
           <Plus className="h-3.5 w-3.5" />
           Add Line
         </button>
       </div>
 
-      {/* Sticky Bottom Action Bar */}
+      {/* Bottom action bar */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
-        {/* Total Hours */}
         <div className="px-3 py-2 border-b border-border flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">
             Total ({lines.length} lines)
-            {tbdCount > 0 && (
-              <span className="ml-1 text-warning">• {tbdCount} TBD</span>
-            )}
+            {tbdCount > 0 && <span className="ml-1 text-destructive">· {tbdCount} TBD</span>}
           </span>
-          <span className="text-xl font-bold text-primary">{totalHours.toFixed(1)}h</span>
+          <span className="text-lg font-bold text-primary tabular-nums">{totalHours.toFixed(1)}h</span>
         </div>
-        
-        {/* Action Buttons */}
         <div className="p-3 flex gap-2">
           <button
             onClick={() => handleSave(false)}
             disabled={!isValid || isSaving}
             className={cn(
-              'flex-1 py-3 rounded-xl font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98]',
-              isValid && !isSaving
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground'
+              'flex-1 py-2.5 rounded-md font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center justify-center gap-2',
+              isValid && !isSaving ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
             )}
           >
-            {isSaving ? 'Saving…' : 'Save'}
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {editingRO ? 'Update' : 'Save'}
           </button>
           {!editingRO && (
             <button
               onClick={() => handleSave(true)}
               disabled={!isValid || isSaving}
               className={cn(
-                'py-3 px-4 rounded-xl font-medium text-sm border-2 min-h-[44px] transition-colors active:scale-[0.98]',
-                isValid && !isSaving
-                  ? 'border-primary text-primary'
-                  : 'border-muted text-muted-foreground'
+                'py-2.5 px-4 rounded-md font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
+                isValid && !isSaving ? 'border-primary text-primary' : 'border-muted text-muted-foreground'
               )}
             >
               + Add
@@ -502,63 +477,47 @@ export default function AddRO() {
         </div>
       </footer>
 
-      {/* Advisor List Sheet */}
-      <BottomSheet
-        isOpen={showAdvisorList}
-        onClose={() => setShowAdvisorList(false)}
-        title="Select Advisor"
-      >
+      {/* Advisor Sheet */}
+      <BottomSheet isOpen={showAdvisorList} onClose={() => setShowAdvisorList(false)} title="Select Advisor">
         <div className="p-4 space-y-2">
-          {/* Search/Create input */}
-          <div className="mb-3">
-            <input
-              type="text"
-              placeholder="Search or add new advisor..."
-              value={advisorSearch}
-              onChange={(e) => setAdvisorSearch(e.target.value)}
-              className="w-full h-12 px-4 bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-              autoFocus
-            />
-          </div>
-
-          {filteredAdvisors.map((adv) => (
+          <input
+            type="text"
+            placeholder="Search or add new advisor..."
+            value={advisorSearch}
+            onChange={e => setAdvisorSearch(e.target.value)}
+            className="w-full h-10 px-3 bg-secondary rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            autoFocus
+          />
+          {filteredAdvisors.map(adv => (
             <button
               key={adv.id}
-              onClick={() => {
-                setAdvisor(adv.name);
-                setShowAdvisorList(false);
-                setAdvisorSearch('');
-              }}
+              onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
               className={cn(
-                'w-full p-3 rounded-xl text-left font-medium min-h-[44px]',
-                advisor === adv.name ? 'bg-primary text-primary-foreground' : 'bg-secondary'
+                'w-full p-2.5 rounded-md text-left text-sm font-medium min-h-[44px] border',
+                advisor === adv.name ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border'
               )}
             >
               {adv.name}
             </button>
           ))}
-          
-          {/* Create new advisor option */}
           {advisorSearch.trim() && !settings.advisors.some(a => a.name.toLowerCase() === advisorSearch.trim().toLowerCase()) && (
             <button
               onClick={() => {
                 const name = advisorSearch.trim();
                 updateAdvisors([...settings.advisors, { id: Date.now().toString(), name }]);
-                setAdvisor(name);
-                setShowAdvisorList(false);
-                setAdvisorSearch('');
+                setAdvisor(name); setShowAdvisorList(false); setAdvisorSearch('');
                 toast.success(`Advisor "${name}" created`);
               }}
-              className="w-full p-3 rounded-xl text-left font-medium min-h-[44px] bg-primary/10 text-primary border-2 border-dashed border-primary/30 flex items-center gap-2"
+              className="w-full p-2.5 rounded-md text-left text-sm font-medium min-h-[44px] bg-primary/10 text-primary border border-dashed border-primary/30 flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              Add new advisor: "{advisorSearch.trim()}"
+              Add: "{advisorSearch.trim()}"
             </button>
           )}
         </div>
       </BottomSheet>
 
-      {/* Scan Flow */}
+      {/* Scan */}
       <ScanFlow
         isOpen={showScanFlow}
         onClose={() => setShowScanFlow(false)}
@@ -568,32 +527,19 @@ export default function AddRO() {
         existingLineDescriptions={lines.map(l => l.description)}
       />
 
-      {/* RO Cap Reached Sheet */}
-      <BottomSheet
-        isOpen={showCapSheet}
-        onClose={() => setShowCapSheet(false)}
-        title="Monthly Limit Reached"
-      >
+      {/* Cap Sheet */}
+      <BottomSheet isOpen={showCapSheet} onClose={() => setShowCapSheet(false)} title="Monthly Limit Reached">
         <div className="p-6 space-y-4 text-center">
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP} ROs per month.
-          </p>
           <p className="text-muted-foreground text-sm">
-            Upgrade to Pro for unlimited ROs plus OCR scanning, spreadsheet view, and more.
+            You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP}/month.
           </p>
           <button
-            onClick={() => {
-              setShowCapSheet(false);
-              startCheckout();
-            }}
-            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold"
+            onClick={() => { setShowCapSheet(false); startCheckout(); }}
+            className="w-full py-3 bg-primary text-primary-foreground rounded-md font-semibold text-sm"
           >
             Upgrade to Pro — $8.99/mo
           </button>
-          <button
-            onClick={() => setShowCapSheet(false)}
-            className="w-full py-3 text-muted-foreground text-sm"
-          >
+          <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm">
             Maybe later
           </button>
         </div>
@@ -602,12 +548,11 @@ export default function AddRO() {
   );
 }
 
-// Preset button with pressed state animation
-function PresetButton({ 
-  preset, 
-  onAdd 
-}: { 
-  preset: { id: string; name: string; defaultHours?: number; workTemplate?: string; laborType?: LaborType }; 
+// Preset button
+function PresetButton({
+  preset, onAdd,
+}: {
+  preset: { id: string; name: string; defaultHours?: number; workTemplate?: string; laborType?: LaborType };
   onAdd: (newLineId: string) => void;
 }) {
   const [isPressed, setIsPressed] = useState(false);
@@ -625,19 +570,13 @@ function PresetButton({
       onClick={handleClick}
       className={cn(
         'flex-shrink-0 px-2.5 py-1.5 border rounded-md text-xs font-medium flex items-center gap-1 transition-all duration-150 min-h-[32px]',
-        isPressed 
-          ? 'bg-primary text-primary-foreground border-primary scale-95' 
+        isPressed
+          ? 'bg-primary text-primary-foreground border-primary scale-95'
           : 'bg-card border-border hover:bg-primary/10 hover:border-primary/30 active:scale-95'
       )}
     >
       {isPressed ? (
-        <motion.span
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="inline-flex"
-        >
-          ✓
-        </motion.span>
+        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex">✓</motion.span>
       ) : (
         <Plus className="h-3 w-3" />
       )}

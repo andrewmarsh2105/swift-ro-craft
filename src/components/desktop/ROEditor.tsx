@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Plus, Calendar, User, Clock, FileText, Check } from 'lucide-react';
+import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
@@ -8,6 +8,9 @@ import { StatusPill } from '@/components/mobile/StatusPill';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { SectionCard } from '@/components/layout/SectionCard';
+import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
@@ -34,7 +37,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const { userSettings } = useFlagContext();
   const { isPro, startCheckout } = useSubscription();
 
-  // RO cap for free users
+  // RO cap
   const monthlyROCount = useMemo(() => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -42,6 +45,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   }, [ros]);
   const RO_CAP = 150;
   const isAtCap = !isPro && isNew && monthlyROCount >= RO_CAP;
+
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
   const [advisor, setAdvisor] = useState(ro?.advisor || '');
@@ -52,17 +56,15 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const [vehicle, setVehicle] = useState<VehicleInfo>(ro?.vehicle || {});
   const [mileage, setMileage] = useState(ro?.mileage || '');
   const [paidDate, setPaidDate] = useState(ro?.paidDate || '');
+  const [isSaving, setIsSaving] = useState(false);
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (ro?.lines?.length) return ro.lines.map(l => ({ ...l, laborType: l.laborType || 'customer-pay' }));
     if (ro && ro.paidHours > 0) {
       return [{
-        id: Date.now().toString(),
-        lineNo: 1,
+        id: Date.now().toString(), lineNo: 1,
         description: ro.workPerformed || 'General Labor',
-        hoursPaid: ro.paidHours,
-        laborType: ro.laborType || 'customer-pay',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        hoursPaid: ro.paidHours, laborType: ro.laborType || 'customer-pay',
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       }];
     }
     return [createEmptyLine(1)];
@@ -73,7 +75,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
   const linesContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync with ro prop changes
+  // Sync with ro prop
   useEffect(() => {
     if (ro) {
       setRoNumber(ro.roNumber);
@@ -85,35 +87,23 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       setVehicle(ro.vehicle || {});
       setMileage(ro.mileage || '');
       setPaidDate(ro.paidDate || '');
-      if (ro.lines?.length) {
-        setLines(ro.lines);
-      } else if (ro.paidHours > 0) {
+      if (ro.lines?.length) setLines(ro.lines);
+      else if (ro.paidHours > 0) {
         setLines([{
-          id: Date.now().toString(),
-          lineNo: 1,
+          id: Date.now().toString(), lineNo: 1,
           description: ro.workPerformed || 'General Labor',
-          hoursPaid: ro.paidHours,
-          laborType: ro.laborType,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          hoursPaid: ro.paidHours, laborType: ro.laborType,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
         }]);
       }
     } else if (isNew) {
-      setRoNumber('');
-      setAdvisor('');
-      setCustomerName('');
-      setDate(localDateStr());
-      setLaborType('customer-pay');
-      setNotes('');
-      setVehicle({});
-      setMileage('');
-      setPaidDate('');
-      setLines([createEmptyLine(1)]);
-      setShowDetails(false);
+      setRoNumber(''); setAdvisor(''); setCustomerName('');
+      setDate(localDateStr()); setLaborType('customer-pay');
+      setNotes(''); setVehicle({}); setMileage(''); setPaidDate('');
+      setLines([createEmptyLine(1)]); setShowDetails(false);
     }
   }, [ro, isNew]);
 
-  // Clear highlights after 2.5 seconds
   useEffect(() => {
     if (highlightedLineIds.length > 0) {
       const timer = setTimeout(() => setHighlightedLineIds([]), 2500);
@@ -121,11 +111,9 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     }
   }, [highlightedLineIds]);
 
-  // Focus + highlight a specific line when navigated from Flag Inbox
   useEffect(() => {
     if (!focusLineId) return;
     setHighlightedLineIds([focusLineId]);
-    // Scroll the line into view after a short delay to let the editor render
     const timer = setTimeout(() => {
       const el = linesContainerRef.current?.querySelector(`[data-line-id="${focusLineId}"]`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -144,9 +132,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     if (data.customerName) setCustomerName(data.customerName);
     if (data.vehicle) setVehicle(data.vehicle);
     if (data.mileage) setMileage(data.mileage);
-
     const newLineIds = data.lines.map(l => l.id);
-
     if (data.mode === 'replace') {
       setLines(data.lines.map((l, i) => ({ ...l, lineNo: i + 1 })));
     } else {
@@ -155,118 +141,106 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         return [...data.lines, ...filtered].map((l, i) => ({ ...l, lineNo: i + 1 }));
       });
     }
-
     setHighlightedLineIds(newLineIds);
     setShowScanFlow(false);
   };
 
-  const handleSave = (addAnother: boolean = false) => {
+  const handleSave = async (addAnother: boolean = false) => {
+    if (!roNumber.trim()) { toast.error('RO number is required'); return; }
+    if (!advisor.trim()) { toast.error('Advisor is required'); return; }
+
     if (isAtCap) {
-      toast.error(`Monthly limit reached (${RO_CAP} ROs). Upgrade to Pro for unlimited ROs.`);
+      toast.error(`Monthly limit reached (${RO_CAP} ROs). Upgrade to Pro for unlimited.`);
       startCheckout();
       return;
     }
+
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
-    
     const roData = {
-      roNumber,
-      advisor,
+      roNumber, advisor,
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
       paidDate: paidDate.trim() || (ro ? '' : undefined),
-      paidHours: totalHours,
-      laborType,
-      workPerformed: computedWorkPerformed,
-      notes,
-      date,
-      photos: ro?.photos,
-      lines,
-      isSimpleMode: false,
+      paidHours: totalHours, laborType,
+      workPerformed: computedWorkPerformed, notes, date,
+      photos: ro?.photos, lines, isSimpleMode: false,
     };
 
-    if (ro) {
-      updateRO(ro.id, roData);
-      toast.success('RO updated');
-    } else {
-      addRO(roData);
-      toast.success('RO created');
-    }
-
-    if (addAnother) {
-      setRoNumber('');
-      setCustomerName('');
-      setNotes('');
-      setPaidDate('');
-      setLines([createEmptyLine(1)]);
-      setShowDetails(false);
-      onSaveAndAddAnother?.();
-    } else {
-      onSave?.();
+    setIsSaving(true);
+    try {
+      if (ro) {
+        await updateRO(ro.id, roData);
+        toast.success('RO updated');
+      } else {
+        await addRO(roData);
+        toast.success('RO created');
+      }
+      if (addAnother) {
+        setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
+        setLines([createEmptyLine(1)]); setShowDetails(false);
+        onSaveAndAddAnother?.();
+      } else {
+        onSave?.();
+      }
+    } catch (err: any) {
+      toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Sticky Header Strip */}
-      <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3 space-y-2">
+      {/* Header Strip */}
+      <div className="flex-shrink-0 border-b border-border bg-card px-4 py-2.5 space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* RO Number */}
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <input
               type="text"
               value={roNumber}
-              onChange={(e) => setRoNumber(e.target.value)}
+              onChange={e => setRoNumber(e.target.value)}
               placeholder="RO #"
-              className="w-24 h-8 px-2 bg-muted rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-24 h-8 px-2 bg-muted rounded-md border border-input text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
-          {/* RO Date */}
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-xs text-muted-foreground">RO Date</span>
+            <span className="text-[11px] text-muted-foreground">RO Date</span>
             <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              type="date" value={date} onChange={e => setDate(e.target.value)}
+              className="h-8 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
-          {/* Advisor */}
           <AdvisorCombobox
-            value={advisor}
-            onChange={setAdvisor}
+            value={advisor} onChange={setAdvisor}
             advisors={settings.advisors}
-            onCreateAdvisor={(name) => {
+            onCreateAdvisor={name => {
               const newAdvisor = { id: Date.now().toString(), name };
               updateAdvisors([...settings.advisors, newAdvisor]);
             }}
           />
 
-          {/* Labor Type */}
           <select
             value={laborType}
-            onChange={(e) => {
+            onChange={e => {
               const newType = e.target.value as LaborType;
               setLaborType(newType);
               setLines(prev => prev.map(l => ({ ...l, laborType: newType, updatedAt: new Date().toISOString() })));
             }}
-            className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="h-8 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            {LABOR_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
+            {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
 
-          {/* Spacer + right-aligned actions */}
           <div className="ml-auto flex items-center gap-3 flex-shrink-0">
             {isPro && (
               <button
                 onClick={() => setShowScanFlow(true)}
-                className="h-8 w-8 flex items-center justify-center bg-secondary rounded hover:bg-secondary/80 transition-colors"
+                className="h-8 w-8 flex items-center justify-center bg-secondary rounded-md border border-border hover:bg-accent transition-colors"
                 title="Upload RO Photo"
               >
                 <Camera className="h-4 w-4" />
@@ -276,39 +250,32 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-xl font-bold text-primary tabular-nums">{totalHours.toFixed(1)}h</span>
               {tbdCount > 0 && (
-                <span className="text-xs text-warning font-medium">({tbdCount} TBD)</span>
+                <span className="text-xs text-destructive font-medium">({tbdCount} TBD)</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Details collapsed summary row */}
         <DetailsCollapsible
-          vehicle={vehicle}
-          onVehicleChange={setVehicle}
-          customerName={customerName}
-          onCustomerNameChange={setCustomerName}
-          mileage={mileage}
-          onMileageChange={setMileage}
-          paidDate={paidDate}
-          onPaidDateChange={setPaidDate}
-          open={showDetails}
-          onOpenChange={setShowDetails}
+          vehicle={vehicle} onVehicleChange={setVehicle}
+          customerName={customerName} onCustomerNameChange={setCustomerName}
+          mileage={mileage} onMileageChange={setMileage}
+          paidDate={paidDate} onPaidDateChange={setPaidDate}
+          open={showDetails} onOpenChange={setShowDetails}
           layout="desktop"
         />
       </div>
 
-      {/* Presets Toolbar */}
+      {/* Presets */}
       {settings.presets.length > 0 && (
         <div className="flex-shrink-0 border-b border-border bg-muted/30 px-4 py-2">
           <PresetSearchRail
             presets={settings.presets}
             animatingId={animatingPresetId}
             layout="desktop"
-            onSelect={(preset) => {
+            onSelect={preset => {
               setAnimatingPresetId(preset.id);
               setTimeout(() => setAnimatingPresetId(null), 600);
-
               const newLine: ROLine = {
                 id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
                 lineNo: 1,
@@ -328,51 +295,40 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         </div>
       )}
 
-      {/* Main Content - Lines Grid */}
+      {/* Lines */}
       <div className="flex-1 overflow-y-auto p-4" ref={linesContainerRef}>
         <LinesGrid
-          lines={lines}
-          onLinesChange={setLines}
+          lines={lines} onLinesChange={setLines}
           presets={settings.presets}
           highlightedIds={highlightedLineIds}
           roVehicle={vehicle}
           showVehicleChips={false}
           defaultLaborType={laborType}
         />
-
-        {/* Notes Section */}
         <div className="mt-4">
           <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={notes} onChange={e => setNotes(e.target.value)}
             placeholder="Additional notes..."
             rows={2}
-            className="w-full p-3 bg-muted rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full p-3 bg-muted rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>
 
       {/* Action Bar */}
-      <div className="flex-shrink-0 border-t border-border bg-card px-4 py-3">
+      <div className="flex-shrink-0 border-t border-border bg-card px-4 py-2.5">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
+          <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Cancel
+          </button>
           <div className="flex items-center gap-2">
             {isNew && (
               <button
                 onClick={() => handleSave(true)}
-                disabled={!isValid}
+                disabled={!isValid || isSaving}
                 className={cn(
-                  'px-4 py-2 text-sm font-medium rounded-lg border transition-colors',
-                  isValid
-                    ? 'border-primary text-primary hover:bg-primary/10'
-                    : 'border-muted text-muted-foreground cursor-not-allowed'
+                  'px-4 py-2 text-sm font-medium rounded-md border transition-colors',
+                  isValid && !isSaving ? 'border-primary text-primary hover:bg-primary/10' : 'border-muted text-muted-foreground cursor-not-allowed'
                 )}
               >
                 Save + Add Another
@@ -380,16 +336,14 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             )}
             <button
               onClick={() => handleSave(false)}
-              disabled={!isValid}
+              disabled={!isValid || isSaving}
               className={cn(
-                'px-4 py-2 text-sm font-semibold rounded-lg flex items-center gap-2 transition-colors',
-                isValid
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+                'px-4 py-2 text-sm font-semibold rounded-md flex items-center gap-2 transition-colors',
+                isValid && !isSaving ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted text-muted-foreground cursor-not-allowed'
               )}
             >
-              <Save className="h-4 w-4" />
-              Save
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {ro ? 'Update' : 'Save'}
             </button>
           </div>
         </div>
