@@ -33,8 +33,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
 import { maskHours } from "@/lib/maskHours";
 import { getReviewIssues, type ReviewIssue } from "@/lib/reviewRules";
-
-import type { RepairOrder } from "@/types/ro";
+import { calcHours, effectiveDate, formatDateLong, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 
 interface RODetailSheetProps {
   isOpen: boolean;

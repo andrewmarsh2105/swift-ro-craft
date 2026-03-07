@@ -120,8 +120,8 @@ export const ROListPanel = memo(function ROListPanel({
       result = result.filter((ro) => ro.advisor === advisorFilter);
     }
 
-    // Search
-    const q = searchQuery.trim().toLowerCase();
+    // Search (deferred for smoother typing)
+    const q = deferredSearch.trim().toLowerCase();
     if (q) {
       result = result.filter((ro) => {
         const v = vehicleLabel(ro).toLowerCase();

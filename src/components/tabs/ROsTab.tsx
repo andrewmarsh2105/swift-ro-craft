@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect, memo } from 'react';
-import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect, useDeferredValue, memo, lazy, Suspense } from 'react';
+import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
@@ -16,7 +16,6 @@ import { FlagBadge } from '@/components/flags/FlagBadge';
 import { FlagInbox } from '@/components/flags/FlagInbox';
 import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
-import { SpreadsheetView } from '@/components/shared/SpreadsheetView';
 import { EmptyState } from '@/components/states/EmptyState';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
@@ -24,6 +23,12 @@ import type { FlagType } from '@/types/flags';
 import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
+import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { effectiveDate, formatDateShort, calcHours } from '@/lib/roDisplay';
+
+const SpreadsheetView = lazy(() =>
+  import('@/components/shared/SpreadsheetView').then((m) => ({ default: m.SpreadsheetView })),
+);
 
 /* ── ROCard ─────────────────────────────────────── */
 
