@@ -88,8 +88,10 @@ export const ROListPanel = memo(function ROListPanel({
   onSelectRO,
   onAddNew,
   onFilteredROsChange,
+  compact = false,
 }: ROListPanelProps) {
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
+  const isCompact = compact;
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useLocalStorageState("ui.desktop.roTable.search.v1", "");
