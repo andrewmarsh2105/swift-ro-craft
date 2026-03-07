@@ -250,7 +250,9 @@ export function DesktopWorkspace() {
                   exit="exit"
                   className="h-full overflow-y-auto absolute inset-0"
                 >
-                  <SettingsTab />
+                  <Suspense fallback={<PanelFallback />}>
+                    <SettingsTab />
+                  </Suspense>
                 </motion.div>
               ) : rightPanel === "summary" ? (
                 <motion.div
@@ -261,7 +263,9 @@ export function DesktopWorkspace() {
                   exit="exit"
                   className="h-full overflow-y-auto absolute inset-0"
                 >
-                  <SummaryTab />
+                  <Suspense fallback={<PanelFallback />}>
+                    <SummaryTab />
+                  </Suspense>
                 </motion.div>
               ) : showEditor ? (
                 <motion.div
