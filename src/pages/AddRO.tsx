@@ -120,6 +120,12 @@ export default function AddRO() {
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
   const tbdCount = lines.filter(l => l.isTbd).length;
 
+  const quickPresets = useMemo(() => {
+    const favorites = settings.presets.filter(p => p.isFavorite);
+    const rest = settings.presets.filter(p => !p.isFavorite);
+    return [...favorites, ...rest].slice(0, 8);
+  }, [settings.presets]);
+
   const handleScanApply = (data: ScanApplyData) => {
     if (data.roNumber) setRoNumber(data.roNumber);
     if (data.advisor) setAdvisor(data.advisor);
