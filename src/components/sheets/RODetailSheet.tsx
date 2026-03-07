@@ -37,6 +37,16 @@ import { calcHours, effectiveDate, formatDateLong, formatDateShort, vehicleLabel
 
 import type { RepairOrder } from "@/types/ro";
 
+interface RODetailSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  ro: RepairOrder | null;
+  onEdit: () => void;
+  onDuplicate: (newRONumber: string) => void;
+  onDelete: () => void;
+  existingRONumbers?: string[];
+}
+
 async function copyToClipboard(label: string, value: string) {
   try {
     await navigator.clipboard.writeText(value);
