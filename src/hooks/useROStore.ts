@@ -1,79 +1,40 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
-import { pushDebug } from '@/components/debug/DevDebugPanel';
-import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine, VehicleInfo } from '@/types/ro';
+import { pushDebug } from '@/lib/debug';
+import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine } from '@/types/ro';
+import {
+  dbToRepairOrder,
+  groupLinesByRoId,
+  toRoLineInserts,
+  toRosInsert,
+  toRosUpdate,
+  type RoLineRow,
+  type RoRow,
+} from '@/features/ro/data/roMapper';
 
-// Map DB row to app RepairOrder
-function deriveLaborType(lines: any[]): LaborType {
-  if (!lines.length) return 'customer-pay';
-  // Count occurrences of each labor type
-  const counts: Record<string, number> = {};
-  lines.forEach((l: any) => {
-    const t = l.labor_type || l.laborType || 'customer-pay';
-    counts[t] = (counts[t] || 0) + 1;
-  });
-  // Return the most common type
-  let maxType: LaborType = 'customer-pay';
-  let maxCount = 0;
-  for (const [type, count] of Object.entries(counts)) {
-    if (count > maxCount) {
-      maxCount = count;
-      maxType = type as LaborType;
-    }
+type AdvisorRow = Database["public"]["Tables"]["advisors"]["Row"];
+type LaborReferenceRow = Database["public"]["Tables"]["labor_references"]["Row"];
+type LaborTypeDb = Database["public"]["Enums"]["labor_type"];
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return 'Unknown error';
   }
-  return maxType;
 }
 
-function dbToRO(row: any, lines: any[]): RepairOrder {
-  const vehicle: VehicleInfo | undefined =
-    (row.vehicle_year || row.vehicle_make || row.vehicle_model || row.vehicle_vin)
-      ? { year: row.vehicle_year ?? undefined, make: row.vehicle_make ?? undefined, model: row.vehicle_model ?? undefined, trim: row.vehicle_trim ?? undefined, vin: row.vehicle_vin ?? undefined }
-      : undefined;
-
-    return {
-    id: row.id,
-    roNumber: row.ro_number,
-    date: row.date,
-    paidDate: row.paid_date || undefined,
-    advisor: row.advisor_name,
-    customerName: row.customer_name || undefined,
-    mileage: row.mileage || undefined,
-    vehicle,
-    paidHours: lines.filter((l: any) => !l.is_tbd).reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
-    laborType: deriveLaborType(lines),
-    workPerformed: lines.map((l: any) => l.description).filter(Boolean).join('\n'),
-    notes: row.notes || undefined,
-    lines: lines.map((l: any, i: number) => ({
-      id: l.id,
-      lineNo: l.line_no,
-      description: l.description,
-      hoursPaid: Number(l.hours_paid),
-      isTbd: !!l.is_tbd,
-      laborType: l.labor_type as LaborType,
-      matchedReferenceId: l.matched_reference_id || undefined,
-      vehicleOverride: !!l.vehicle_override,
-      lineVehicle: l.vehicle_override
-        ? { year: l.line_vehicle_year ?? undefined, make: l.line_vehicle_make ?? undefined, model: l.line_vehicle_model ?? undefined, trim: l.line_vehicle_trim ?? undefined }
-        : undefined,
-      createdAt: l.created_at,
-      updatedAt: l.updated_at,
-    })),
-    isSimpleMode: lines.length === 0,
-    photos: [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-// Map DB labor_reference to Preset
-function dbToPreset(row: any): Preset {
+function dbToPreset(row: LaborReferenceRow): Preset {
   return {
     id: row.id,
     name: row.name,
-    laborType: row.labor_type_default as LaborType,
+    laborType: row.labor_type_default as unknown as LaborType,
     defaultHours: row.default_hours ? Number(row.default_hours) : undefined,
     workTemplate: row.name,
     isFavorite: !!row.is_favorite,
@@ -113,20 +74,17 @@ export function useROStore() {
         .limit(10000);
       if (lErr) throw lErr;
 
-      const linesByRO = new Map<string, any[]>();
-      (lineRows || []).forEach((l) => {
-        const arr = linesByRO.get(l.ro_id) || [];
-        arr.push(l);
-        linesByRO.set(l.ro_id, arr);
-      });
+      const linesByRO = groupLinesByRoId((lineRows || []) as RoLineRow[]);
 
-      const mapped = (roRows || []).map(r => dbToRO(r, linesByRO.get(r.id) || []));
+      const mapped = (roRows || []).map((r) =>
+        dbToRepairOrder(r as RoRow, linesByRO.get((r as RoRow).id) || [])
+      );
       setROs(mapped);
       const totalLines = (lineRows || []).length;
       pushDebug({ action: `fetchROs OK: ${mapped.length} ROs, ${totalLines} lines` });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch ROs', err);
-      pushDebug({ action: 'fetchROs FAIL', error: err?.message });
+      pushDebug({ action: 'fetchROs FAIL', error: errorMessage(err) });
     } finally {
       setLoadingROs(false);
     }
@@ -154,7 +112,7 @@ export function useROStore() {
         ...prev,
         presets,
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch presets', err);
     }
   }, [user]);
@@ -168,13 +126,16 @@ export function useROStore() {
         .select('*')
         .order('name', { ascending: true });
       if (error) throw error;
-      const advisors: Advisor[] = (data || []).map((r: any) => ({ id: r.id, name: r.name }));
+      const advisors: Advisor[] = (data || []).map((r) => {
+        const row = r as AdvisorRow;
+        return { id: row.id, name: row.name };
+      });
       setSettings(prev => ({
         ...prev,
         advisors,
         recentAdvisors: advisors.map(a => a.name).slice(0, 6),
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch advisors', err);
     }
   }, [user]);
@@ -210,26 +171,9 @@ export function useROStore() {
       return;
     }
 
-    const paidHours = ro.isSimpleMode ? ro.paidHours : ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0);
-
     const { data: newRow, error } = await supabase
       .from('ros')
-      .insert({
-        user_id: user.id,
-        ro_number: ro.roNumber,
-        date: ro.date,
-        advisor_name: ro.advisor,
-        customer_name: ro.customerName || null,
-        mileage: ro.mileage || null,
-        notes: ro.notes || null,
-        status: 'draft',
-        vehicle_year: ro.vehicle?.year ?? null,
-        vehicle_make: ro.vehicle?.make ?? null,
-        vehicle_model: ro.vehicle?.model ?? null,
-        vehicle_trim: ro.vehicle?.trim ?? null,
-        vehicle_vin: ro.vehicle?.vin ?? null,
-        paid_date: ro.paidDate || null,
-      })
+      .insert(toRosInsert(user.id, ro))
       .select()
       .single();
 
@@ -249,21 +193,12 @@ export function useROStore() {
 
     // Insert lines
     if (ro.lines.length > 0) {
-      const lineInserts = ro.lines.map((l, i) => ({
-        ro_id: newRow.id,
-        user_id: user.id,
-        line_no: i + 1,
-        description: l.description,
-        labor_type: (l.laborType || ro.laborType || 'customer-pay') as any,
-        hours_paid: l.hoursPaid,
-        is_tbd: !!l.isTbd,
-        matched_reference_id: l.matchedReferenceId || null,
-        vehicle_override: !!l.vehicleOverride,
-        line_vehicle_year: l.lineVehicle?.year ?? null,
-        line_vehicle_make: l.lineVehicle?.make ?? null,
-        line_vehicle_model: l.lineVehicle?.model ?? null,
-        line_vehicle_trim: l.lineVehicle?.trim ?? null,
-      }));
+      const lineInserts = toRoLineInserts({
+        userId: user.id,
+        roId: newRow.id,
+        lines: ro.lines,
+        fallbackLaborType: ro.laborType || 'customer-pay',
+      });
       const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
       if (lErr) {
         console.error('Failed to insert lines', lErr);
@@ -281,7 +216,7 @@ export function useROStore() {
       .eq('ro_id', newRow.id)
       .order('line_no', { ascending: true });
 
-    const newRO = dbToRO(newRow, insertedLines || []);
+    const newRO = dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]);
     setROs(prev => [newRO, ...prev]);
     return newRO;
   }, [user, isOnline, queueAction]);
@@ -311,7 +246,7 @@ export function useROStore() {
         }
       } catch (err) {
         // If we can't check, fall back to offline queue on network error
-        const msg = (err as any)?.message || '';
+        const msg = errorMessage(err);
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
           await queueAction('updateRO', { id, updates });
           toast.info('Network issue — update saved offline');
@@ -320,21 +255,7 @@ export function useROStore() {
       }
     }
 
-    const dbUpdates: any = {};
-    if (updates.roNumber !== undefined) dbUpdates.ro_number = updates.roNumber;
-    if (updates.advisor !== undefined) dbUpdates.advisor_name = updates.advisor;
-    if (updates.date !== undefined) dbUpdates.date = updates.date;
-    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-    if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName || null;
-    if (updates.mileage !== undefined) dbUpdates.mileage = updates.mileage || null;
-    if (updates.paidDate !== undefined) dbUpdates.paid_date = updates.paidDate || null;
-    if (updates.vehicle !== undefined) {
-      dbUpdates.vehicle_year = updates.vehicle?.year ?? null;
-      dbUpdates.vehicle_make = updates.vehicle?.make ?? null;
-      dbUpdates.vehicle_model = updates.vehicle?.model ?? null;
-      dbUpdates.vehicle_trim = updates.vehicle?.trim ?? null;
-      dbUpdates.vehicle_vin = updates.vehicle?.vin ?? null;
-    }
+    const dbUpdates = toRosUpdate(updates);
 
     if (Object.keys(dbUpdates).length > 0) {
       const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id);
@@ -359,21 +280,12 @@ export function useROStore() {
         return;
       }
       if (updates.lines.length > 0) {
-        const lineInserts = updates.lines.map((l, i) => ({
-          ro_id: id,
-          user_id: user.id,
-          line_no: i + 1,
-          description: l.description,
-          labor_type: (l.laborType || updates.laborType || 'customer-pay') as any,
-          hours_paid: l.hoursPaid,
-          is_tbd: !!l.isTbd,
-          matched_reference_id: l.matchedReferenceId || null,
-          vehicle_override: !!l.vehicleOverride,
-          line_vehicle_year: l.lineVehicle?.year ?? null,
-          line_vehicle_make: l.lineVehicle?.make ?? null,
-          line_vehicle_model: l.lineVehicle?.model ?? null,
-          line_vehicle_trim: l.lineVehicle?.trim ?? null,
-        }));
+        const lineInserts = toRoLineInserts({
+          userId: user.id,
+          roId: id,
+          lines: updates.lines,
+          fallbackLaborType: updates.laborType || 'customer-pay',
+        });
         const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);
         if (insErr) {
           console.error('Failed to insert lines', insErr);
@@ -383,7 +295,7 @@ export function useROStore() {
     }
 
     // Optimistic update: fetch only this RO's lines and update local state
-    const { data: updatedRow } = await supabase
+    const { data: updatedRow, error: rErr } = await supabase
       .from('ros')
       .select('*')
       .eq('id', id)
@@ -396,10 +308,10 @@ export function useROStore() {
       .order('line_no', { ascending: true });
 
     if (updatedRow) {
-      const updatedRO = dbToRO(updatedRow, updatedLines || []);
-      setROs(prev => prev.map(r => r.id === id ? updatedRO : r));
+      const updated = dbToRepairOrder(updatedRow as RoRow, (updatedLines || []) as RoLineRow[]);
+      setROs(prev => prev.map(r => r.id === id ? updated : r));
     }
-  }, [user, isOnline, queueAction]);
+  }, [user, isOnline, queueAction, ros]);
 
   const deleteRO = useCallback(async (id: string) => {
     if (!user) return;
@@ -457,7 +369,7 @@ export function useROStore() {
         const rows = uniquePresets.map((p, i) => ({
           user_id: user.id,
           name: p.name,
-          labor_type_default: p.laborType as any,
+          labor_type_default: p.laborType as unknown as LaborTypeDb,
           default_hours: p.defaultHours || 0,
           sort_order: i,
           active: true,
@@ -485,18 +397,17 @@ export function useROStore() {
         const { error } = await supabase.from('advisors').insert(rows);
         if (error) throw error;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to persist advisors', err);
       toast.error('Failed to save advisor changes');
     }
     await fetchAdvisors();
   }, [user, fetchAdvisors]);
 
-  // Summary calculations
   const getDaySummaries = useCallback((startDate: string, endDate: string): DaySummary[] => {
+    const summaries: DaySummary[] = [];
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const summaries: DaySummary[] = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayROs = ros.filter(ro => (ro.paidDate || ro.date) === dateStr);
