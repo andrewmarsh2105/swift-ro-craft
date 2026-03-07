@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,137 +6,133 @@
 
 @layer base {
   :root {
-    /* Violet-forward neutral palette (intentional, not "vibe-coded") */
-    --background: 255 30% 99%;
-    --foreground: 252 19% 12%;
+    /* Industrial / ops palette (cool neutrals + steel blue) */
+    --background: 210 20% 98%;
+    --foreground: 215 28% 12%;
 
-    --card: 255 30% 99%;
-    --card-foreground: 252 19% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 12%;
 
-    --popover: 255 30% 99%;
-    --popover-foreground: 252 19% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 12%;
 
-    /* === PRIMARY BRAND COLOR ===
-       Change this HSL to recolor the entire app.
-       Example teal: 173 80% 40%
-       Example orange: 24 95% 53%
-    */
-    --primary: 262 83% 58%;
+    /* Steel blue primary */
+    --primary: 214 84% 38%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 255 18% 96%;
-    --secondary-foreground: 252 19% 12%;
+    --secondary: 210 18% 95%;
+    --secondary-foreground: 215 28% 12%;
 
-    --muted: 255 18% 96%;
-    --muted-foreground: 252 10% 45%;
+    --muted: 210 18% 95%;
+    --muted-foreground: 215 12% 45%;
 
-    --accent: 255 18% 96%;
-    --accent-foreground: 252 19% 12%;
+    --accent: 210 18% 95%;
+    --accent-foreground: 215 28% 12%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 252 14% 90%;
-    --input: 252 14% 90%;
-    --ring: 262 83% 58%;
+    --border: 214 16% 86%;
+    --input: 214 16% 86%;
+    --ring: 214 84% 38%;
 
-    --radius: 0.75rem;
+    /* More industrial: less round */
+    --radius: 0.5rem;
 
-    /* Sidebar tokens */
-    --sidebar-background: 255 30% 99%;
-    --sidebar-foreground: 252 19% 12%;
-    --sidebar-primary: 262 83% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 255 18% 96%;
-    --sidebar-accent-foreground: 252 19% 12%;
-    --sidebar-border: 252 14% 90%;
-    --sidebar-ring: 262 83% 58%;
-
-    /* Misc */
-    --shadow-fab: 0 10px 25px -10px hsl(var(--primary) / 0.4);
-
-    /* RO Status Colors (preserved for existing components) */
-    --status-warranty: 142 65% 38%;
+    /* Status colors (keep meaning, industrial feel) */
+    --status-warranty: 145 70% 32%;
     --status-warranty-foreground: 0 0% 100%;
-    --status-warranty-bg: 142 60% 93%;
+    --status-warranty-bg: 145 40% 92%;
 
-    --status-customer-pay: 262 83% 58%;
+    --status-customer-pay: 214 84% 38%;
     --status-customer-pay-foreground: 0 0% 100%;
-    --status-customer-pay-bg: 262 70% 93%;
+    --status-customer-pay-bg: 214 70% 92%;
 
-    --status-internal: 25 90% 48%;
+    --status-internal: 28 92% 52%;
     --status-internal-foreground: 0 0% 100%;
-    --status-internal-bg: 25 85% 93%;
+    --status-internal-bg: 28 80% 92%;
 
-    /* Mobile-specific */
+    /* Mobile-safe */
     --tab-bar-height: 5rem;
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
-    --shadow-card: 0 1px 3px 0 hsl(252 14% 0% / 0.05), 0 0 0 1px hsl(252 14% 90% / 0.7);
-    --shadow-raised: 0 4px 12px -2px hsl(252 14% 0% / 0.08), 0 0 0 1px hsl(252 14% 90% / 0.6);
-    --shadow-soft: 0 2px 8px -2px hsl(252 14% 0% / 0.06);
-    --shadow-sheet: 0 -4px 24px 0 hsl(0 0% 0% / 0.12);
+    /* Industrial shadows = mostly borders, minimal float */
+    --shadow-sm: 0 1px 2px 0 hsl(215 25% 10% / 0.04);
+    --shadow-card: 0 0 0 1px hsl(var(--border) / 1), 0 1px 2px 0 hsl(215 25% 10% / 0.05);
+    --shadow-raised: 0 10px 28px -16px hsl(215 25% 10% / 0.22), 0 0 0 1px hsl(var(--border) / 0.95);
+    --shadow-soft: 0 1px 2px 0 hsl(215 25% 10% / 0.06);
+    --shadow-fab: 0 12px 30px -18px hsl(var(--primary) / 0.55);
+    --shadow-sheet: 0 -10px 36px -20px hsl(0 0% 0% / 0.26);
+
+    /* Sidebar vars */
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 215 28% 12%;
+    --sidebar-primary: 214 84% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 18% 95%;
+    --sidebar-accent-foreground: 215 28% 12%;
+    --sidebar-border: 214 16% 86%;
+    --sidebar-ring: 214 84% 38%;
   }
 
   .dark {
-    --background: 252 19% 9%;
-    --foreground: 255 30% 99%;
+    color-scheme: dark;
 
-    --card: 252 19% 9%;
-    --card-foreground: 255 30% 99%;
+    --background: 222 28% 8%;
+    --foreground: 210 20% 97%;
 
-    --popover: 252 19% 9%;
-    --popover-foreground: 255 30% 99%;
+    --card: 222 24% 12%;
+    --card-foreground: 210 20% 97%;
 
-    --primary: 262 83% 62%;
-    --primary-foreground: 252 19% 9%;
+    --popover: 222 24% 12%;
+    --popover-foreground: 210 20% 97%;
 
-    --secondary: 252 14% 14%;
-    --secondary-foreground: 255 30% 99%;
+    --primary: 214 85% 58%;
+    --primary-foreground: 222 28% 8%;
 
-    --muted: 252 14% 14%;
-    --muted-foreground: 252 10% 70%;
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 210 20% 97%;
 
-    --accent: 252 14% 14%;
-    --accent-foreground: 255 30% 99%;
+    --muted: 222 18% 16%;
+    --muted-foreground: 214 10% 72%;
+
+    --accent: 222 18% 16%;
+    --accent-foreground: 210 20% 97%;
 
     --destructive: 0 70% 50%;
-    --destructive-foreground: 255 30% 99%;
+    --destructive-foreground: 210 20% 97%;
 
-    --border: 252 14% 18%;
-    --input: 252 14% 18%;
-    --ring: 262 83% 62%;
+    --border: 222 18% 22%;
+    --input: 222 18% 22%;
+    --ring: 214 85% 58%;
 
-    --sidebar-background: 252 19% 9%;
-    --sidebar-foreground: 255 30% 99%;
-    --sidebar-primary: 262 83% 62%;
-    --sidebar-primary-foreground: 252 19% 9%;
-    --sidebar-accent: 252 14% 14%;
-    --sidebar-accent-foreground: 255 30% 99%;
-    --sidebar-border: 252 14% 18%;
-    --sidebar-ring: 262 83% 62%;
+    --status-warranty: 145 70% 52%;
+    --status-warranty-foreground: 145 90% 10%;
+    --status-warranty-bg: 145 35% 14%;
 
-    /* Status colors - dark mode */
-    --status-warranty: 142 68% 52%;
-    --status-warranty-foreground: 142 90% 10%;
-    --status-warranty-bg: 142 55% 12%;
+    --status-customer-pay: 214 85% 58%;
+    --status-customer-pay-foreground: 214 95% 10%;
+    --status-customer-pay-bg: 214 35% 16%;
 
-    --status-customer-pay: 262 83% 62%;
-    --status-customer-pay-foreground: 262 90% 10%;
-    --status-customer-pay-bg: 262 70% 13%;
+    --status-internal: 28 92% 62%;
+    --status-internal-foreground: 28 90% 10%;
+    --status-internal-bg: 28 45% 14%;
 
-    --status-internal: 25 90% 60%;
-    --status-internal-foreground: 25 90% 10%;
-    --status-internal-bg: 25 70% 12%;
+    --shadow-card: 0 0 0 1px hsl(var(--border) / 0.95), 0 1px 2px 0 hsl(0 0% 0% / 0.25);
+    --shadow-raised: 0 14px 40px -24px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(var(--border) / 0.9);
+    --shadow-soft: 0 1px 2px 0 hsl(0 0% 0% / 0.25);
+    --shadow-fab: 0 14px 40px -26px hsl(var(--primary) / 0.45);
+    --shadow-sheet: 0 -10px 40px -22px hsl(0 0% 0% / 0.55);
 
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(252 14% 18% / 0.9);
-    --shadow-raised: 0 4px 12px -2px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(252 14% 18% / 0.8);
-    --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.2);
-    --shadow-fab: 0 4px 16px -2px hsl(262 83% 62% / 0.5);
-    --shadow-sheet: 0 -4px 24px 0 hsl(0 0% 0% / 0.4);
+    --sidebar-background: 222 28% 8%;
+    --sidebar-foreground: 210 20% 97%;
+    --sidebar-primary: 214 85% 58%;
+    --sidebar-primary-foreground: 222 28% 8%;
+    --sidebar-accent: 222 18% 16%;
+    --sidebar-accent-foreground: 210 20% 97%;
+    --sidebar-border: 222 18% 22%;
+    --sidebar-ring: 214 85% 58%;
   }
 }
 
@@ -152,7 +148,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
     line-height: 1.6;
     padding-top: var(--safe-area-inset-top);
   }
@@ -189,7 +185,7 @@
   }
 
   .status-pill {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide;
   }
 
   .status-pill-warranty {
