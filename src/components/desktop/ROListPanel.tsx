@@ -35,6 +35,7 @@ interface ROListPanelProps {
   onSelectRO: (ro: RepairOrder) => void;
   onAddNew: () => void;
   onFilteredROsChange?: (ros: RepairOrder[]) => void;
+  compact?: boolean;
 }
 
 type DateFilter = "all" | "today" | "week" | "month" | "pay_period";
