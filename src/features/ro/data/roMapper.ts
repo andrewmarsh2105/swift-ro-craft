@@ -128,7 +128,7 @@ export function toRosInsert(
     user_id: userId,
     ro_number: ro.roNumber,
     date: ro.date,
-    advisor_name: ro.advisor,
+    advisor_name: normalizeAdvisorName(ro.advisor),
     customer_name: ro.customerName ?? null,
     mileage: ro.mileage ?? null,
     notes: ro.notes ?? null,
