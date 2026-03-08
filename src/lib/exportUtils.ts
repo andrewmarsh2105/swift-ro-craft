@@ -9,7 +9,7 @@ export function generateLineCSV(report: PayPeriodReport): string {
   ];
 
   // Group lines by RO so we only print RO-level info on the first line
-  const filtered = report.linesInRange.filter(({ line }) => line.description.trim() !== '');
+  const filtered = report.linesInRange.filter(({ line }) => line.description.trim() !== '' && !line.isTbd);
   let lastRoId = '';
   const rows = filtered.map(({ ro, line }) => {
       const isFirstLine = ro.id !== lastRoId;

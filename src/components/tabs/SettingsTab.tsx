@@ -43,6 +43,7 @@ function SettingsGroup({ title, children }: SettingsGroupProps) {
 
 interface SettingsRowProps {
   label: string;
+  description?: string;
   value?: string;
   onClick?: () => void;
   toggle?: boolean;
@@ -50,17 +51,22 @@ interface SettingsRowProps {
   onToggle?: (value: boolean) => void;
 }
 
-function SettingsRow({ label, value, onClick, toggle, toggleValue, onToggle }: SettingsRowProps) {
+function SettingsRow({ label, description, value, onClick, toggle, toggleValue, onToggle }: SettingsRowProps) {
   return (
     <button
       onClick={toggle ? () => onToggle?.(!toggleValue) : onClick}
       className="w-full p-4 flex items-center justify-between tap-target touch-feedback"
     >
-      <span className="font-medium">{label}</span>
+      <div className="text-left">
+        <span className="font-medium">{label}</span>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        )}
+      </div>
       {toggle ? (
         <div
           className={cn(
-            'w-12 h-7 rounded-full relative transition-colors',
+            'w-12 h-7 rounded-full relative transition-colors flex-shrink-0',
             toggleValue ? 'bg-primary' : 'bg-muted'
           )}
         >
@@ -72,7 +78,7 @@ function SettingsRow({ label, value, onClick, toggle, toggleValue, onToggle }: S
           />
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-muted-foreground flex-shrink-0">
           {value && <span className="text-sm">{value}</span>}
           <ChevronRight className="h-5 w-5" />
         </div>
@@ -801,7 +807,8 @@ export function SettingsTab() {
         {/* Data Management */}
         <SettingsGroup title="Data">
           <SettingsRow
-            label="Export All Data"
+            label="Download Backup (JSON)"
+            description="Exports all ROs + lines as JSON"
             onClick={() => {
               if (ros.length === 0) {
                 toast.info('No ROs to export');

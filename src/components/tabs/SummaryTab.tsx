@@ -28,6 +28,13 @@ import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HideTotalsContext = createContext(false);
@@ -687,22 +694,39 @@ export function SummaryTab() {
             />
             )}
 
-            {/* ── Export + Proof Pack ─────────────────── */}
-            <div className="px-4 space-y-3 pt-2 pb-4">
-              <Button onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }} className="w-full h-12 cursor-pointer">
-                <FileText className="h-5 w-5" />
-                Proof Pack
-              </Button>
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="secondary" onClick={handleCopySummary} className="h-11 cursor-pointer">
-                  <Copy className="h-4 w-4" />
-                  Copy Summary
-                </Button>
-                <Button variant="secondary" onClick={handleExportCSV} className="h-11 cursor-pointer">
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                </Button>
-              </div>
+            {/* ── Export Menu (single button) ─────────────────── */}
+            <div className="px-4 space-y-2 pt-2 pb-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" className="w-full h-12 cursor-pointer">
+                    <Download className="h-5 w-5" />
+                    Export
+                    <ChevronDown className="h-4 w-4 ml-auto opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {isPro && (
+                    <>
+                      <DropdownMenuItem onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Proof Pack
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuItem onClick={handleCopySummary}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy summary
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportCSV}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Lines CSV (paid only)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Exports use the selected range. CSV excludes TBD lines.
+              </p>
             </div>
           </div>
         )}
