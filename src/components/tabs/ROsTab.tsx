@@ -340,13 +340,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : 'Week' },
             { value: 'month', label: 'Month' },
             ...(hasCustomPayPeriod ? [{ value: 'pay_period' as const, label: 'Pay Period' }] : []),
+            { value: 'custom' as const, label: 'Custom' },
           ] as const).map(({ value, label }) => (
             <button
               key={value}
-              onClick={() => setFilters(prev => ({ ...prev, dateRange: value as FilterState['dateRange'] }))}
+              onClick={() => setDateRange(value as DateFilterKey)}
               className={cn(
                 'px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap border quiet-transition',
-                filters.dateRange === value
+                dateFilter === value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
               )}
