@@ -4,6 +4,12 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
+## Environment Setup
+
+1. Copy `.env.example` to `.env`
+2. Fill in your Lovable Cloud (Supabase) URL and publishable key
+3. Run `npm install` then `npm run dev`
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
