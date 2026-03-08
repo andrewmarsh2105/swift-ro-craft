@@ -13,11 +13,13 @@ import { useFlagContext } from "@/contexts/FlagContext";
 import { ROActionMenu } from "@/components/shared/ROActionMenu";
 import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
-import { getCustomPayPeriodRange } from "@/lib/payPeriodUtils";
 import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { getStatusSummary } from "@/lib/roStatus";
+import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from "@/lib/dateRangeFilter";
+import { useSharedDateRange } from "@/hooks/useSharedDateRange";
+import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 
 import type { RepairOrder } from "@/types/ro";
 import type { FlagType } from "@/types/flags";
@@ -32,31 +34,9 @@ interface ROListPanelProps {
   compact?: boolean;
 }
 
-type DateFilter = "all" | "today" | "week" | "month" | "pay_period";
 type SortKey = "date" | "ro" | "advisor" | "hours";
 type SortDir = "asc" | "desc";
 
-function localDateStr(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate(),
-  ).padStart(2, "0")}`;
-}
-
-function getWeekStart(weekStartDay: number): string {
-  const now = new Date();
-  const diff = (now.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() - diff);
-  return localDateStr(start);
-}
-
-function getTwoWeekStart(weekStartDay: number): string {
-  const now = new Date();
-  const diff = (now.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() - diff - 7);
-  return localDateStr(start);
-}
 
 function SortHeader(props: {
   label: string;
@@ -134,7 +114,7 @@ export const ROListPanel = memo(function ROListPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery);
 
-  const [dateFilter, setDateFilter] = useState<DateFilter>("week");
+  const { dateFilter, setFilter: setDateFilter, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } = useSharedDateRange("week");
   const [advisorFilter, setAdvisorFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -180,28 +160,16 @@ export const ROListPanel = memo(function ROListPanel({
       });
     }
 
-    const today = localDateStr(new Date());
-
-    if (dateFilter === "today") {
-      result = result.filter((ro) => effectiveDate(ro) === today);
-    } else if (dateFilter === "week") {
-      const useTwoWeeks = userSettings.defaultSummaryRange === "two_weeks";
-      const start = useTwoWeeks
-        ? getTwoWeekStart(userSettings.weekStartDay ?? 0)
-        : getWeekStart(userSettings.weekStartDay ?? 0);
-      result = result.filter((ro) => effectiveDate(ro) >= start);
-    } else if (dateFilter === "month") {
-      const monthAgo = new Date();
-      monthAgo.setDate(monthAgo.getDate() - 30);
-      const start = localDateStr(monthAgo);
-      result = result.filter((ro) => effectiveDate(ro) >= start);
-    } else if (dateFilter === "pay_period" && hasCustomPayPeriod) {
-      const { start, end } = getCustomPayPeriodRange(userSettings.payPeriodEndDates!, new Date());
-      result = result.filter((ro) => {
-        const d = effectiveDate(ro);
-        return d >= start && d <= end;
-      });
-    }
+    const bounds = computeDateRangeBounds({
+      filter: dateFilter,
+      weekStartDay: userSettings.weekStartDay ?? 0,
+      defaultSummaryRange: userSettings.defaultSummaryRange,
+      payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
+      hasCustomPayPeriod,
+      customStart,
+      customEnd,
+    });
+    result = filterROsByDateRange(result, bounds);
 
     const dir = sortDir === "asc" ? 1 : -1;
 
@@ -217,6 +185,7 @@ export const ROListPanel = memo(function ROListPanel({
   }, [
     ros, advisorFilter, deferredQuery, dateFilter, hasCustomPayPeriod,
     sortKey, sortDir, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, userSettings.weekStartDay,
+    customStart, customEnd,
   ]);
 
   useEffect(() => {
@@ -285,7 +254,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <label className="section-title mb-0.5 block">Date filter</label>
                 <select
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                  onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
                   className="h-7 w-full rounded-md border border-input bg-background px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All dates</option>
@@ -293,8 +262,9 @@ export const ROListPanel = memo(function ROListPanel({
                   <option value="week">
                     {userSettings.defaultSummaryRange === "two_weeks" ? "2 Weeks" : "1 Week"}
                   </option>
-                  <option value="month">Last 30 days</option>
+                  <option value="month">This month</option>
                   {hasCustomPayPeriod && <option value="pay_period">Pay period</option>}
+                  <option value="custom">Custom…</option>
                 </select>
               </div>
               <div className="flex-1 min-w-0">
@@ -464,6 +434,14 @@ export const ROListPanel = memo(function ROListPanel({
           setFlaggingRO(null);
         }}
         title={flaggingRO ? `Flag RO #${flaggingRO.roNumber}` : "Add Flag"}
+      />
+
+      <CustomDateRangeDialog
+        open={showCustomDialog}
+        onClose={cancelCustom}
+        onApply={applyCustom}
+        initialStart={customStart}
+        initialEnd={customEnd}
       />
     </>
   );

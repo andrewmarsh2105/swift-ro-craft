@@ -1,7 +1,7 @@
 import { useMemo, useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
@@ -27,7 +27,9 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
-import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
+import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import {
   buildSpreadsheetRows,
   PAYROLL_EXPORT_HEADERS,
@@ -46,7 +48,6 @@ interface SpreadsheetViewProps {
   isCloseout?: boolean;
 }
 
-type DateRange = 'all' | 'week' | 'month' | 'pay_period';
 type GroupBy = 'date' | 'ro' | 'advisor' | 'none';
 
 /* ─── Columns (no roTotal) ─── */
@@ -75,7 +76,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
   const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
-  const [dateRange, setDateRange] = useState<DateRange>('week');
+  const { dateFilter: dateRange, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } = useSharedDateRange('week');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
@@ -128,52 +129,29 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Filter ROs by selected date range ─── */
   const { filteredROs, computedRangeLabel } = useMemo(() => {
-    const now = new Date();
-    const localDate = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    if (isCloseout || dateRange === 'all') {
+    if (isCloseout) {
       return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
     }
 
-    let startStr: string;
-    let endStr: string;
-
-    if (dateRange === 'week') {
-      const ws = startOfWeek(now, { weekStartsOn: 0 });
-      const we = endOfWeek(now, { weekStartsOn: 0 });
-      startStr = localDate(ws);
-      endStr = localDate(we);
-    } else if (dateRange === 'month') {
-      const ms = startOfMonth(now);
-      const me = endOfMonth(now);
-      startStr = localDate(ms);
-      endStr = localDate(me);
-    } else {
-      // pay_period
-      const ppDates = (userSettings.payPeriodEndDates || []) as number[];
-      const { start, end } = getCustomPayPeriodRange(ppDates, now);
-      startStr = start;
-      endStr = end;
-    }
-
-    const filtered = ros.filter(ro => {
-      const d = ro.paidDate || ro.date;
-      return d >= startStr && d <= endStr;
+    const bounds = computeDateRangeBounds({
+      filter: dateRange,
+      weekStartDay: userSettings.weekStartDay ?? 0,
+      defaultSummaryRange: userSettings.defaultSummaryRange,
+      payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
+      hasCustomPayPeriod,
+      customStart,
+      customEnd,
     });
 
-    const fmtLabel = (s: string, e: string) => {
-      try {
-        const [sy, sm, sd] = s.split('-').map(Number);
-        const [ey, em, ed] = e.split('-').map(Number);
-        const sf = format(new Date(sy, sm - 1, sd), 'MMM d');
-        const ef = format(new Date(ey, em - 1, ed), 'MMM d');
-        return `${sf} – ${ef}`;
-      } catch { return `${s} – ${e}`; }
-    };
+    if (!bounds) {
+      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
+    }
 
-    return { filteredROs: filtered, computedRangeLabel: fmtLabel(startStr, endStr) };
-  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType]);
+    return {
+      filteredROs: filterROsByDateRange(ros, bounds),
+      computedRangeLabel: bounds.label,
+    };
+  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType, userSettings.weekStartDay, userSettings.defaultSummaryRange, hasCustomPayPeriod, customStart, customEnd]);
 
   /* ─── Build rows using shared model ─── */
   const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy }), [filteredROs, computedRangeLabel, groupBy]);
@@ -336,10 +314,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         {!isCloseout && !isMobile && (
             <div className="flex rounded-lg border border-border overflow-hidden">
               {([
-                { value: 'week' as DateRange, label: 'Week' },
-                { value: 'month' as DateRange, label: 'Month' },
-                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateRange, label: 'Pay Period' }] : []),
-                { value: 'all' as DateRange, label: 'All' },
+                { value: 'today' as DateFilterKey, label: 'Today' },
+                { value: 'week' as DateFilterKey, label: 'Week' },
+                { value: 'month' as DateFilterKey, label: 'Month' },
+                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
+                { value: 'all' as DateFilterKey, label: 'All' },
+                { value: 'custom' as DateFilterKey, label: 'Custom' },
               ]).map(opt => (
                 <button
                   key={opt.value}
@@ -376,10 +356,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           {!isCloseout && !isMobile && (
             <div className="flex rounded-lg border border-border overflow-hidden">
               {([
-                { value: 'week' as DateRange, label: 'Week' },
-                { value: 'month' as DateRange, label: 'Month' },
-                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateRange, label: 'Pay Period' }] : []),
-                { value: 'all' as DateRange, label: 'All' },
+                { value: 'today' as DateFilterKey, label: 'Today' },
+                { value: 'week' as DateFilterKey, label: 'Week' },
+                { value: 'month' as DateFilterKey, label: 'Month' },
+                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
+                { value: 'all' as DateFilterKey, label: 'All' },
+                { value: 'custom' as DateFilterKey, label: 'Custom' },
               ]).map(opt => (
                 <button
                   key={opt.value}
@@ -664,6 +646,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         onClose={() => setTextModal(prev => ({ ...prev, open: false }))}
         lineNo={textModal.lineNo}
         description={textModal.description}
+      />
+
+      <CustomDateRangeDialog
+        open={showCustomDialog}
+        onClose={cancelCustom}
+        onApply={applyCustom}
+        initialStart={customStart}
+        initialEnd={customEnd}
       />
     </div>
   );
