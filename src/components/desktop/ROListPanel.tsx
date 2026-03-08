@@ -13,11 +13,13 @@ import { useFlagContext } from "@/contexts/FlagContext";
 import { ROActionMenu } from "@/components/shared/ROActionMenu";
 import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
-import { getCustomPayPeriodRange } from "@/lib/payPeriodUtils";
 import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { getStatusSummary } from "@/lib/roStatus";
+import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from "@/lib/dateRangeFilter";
+import { useSharedDateRange } from "@/hooks/useSharedDateRange";
+import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 
 import type { RepairOrder } from "@/types/ro";
 import type { FlagType } from "@/types/flags";
