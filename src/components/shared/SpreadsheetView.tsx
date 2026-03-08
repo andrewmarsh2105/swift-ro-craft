@@ -129,52 +129,29 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Filter ROs by selected date range ─── */
   const { filteredROs, computedRangeLabel } = useMemo(() => {
-    const now = new Date();
-    const localDate = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    if (isCloseout || dateRange === 'all') {
+    if (isCloseout) {
       return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
     }
 
-    let startStr: string;
-    let endStr: string;
-
-    if (dateRange === 'week') {
-      const ws = startOfWeek(now, { weekStartsOn: 0 });
-      const we = endOfWeek(now, { weekStartsOn: 0 });
-      startStr = localDate(ws);
-      endStr = localDate(we);
-    } else if (dateRange === 'month') {
-      const ms = startOfMonth(now);
-      const me = endOfMonth(now);
-      startStr = localDate(ms);
-      endStr = localDate(me);
-    } else {
-      // pay_period
-      const ppDates = (userSettings.payPeriodEndDates || []) as number[];
-      const { start, end } = getCustomPayPeriodRange(ppDates, now);
-      startStr = start;
-      endStr = end;
-    }
-
-    const filtered = ros.filter(ro => {
-      const d = ro.paidDate || ro.date;
-      return d >= startStr && d <= endStr;
+    const bounds = computeDateRangeBounds({
+      filter: dateRange,
+      weekStartDay: userSettings.weekStartDay ?? 0,
+      defaultSummaryRange: userSettings.defaultSummaryRange,
+      payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
+      hasCustomPayPeriod,
+      customStart,
+      customEnd,
     });
 
-    const fmtLabel = (s: string, e: string) => {
-      try {
-        const [sy, sm, sd] = s.split('-').map(Number);
-        const [ey, em, ed] = e.split('-').map(Number);
-        const sf = format(new Date(sy, sm - 1, sd), 'MMM d');
-        const ef = format(new Date(ey, em - 1, ed), 'MMM d');
-        return `${sf} – ${ef}`;
-      } catch { return `${s} – ${e}`; }
-    };
+    if (!bounds) {
+      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
+    }
 
-    return { filteredROs: filtered, computedRangeLabel: fmtLabel(startStr, endStr) };
-  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType]);
+    return {
+      filteredROs: filterROsByDateRange(ros, bounds),
+      computedRangeLabel: bounds.label,
+    };
+  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType, userSettings.weekStartDay, userSettings.defaultSummaryRange, hasCustomPayPeriod, customStart, customEnd]);
 
   /* ─── Build rows using shared model ─── */
   const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy }), [filteredROs, computedRangeLabel, groupBy]);
