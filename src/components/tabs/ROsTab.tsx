@@ -292,6 +292,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               <CalendarRange className="h-2.5 w-2.5" />
               {rangeChipLabel}
             </Badge>
+          </div>
           <div className="flex items-center gap-1">
             <FlagInbox />
             {isPro && (
