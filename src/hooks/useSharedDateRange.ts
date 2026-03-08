@@ -114,5 +114,6 @@ export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: st
     applyCustom,
     cancelCustom,
     showCustomDialog,
+    requestCustomDialog,
   };
 }
