@@ -149,7 +149,7 @@ export function toRosUpdate(updates: Partial<RepairOrder>): RoUpdate {
 
   if (updates.roNumber !== undefined) payload.ro_number = updates.roNumber;
   if (updates.date !== undefined) payload.date = updates.date;
-  if (updates.advisor !== undefined) payload.advisor_name = updates.advisor;
+  if (updates.advisor !== undefined) payload.advisor_name = normalizeAdvisorName(updates.advisor);
   if (updates.customerName !== undefined)
     payload.customer_name = updates.customerName ?? null;
   if (updates.mileage !== undefined) payload.mileage = updates.mileage ?? null;
