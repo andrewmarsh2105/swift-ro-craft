@@ -178,6 +178,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         await addRO(roData);
         toast.success('RO created');
       }
+      haptics.success();
       if (addAnother) {
         setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
         setLines([createEmptyLine(1)]); setShowDetails(false);
@@ -189,6 +190,34 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePasteLines = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const parsed = parsePastedLines(text, laborType);
+      if (!parsed.length) {
+        toast.error('No lines found in clipboard');
+        return;
+      }
+      haptics.light();
+      const newLines: ROLine[] = parsed.map((p, i) => ({
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9) + i,
+        lineNo: i + 1,
+        description: p.description,
+        hoursPaid: p.hoursPaid,
+        isTbd: p.isTbd,
+        laborType: p.laborType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+      const updatedLines = [...newLines, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
+      setLines(updatedLines);
+      setHighlightedLineIds(newLines.map(l => l.id));
+      toast.success(`Pasted ${newLines.length} lines`);
+    } catch (err) {
+      toast.error('Failed to read clipboard');
     }
   };
 
