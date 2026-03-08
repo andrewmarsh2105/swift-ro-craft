@@ -114,7 +114,7 @@ export const ROListPanel = memo(function ROListPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery);
 
-  const [dateFilter, setDateFilter] = useState<DateFilter>("week");
+  const { dateFilter, setFilter: setDateFilter, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } = useSharedDateRange("week");
   const [advisorFilter, setAdvisorFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
