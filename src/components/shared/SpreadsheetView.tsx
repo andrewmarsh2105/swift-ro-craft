@@ -338,7 +338,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             </div>
           )}
           {computedRangeLabel && (
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{computedRangeLabel}</span>
+            <Badge variant="outline" className="gap-1">
+              <CalendarRange className="h-3 w-3" />
+              {computedRangeLabel}
+            </Badge>
           )}
         </div>
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
