@@ -274,7 +274,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   };
 
   const clearFilters = () => {
-    setFilters({ advisors: [], laborTypes: [], dateRange: 'all', sortBy: 'date' });
+    setFilters({ advisors: [], laborTypes: [], sortBy: 'date' });
+    setDateRange('all');
   };
 
   return (
