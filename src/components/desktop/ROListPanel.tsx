@@ -17,7 +17,7 @@ import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { getStatusSummary } from "@/lib/roStatus";
-import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from "@/lib/dateRangeFilter";
+import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
 import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 

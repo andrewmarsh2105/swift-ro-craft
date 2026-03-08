@@ -29,6 +29,21 @@ function fmtRangeLabel(start: string, end: string): string {
   }
 }
 
+function fmtShort(dateStr: string): string {
+  try {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return format(new Date(y, m - 1, d), "MMM d");
+  } catch {
+    return dateStr;
+  }
+}
+
+export function boundsRangeLabel(bounds: DateRangeBounds | null): string {
+  if (!bounds) return "All dates";
+  if (bounds.start === bounds.end) return fmtShort(bounds.start);
+  return fmtRangeLabel(bounds.start, bounds.end);
+}
+
 function getWeekStart(weekStartDay: number): string {
   const now = new Date();
   const diff = (now.getDay() - weekStartDay + 7) % 7;
