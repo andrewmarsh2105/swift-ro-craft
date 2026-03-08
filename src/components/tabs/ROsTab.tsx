@@ -234,6 +234,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       if (filters.sortBy === 'hours') return calcHours(b) - calcHours(a);
       if (filters.sortBy === 'ro') return a.roNumber.localeCompare(b.roNumber);
       if (filters.sortBy === 'advisor') return a.advisor.localeCompare(b.advisor);
+      if (filters.sortBy === 'customer') return (a.customerName || '').localeCompare(b.customerName || '');
+      if (filters.sortBy === 'laborType') return a.laborType.localeCompare(b.laborType);
       return 0;
     });
 
