@@ -288,7 +288,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <p className="page-subtitle tabular-nums">
               {filteredROs.length} ROs · {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </p>
-          </div>
+            <Badge variant="outline" className="gap-1 mt-0.5">
+              <CalendarRange className="h-2.5 w-2.5" />
+              {rangeChipLabel}
+            </Badge>
           <div className="flex items-center gap-1">
             <FlagInbox />
             {isPro && (
