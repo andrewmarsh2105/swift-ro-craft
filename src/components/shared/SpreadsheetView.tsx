@@ -28,7 +28,7 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
-import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import {
