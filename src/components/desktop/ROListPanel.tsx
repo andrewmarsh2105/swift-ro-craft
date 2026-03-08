@@ -34,7 +34,6 @@ interface ROListPanelProps {
   compact?: boolean;
 }
 
-type DateFilter = "all" | "today" | "week" | "month" | "pay_period";
 type SortKey = "date" | "ro" | "advisor" | "hours";
 type SortDir = "asc" | "desc";
 
