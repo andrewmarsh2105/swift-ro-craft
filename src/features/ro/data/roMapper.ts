@@ -1,5 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 import type { LaborType, RepairOrder, VehicleInfo } from "@/types/ro";
+import { normalizeAdvisorName } from "@/lib/nameUtils";
 
 export type RoRow = Database["public"]["Tables"]["ros"]["Row"];
 export type RoInsert = Database["public"]["Tables"]["ros"]["Insert"];
