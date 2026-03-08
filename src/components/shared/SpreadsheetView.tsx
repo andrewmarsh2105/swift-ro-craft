@@ -424,7 +424,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               ]).map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setDateRange(opt.value)}
+                  onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}
                   className={cn(
                     'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
                     dateRange === opt.value
