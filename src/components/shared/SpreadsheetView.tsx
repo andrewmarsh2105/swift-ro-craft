@@ -331,7 +331,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     { value: 'all' as DateFilterKey, label: 'All' },
                     { value: 'custom' as DateFilterKey, label: 'Custom…' },
                   ]).map(opt => (
-                    <DropdownMenuItem key={opt.value} onClick={() => setDateRange(opt.value)}>
+                    <DropdownMenuItem key={opt.value} onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}>
                       {opt.label}
                     </DropdownMenuItem>
                   ))}
