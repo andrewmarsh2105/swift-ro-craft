@@ -146,29 +146,12 @@ const ROCard = memo(function ROCard({
 interface FilterState {
   advisors: string[];
   laborTypes: LaborType[];
-  dateRange: 'all' | 'today' | 'week' | 'month' | 'pay_period';
   sortBy: 'date' | 'hours' | 'ro' | 'advisor';
 }
 
 interface ROsTabProps {
   onEditRO: (ro: RepairOrder) => void;
   onViewModeChange?: (mode: 'cards' | 'spreadsheet') => void;
-}
-
-function getWeekStart(weekStartDay: number): string {
-  const now = new Date();
-  const diff = (now.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() - diff);
-  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-}
-
-function getTwoWeekStart(weekStartDay: number): string {
-  const now = new Date();
-  const diff = (now.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() - diff - 7);
-  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 }
 
 /* ── Main Tab ───────────────────────────────────── */
