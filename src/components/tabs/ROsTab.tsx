@@ -472,10 +472,12 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <label className="section-title block mb-2">Sort By</label>
             <div className="flex flex-wrap gap-1.5">
               {([
-                { value: 'date', label: 'Date' },
-                { value: 'hours', label: 'Hours' },
+                { value: 'date', label: 'Most recent' },
                 { value: 'ro', label: 'RO #' },
-                { value: 'advisor', label: 'Advisor' },
+                { value: 'advisor', label: 'Advisor A-Z' },
+                { value: 'customer', label: 'Customer A-Z' },
+                { value: 'laborType', label: 'Labor type' },
+                { value: 'hours', label: 'Hours' },
               ] as const).map(o => (
                 <button
                   key={o.value}
@@ -491,22 +493,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div>
-            <label className="section-title block mb-2">Date Range</label>
-            <SegmentedControl
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'today', label: 'Today' },
-                { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : '1 Wk' },
-                { value: 'month', label: 'Month' },
-                ...(hasCustomPayPeriod ? [{ value: 'pay_period', label: 'Pay Period' }] : []),
-                { value: 'custom', label: 'Custom' },
-              ]}
-              value={dateFilter}
-              onChange={value => setDateRange(value as DateFilterKey)}
-            />
           </div>
 
           <div>
