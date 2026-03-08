@@ -37,27 +37,6 @@ interface ROListPanelProps {
 type SortKey = "date" | "ro" | "advisor" | "hours";
 type SortDir = "asc" | "desc";
 
-function localDateStr(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate(),
-  ).padStart(2, "0")}`;
-}
-
-function getWeekStart(weekStartDay: number): string {
-  const now = new Date();
-  const diff = (now.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() - diff);
-  return localDateStr(start);
-}
-
-function getTwoWeekStart(weekStartDay: number): string {
-  const now = new Date();
-  const diff = (now.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() - diff - 7);
-  return localDateStr(start);
-}
 
 function SortHeader(props: {
   label: string;
