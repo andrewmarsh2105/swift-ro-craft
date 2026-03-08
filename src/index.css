@@ -305,6 +305,24 @@
     @apply bg-card border border-input rounded-md text-foreground placeholder:text-muted-foreground/60;
     @apply focus:outline-none focus:ring-2 focus:ring-ring/60 focus:border-ring transition-shadow;
   }
+
+  /* Typography scale */
+  .page-title { @apply text-[16px] font-semibold tracking-tight; }
+  .page-subtitle { @apply text-[11px] text-muted-foreground; }
+  .section-title { @apply text-[11px] font-semibold uppercase tracking-wide text-muted-foreground; }
+  .meta-text { @apply text-[11px] text-muted-foreground; }
+
+  /* Hierarchy */
+  .inset-panel { @apply rounded-md border border-border bg-muted/30; }
+  .row-hover { @apply hover:bg-muted/40; }
+
+  /* Icon discipline */
+  .icon-toolbar { @apply h-4 w-4; }
+  .icon-row { @apply h-3.5 w-3.5; }
+  .icon-sheet { @apply h-[18px] w-[18px]; }
+
+  /* Quiet motion */
+  .quiet-transition { @apply transition-all duration-150 ease-out; }
 }
 
 @layer utilities {

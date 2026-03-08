@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useDeferredValue, memo, lazy, Suspense } from 'react';
-import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2 } from 'lucide-react';
+import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -12,9 +13,7 @@ import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { Chip } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
 import { ROActionMenu } from '@/components/shared/ROActionMenu';
-import { FlagBadge } from '@/components/flags/FlagBadge';
 import { FlagInbox } from '@/components/flags/FlagInbox';
-import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { EmptyState } from '@/components/states/EmptyState';
 import { toast } from 'sonner';
@@ -24,11 +23,52 @@ import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { effectiveDate, formatDateShort, calcHours } from '@/lib/roDisplay';
+import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
+import { getStatusSummary } from '@/lib/roStatus';
 
 const SpreadsheetView = lazy(() =>
   import('@/components/shared/SpreadsheetView').then((m) => ({ default: m.SpreadsheetView })),
 );
+
+/* ── StatusChips ─────────────────────────────────── */
+
+function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
+  const status = getStatusSummary(ro, flagsCount, checksCount);
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      <Badge
+        variant={status.paid === "Paid" ? "outline" : "secondary"}
+        className={cn(
+          "text-[9px] px-1.5 py-0",
+          status.paid === "Paid"
+            ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
+            : "text-muted-foreground",
+        )}
+      >
+        {status.paid}
+      </Badge>
+      {status.tbd > 0 && (
+        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
+          <Clock className="h-2.5 w-2.5" />
+          {status.tbd}
+        </Badge>
+      )}
+      {status.flags > 0 && (
+        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+          <Flag className="h-2.5 w-2.5" />
+          {status.flags}
+        </Badge>
+      )}
+      {status.checks > 0 && (
+        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+          <AlertTriangle className="h-2.5 w-2.5" />
+          {status.checks}
+        </Badge>
+      )}
+    </div>
+  );
+}
 
 /* ── ROCard ─────────────────────────────────────── */
 
@@ -47,41 +87,44 @@ interface ROCardProps {
   hideTotals: boolean;
 }
 
-
-
 const ROCard = memo(function ROCard({
   ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails,
   flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers, hideTotals,
 }: ROCardProps) {
   const roEffectiveDate = effectiveDate(ro);
   const hours = calcHours(ro);
-  const hasLines = ro.lines && ro.lines.length > 0;
 
   return (
-    <div className="card-mobile p-2.5 group hover:bg-accent/30 transition-colors duration-100">
-      <div className="flex items-center gap-2">
+    <div className="card-mobile p-2.5 group row-hover quiet-transition">
+      <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
-          {/* Row 1: RO#, date, advisor */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs font-bold tabular-nums">#{ro.roNumber}</span>
-            <span className="text-[11px] text-muted-foreground">{formatDateShort(roEffectiveDate)}</span>
-            <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>
-            {hasLines && (
-              <span className="text-[10px] font-medium text-muted-foreground bg-muted border px-1.5 py-0 rounded">
-                {ro.lines.length}L
+          {/* Row 1: date, RO#, hours, status chips */}
+          <div className="flex items-center gap-1.5">
+            <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
+            <span className="text-xs font-bold tabular-nums flex-shrink-0">#{ro.roNumber}</span>
+            <span className="hours-pill text-[10px] flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
+            <div className="flex-shrink-0">
+              <MobileStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
+            </div>
+          </div>
+
+          {/* Row 2: advisor · vehicle + work summary */}
+          <div className="flex items-center gap-1 mt-0.5">
+            <StatusPill type={ro.laborType} size="sm" />
+            <p className="meta-text truncate">
+              {ro.advisor} · {vehicleLabel(ro)}
+              {' — '}
+              <span className="text-muted-foreground/70">
+                {ro.lines?.length
+                  ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 2).join(", ")
+                  : ro.workPerformed || "—"}
               </span>
-            )}
-            <FlagBadge flags={flags} onClear={onClearFlag} />
-            {reviewIssues.length > 0 && (
-              <ReviewIndicator issues={reviewIssues} onConvertToFlag={onConvertToFlag} />
-            )}
+            </p>
           </div>
         </div>
 
-        {/* Right: status + hours + menu */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <StatusPill type={ro.laborType} size="sm" />
-          <span className="hours-pill text-xs">{maskHours(hours, hideTotals)}h</span>
+        {/* Menu */}
+        <div className="flex-shrink-0 pt-0.5">
           <ROActionMenu
             roNumber={ro.roNumber}
             onEdit={onEdit}
@@ -163,7 +206,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const filteredROs = useMemo(() => {
     let result = ros;
 
-    // Search (deferred)
     if (deferredSearch.trim()) {
       const q = deferredSearch.toLowerCase();
       result = result.filter(ro => {
@@ -178,17 +220,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       });
     }
 
-    // Advisor
     if (filters.advisors.length > 0) {
       result = result.filter(ro => filters.advisors.includes(ro.advisor));
     }
 
-    // Labor type
     if (filters.laborTypes.length > 0) {
       result = result.filter(ro => filters.laborTypes.includes(ro.laborType));
     }
 
-    // Date
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (filters.dateRange === 'today') {
@@ -210,7 +249,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       });
     }
 
-    // Sort
     const sorted = [...result].sort((a, b) => {
       if (filters.sortBy === 'date') return (b.paidDate || b.date).localeCompare(a.paidDate || a.date);
       if (filters.sortBy === 'hours') return calcHours(b) - calcHours(a);
@@ -263,11 +301,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     <div className="flex flex-col h-full">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-background border-b border-border">
-        {/* Title row */}
         <div className="flex items-center justify-between px-4 py-2">
           <div>
-            <h2 className="text-sm font-semibold">Repair Orders</h2>
-            <p className="text-[11px] text-muted-foreground tabular-nums">
+            <h2 className="page-title">Repair Orders</h2>
+            <p className="page-subtitle tabular-nums">
               {filteredROs.length} ROs · {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </p>
           </div>
@@ -277,18 +314,18 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               <button
                 onClick={() => setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards')}
                 className={cn(
-                  'h-8 w-8 flex items-center justify-center rounded-md transition-colors',
+                  'h-8 w-8 flex items-center justify-center rounded-md quiet-transition',
                   viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
                 )}
               >
-                {viewMode === 'spreadsheet' ? <LayoutList className="h-4 w-4" /> : <Table2 className="h-4 w-4" />}
+                {viewMode === 'spreadsheet' ? <LayoutList className="icon-toolbar" /> : <Table2 className="icon-toolbar" />}
               </button>
             )}
             <button
               onClick={() => setShowFilters(true)}
-              className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted relative"
+              className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted relative quiet-transition"
             >
-              <SlidersHorizontal className="h-4 w-4" />
+              <SlidersHorizontal className="icon-toolbar" />
               {activeFiltersCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
                   {activeFiltersCount}
@@ -298,10 +335,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        {/* Search */}
         <div className="px-4 pb-2">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 icon-toolbar text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
@@ -312,7 +348,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        {/* Date chips */}
         <div className="flex gap-1.5 px-4 pb-2 overflow-x-auto scrollbar-hide">
           {([
             { value: 'all', label: 'All' },
@@ -325,7 +360,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               key={value}
               onClick={() => setFilters(prev => ({ ...prev, dateRange: value as FilterState['dateRange'] }))}
               className={cn(
-                'px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap border transition-colors',
+                'px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap border quiet-transition',
                 filters.dateRange === value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
@@ -411,7 +446,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {hasMore && (
                 <button
                   onClick={() => setVisibleCount(c => c + 50)}
-                  className="w-full py-2.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  className="w-full py-2.5 text-xs font-medium text-primary hover:text-primary/80 quiet-transition"
                 >
                   Load more ({filteredROs.length - visibleCount} remaining)
                 </button>
@@ -441,11 +476,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* Filter / Sort Bottom Sheet */}
       <BottomSheet isOpen={showFilters} onClose={() => setShowFilters(false)} title="Filter & Sort">
         <div className="p-4 space-y-5">
-          {/* Sort */}
           <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Sort By
-            </label>
+            <label className="section-title block mb-2">Sort By</label>
             <div className="flex flex-wrap gap-1.5">
               {([
                 { value: 'date', label: 'Date' },
@@ -457,7 +489,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   key={o.value}
                   onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-md border transition-colors',
+                    'px-3 py-1.5 text-xs font-medium rounded-md border quiet-transition',
                     filters.sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-background text-muted-foreground border-border'
@@ -469,11 +501,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          {/* Date Range */}
           <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Date Range
-            </label>
+            <label className="section-title block mb-2">Date Range</label>
             <SegmentedControl
               options={[
                 { value: 'all', label: 'All' },
@@ -487,11 +516,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             />
           </div>
 
-          {/* Labor Type */}
           <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Labor Type
-            </label>
+            <label className="section-title block mb-2">Labor Type</label>
             <div className="flex flex-wrap gap-1.5">
               {(['warranty', 'customer-pay', 'internal'] as LaborType[]).map(type => (
                 <Chip
@@ -504,12 +530,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          {/* Advisors */}
           {uniqueAdvisors.length > 0 && (
             <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Advisor
-              </label>
+              <label className="section-title block mb-2">Advisor</label>
               <div className="flex flex-wrap gap-1.5">
                 {uniqueAdvisors.map(advisor => (
                   <Chip
@@ -523,7 +546,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-2 pt-2">
             <button
               onClick={clearFilters}
@@ -541,7 +563,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         </div>
       </BottomSheet>
 
-      {/* Add Flag Dialog */}
       <AddFlagDialog
         open={!!flaggingRO}
         onClose={() => setFlaggingRO(null)}
