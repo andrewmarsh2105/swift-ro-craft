@@ -47,7 +47,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
     return (
       <div className="h-full flex items-center justify-center bg-muted/10">
         <EmptyState
-          icon={() => <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"><Pencil className="icon-toolbar text-muted-foreground/40" /></div>}
+          icon={Pencil}
           title="Select an RO"
           description="Click a row to view details"
         />
