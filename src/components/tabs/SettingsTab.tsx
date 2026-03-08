@@ -43,6 +43,7 @@ function SettingsGroup({ title, children }: SettingsGroupProps) {
 
 interface SettingsRowProps {
   label: string;
+  description?: string;
   value?: string;
   onClick?: () => void;
   toggle?: boolean;
