@@ -66,6 +66,19 @@ export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: st
     setDateFilter("custom");
   }, [dateFilter, ownerId]);
 
+  const requestCustomDialog = useCallback(() => {
+    if (ownerId) activeCustomOwner = ownerId;
+    // If we already have custom dates, keep the filter as custom but force dialog open
+    if (dateFilter === "custom" && customStart && customEnd) {
+      // Temporarily clear to trigger showCustomDialog
+      setCustomStart(undefined);
+      setCustomEnd(undefined);
+    } else {
+      setPrevFilter(dateFilter);
+      setDateFilter("custom");
+    }
+  }, [dateFilter, ownerId, customStart, customEnd]);
+
   const applyCustom = useCallback((start: string, end: string) => {
     setCustomStart(start);
     setCustomEnd(end);
