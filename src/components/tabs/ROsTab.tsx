@@ -146,7 +146,7 @@ const ROCard = memo(function ROCard({
 interface FilterState {
   advisors: string[];
   laborTypes: LaborType[];
-  sortBy: 'date' | 'hours' | 'ro' | 'advisor';
+  sortBy: 'date' | 'hours' | 'ro' | 'advisor' | 'customer' | 'laborType';
 }
 
 interface ROsTabProps {
