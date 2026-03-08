@@ -49,6 +49,13 @@ export function CustomDateRangeDialog({
     initialEnd ? parseLocalDate(initialEnd) : undefined
   );
 
+  // Reset internal state each time the dialog opens
+  useEffect(() => {
+    if (!open) return;
+    setStartDate(initialStart ? parseLocalDate(initialStart) : undefined);
+    setEndDate(initialEnd ? parseLocalDate(initialEnd) : undefined);
+  }, [open, initialStart, initialEnd]);
+
   const canApply = startDate && endDate && startDate <= endDate;
 
   const handleApply = () => {
