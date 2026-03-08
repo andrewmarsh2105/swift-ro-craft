@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Settings, BarChart3, X, Table2, Crown, FileText } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
@@ -11,6 +11,7 @@ import type { RepairOrder } from "@/types/ro";
 import { useRO } from "@/contexts/ROContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
+import { useSplitterWidth } from "@/hooks/useSplitterWidth";
 import { toast } from "sonner";
 
 const SettingsTab = lazy(() =>
