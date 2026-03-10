@@ -487,7 +487,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   key={o.value}
                   onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-md border quiet-transition',
+                    'px-3 py-1.5 text-xs font-medium rounded-md border quiet-transition min-h-[44px]',
                     filters.sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-background text-muted-foreground border-border'

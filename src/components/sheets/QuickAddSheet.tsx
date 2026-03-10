@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Camera, ChevronDown, ChevronUp, Mic, X, ToggleLeft, ToggleRight, List, Hash, Check } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Camera, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { NumericInput } from '@/components/mobile/NumericInput';
 import { Chip } from '@/components/mobile/Chip';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
-import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { useRO } from '@/contexts/ROContext';
-import type { LaborType, RepairOrder, Preset, ROLine, VehicleInfo } from '@/types/ro';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import type { LaborType, RepairOrder, ROLine, VehicleInfo } from '@/types/ro';
 import { cn, localDateStr } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface QuickAddSheetProps {
   isOpen: boolean;
@@ -20,28 +20,47 @@ interface QuickAddSheetProps {
 }
 
 export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: QuickAddSheetProps) {
-  const { settings, addRO, updateRO } = useRO();
+  const { settings, addRO, updateRO, ros } = useRO();
+  const { isPro, startCheckout } = useSubscription();
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showAdvisorList, setShowAdvisorList] = useState(false);
-  
-  // Mode toggle - Lines Mode is default
-  const [isSimpleMode, setIsSimpleMode] = useState(editingRO?.isSimpleMode ?? false);
-  
+  const [showCapSheet, setShowCapSheet] = useState(false);
+
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
-  const [paidHours, setPaidHours] = useState(editingRO?.paidHours || 0);
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
-  const [workPerformed, setWorkPerformed] = useState(editingRO?.workPerformed || '');
   const [notes, setNotes] = useState(editingRO?.notes || '');
-  const [lines, setLines] = useState<ROLine[]>(editingRO?.lines || [createEmptyLine(1)]);
-  const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
-  const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
+  const [lines, setLines] = useState<ROLine[]>(() => {
+    if (editingRO?.lines?.length) return editingRO.lines;
+    // Convert simple-mode RO to a line on load
+    if (editingRO?.isSimpleMode && (editingRO.paidHours > 0 || editingRO.workPerformed)) {
+      return [{
+        id: Date.now().toString(),
+        lineNo: 1,
+        description: editingRO.workPerformed,
+        hoursPaid: editingRO.paidHours,
+        laborType: editingRO.laborType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }];
+    }
+    return [createEmptyLine(1)];
+  });
   const [paidDate, setPaidDate] = useState(editingRO?.paidDate || '');
   const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
   const [vehicle, setVehicle] = useState<VehicleInfo>(editingRO?.vehicle || {});
   const [mileage, setMileage] = useState(editingRO?.mileage || '');
   const [showDetailsOpen, setShowDetailsOpen] = useState(false);
+
+  // RO cap (free users: 150 ROs/month)
+  const RO_CAP = 150;
+  const monthlyROCount = useMemo(() => {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+  }, [ros]);
+  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_CAP;
 
   // Reset form when opening/closing or when editingRO changes
   useEffect(() => {
@@ -49,12 +68,23 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       if (editingRO) {
         setRoNumber(editingRO.roNumber);
         setAdvisor(editingRO.advisor);
-        setPaidHours(editingRO.paidHours);
         setLaborType(editingRO.laborType);
-        setWorkPerformed(editingRO.workPerformed);
         setNotes(editingRO.notes || '');
-        setLines(editingRO.lines.length > 0 ? editingRO.lines : [createEmptyLine(1)]);
-        setIsSimpleMode(editingRO.isSimpleMode);
+        if (editingRO.lines?.length) {
+          setLines(editingRO.lines);
+        } else if (editingRO.isSimpleMode && (editingRO.paidHours > 0 || editingRO.workPerformed)) {
+          setLines([{
+            id: Date.now().toString(),
+            lineNo: 1,
+            description: editingRO.workPerformed,
+            hoursPaid: editingRO.paidHours,
+            laborType: editingRO.laborType,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }]);
+        } else {
+          setLines([createEmptyLine(1)]);
+        }
         setPaidDate(editingRO.paidDate || '');
         setCustomerName(editingRO.customerName || '');
         setVehicle(editingRO.vehicle || {});
@@ -72,14 +102,10 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const resetForm = () => {
     setRoNumber('');
     setAdvisor('');
-    setPaidHours(0);
     setLaborType('customer-pay');
-    setWorkPerformed('');
     setNotes('');
     setLines([createEmptyLine(1)]);
-    setSelectedPresets([]);
     setShowMoreDetails(false);
-    setIsSimpleMode(false);
     setPaidDate('');
     setCustomerName('');
     setVehicle({});
@@ -87,12 +113,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setShowDetailsOpen(false);
   };
 
-  const handleSave = (addAnother: boolean = false) => {
-    // Build work performed from lines if not in simple mode
-    const computedWorkPerformed = isSimpleMode 
-      ? workPerformed 
-      : lines.map(l => l.description).filter(Boolean).join('\n');
-    
+  const handleSave = async (addAnother: boolean = false) => {
+    if (isAtCap) {
+      setShowCapSheet(true);
+      return;
+    }
+
+    const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
     const roData = {
       roNumber,
       advisor,
@@ -100,71 +127,34 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
       paidDate: paidDate.trim() || undefined,
-      paidHours: isSimpleMode ? paidHours : linesTotalHours,
+      paidHours: linesTotalHours,
       laborType,
       workPerformed: computedWorkPerformed,
       notes,
       date: editingRO?.date || localDateStr(),
       photos: editingRO?.photos,
-      lines: isSimpleMode ? [] : lines,
-      isSimpleMode,
+      lines,
+      isSimpleMode: false,
     };
 
-    if (editingRO) {
-      updateRO(editingRO.id, roData);
-    } else {
-      addRO(roData);
-    }
-
-    if (addAnother) {
-      resetForm();
-    } else {
-      onClose();
-      resetForm();
-    }
-  };
-
-  const handlePresetSelect = (preset: Preset) => {
-    setAnimatingPresetId(preset.id);
-    setTimeout(() => setAnimatingPresetId(null), 600);
-
-    if (isSimpleMode) {
-      // Simple mode behavior - toggle preset selection
-      if (selectedPresets.includes(preset.id)) {
-        setSelectedPresets(prev => prev.filter(id => id !== preset.id));
-        if (preset.defaultHours) {
-          setPaidHours(prev => Math.max(0, prev - preset.defaultHours!));
-        }
+    try {
+      if (editingRO) {
+        await updateRO(editingRO.id, roData);
+        toast.success('RO updated');
       } else {
-        setSelectedPresets(prev => [...prev, preset.id]);
-        setLaborType(preset.laborType);
-        if (preset.defaultHours) {
-          setPaidHours(prev => prev + preset.defaultHours!);
-        }
-        if (preset.workTemplate) {
-          setWorkPerformed(prev => prev ? `${prev}\n${preset.workTemplate}` : preset.workTemplate!);
-        }
+        await addRO(roData);
+        toast.success('RO saved');
       }
-    }
-    // In Lines Mode, presets are handled by LineItemEditor
-  };
 
-  const handleConvertToLines = () => {
-    // Convert simple mode to lines mode
-    if (paidHours > 0 || workPerformed) {
-      setLines([{
-        id: Date.now().toString(),
-        lineNo: 1,
-        description: workPerformed,
-        hoursPaid: paidHours,
-        laborType,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }]);
-    } else {
-      setLines([createEmptyLine(1)]);
+      if (addAnother) {
+        resetForm();
+      } else {
+        onClose();
+        resetForm();
+      }
+    } catch (err: any) {
+      toast.error(`Save failed: ${err?.message || 'Unknown error'}. Try again.`);
     }
-    setIsSimpleMode(false);
   };
 
   const isValid = roNumber.trim() !== '';
@@ -178,42 +168,16 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* Scan RO Photo Button */}
-          <button
-            onClick={() => {
-              onScanPhoto();
-            }}
-            className="w-full py-4 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center gap-3 text-primary font-semibold tap-target touch-feedback"
-          >
-            <Camera className="h-6 w-6" />
-            Scan RO Photo
-          </button>
-
-          {/* Mode Toggle */}
-          <div className="flex items-center justify-between p-3 bg-secondary rounded-xl">
-            <div className="flex items-center gap-2">
-              {isSimpleMode ? (
-                <Hash className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <List className="h-5 w-5 text-muted-foreground" />
-              )}
-              <span className="font-medium">
-                {isSimpleMode ? 'Simple Mode' : 'Lines Mode'}
-              </span>
-            </div>
+          {/* Scan RO Photo Button — Pro only */}
+          {isPro && (
             <button
-              onClick={() => {
-                if (isSimpleMode) {
-                  handleConvertToLines();
-                } else {
-                  setIsSimpleMode(true);
-                }
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-background rounded-lg text-sm font-medium tap-target touch-feedback"
+              onClick={onScanPhoto}
+              className="w-full py-4 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center gap-3 text-primary font-semibold tap-target touch-feedback"
             >
-              {isSimpleMode ? 'Switch to Lines' : 'Switch to Simple'}
+              <Camera className="h-6 w-6" />
+              Scan RO Photo
             </button>
-          </div>
+          )}
 
           {/* RO Number */}
           <div>
@@ -235,18 +199,18 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             <label className="block text-sm font-medium text-muted-foreground mb-2">
               Advisor
             </label>
-            
+
             {/* Advisor chips from managed advisors */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 4).map((adv) => (
+              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5).map((adv) => (
                 <Chip
                   key={adv.id}
                   label={adv.name.split(' ')[0]} // First name only
                   selected={advisor === adv.name}
-                  onSelect={() => setAdvisor(adv.name)}
+                  onSelect={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
                 />
               ))}
-              {settings.advisors.length > 0 && (
+              {settings.advisors.length > 5 && (
                 <Chip
                   label="More..."
                   onSelect={() => setShowAdvisorList(true)}
@@ -254,8 +218,8 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               )}
             </div>
 
-            {/* Show selected advisor if not in first 4 */}
-            {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 4).find(a => a.name === advisor) && (
+            {/* Show selected advisor if not in first 5 */}
+            {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5).find(a => a.name === advisor) && (
               <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl">
                 <span className="font-medium">{advisor}</span>
                 <button onClick={() => setAdvisor('')} className="ml-auto">
@@ -265,7 +229,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             )}
           </div>
 
-          {/* Labor Type - Always shown */}
+          {/* Labor Type */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-2">
               Default Labor Type
@@ -281,57 +245,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             />
           </div>
 
-          {/* Conditional content based on mode */}
-          {isSimpleMode ? (
-            <>
-              {/* Simple Mode: Single hours input */}
-              <NumericInput
-                label="Paid Hours"
-                value={paidHours}
-                onChange={setPaidHours}
-                quickIncrements={[0.1, 0.2, 0.5]}
-              />
-
-              {/* Presets for simple mode */}
-              {settings.presets.length > 0 && (
-                <PresetSearchRail
-                  presets={settings.presets}
-                  onSelect={handlePresetSelect}
-                  animatingId={animatingPresetId}
-                  layout="mobile"
-                />
-              )}
-
-              {/* Work Performed */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Work Performed (optional)
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={workPerformed}
-                    onChange={(e) => setWorkPerformed(e.target.value)}
-                    placeholder="Describe work performed..."
-                    rows={2}
-                    className="w-full p-4 pr-12 bg-secondary rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <button className="absolute right-3 top-3 p-2 text-muted-foreground touch-feedback">
-                    <Mic className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Lines Mode: Line Item Editor */}
-              <LineItemEditor
-                lines={lines}
-                onLinesChange={setLines}
-                presets={settings.presets}
-                showLaborType={false}
-              />
-            </>
-          )}
+          {/* Lines Mode: Line Item Editor */}
+          <LineItemEditor
+            lines={lines}
+            onLinesChange={setLines}
+            presets={settings.presets}
+            showLaborType={false}
+          />
 
           {/* Details Collapsible (Vehicle, Customer, Mileage, Paid Date) */}
           <div className="border border-border rounded-xl overflow-hidden">
@@ -350,7 +270,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             />
           </div>
 
-          {/* More Details Accordion */}
+          {/* Notes Accordion */}
           <div className="border border-border rounded-xl overflow-hidden">
             <button
               onClick={() => setShowMoreDetails(!showMoreDetails)}
@@ -363,7 +283,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                 <ChevronDown className="h-5 w-5 text-muted-foreground" />
               )}
             </button>
-            
+
             <AnimatePresence>
               {showMoreDetails && (
                 <motion.div
@@ -443,7 +363,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               {adv.name}
             </button>
           ))}
-          
+
           {/* Custom advisor input */}
           <div className="pt-4">
             <input
@@ -458,6 +378,24 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               }}
             />
           </div>
+        </div>
+      </BottomSheet>
+
+      {/* Cap Sheet */}
+      <BottomSheet isOpen={showCapSheet} onClose={() => setShowCapSheet(false)} title="Monthly Limit Reached">
+        <div className="p-6 space-y-4 text-center">
+          <p className="text-muted-foreground text-sm">
+            You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP}/month.
+          </p>
+          <button
+            onClick={() => { setShowCapSheet(false); startCheckout(); }}
+            className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
+          >
+            Upgrade to Pro — $8.99/mo
+          </button>
+          <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
+            Maybe later
+          </button>
         </div>
       </BottomSheet>
     </BottomSheet>

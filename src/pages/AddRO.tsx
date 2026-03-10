@@ -25,11 +25,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 // Desktop imports
 import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
 
-const LABOR_TYPES: { value: LaborType; label: string }[] = [
-  { value: 'warranty', label: 'Warranty' },
-  { value: 'customer-pay', label: 'Customer Pay' },
-  { value: 'internal', label: 'Internal' },
-];
 
 export default function AddRO() {
   const navigate = useNavigate();
@@ -377,13 +372,51 @@ export default function AddRO() {
             <span className="truncate">{advisor || 'Advisor'}</span>
           </button>
 
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring flex-shrink-0"
-          />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            {date !== localDateStr() && (
+              <button
+                onClick={() => setDate(localDateStr())}
+                className="h-11 px-2 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20 flex-shrink-0 active:scale-95 transition-all"
+              >
+                Today
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Quick advisor chips */}
+        {settings.advisors.length > 0 && (
+          <div className="px-3 pb-1.5 flex flex-wrap gap-1.5">
+            {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5).map(adv => (
+              <button
+                key={adv.id}
+                onClick={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
+                className={cn(
+                  'h-7 px-2.5 rounded-md text-xs font-medium border transition-colors active:scale-95',
+                  advisor === adv.name
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted text-muted-foreground border-border'
+                )}
+              >
+                {adv.name.split(' ')[0]}
+              </button>
+            ))}
+            {settings.advisors.length > 5 && (
+              <button
+                onClick={() => setShowAdvisorList(true)}
+                className="h-7 px-2.5 rounded-md text-xs font-medium border border-border bg-muted text-muted-foreground transition-colors active:scale-95"
+              >
+                More…
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Details collapsible */}
         <DetailsCollapsible
@@ -532,7 +565,6 @@ export default function AddRO() {
             value={advisorSearch}
             onChange={e => setAdvisorSearch(e.target.value)}
             className="w-full h-11 px-3 bg-secondary rounded-md border border-input text-base focus:outline-none focus:ring-2 focus:ring-ring"
-            autoFocus
           />
           {filteredAdvisors.map(adv => (
             <button
