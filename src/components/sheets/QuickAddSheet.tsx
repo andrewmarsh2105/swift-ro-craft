@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Camera, ChevronDown, ChevronUp, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, X, Plus } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Chip } from '@/components/mobile/Chip';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
@@ -20,9 +19,8 @@ interface QuickAddSheetProps {
 }
 
 export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: QuickAddSheetProps) {
-  const { settings, addRO, updateRO, ros } = useRO();
+  const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { isPro, startCheckout } = useSubscription();
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   const [showCapSheet, setShowCapSheet] = useState(false);
 
@@ -105,7 +103,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setLaborType('customer-pay');
     setNotes('');
     setLines([createEmptyLine(1)]);
-    setShowMoreDetails(false);
     setPaidDate('');
     setCustomerName('');
     setVehicle({});
@@ -253,59 +250,22 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             showLaborType={false}
           />
 
-          {/* Details Collapsible (Vehicle, Customer, Mileage, Paid Date) */}
-          <div className="border border-border rounded-xl overflow-hidden">
-            <DetailsCollapsible
-              vehicle={vehicle}
-              onVehicleChange={setVehicle}
-              customerName={customerName}
-              onCustomerNameChange={setCustomerName}
-              mileage={mileage}
-              onMileageChange={setMileage}
-              paidDate={paidDate}
-              onPaidDateChange={setPaidDate}
-              open={showDetailsOpen}
-              onOpenChange={setShowDetailsOpen}
-              layout="mobile"
-            />
-          </div>
-
-          {/* Notes Accordion */}
-          <div className="border border-border rounded-xl overflow-hidden">
-            <button
-              onClick={() => setShowMoreDetails(!showMoreDetails)}
-              className="w-full p-4 flex items-center justify-between touch-feedback"
-            >
-              <span className="font-medium">Notes</span>
-              {showMoreDetails ? (
-                <ChevronUp className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-              )}
-            </button>
-
-            <AnimatePresence>
-              {showMoreDetails && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-4 pt-0 space-y-4">
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Additional notes..."
-                      rows={3}
-                      className="w-full p-4 bg-secondary rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Details Collapsible (Vehicle, Customer, Mileage, Paid Date, Notes) */}
+          <DetailsCollapsible
+            vehicle={vehicle}
+            onVehicleChange={setVehicle}
+            customerName={customerName}
+            onCustomerNameChange={setCustomerName}
+            mileage={mileage}
+            onMileageChange={setMileage}
+            paidDate={paidDate}
+            onPaidDateChange={setPaidDate}
+            notes={notes}
+            onNotesChange={setNotes}
+            open={showDetailsOpen}
+            onOpenChange={setShowDetailsOpen}
+            layout="mobile"
+          />
         </div>
 
         {/* Bottom Action Bar */}
@@ -364,19 +324,25 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             </button>
           ))}
 
-          {/* Custom advisor input */}
+          {/* Add new advisor */}
           <div className="pt-4">
             <input
               type="text"
               placeholder="Add new advisor..."
               className="w-full h-14 px-4 bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                  setAdvisor(e.currentTarget.value.trim());
+                const name = e.currentTarget.value.trim();
+                if (e.key === 'Enter' && name) {
+                  if (!settings.advisors.some(a => a.name.toLowerCase() === name.toLowerCase())) {
+                    updateAdvisors([...settings.advisors, { id: Date.now().toString(), name }]);
+                    toast.success(`Advisor "${name}" created`);
+                  }
+                  setAdvisor(name);
                   setShowAdvisorList(false);
                 }
               }}
             />
+            <p className="mt-1.5 text-xs text-muted-foreground px-1">Press Enter to save</p>
           </div>
         </div>
       </BottomSheet>
