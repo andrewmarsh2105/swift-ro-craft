@@ -101,7 +101,7 @@ export default function Auth() {
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">RO Navigator</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Track your hours. Get paid right.
+              {isLogin ? 'Welcome back.' : 'Free to start — no credit card needed.'}
             </p>
           </div>
         </div>
@@ -181,9 +181,14 @@ export default function Auth() {
         </Card>
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground/50">
-          RO Navigator v1.0
-        </p>
+        <div className="text-center space-y-1">
+          <p className="text-xs text-muted-foreground/50">
+            Your data is encrypted and private.
+          </p>
+          <p className="text-xs text-muted-foreground/40">
+            © {new Date().getFullYear()} RO Navigator
+          </p>
+        </div>
       </motion.div>
     </div>
   );
