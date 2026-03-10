@@ -294,7 +294,7 @@ export function SummaryTab() {
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
 
   // Closeout state
   const { closeouts, closeOutPeriod, isRangeClosed, getCloseoutForRange } = useCloseouts();
