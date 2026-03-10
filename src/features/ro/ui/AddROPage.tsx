@@ -90,6 +90,7 @@ export default function AddROPage() {
             <Input
               id="ro-number"
               placeholder="RO #"
+              inputMode="numeric"
               value={form.roNumber}
               onChange={(e) => form.setRoNumber(e.target.value)}
               onBlur={() => checkDuplicateRO(form.roNumber)}
@@ -186,6 +187,7 @@ export default function AddROPage() {
                       form.updateLine(idx, { hoursPaid: Number(e.target.value || 0) })
                     }
                     type="number"
+                    inputMode="decimal"
                     step="0.1"
                     min="0"
                   />
@@ -204,12 +206,12 @@ export default function AddROPage() {
             ))}
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => form.addBlankLine()}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button className="w-full sm:w-auto" variant="outline" onClick={() => form.addBlankLine()}>
               <Plus className="h-4 w-4" />
               Add line
             </Button>
-            <Button variant="ghost" onClick={() => form.importFromClipboard()}>
+            <Button className="w-full sm:w-auto" variant="ghost" onClick={() => form.importFromClipboard()}>
               <ClipboardPaste className="h-4 w-4" />
               Paste lines
             </Button>
