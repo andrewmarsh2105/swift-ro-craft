@@ -61,7 +61,8 @@ export function CustomDateRangeDialog({
   const handleApply = () => {
     if (!canApply) return;
     onApply(localDateStr(startDate!), localDateStr(endDate!));
-    onClose();
+    // Don't call onClose here — onApply already updates state and closes the dialog
+    // by setting customStart/customEnd which makes showCustomDialog false.
   };
 
   return (
