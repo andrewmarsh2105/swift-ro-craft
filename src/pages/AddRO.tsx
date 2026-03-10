@@ -339,7 +339,7 @@ export default function AddRO() {
               onClick={() => handleSave(false)}
               disabled={!isValid || isSaving}
               className={cn(
-                'h-9 px-4 rounded-md text-sm font-semibold flex items-center gap-1.5 transition-colors',
+                'h-9 px-4 rounded-full text-sm font-semibold flex items-center gap-1.5 transition-colors',
                 isValid && !isSaving
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -431,7 +431,7 @@ export default function AddRO() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleAddLine}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
               >
                 <Plus className="h-4 w-4" />
                 Line
@@ -439,7 +439,7 @@ export default function AddRO() {
 
               <button
                 onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
+                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
               >
                 <ClipboardPaste className="h-4 w-4" />
@@ -479,14 +479,14 @@ export default function AddRO() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleAddLine}
-                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
+                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
               >
                 <Plus className="h-4 w-4" />
                 Add Line
               </button>
               <button
                 onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
+                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
               >
                 <ClipboardPaste className="h-4 w-4" />
@@ -511,7 +511,7 @@ export default function AddRO() {
               onClick={() => handleSave(true)}
               disabled={!isValid || isSaving}
               className={cn(
-                'h-11 px-4 rounded-md font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
+                'h-11 px-4 rounded-full font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
                 isValid && !isSaving ? 'border-border text-foreground hover:bg-muted' : 'border-muted text-muted-foreground'
               )}
             >
@@ -522,7 +522,7 @@ export default function AddRO() {
             onClick={() => handleSave(false)}
             disabled={!isValid || isSaving}
             className={cn(
-              'h-11 px-6 rounded-md font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center gap-2',
+              'h-11 px-6 rounded-full font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center gap-2',
               isValid && !isSaving ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
             )}
           >
@@ -562,7 +562,7 @@ export default function AddRO() {
                   key={adv.id}
                   onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
                   className={cn(
-                    'h-8 px-3 rounded-md text-xs font-medium border transition-colors active:scale-95',
+                    'h-8 px-3 rounded-full text-xs font-medium border transition-colors active:scale-95',
                     advisor === adv.name
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-muted text-muted-foreground border-border'
@@ -620,7 +620,7 @@ export default function AddRO() {
           </p>
           <button
             onClick={() => { setShowCapSheet(false); setShowProUpgrade(true); }}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-md font-semibold text-sm min-h-[44px]"
+            className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
           >
             Upgrade to Pro
           </button>
@@ -689,7 +689,7 @@ function PresetButton({
       onPointerCancel={handlePointerCancel}
       onPointerLeave={handlePointerCancel}
       className={cn(
-        'flex-shrink-0 px-3 h-11 border rounded-md text-sm font-medium flex items-center gap-1.5 transition-all duration-150 min-h-[44px] select-none touch-manipulation',
+        'flex-shrink-0 px-3 h-11 border rounded-full text-sm font-medium flex items-center gap-1.5 transition-all duration-150 min-h-[44px] select-none touch-manipulation',
         isPressed
           ? 'bg-primary text-primary-foreground border-primary scale-95'
           : 'bg-card border-border hover:bg-primary/10 hover:border-primary/30 active:scale-95'

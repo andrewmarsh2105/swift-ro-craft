@@ -27,10 +27,15 @@ export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
                 isActive ? 'tab-bar-item-active' : 'tab-bar-item-inactive'
               )}
             >
-              <Icon
-                className={cn('flex-shrink-0 transition-all duration-200', isActive ? 'h-[26px] w-[26px]' : 'h-6 w-6')}
-                strokeWidth={isActive ? 2.5 : 1.8}
-              />
+              <div className={cn(
+                'flex items-center justify-center rounded-full transition-all duration-200',
+                isActive ? 'bg-primary/12 px-4 py-1' : 'px-3 py-1'
+              )}>
+                <Icon
+                  className={cn('flex-shrink-0 transition-all duration-200', isActive ? 'h-[22px] w-[22px]' : 'h-[22px] w-[22px]')}
+                  strokeWidth={isActive ? 2.5 : 1.8}
+                />
+              </div>
               <span className={cn('text-[11px] font-semibold transition-all duration-200', isActive ? 'opacity-100' : 'opacity-70')}>
                 {label}
               </span>

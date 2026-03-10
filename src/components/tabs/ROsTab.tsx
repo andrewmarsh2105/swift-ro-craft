@@ -321,7 +321,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               <button
                 onClick={() => setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards')}
                 className={cn(
-                  'h-8 w-8 flex items-center justify-center rounded-md quiet-transition',
+                  'h-8 w-8 flex items-center justify-center rounded-full quiet-transition',
                   viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
                 )}
               >
@@ -330,7 +330,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             )}
             <button
               onClick={() => setShowFilters(true)}
-              className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted relative quiet-transition"
+              className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted relative quiet-transition"
             >
               <SlidersHorizontal className="icon-toolbar" />
               {activeFiltersCount > 0 && (
@@ -350,7 +350,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search RO #, advisor, vehicle, work..."
-              className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -368,7 +368,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               key={value}
               onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
               className={cn(
-                'h-8 px-3 text-xs font-medium rounded-md border quiet-transition',
+                'h-8 px-3 text-xs font-medium rounded-full border quiet-transition',
                 dateFilter === value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
@@ -425,7 +425,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 activeFiltersCount > 0 ? (
                   <button
                     onClick={clearFilters}
-                    className="h-9 px-4 text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-md hover:bg-primary/15 transition-colors"
+                    className="h-9 px-4 text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-full hover:bg-primary/15 transition-colors"
                   >
                     Clear all filters
                   </button>
@@ -463,7 +463,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {hasMore && (
                 <button
                   onClick={() => setVisibleCount(c => c + 50)}
-                  className="w-full h-10 rounded-md border border-border bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
+                  className="w-full h-10 rounded-full border border-border bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
                 >
                   Load {Math.min(50, filteredROs.length - visibleCount)} more
                 </button>
@@ -508,7 +508,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   key={o.value}
                   onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-md border quiet-transition min-h-[44px]',
+                    'px-3 py-1.5 text-xs font-medium rounded-full border quiet-transition min-h-[44px]',
                     filters.sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-background text-muted-foreground border-border'
@@ -553,13 +553,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           <div className="flex gap-2 pt-2">
             <button
               onClick={clearFilters}
-              className="flex-1 h-12 bg-secondary rounded-md font-medium text-sm"
+              className="flex-1 h-12 bg-secondary rounded-xl font-medium text-sm"
             >
               Clear All
             </button>
             <button
               onClick={() => setShowFilters(false)}
-              className="flex-1 h-12 bg-primary text-primary-foreground rounded-md font-semibold text-sm"
+              className="flex-1 h-12 bg-primary text-primary-foreground rounded-xl font-semibold text-sm"
             >
               Apply
             </button>
