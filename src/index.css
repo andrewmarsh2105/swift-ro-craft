@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,133 +6,134 @@
 
 @layer base {
   :root {
-    /* Industrial / ops palette (cool neutrals + neon blue) */
-    --background: 210 20% 98%;
-    --foreground: 215 28% 12%;
+    /* Automotive Amber — warm, distinctive, professional */
+    --background: 30 18% 97%;
+    --foreground: 20 30% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 28% 12%;
+    --card-foreground: 20 30% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 12%;
+    --popover-foreground: 20 30% 10%;
 
-    /* Neon blue primary */
-    --primary: 200 100% 50%;
+    /* Signature amber */
+    --primary: 24 92% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 18% 95%;
-    --secondary-foreground: 215 28% 12%;
+    --secondary: 30 14% 93%;
+    --secondary-foreground: 20 30% 10%;
 
-    --muted: 210 18% 95%;
-    --muted-foreground: 215 12% 45%;
+    --muted: 30 14% 93%;
+    --muted-foreground: 20 10% 46%;
 
-    --accent: 210 18% 95%;
-    --accent-foreground: 215 28% 12%;
+    --accent: 30 14% 93%;
+    --accent-foreground: 20 30% 10%;
 
     --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 16% 86%;
-    --input: 214 16% 86%;
-    --ring: 200 100% 50%;
+    --border: 30 12% 88%;
+    --input: 30 12% 88%;
+    --ring: 24 92% 50%;
 
-    /* Industrial: less round */
-    --radius: 0.5rem;
+    /* Softer radius — modern not boxy */
+    --radius: 0.625rem;
 
     /* Status colors */
-    --status-warranty: 145 70% 32%;
+    --status-warranty: 142 71% 34%;
     --status-warranty-foreground: 0 0% 100%;
-    --status-warranty-bg: 145 40% 92%;
+    --status-warranty-bg: 142 42% 93%;
 
-    --status-customer-pay: 200 100% 45%;
+    --status-customer-pay: 217 91% 55%;
     --status-customer-pay-foreground: 0 0% 100%;
-    --status-customer-pay-bg: 200 85% 92%;
+    --status-customer-pay-bg: 217 80% 94%;
 
-    --status-internal: 28 92% 52%;
+    --status-internal: 28 85% 44%;
     --status-internal-foreground: 0 0% 100%;
-    --status-internal-bg: 28 80% 92%;
+    --status-internal-bg: 28 78% 93%;
 
     /* Mobile-safe */
     --tab-bar-height: 5rem;
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
 
-    /* Industrial shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(215 25% 10% / 0.04);
-    --shadow-card: 0 0 0 1px hsl(var(--border) / 1), 0 1px 2px 0 hsl(215 25% 10% / 0.05);
-    --shadow-raised: 0 10px 28px -16px hsl(215 25% 10% / 0.22), 0 0 0 1px hsl(var(--border) / 0.95);
-    --shadow-soft: 0 1px 2px 0 hsl(215 25% 10% / 0.06);
-    --shadow-fab: 0 12px 30px -18px hsl(var(--primary) / 0.55);
-    --shadow-sheet: 0 -10px 36px -20px hsl(0 0% 0% / 0.26);
+    /* Warm shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(20 25% 10% / 0.05);
+    --shadow-card: 0 0 0 1px hsl(var(--border) / 1), 0 1px 3px 0 hsl(20 25% 10% / 0.07);
+    --shadow-raised: 0 10px 28px -16px hsl(20 25% 10% / 0.22), 0 0 0 1px hsl(var(--border) / 0.95);
+    --shadow-soft: 0 1px 2px 0 hsl(20 25% 10% / 0.06);
+    --shadow-fab: 0 12px 32px -18px hsl(var(--primary) / 0.65);
+    --shadow-sheet: 0 -8px 32px -16px hsl(20 25% 10% / 0.18);
 
-    /* Sidebar vars */
-    --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 215 28% 12%;
-    --sidebar-primary: 200 100% 50%;
+    /* Sidebar */
+    --sidebar-background: 30 18% 97%;
+    --sidebar-foreground: 20 30% 10%;
+    --sidebar-primary: 24 92% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 18% 95%;
-    --sidebar-accent-foreground: 215 28% 12%;
-    --sidebar-border: 214 16% 86%;
-    --sidebar-ring: 200 100% 50%;
+    --sidebar-accent: 30 14% 93%;
+    --sidebar-accent-foreground: 20 30% 10%;
+    --sidebar-border: 30 12% 88%;
+    --sidebar-ring: 24 92% 50%;
   }
 
   .dark {
     color-scheme: dark;
 
-    --background: 222 28% 8%;
-    --foreground: 210 20% 97%;
+    --background: 20 16% 8%;
+    --foreground: 30 14% 95%;
 
-    --card: 222 24% 12%;
-    --card-foreground: 210 20% 97%;
+    /* Noticeably lighter than background — improves card scanability */
+    --card: 20 14% 14%;
+    --card-foreground: 30 14% 95%;
 
-    --popover: 222 24% 12%;
-    --popover-foreground: 210 20% 97%;
+    --popover: 20 14% 14%;
+    --popover-foreground: 30 14% 95%;
 
-    --primary: 200 100% 60%;
-    --primary-foreground: 222 28% 8%;
+    --primary: 24 92% 60%;
+    --primary-foreground: 20 30% 7%;
 
-    --secondary: 222 18% 16%;
-    --secondary-foreground: 210 20% 97%;
+    --secondary: 20 12% 19%;
+    --secondary-foreground: 30 14% 95%;
 
-    --muted: 222 18% 16%;
-    --muted-foreground: 214 10% 72%;
+    --muted: 20 12% 19%;
+    --muted-foreground: 20 8% 66%;
 
-    --accent: 222 18% 16%;
-    --accent-foreground: 210 20% 97%;
+    --accent: 20 12% 19%;
+    --accent-foreground: 30 14% 95%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 210 20% 97%;
+    --destructive: 0 70% 52%;
+    --destructive-foreground: 30 14% 95%;
 
-    --border: 222 18% 22%;
-    --input: 222 18% 22%;
-    --ring: 200 100% 60%;
+    --border: 20 12% 23%;
+    --input: 20 12% 23%;
+    --ring: 24 92% 60%;
 
-    --status-warranty: 145 70% 52%;
-    --status-warranty-foreground: 145 90% 10%;
-    --status-warranty-bg: 145 35% 14%;
+    --status-warranty: 142 65% 52%;
+    --status-warranty-foreground: 142 90% 10%;
+    --status-warranty-bg: 142 36% 16%;
 
-    --status-customer-pay: 200 100% 60%;
-    --status-customer-pay-foreground: 200 95% 10%;
-    --status-customer-pay-bg: 200 45% 18%;
+    --status-customer-pay: 217 80% 65%;
+    --status-customer-pay-foreground: 217 95% 10%;
+    --status-customer-pay-bg: 217 46% 20%;
 
-    --status-internal: 28 92% 62%;
+    --status-internal: 28 88% 60%;
     --status-internal-foreground: 28 90% 10%;
-    --status-internal-bg: 28 45% 14%;
+    --status-internal-bg: 28 46% 16%;
 
-    --shadow-card: 0 0 0 1px hsl(var(--border) / 0.95), 0 1px 2px 0 hsl(0 0% 0% / 0.25);
+    --shadow-card: 0 0 0 1px hsl(var(--border) / 0.95), 0 1px 3px 0 hsl(0 0% 0% / 0.30);
     --shadow-raised: 0 14px 40px -24px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(var(--border) / 0.9);
-    --shadow-soft: 0 1px 2px 0 hsl(0 0% 0% / 0.25);
-    --shadow-fab: 0 14px 40px -26px hsl(var(--primary) / 0.45);
-    --shadow-sheet: 0 -10px 40px -22px hsl(0 0% 0% / 0.55);
+    --shadow-soft: 0 1px 2px 0 hsl(0 0% 0% / 0.28);
+    --shadow-fab: 0 14px 40px -26px hsl(var(--primary) / 0.50);
+    --shadow-sheet: 0 -8px 36px -20px hsl(0 0% 0% / 0.55);
 
-    --sidebar-background: 222 28% 8%;
-    --sidebar-foreground: 210 20% 97%;
-    --sidebar-primary: 200 100% 60%;
-    --sidebar-primary-foreground: 222 28% 8%;
-    --sidebar-accent: 222 18% 16%;
-    --sidebar-accent-foreground: 210 20% 97%;
-    --sidebar-border: 222 18% 22%;
-    --sidebar-ring: 200 100% 60%;
+    --sidebar-background: 20 16% 8%;
+    --sidebar-foreground: 30 14% 95%;
+    --sidebar-primary: 24 92% 60%;
+    --sidebar-primary-foreground: 20 30% 7%;
+    --sidebar-accent: 20 12% 19%;
+    --sidebar-accent-foreground: 30 14% 95%;
+    --sidebar-border: 20 12% 23%;
+    --sidebar-ring: 24 92% 60%;
   }
 }
 
@@ -148,7 +149,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
     line-height: 1.6;
     padding-top: var(--safe-area-inset-top);
   }
@@ -158,9 +159,9 @@
   }
 }
 
-/* Dark mode: make native date picker icons visible */
+/* Dark mode: make native date picker icon visible */
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) sepia(1) saturate(5) hue-rotate(195deg) brightness(1.2);
+  filter: invert(0.8);
 }
 
 @layer components {
@@ -169,20 +170,20 @@
   }
 
   .card-mobile {
-    @apply bg-card rounded-md border;
+    @apply bg-card rounded-[var(--radius)] border;
     box-shadow: var(--shadow-card);
   }
 
   .card-raised {
-    @apply bg-card rounded-md border;
+    @apply bg-card rounded-[var(--radius)] border;
     box-shadow: var(--shadow-raised);
   }
 
   .hours-pill {
     @apply inline-flex items-center px-2 py-0.5 rounded-md border font-bold text-sm tabular-nums;
     color: hsl(var(--primary));
-    border-color: hsl(var(--primary) / 0.3);
-    background: hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.25);
+    background: hsl(var(--primary) / 0.10);
   }
 
   .status-pill {
@@ -221,7 +222,7 @@
   }
 
   .fab {
-    @apply fixed z-40 flex items-center justify-center bg-primary text-primary-foreground rounded-lg font-semibold;
+    @apply fixed z-40 flex items-center justify-center bg-primary text-primary-foreground rounded-xl font-semibold;
     box-shadow: var(--shadow-fab);
     bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom) + 1rem);
     right: 1rem;
@@ -234,7 +235,7 @@
   }
 
   .segmented-control {
-    @apply inline-flex p-1 bg-muted rounded-md;
+    @apply inline-flex p-1 bg-muted rounded-lg;
   }
 
   .segmented-control-item {
@@ -251,7 +252,7 @@
   }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-border rounded-md text-sm font-medium tap-target transition-all duration-150;
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-border rounded-lg text-sm font-medium tap-target transition-all duration-150;
   }
 
   .chip:active {
@@ -269,7 +270,7 @@
   }
 
   .tab-bar-item {
-    @apply flex flex-col items-center justify-center gap-1.5 flex-1 py-2 transition-colors;
+    @apply flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-colors relative;
   }
 
   .tab-bar-item-active {
@@ -280,16 +281,22 @@
     @apply text-muted-foreground;
   }
 
+  /* Active tab indicator pill */
+  .tab-bar-item-active::before {
+    content: '';
+    @apply absolute top-0 left-1/2 -translate-x-1/2 h-[3px] w-7 rounded-b-full bg-primary;
+  }
+
   .swipe-action {
     @apply absolute inset-y-0 flex items-center justify-center px-6;
   }
 
   .swipe-action-edit {
-    @apply swipe-action right-0 bg-primary text-primary-foreground rounded-r-md;
+    @apply swipe-action right-0 bg-primary text-primary-foreground rounded-r-[var(--radius)];
   }
 
   .swipe-action-duplicate {
-    @apply swipe-action left-0 text-white rounded-l-md;
+    @apply swipe-action left-0 text-white rounded-l-[var(--radius)];
     background: hsl(var(--status-warranty));
   }
 
@@ -302,24 +309,24 @@
   }
 
   .input-base {
-    @apply bg-card border border-input rounded-md text-foreground placeholder:text-muted-foreground/60;
+    @apply bg-card border border-input rounded-[var(--radius)] text-foreground placeholder:text-muted-foreground/60;
     @apply focus:outline-none focus:ring-2 focus:ring-ring/60 focus:border-ring transition-shadow;
   }
 
-  /* Typography scale */
-  .page-title { @apply text-[16px] font-semibold tracking-tight; }
-  .page-subtitle { @apply text-[11px] text-muted-foreground; }
-  .section-title { @apply text-[11px] font-semibold uppercase tracking-wide text-muted-foreground; }
-  .meta-text { @apply text-[11px] text-muted-foreground; }
+  /* Typography scale — larger and cleaner */
+  .page-title    { @apply text-[18px] font-bold tracking-tight; }
+  .page-subtitle { @apply text-[12px] text-muted-foreground; }
+  .section-title { @apply text-[11px] font-semibold uppercase tracking-widest text-muted-foreground; }
+  .meta-text     { @apply text-[12px] text-muted-foreground; }
 
   /* Hierarchy */
-  .inset-panel { @apply rounded-md border border-border bg-muted/30; }
-  .row-hover { @apply hover:bg-muted/40; }
+  .inset-panel { @apply rounded-[var(--radius)] border border-border bg-muted/30; }
+  .row-hover   { @apply hover:bg-muted/50; }
 
   /* Icon discipline */
   .icon-toolbar { @apply h-4 w-4; }
-  .icon-row { @apply h-3.5 w-3.5; }
-  .icon-sheet { @apply h-[18px] w-[18px]; }
+  .icon-row     { @apply h-3.5 w-3.5; }
+  .icon-sheet   { @apply h-[18px] w-[18px]; }
 
   /* Quiet motion */
   .quiet-transition { @apply transition-all duration-150 ease-out; }

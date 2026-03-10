@@ -35,13 +35,14 @@ export default function AddRO() {
   const { userSettings } = useFlagContext();
   const { isPro } = useSubscription();
 
-  const editingROId = (location.state as { editingROId?: string; focusLineId?: string })?.editingROId;
-  const focusLineId = (location.state as { editingROId?: string; focusLineId?: string })?.focusLineId;
+  const editingROId = (location.state as { editingROId?: string; focusLineId?: string; openScan?: boolean })?.editingROId;
+  const focusLineId = (location.state as { editingROId?: string; focusLineId?: string; openScan?: boolean })?.focusLineId;
+  const openScanOnMount = (location.state as { editingROId?: string; focusLineId?: string; openScan?: boolean })?.openScan;
   const editingRO = editingROId ? ros.find(r => r.id === editingROId) : undefined;
 
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   const [advisorSearch, setAdvisorSearch] = useState('');
-  const [showScanFlow, setShowScanFlow] = useState(false);
+  const [showScanFlow, setShowScanFlow] = useState(() => !!openScanOnMount);
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
@@ -337,7 +338,7 @@ export default function AddRO() {
               onClick={() => handleSave(false)}
               disabled={!isValid || isSaving}
               className={cn(
-                'h-8 px-3 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors',
+                'h-9 px-4 rounded-md text-sm font-semibold flex items-center gap-1.5 transition-colors',
                 isValid && !isSaving
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -420,48 +421,16 @@ export default function AddRO() {
         </div>
       </main>
 
-      {/* Bottom action bar */}
+      {/* Bottom action bar — 2 clean zones */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
-        <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
-            Total ({lines.length} lines)
-            {tbdCount > 0 && <span className="ml-1 text-destructive">· {tbdCount} TBD</span>}
-          </span>
-          <span className="text-lg font-bold text-primary tabular-nums">{totalHours.toFixed(1)}h</span>
-        </div>
-        <div className="p-3 flex gap-2">
-          <button
-            onClick={() => handleSave(false)}
-            disabled={!isValid || isSaving}
-            className={cn(
-              'flex-1 py-3 rounded-md font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center justify-center gap-2',
-              isValid && !isSaving ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-            )}
-          >
-            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {editingRO ? 'Update' : 'Save'}
-          </button>
-          {!editingRO && (
-            <button
-              onClick={() => handleSave(true)}
-              disabled={!isValid || isSaving}
-              className={cn(
-                'py-3 px-4 rounded-md font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
-                isValid && !isSaving ? 'border-primary text-primary' : 'border-muted text-muted-foreground'
-              )}
-            >
-              + Add
-            </button>
-          )}
-        </div>
 
-        {/* Sticky quick actions: one-tap add line + paste + quick presets */}
-        <div className="px-3 pb-3 pt-1 border-t border-border/50">
+        {/* Zone 1: Quick actions — add line + paste + preset rail */}
+        <div className="px-3 pt-2.5 pb-2 border-b border-border/60">
           {presetsVisible ? (
             <div className="flex items-center gap-2">
               <button
                 onClick={handleAddLine}
-                className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
               >
                 <Plus className="h-4 w-4" />
                 Line
@@ -469,7 +438,7 @@ export default function AddRO() {
 
               <button
                 onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all min-w-[44px]"
+                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
               >
                 <ClipboardPaste className="h-4 w-4" />
@@ -480,16 +449,15 @@ export default function AddRO() {
                   <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
                     {recentlyAddedPresets.length > 0 && (
                       <>
-                        <span className="text-xs text-muted-foreground flex-shrink-0">Recent:</span>
                         {recentlyAddedPresets.map(id => {
                           const preset = settings.presets.find(p => p.id === id);
                           return preset ? (
-                            <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/15 rounded-md text-xs text-primary font-medium border border-primary/20">
-                              {preset.name}
+                            <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/12 rounded-md text-xs text-primary font-medium border border-primary/20">
+                              ✓ {preset.name}
                             </span>
                           ) : null;
                         })}
-                        <div className="w-px h-5 bg-border flex-shrink-0 mx-1" />
+                        <div className="w-px h-5 bg-border flex-shrink-0" />
                       </>
                     )}
                     {quickPresets.map(preset => (
@@ -503,29 +471,63 @@ export default function AddRO() {
                   </div>
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground">
-                  No presets yet — add some in Settings.
-                </span>
+                <span className="text-xs text-muted-foreground">No presets — add in Settings.</span>
               )}
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <button
                 onClick={handleAddLine}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
+                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
               >
                 <Plus className="h-4 w-4" />
                 Add Line
               </button>
               <button
                 onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all min-w-[44px]"
+                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
               >
                 <ClipboardPaste className="h-4 w-4" />
               </button>
             </div>
           )}
+        </div>
+
+        {/* Zone 2: Save bar — summary info + action buttons */}
+        <div className="px-3 py-2.5 flex items-center gap-2">
+          <div className="flex-1 min-w-0 flex items-baseline gap-2">
+            <span className="text-[17px] font-bold text-primary tabular-nums leading-none">
+              {totalHours.toFixed(1)}h
+            </span>
+            <span className="text-xs text-muted-foreground leading-none">
+              {lines.length} {lines.length === 1 ? 'line' : 'lines'}
+              {tbdCount > 0 && <span className="ml-1 text-destructive font-medium">· {tbdCount} TBD</span>}
+            </span>
+          </div>
+          {!editingRO && (
+            <button
+              onClick={() => handleSave(true)}
+              disabled={!isValid || isSaving}
+              className={cn(
+                'h-11 px-4 rounded-md font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
+                isValid && !isSaving ? 'border-border text-foreground hover:bg-muted' : 'border-muted text-muted-foreground'
+              )}
+            >
+              + Add
+            </button>
+          )}
+          <button
+            onClick={() => handleSave(false)}
+            disabled={!isValid || isSaving}
+            className={cn(
+              'h-11 px-6 rounded-md font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center gap-2',
+              isValid && !isSaving ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+            )}
+          >
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {editingRO ? 'Update' : 'Save'}
+          </button>
         </div>
       </footer>
 

@@ -42,7 +42,7 @@ function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; f
       <Badge
         variant={status.paid === "Paid" ? "outline" : "secondary"}
         className={cn(
-          "text-[9px] px-1.5 py-0",
+          "text-[10px] px-1.5 py-0",
           status.paid === "Paid"
             ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
             : "text-muted-foreground",
@@ -51,19 +51,19 @@ function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; f
         {status.paid}
       </Badge>
       {status.tbd > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
+        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
           <Clock className="h-2.5 w-2.5" />
           {status.tbd}
         </Badge>
       )}
       {status.flags > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </Badge>
       )}
       {status.checks > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </Badge>
@@ -96,28 +96,38 @@ const ROCard = memo(function ROCard({
   const roEffectiveDate = effectiveDate(ro);
   const hours = calcHours(ro);
 
+  const laborTypeColor =
+    ro.laborType === 'warranty'
+      ? 'hsl(var(--status-warranty))'
+      : ro.laborType === 'customer-pay'
+        ? 'hsl(var(--status-customer-pay))'
+        : 'hsl(var(--status-internal))';
+
   return (
-    <div className="card-mobile px-3 py-2.5 group row-hover quiet-transition">
+    <div
+      className="card-mobile px-4 py-3 group row-hover quiet-transition border-l-[3px]"
+      style={{ borderLeftColor: laborTypeColor }}
+    >
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
-          {/* Row 1: date · RO# · hours · status */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
-            <span className="text-sm font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber}</span>
+          {/* Row 1: RO# · hours · status badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[15px] font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber}</span>
             <span className="hours-pill flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
+            <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
             <div className="flex-shrink-0">
               <MobileStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
             </div>
           </div>
 
-          {/* Row 2: labor type · advisor · vehicle */}
-          <div className="flex items-center gap-1 mt-1">
+          {/* Row 2: labor type · advisor · vehicle · work summary */}
+          <div className="flex items-center gap-1.5 mt-1.5">
             <StatusPill type={ro.laborType} size="sm" />
             <p className="meta-text truncate">
               {ro.advisor}
               {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
               {' — '}
-              <span className="text-muted-foreground/70">
+              <span className="text-muted-foreground/65">
                 {ro.lines?.length
                   ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(", ")
                   : ro.workPerformed || "—"}
@@ -289,10 +299,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           <div className="min-w-0">
             <h2 className="page-title">Repair Orders</h2>
             <div className="flex items-center gap-2 flex-wrap mt-1">
-              <span className="text-xl font-bold tabular-nums text-primary leading-none">
+              <span className="text-2xl font-bold tabular-nums text-primary leading-none">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
               </span>
-              <span className="text-xs text-muted-foreground tabular-nums font-medium leading-none">
+              <span className="text-sm text-muted-foreground tabular-nums font-medium leading-none">
                 {filteredROs.length} ROs
               </span>
               <Badge
@@ -386,7 +396,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           {loadingROs ? (
             <div className="px-4 py-3 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="card-mobile px-3 py-2.5">
+                <div key={i} className="card-mobile px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 space-y-1.5">
                       <div className="flex gap-2">
@@ -404,18 +414,26 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           ) : filteredROs.length === 0 ? (
             <EmptyState
               icon={ClipboardList}
-              title="No repair orders found"
-              description="Try adjusting your search or filters"
+              variant={ros.length === 0 ? 'welcome' : 'filtered'}
+              title={ros.length === 0 ? 'No repair orders yet' : 'No repair orders found'}
+              description={
+                ros.length === 0
+                  ? 'Tap the Quick Add button below to log your first RO.'
+                  : 'Try adjusting your search or filters.'
+              }
               actions={
                 activeFiltersCount > 0 ? (
-                  <button onClick={clearFilters} className="text-xs font-medium text-primary hover:underline">
+                  <button
+                    onClick={clearFilters}
+                    className="h-9 px-4 text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-md hover:bg-primary/15 transition-colors"
+                  >
                     Clear all filters
                   </button>
                 ) : undefined
               }
             />
           ) : (
-            <div className="px-4 py-2 space-y-1">
+            <div className="px-4 py-2 space-y-1.5">
               {visibleROs.map(ro => (
                 <ROCard
                   key={ro.id}

@@ -7,19 +7,34 @@ interface EmptyStateProps {
   description?: string;
   actions?: React.ReactNode;
   className?: string;
+  /** Use "welcome" for first-time empty state, "filtered" for no-results */
+  variant?: 'welcome' | 'filtered';
 }
 
-export function EmptyState({ icon: Icon, title, description, actions, className }: EmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description, actions, className, variant = 'filtered' }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center py-12 px-6 text-center", className)}>
+    <div className={cn("flex flex-col items-center justify-center py-16 px-8 text-center", className)}>
       {Icon && (
-        <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center mb-4">
-          <Icon className="h-6 w-6 text-muted-foreground/50" />
+        <div
+          className={cn(
+            "w-16 h-16 rounded-2xl flex items-center justify-center mb-5",
+            variant === 'welcome'
+              ? "bg-primary/10 border border-primary/20"
+              : "bg-muted border border-border"
+          )}
+        >
+          <Icon
+            className={cn("h-8 w-8", variant === 'welcome' ? "text-primary" : "text-muted-foreground/60")}
+          />
         </div>
       )}
-      <p className="text-sm font-semibold text-foreground/70">{title}</p>
-      {description && <p className="text-xs text-muted-foreground mt-1 max-w-xs">{description}</p>}
-      {actions && <div className="mt-4 flex items-center gap-2">{actions}</div>}
+      <p className={cn("font-semibold text-base", variant === 'welcome' ? "text-foreground" : "text-foreground/70")}>
+        {title}
+      </p>
+      {description && (
+        <p className="text-sm text-muted-foreground mt-1.5 max-w-xs leading-relaxed">{description}</p>
+      )}
+      {actions && <div className="mt-5 flex items-center gap-3">{actions}</div>}
     </div>
   );
 }

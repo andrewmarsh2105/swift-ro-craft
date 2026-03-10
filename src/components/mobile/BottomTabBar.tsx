@@ -1,4 +1,3 @@
-import { ReactNode } from 'react';
 import { ClipboardList, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,19 +16,27 @@ export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
   return (
     <nav className="tab-bar-pwa">
       <div className="flex h-full items-stretch">
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => onTabChange(id)}
-            className={cn(
-              'tab-bar-item touch-feedback',
-              activeTab === id ? 'tab-bar-item-active' : 'tab-bar-item-inactive'
-            )}
-          >
-            <Icon className="h-7 w-7 flex-shrink-0" strokeWidth={activeTab === id ? 2.4 : 1.8} />
-            <span className="text-sm font-semibold">{label}</span>
-          </button>
-        ))}
+        {tabs.map(({ id, label, icon: Icon }) => {
+          const isActive = activeTab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onTabChange(id)}
+              className={cn(
+                'tab-bar-item touch-feedback',
+                isActive ? 'tab-bar-item-active' : 'tab-bar-item-inactive'
+              )}
+            >
+              <Icon
+                className={cn('flex-shrink-0 transition-all duration-200', isActive ? 'h-[26px] w-[26px]' : 'h-6 w-6')}
+                strokeWidth={isActive ? 2.5 : 1.8}
+              />
+              <span className={cn('text-[11px] font-semibold transition-all duration-200', isActive ? 'opacity-100' : 'opacity-70')}>
+                {label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </nav>
   );

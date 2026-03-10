@@ -45,20 +45,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('[SUB] check-subscription FULL response:', JSON.stringify(data));
-      if (data?.debug) {
-        console.warn('[SUB] DEBUG INFO:', JSON.stringify(data.debug));
-      }
       if (error) {
-        console.error('[SUB] invoke error:', error.message);
         // On transient errors, keep current Pro state instead of resetting
-        console.log('[SUB] Keeping current isPro state due to error');
         return;
       }
 
       const subStatus = data?.status as string | null;
       const subscribed = data?.subscribed === true;
-      console.log('[SUB] Resolved:', { subscribed, status: subStatus, product_id: data?.product_id, subscription_end: data?.subscription_end });
       // Track purchase_completed when Pro becomes active
       if (subscribed && !prevIsPro.current && user) {
         trackPurchaseCompleted(user.id);
@@ -100,7 +93,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const syncToast = toast.loading('Syncing subscription…');
       const tryCheck = async () => {
         attempt++;
-        console.log(`[SUB] Post-checkout check attempt ${attempt}/${maxAttempts}`);
         await checkSubscription();
         setTimeout(() => {
           if (prevIsPro.current) {
@@ -123,16 +115,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setCheckoutLoading(true);
     setCheckoutFallbackUrl(null);
     try {
-      console.log('[CHECKOUT] Invoking create-checkout, plan:', plan || 'monthly');
       const token = session?.access_token;
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: plan || 'monthly' },
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-      console.log('[CHECKOUT] Response:', { hasUrl: !!data?.url, version: data?.version, error: error?.message });
       if (error) throw error;
       if (data?.url) {
-        console.log('[CHECKOUT] Redirecting via location.href...');
         if (user) trackCheckoutStarted(user.id, plan || 'monthly');
         window.location.href = data.url;
         // If still here after 2s, Safari may have blocked — show fallback

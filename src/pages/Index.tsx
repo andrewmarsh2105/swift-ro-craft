@@ -52,7 +52,7 @@ function MobileApp() {
   };
 
   const handleScanPhoto = () => {
-    // placeholder for scan flow
+    navigate('/add-ro', { state: { openScan: true } });
   };
 
   return (
