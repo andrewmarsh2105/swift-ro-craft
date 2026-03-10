@@ -190,21 +190,21 @@ export function LineItemEditor({
             >
               <div className="bg-secondary rounded-xl p-4 space-y-3">
                 {/* Line Header */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-h-[44px]">
                   <span className="text-sm font-semibold text-muted-foreground">
                     Line {line.lineNo}
                   </span>
                   <div className="flex-1" />
                   <button
                     onClick={() => handleDuplicateLine(index)}
-                    className="p-2 text-muted-foreground hover:text-foreground tap-target touch-feedback rounded-lg"
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground tap-target touch-feedback rounded-lg"
                     aria-label="Duplicate line"
                   >
                     <Copy className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleRemoveLine(index)}
-                    className="p-2 text-destructive tap-target touch-feedback rounded-lg"
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-destructive tap-target touch-feedback rounded-lg"
                     aria-label="Remove line"
                   >
                     <Trash2 className="h-4 w-4" />

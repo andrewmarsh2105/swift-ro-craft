@@ -168,32 +168,38 @@ export default function AddROPage() {
             {form.lines.map((line, idx) => (
               <div
                 key={line.id}
-                className="flex items-center gap-2 rounded-md border p-2 min-h-[44px]"
+                className="rounded-lg border bg-card p-3 space-y-2"
               >
+                {/* Row 1: Full-width description */}
                 <Input
-                  className="flex-1"
+                  className="w-full"
                   value={line.description}
                   onChange={(e) => form.updateLine(idx, { description: e.target.value })}
                   placeholder="Work performed..."
                 />
-                <Input
-                  className="w-20 text-right"
-                  value={line.hoursPaid || ""}
-                  onChange={(e) =>
-                    form.updateLine(idx, { hoursPaid: Number(e.target.value || 0) })
-                  }
-                  type="number"
-                  step="0.1"
-                  min="0"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 text-destructive hover:text-destructive"
-                  onClick={() => form.removeLine(idx)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {/* Row 2: Hours + delete */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="w-24 text-right"
+                    value={line.hoursPaid || ""}
+                    onChange={(e) =>
+                      form.updateLine(idx, { hoursPaid: Number(e.target.value || 0) })
+                    }
+                    type="number"
+                    step="0.1"
+                    min="0"
+                  />
+                  <span className="text-xs text-muted-foreground">hrs</span>
+                  <div className="flex-1" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 text-destructive hover:text-destructive flex-shrink-0"
+                    onClick={() => form.removeLine(idx)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
