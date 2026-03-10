@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X, Copy, Check } from 'lucide-react';
+import { X, Copy, Check, CopyPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -16,9 +16,10 @@ interface LineTextModalProps {
   lineNo: number;
   description: string;
   onEdit?: () => void;
+  onDuplicate?: () => void;
 }
 
-export function LineTextModal({ open, onClose, lineNo, description, onEdit }: LineTextModalProps) {
+export function LineTextModal({ open, onClose, lineNo, description, onEdit, onDuplicate }: LineTextModalProps) {
   const isMobile = useIsMobile();
   const [copied, setCopied] = useState(false);
 
@@ -57,7 +58,7 @@ export function LineTextModal({ open, onClose, lineNo, description, onEdit }: Li
       <div className="flex gap-2 pt-1">
         <button
           onClick={handleCopy}
-          className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg border border-border bg-muted/50 hover:bg-muted text-sm font-medium transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 h-11 rounded-lg border border-border bg-muted/50 hover:bg-muted text-sm font-medium transition-colors"
         >
           {copied ? (
             <>
@@ -67,15 +68,25 @@ export function LineTextModal({ open, onClose, lineNo, description, onEdit }: Li
           ) : (
             <>
               <Copy className="h-4 w-4" />
-              Copy text
+              Copy
             </>
           )}
         </button>
 
+        {onDuplicate && (
+          <button
+            onClick={() => { onDuplicate(); onClose(); }}
+            className="flex-1 flex items-center justify-center gap-2 h-11 rounded-lg border border-border bg-muted/50 hover:bg-muted text-sm font-medium transition-colors"
+          >
+            <CopyPlus className="h-4 w-4" />
+            Duplicate
+          </button>
+        )}
+
         {onEdit && (
           <button
             onClick={handleEdit}
-            className="flex-1 flex items-center justify-center h-10 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="flex-1 flex items-center justify-center h-11 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             Edit
           </button>
@@ -84,8 +95,8 @@ export function LineTextModal({ open, onClose, lineNo, description, onEdit }: Li
         <button
           onClick={onClose}
           className={cn(
-            'flex items-center justify-center h-10 rounded-lg border border-border hover:bg-muted text-sm font-medium transition-colors',
-            onEdit ? 'px-4' : 'flex-1'
+            'flex items-center justify-center h-11 rounded-lg border border-border hover:bg-muted text-sm font-medium transition-colors',
+            (onEdit || onDuplicate) ? 'px-4' : 'flex-1'
           )}
         >
           Close

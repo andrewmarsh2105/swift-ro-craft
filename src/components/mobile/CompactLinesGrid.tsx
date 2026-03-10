@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Copy, Trash2, Maximize2 } from 'lucide-react';
+import { Trash2, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -52,7 +52,7 @@ export function CompactLinesGrid({
   showVehicleChips = true,
 }: CompactLinesGridProps) {
   const topRef = useRef<HTMLDivElement>(null);
-  const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string } | null>(null);
+  const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string; index: number } | null>(null);
 
   const handleDuplicateLine = (index: number) => {
     triggerHaptic();
@@ -152,7 +152,7 @@ export function CompactLinesGrid({
                   />
                   {/* Expand button */}
                   <button
-                    onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
+                    onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id, index })}
                     className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
                     title="View full description"
                     aria-label="View full description"
@@ -160,20 +160,12 @@ export function CompactLinesGrid({
                     <Maximize2 className="h-4 w-4" />
                   </button>
                   {!readOnly && (
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <button
-                        onClick={() => handleDuplicateLine(index)}
-                        className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleRemoveLine(index)}
-                        className="h-11 w-11 text-destructive/60 hover:text-destructive rounded flex items-center justify-center active:scale-90 transition-transform"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleRemoveLine(index)}
+                      className="h-11 w-11 text-destructive/60 hover:text-destructive rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
 
@@ -267,6 +259,7 @@ export function CompactLinesGrid({
         onClose={() => setExpandedLine(null)}
         lineNo={expandedLine?.lineNo ?? 0}
         description={expandedLine?.description ?? ''}
+        onDuplicate={!readOnly && expandedLine ? () => handleDuplicateLine(expandedLine.index) : undefined}
       />
     </div>
   );

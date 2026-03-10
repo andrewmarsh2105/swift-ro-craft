@@ -315,7 +315,7 @@ export default function AddRO() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-x-hidden">
       {/* Header */}
       <PageHeader
         title={editingRO ? `Edit RO #${editingRO.roNumber}` : 'New Repair Order'}
@@ -366,7 +366,7 @@ export default function AddRO() {
           <button
             onClick={() => setShowAdvisorList(true)}
             className={cn(
-              'flex-1 h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 min-w-0 truncate',
+              'flex-1 h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 min-w-0 overflow-hidden',
               advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
             )}
           >
@@ -379,14 +379,15 @@ export default function AddRO() {
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-[120px] h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
             {date !== localDateStr() && (
               <button
                 onClick={() => setDate(localDateStr())}
-                className="h-11 px-2 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20 flex-shrink-0 active:scale-95 transition-all"
+                className="h-11 w-11 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20 flex-shrink-0 active:scale-95 transition-all flex items-center justify-center"
+                title="Reset to today"
               >
-                Today
+                ↺
               </button>
             )}
           </div>
