@@ -442,9 +442,9 @@ export function SummaryTab() {
 
             {/* ── A) Top Controls ────────────────────── */}
             <div className="px-4 pt-3">
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
                 <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
-                  <SelectTrigger className="w-[140px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0">
+                  <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0 flex-shrink-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -456,7 +456,28 @@ export function SummaryTab() {
                     <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="font-semibold text-sm text-muted-foreground truncate">{viewModeLabel}</span>
+                <span className="font-semibold text-sm text-muted-foreground truncate flex-1">{viewModeLabel}</span>
+                {isPro && (
+                  periodAlreadyClosed ? (
+                    <button
+                      onClick={() => existingCloseout && setDetailCloseout(existingCloseout)}
+                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border hover:text-foreground transition-colors"
+                    >
+                      <Lock className="h-3 w-3" />
+                      Closed
+                    </button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant={isNearEnd ? 'default' : 'outline'}
+                      onClick={handleCloseOutClick}
+                      className="flex-shrink-0 h-7 px-2.5 text-xs cursor-pointer"
+                    >
+                      <Lock className="h-3 w-3" />
+                      {closeoutLabel}
+                    </Button>
+                  )
+                )}
               </div>
             </div>
 
@@ -688,36 +709,6 @@ export function SummaryTab() {
                 </AccordionItem>
               </Accordion>
             </div>
-
-            {/* ── Close Out Button (Pro only) ──── */}
-            {isPro && (
-            <div className="px-4">
-              {periodAlreadyClosed ? (
-                <div className="flex items-center gap-2 py-2.5 px-3 bg-muted/50 rounded-lg border border-border">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">This period is closed</span>
-                  <button
-                    onClick={() => existingCloseout && setDetailCloseout(existingCloseout)}
-                    className="ml-auto text-xs font-semibold text-primary"
-                  >View</button>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Button
-                    variant={isNearEnd ? 'default' : 'outline'}
-                    onClick={handleCloseOutClick}
-                    className="w-full h-11 cursor-pointer"
-                  >
-                    <Lock className="h-4 w-4" />
-                    {closeoutLabel}
-                  </Button>
-                  {isNearEnd && (
-                    <p className="text-[11px] text-muted-foreground text-center">period ending</p>
-                  )}
-                </div>
-              )}
-            </div>
-            )}
 
             {/* ── Closed Periods List ─────────────────── */}
             {isPro && (
