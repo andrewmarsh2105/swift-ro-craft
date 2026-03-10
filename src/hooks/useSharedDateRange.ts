@@ -39,6 +39,9 @@ export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: st
   const [customStart, setCustomStart] = useState<string | undefined>(saved?.customStart);
   const [customEnd, setCustomEnd] = useState<string | undefined>(saved?.customEnd);
   const [prevFilter, setPrevFilter] = useState<DateFilterKey>(saved?.dateFilter ?? initial);
+  // Stash custom dates so we can restore them if the user cancels a re-edit
+  const [stashedCustomStart, setStashedCustomStart] = useState<string | undefined>(saved?.customStart);
+  const [stashedCustomEnd, setStashedCustomEnd] = useState<string | undefined>(saved?.customEnd);
 
   // Persist changes
   useEffect(() => {
@@ -68,9 +71,11 @@ export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: st
 
   const requestCustomDialog = useCallback(() => {
     if (ownerId) activeCustomOwner = ownerId;
-    // If we already have custom dates, keep the filter as custom but force dialog open
     if (dateFilter === "custom" && customStart && customEnd) {
-      // Temporarily clear to trigger showCustomDialog
+      // Re-editing: stash current values so cancel can restore them
+      setStashedCustomStart(customStart);
+      setStashedCustomEnd(customEnd);
+      setPrevFilter("custom");
       setCustomStart(undefined);
       setCustomEnd(undefined);
     } else {
@@ -82,16 +87,24 @@ export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: st
   const applyCustom = useCallback((start: string, end: string) => {
     setCustomStart(start);
     setCustomEnd(end);
+    setStashedCustomStart(start);
+    setStashedCustomEnd(end);
     setDateFilter("custom");
     activeCustomOwner = null;
   }, []);
 
   const cancelCustom = useCallback(() => {
-    if (!customStart || !customEnd) {
-      setDateFilter(prevFilter);
+    // If we were re-editing and have stashed values, restore them
+    if (stashedCustomStart && stashedCustomEnd) {
+      setCustomStart(stashedCustomStart);
+      setCustomEnd(stashedCustomEnd);
+      setDateFilter("custom");
+    } else {
+      // No valid custom range exists — fall back to previous filter
+      setDateFilter(prevFilter !== "custom" ? prevFilter : "week");
     }
     activeCustomOwner = null;
-  }, [customStart, customEnd, prevFilter]);
+  }, [stashedCustomStart, stashedCustomEnd, prevFilter]);
 
   const setFilter = useCallback((f: DateFilterKey) => {
     if (f === "custom") {
