@@ -231,7 +231,7 @@ export function useROStore() {
       return;
     }
 
-    // Stale-edit detection: check server's updated_at before saving
+    // Stale-edit detection: compare timestamps with tolerance
     const localRO = ros.find(r => r.id === id);
     if (localRO) {
       try {
@@ -240,9 +240,22 @@ export function useROStore() {
           .select('updated_at')
           .eq('id', id)
           .single();
-        if (serverRow && serverRow.updated_at !== localRO.updatedAt) {
-          toast.error('This RO was modified elsewhere. Please refresh before editing.');
-          return;
+        if (serverRow) {
+          const serverMs = new Date(serverRow.updated_at).getTime();
+          const localMs = new Date(localRO.updatedAt).getTime();
+          const diffMs = Math.abs(serverMs - localMs);
+          pushDebug({ action: 'stale-check', roId: id, error: `local=${localRO.updatedAt} server=${serverRow.updated_at} diff=${diffMs}ms` });
+          if (diffMs > 1500) {
+            // Truly stale — auto-refresh this RO instead of blocking
+            const { data: freshRow } = await supabase.from('ros').select('*').eq('id', id).single();
+            const { data: freshLines } = await supabase.from('ro_lines').select('*').eq('ro_id', id).order('line_no', { ascending: true });
+            if (freshRow) {
+              const refreshed = dbToRepairOrder(freshRow as RoRow, (freshLines || []) as RoLineRow[]);
+              setROs(prev => prev.map(r => r.id === id ? refreshed : r));
+            }
+            toast.warning('This RO was updated elsewhere — reloaded latest. Please re-apply your changes.');
+            return;
+          }
         }
       } catch (err) {
         // If we can't check, fall back to offline queue on network error
