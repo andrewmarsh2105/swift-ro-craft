@@ -239,10 +239,17 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             <input
               type="text"
               value={roNumber}
-              onChange={e => setRoNumber(e.target.value)}
+              onChange={e => { setRoNumber(e.target.value); checkDuplicateRO(e.target.value); }}
+              onBlur={() => checkDuplicateRO(roNumber)}
               placeholder="RO #"
-              className="w-24 h-8 px-2 bg-muted rounded-md border border-input text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+              className={cn("w-24 h-8 px-2 bg-muted rounded-md border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring", duplicateWarning ? "border-amber-500" : "border-input")}
             />
+            {duplicateWarning && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Duplicate RO #
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
