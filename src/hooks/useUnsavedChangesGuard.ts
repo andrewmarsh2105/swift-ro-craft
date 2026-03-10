@@ -2,24 +2,15 @@
  * src/hooks/useUnsavedChangesGuard.ts
  *
  * Blocks navigation when there are unsaved changes (NO autosave).
+ * Uses beforeunload only — avoids useBlocker which requires data router API.
  */
 import { useEffect } from "react";
-import { useBlocker } from "react-router-dom";
 
-export function useUnsavedChangesGuard(when: boolean, message?: string) {
-  const blocker = useBlocker(when);
-
+export function useUnsavedChangesGuard(when: boolean, _message?: string) {
   useEffect(() => {
-    if (blocker.state !== "blocked") return;
+    if (!when) return;
 
-    const ok = window.confirm(message ?? "Discard unsaved changes?");
-    if (ok) blocker.proceed();
-    else blocker.reset();
-  }, [blocker, message]);
-
-  useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
-      if (!when) return;
       e.preventDefault();
       e.returnValue = "";
     };
