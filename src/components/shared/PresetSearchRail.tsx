@@ -122,7 +122,8 @@ export function PresetSearchRail({
                   <div className="flex-shrink-0 w-px bg-border mx-1 self-stretch" />
                 )}
                 <button
-                  onClick={() => onSelect(preset)}
+                  onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                  onClick={(e) => { const delta = Math.abs(e.clientX - (touchStartX.current ?? e.clientX)); if (delta > 8) return; onSelect(preset); }}
                   className={cn(
                     'flex-shrink-0 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all duration-150',
                     isMobile
