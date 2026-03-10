@@ -130,6 +130,31 @@ export function useFlags() {
     return flags.filter(f => f.roLineId === lineId);
   }, [flags]);
 
+  /** Bulk-clear all active flags for a set of RO IDs (used on period close-out). No individual toasts. */
+  const clearFlagsForPeriod = useCallback(async (roIds: string[]) => {
+    if (!user || roIds.length === 0) return;
+    const toRemove = flags.filter(f => roIds.includes(f.roId));
+    if (!toRemove.length) return;
+    const ids = toRemove.map(f => f.id);
+
+    // Optimistically remove from local state immediately
+    setFlags(prev => prev.filter(f => !ids.includes(f.id)));
+
+    if (!isOnline) {
+      await Promise.all(ids.map(id => queueAction('clearFlag', { flagId: id })));
+      return;
+    }
+
+    try {
+      await supabase
+        .from('ro_flags')
+        .update({ cleared_at: new Date().toISOString() })
+        .in('id', ids);
+    } catch (err: any) {
+      console.error('Failed to clear period flags', err);
+    }
+  }, [user, isOnline, queueAction, flags]);
+
   const activeCount = flags.length;
 
   return {
@@ -137,6 +162,7 @@ export function useFlags() {
     loading,
     addFlag,
     clearFlag,
+    clearFlagsForPeriod,
     getFlagsForRO,
     getFlagsForLine,
     activeCount,
