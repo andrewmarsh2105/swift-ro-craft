@@ -166,7 +166,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     Array.isArray(userSettings.payPeriodEndDates) &&
     userSettings.payPeriodEndDates.length > 0;
 
-  const [searchQuery, setSearchQuery] = useLocalStorageState('ui.mobile.roTab.search.v1', '');
+  const [searchQuery, setSearchQuery] = useState('');
   const deferredSearch = useDeferredValue(searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
