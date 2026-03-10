@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useCloseouts } from '@/hooks/useCloseouts';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { ClosedPeriodsList } from '@/components/reports/ClosedPeriodsList';
 import { CloseoutDetailView } from '@/components/reports/CloseoutDetailView';
 import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
@@ -294,7 +295,8 @@ export function SummaryTab() {
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
 
   // Closeout state
   const { closeouts, closeOutPeriod, isRangeClosed, getCloseoutForRange } = useCloseouts();
@@ -718,9 +720,16 @@ export function SummaryTab() {
                     <Copy className="h-4 w-4 mr-2" />
                     Copy summary
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleExportCSV}>
+                  <DropdownMenuItem onClick={() => {
+                    if (!isPro) {
+                      setShowUpgrade(true);
+                      return;
+                    }
+                    handleExportCSV();
+                  }}>
                     <Download className="h-4 w-4 mr-2" />
                     Lines CSV (paid only)
+                    {!isPro && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -796,6 +805,8 @@ export function SummaryTab() {
           closeout={detailCloseout}
         />
       )}
+
+      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </div>
   );
 }
