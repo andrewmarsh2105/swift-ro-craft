@@ -269,7 +269,8 @@
 
   /* Tab bar */
   .tab-bar-pwa {
-    @apply fixed inset-x-0 bottom-0 z-50 bg-card/96 backdrop-blur-xl border-t border-border/50;
+    @apply fixed inset-x-0 bottom-0 z-50 backdrop-blur-xl border-t border-border/50;
+    background-color: hsl(var(--card) / 0.96);
     min-height: calc(56px + env(safe-area-inset-bottom, 0px));
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
