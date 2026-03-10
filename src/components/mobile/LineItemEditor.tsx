@@ -190,7 +190,7 @@ export function LineItemEditor({
             >
               <div className="bg-secondary rounded-xl p-4 space-y-3">
                 {/* Line Header */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-h-[44px]">
                   <span className="text-sm font-semibold text-muted-foreground">
                     Line {line.lineNo}
                   </span>
