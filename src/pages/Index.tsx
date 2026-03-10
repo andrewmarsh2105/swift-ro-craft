@@ -1,10 +1,11 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Plus } from "lucide-react";
 
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
+import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
 import { ROsTab } from "@/components/tabs/ROsTab";
 import { DesktopWorkspace } from "@/components/desktop/DesktopWorkspace";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -31,6 +32,7 @@ function TabFallback() {
 
 function MobileApp() {
   const navigate = useNavigate();
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "settings">(
     "ui.mobile.activeTab.v1",
@@ -46,7 +48,11 @@ function MobileApp() {
   };
 
   const handleAddRO = () => {
-    navigate("/add-ro");
+    setShowQuickAdd(true);
+  };
+
+  const handleScanPhoto = () => {
+    // placeholder for scan flow
   };
 
   return (
@@ -66,6 +72,12 @@ function MobileApp() {
       {activeTab === "ros" && roViewMode !== "spreadsheet" && (
         <FloatingActionButton onClick={handleAddRO} icon={<Plus className="h-6 w-6" />} label="Quick Add" />
       )}
+
+      <QuickAddSheet
+        isOpen={showQuickAdd}
+        onClose={() => setShowQuickAdd(false)}
+        onScanPhoto={handleScanPhoto}
+      />
 
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>

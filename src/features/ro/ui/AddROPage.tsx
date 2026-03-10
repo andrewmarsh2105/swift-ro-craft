@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Plus, ClipboardPaste, Trash2 } from "lucide-react";
 
 import { useROStore } from "@/hooks/useROStore";
 import { useAddROFormState } from "@/features/ro/hooks/useAddROFormState";
@@ -11,6 +11,16 @@ import { RoCapSheet } from "@/features/ro/ui/components/RoCapSheet";
 import { PresetButton } from "@/features/ro/ui/components/PresetButton";
 import { buildRoPayload } from "@/features/ro/domain/buildRoPayload";
 import { getLineTotals } from "@/features/ro/domain/lines";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import type { LaborType } from "@/types/ro";
 import { laborTypeOptions } from "@/features/ro/domain/constants";
 
@@ -61,14 +71,8 @@ export default function AddROPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AddROHeader
-        roNumber={form.roNumber}
-        setRoNumber={(v) => { form.setRoNumber(v); checkDuplicateRO(v); }}
-        date={form.date}
-        setDate={form.setDate}
-        onSave={onSave}
-        onBack={() => navigate(-1)}
-      />
+      <AddROHeader onSave={onSave} onBack={() => navigate(-1)} />
+
       {duplicateWarning && (
         <div className="max-w-3xl mx-auto px-4 pt-2">
           <div className="flex items-center gap-2 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
@@ -79,6 +83,29 @@ export default function AddROPage() {
       )}
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {/* RO # and Date fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="ro-number">RO #</Label>
+            <Input
+              id="ro-number"
+              placeholder="RO #"
+              value={form.roNumber}
+              onChange={(e) => form.setRoNumber(e.target.value)}
+              onBlur={() => checkDuplicateRO(form.roNumber)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ro-date">Date</Label>
+            <Input
+              id="ro-date"
+              type="date"
+              value={form.date}
+              onChange={(e) => form.setDate(e.target.value)}
+            />
+          </div>
+        </div>
+
         <AdvisorPickerSheet
           advisor={form.advisor}
           setAdvisor={form.setAdvisor}
@@ -104,17 +131,18 @@ export default function AddROPage() {
                 Used as default for new lines
               </p>
             </div>
-            <select
-              className="rounded-md border bg-background px-3 py-2 text-sm"
-              value={form.laborType}
-              onChange={(e) => onLaborTypeChange(e.target.value)}
-            >
-              {laborTypeOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <Select value={form.laborType} onValueChange={onLaborTypeChange}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {laborTypeOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -129,57 +157,56 @@ export default function AddROPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="sticky top-0 z-10 flex items-center justify-between bg-background py-2">
             <h3 className="text-sm font-semibold text-foreground">Lines</h3>
-            <p className="text-xs text-muted-foreground">
-              Total paid hours: {totals.paidHours}
-            </p>
+            <span className="hours-pill">
+              {totals.paidHours.toFixed(1)}h total
+            </span>
           </div>
 
           <div className="space-y-2">
             {form.lines.map((line, idx) => (
-              <div key={line.id} className="flex items-center gap-2 rounded-md border p-2">
-                <div className="flex flex-1 items-center gap-2">
-                  <input
-                    className="flex-1 rounded border bg-background px-2 py-1 text-sm"
-                    value={line.description}
-                    onChange={(e) => form.updateLine(idx, { description: e.target.value })}
-                    placeholder="Work performed..."
-                  />
-                  <input
-                    className="w-20 rounded border bg-background px-2 py-1 text-sm text-right"
-                    value={line.hoursPaid || ""}
-                    onChange={(e) =>
-                      form.updateLine(idx, { hoursPaid: Number(e.target.value || 0) })
-                    }
-                    type="number"
-                    step="0.1"
-                    min="0"
-                  />
-                  <button
-                    className="text-xs text-destructive hover:underline"
-                    onClick={() => form.removeLine(idx)}
-                  >
-                    Remove
-                  </button>
-                </div>
+              <div
+                key={line.id}
+                className="flex items-center gap-2 rounded-md border p-2 min-h-[44px]"
+              >
+                <Input
+                  className="flex-1"
+                  value={line.description}
+                  onChange={(e) => form.updateLine(idx, { description: e.target.value })}
+                  placeholder="Work performed..."
+                />
+                <Input
+                  className="w-20 text-right"
+                  value={line.hoursPaid || ""}
+                  onChange={(e) =>
+                    form.updateLine(idx, { hoursPaid: Number(e.target.value || 0) })
+                  }
+                  type="number"
+                  step="0.1"
+                  min="0"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-destructive hover:text-destructive"
+                  onClick={() => form.removeLine(idx)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>
 
           <div className="flex gap-2">
-            <button
-              className="rounded-md border bg-background px-4 py-2 text-sm hover:bg-accent"
-              onClick={() => form.addBlankLine()}
-            >
+            <Button variant="outline" onClick={() => form.addBlankLine()}>
+              <Plus className="h-4 w-4" />
               Add line
-            </button>
-            <button
-              className="rounded-md border bg-background px-4 py-2 text-sm hover:bg-accent"
-              onClick={() => form.importFromClipboard()}
-            >
+            </Button>
+            <Button variant="ghost" onClick={() => form.importFromClipboard()}>
+              <ClipboardPaste className="h-4 w-4" />
               Paste lines
-            </button>
+            </Button>
           </div>
         </div>
       </div>
