@@ -18,6 +18,7 @@ export function PresetSearchRail({
 }: PresetSearchRailProps) {
   const [search, setSearch] = useState('');
   const railRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
