@@ -197,7 +197,7 @@ export function LineItemEditor({
                   <div className="flex-1" />
                   <button
                     onClick={() => handleDuplicateLine(index)}
-                    className="p-2 text-muted-foreground hover:text-foreground tap-target touch-feedback rounded-lg"
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground tap-target touch-feedback rounded-lg"
                     aria-label="Duplicate line"
                   >
                     <Copy className="h-4 w-4" />
