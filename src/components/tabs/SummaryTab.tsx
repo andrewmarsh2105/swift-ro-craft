@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useCloseouts } from '@/hooks/useCloseouts';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { ClosedPeriodsList } from '@/components/reports/ClosedPeriodsList';
 import { CloseoutDetailView } from '@/components/reports/CloseoutDetailView';
 import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
