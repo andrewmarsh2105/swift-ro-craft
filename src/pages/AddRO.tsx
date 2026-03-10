@@ -393,34 +393,6 @@ export default function AddRO() {
           </div>
         </div>
 
-        {/* Quick advisor chips */}
-        {settings.advisors.length > 0 && (
-          <div className="px-3 pb-1.5 flex flex-wrap gap-1.5">
-            {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5).map(adv => (
-              <button
-                key={adv.id}
-                onClick={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
-                className={cn(
-                  'h-7 px-2.5 rounded-md text-xs font-medium border transition-colors active:scale-95',
-                  advisor === adv.name
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted text-muted-foreground border-border'
-                )}
-              >
-                {adv.name.split(' ')[0]}
-              </button>
-            ))}
-            {settings.advisors.length > 5 && (
-              <button
-                onClick={() => setShowAdvisorList(true)}
-                className="h-7 px-2.5 rounded-md text-xs font-medium border border-border bg-muted text-muted-foreground transition-colors active:scale-95"
-              >
-                More…
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Details collapsible */}
         <DetailsCollapsible
           vehicle={vehicle}
@@ -569,6 +541,24 @@ export default function AddRO() {
             onChange={e => setAdvisorSearch(e.target.value)}
             className="w-full h-11 px-3 bg-secondary rounded-md border border-input text-base focus:outline-none focus:ring-2 focus:ring-ring"
           />
+          {settings.advisors.length > 0 && !advisorSearch && (
+            <div className="flex flex-wrap gap-1.5 pb-1">
+              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).map(adv => (
+                <button
+                  key={adv.id}
+                  onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
+                  className={cn(
+                    'h-8 px-3 rounded-md text-xs font-medium border transition-colors active:scale-95',
+                    advisor === adv.name
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted text-muted-foreground border-border'
+                  )}
+                >
+                  {adv.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+          )}
           {filteredAdvisors.map(adv => (
             <button
               key={adv.id}

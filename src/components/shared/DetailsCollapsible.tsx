@@ -197,13 +197,6 @@ export function DetailsCollapsible({
                   placeholder="Model"
                   className="w-24 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <input
-                  type="text"
-                  value={vehicle.trim || ''}
-                  onChange={(e) => onVehicleChange({ ...vehicle, trim: e.target.value })}
-                  placeholder="Trim"
-                  className="w-20 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
                 {(vehicle.year || vehicle.make || vehicle.model) && (
                   <button
                     onClick={handleClearVehicle}
@@ -314,14 +307,7 @@ export function DetailsCollapsible({
                 />
               </div>
               {(vehicle.year || vehicle.make || vehicle.model) && (
-                <div className="flex items-center gap-2 pl-16">
-                  <input
-                    type="text"
-                    value={vehicle.trim || ''}
-                    onChange={(e) => onVehicleChange({ ...vehicle, trim: e.target.value })}
-                    placeholder="Trim (optional)"
-                    className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                <div className="flex justify-end pl-16">
                   <button
                     onClick={handleClearVehicle}
                     className="px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded transition-colors"
