@@ -18,6 +18,7 @@ import { ErrorBoundary } from "@/components/states/ErrorBoundary";
 // Lazy-loaded heavy routes
 const AddRO = lazy(() => import("./pages/AddRO"));
 const FlagInboxPage = lazy(() => import("./pages/FlagInboxPage"));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -106,6 +107,7 @@ const App = () => (
               <Suspense fallback={<LazyFallback />}>
                 <Routes>
                   <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/" element={<HomeRoute />} />
                   <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
                   <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
