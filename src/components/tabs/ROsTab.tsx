@@ -240,7 +240,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     });
 
     return sorted;
-  }, [ros, searchQuery, filters, hasCustomPayPeriod, userSettings, rangeBounds]);
+  }, [ros, deferredSearch, filters, hasCustomPayPeriod, userSettings, rangeBounds]);
 
   useEffect(() => {
     setVisibleCount(50);

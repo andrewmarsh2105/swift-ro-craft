@@ -718,9 +718,16 @@ export function SummaryTab() {
                     <Copy className="h-4 w-4 mr-2" />
                     Copy summary
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleExportCSV}>
+                  <DropdownMenuItem onClick={() => {
+                    if (!isPro) {
+                      setShowUpgrade(true);
+                      return;
+                    }
+                    handleExportCSV();
+                  }}>
                     <Download className="h-4 w-4 mr-2" />
                     Lines CSV (paid only)
+                    {!isPro && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
