@@ -155,7 +155,7 @@ export function toRosUpdate(updates: Partial<RepairOrder>): RoUpdate {
   if (updates.mileage !== undefined) payload.mileage = updates.mileage ?? null;
   if (updates.notes !== undefined) payload.notes = updates.notes ?? null;
   if (updates.paidDate !== undefined)
-    payload.paid_date = updates.paidDate ?? null;
+    payload.paid_date = updates.paidDate || null;
 
   if (updates.vehicle !== undefined) {
     payload.vehicle_year = updates.vehicle?.year ?? null;
