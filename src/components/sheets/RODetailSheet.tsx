@@ -172,7 +172,9 @@ export function RODetailSheet({
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5">
                       <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-base font-bold tracking-tight">RO #{ro.roNumber}</span>
+                      <span className="text-base font-bold tracking-tight">
+                        {ro.roNumber ? `RO #${ro.roNumber}` : 'RO (no number)'}
+                      </span>
                       <button
                         className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         onClick={() => copyToClipboard("RO #", ro.roNumber)}
@@ -258,7 +260,7 @@ export function RODetailSheet({
                   </div>
                   <div>
                     <p className="text-[11px] text-muted-foreground">Labor type</p>
-                    <p className="font-medium">{ro.laborType.replace("-", " ")}</p>
+                    <p className="font-medium capitalize">{ro.laborType === 'customer-pay' ? 'Customer Pay' : ro.laborType}</p>
                   </div>
                 </div>
               </SectionCard>
@@ -383,7 +385,7 @@ export function RODetailSheet({
       </BottomSheet>
 
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-md">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Delete RO #{ro?.roNumber}?</DialogTitle>
             <DialogDescription>
@@ -402,7 +404,7 @@ export function RODetailSheet({
       </Dialog>
 
       <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-md">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Duplicate RO #{ro?.roNumber}</DialogTitle>
             <DialogDescription>Enter a new RO number for the duplicate.</DialogDescription>

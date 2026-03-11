@@ -48,7 +48,6 @@ export function trackSignupCompleted(userId: string) {
     user_id: userId,
   });
   markSent('signup_completed', userId);
-  console.log('[Analytics] signup_completed', userId);
 }
 
 /**
@@ -62,7 +61,6 @@ export function trackCheckoutStarted(userId: string, plan: string) {
     plan,
   });
   markSent('checkout_started', userId);
-  console.log('[Analytics] checkout_started', userId, plan);
 }
 
 /**
@@ -75,5 +73,4 @@ export function trackPurchaseCompleted(userId: string) {
     user_id: userId,
   });
   markSent('purchase_completed', userId);
-  console.log('[Analytics] purchase_completed', userId);
 }

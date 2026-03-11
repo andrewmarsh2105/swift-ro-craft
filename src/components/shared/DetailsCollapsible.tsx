@@ -178,7 +178,11 @@ export function DetailsCollapsible({
                   type="text"
                   inputMode="numeric"
                   value={vehicle.year || ''}
-                  onChange={(e) => onVehicleChange({ ...vehicle, year: parseInt(e.target.value) || undefined })}
+                  onChange={(e) => {
+                    const y = parseInt(e.target.value);
+                    const maxYear = new Date().getFullYear() + 2;
+                    onVehicleChange({ ...vehicle, year: (!y || y < 1900 || y > maxYear) ? undefined : y });
+                  }}
                   placeholder="Year"
                   maxLength={4}
                   className="w-16 h-8 px-2 bg-muted rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
@@ -224,7 +228,7 @@ export function DetailsCollapsible({
                   type="text"
                   inputMode="numeric"
                   value={mileage}
-                  onChange={(e) => onMileageChange(e.target.value)}
+                  onChange={(e) => onMileageChange(e.target.value.replace(/\D/g, ''))}
                   placeholder="Mileage (optional)"
                   className="w-28 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -289,7 +293,11 @@ export function DetailsCollapsible({
                   type="text"
                   inputMode="numeric"
                   value={vehicle.year || ''}
-                  onChange={(e) => onVehicleChange({ ...vehicle, year: parseInt(e.target.value) || undefined })}
+                  onChange={(e) => {
+                    const y = parseInt(e.target.value);
+                    const maxYear = new Date().getFullYear() + 2;
+                    onVehicleChange({ ...vehicle, year: (!y || y < 1900 || y > maxYear) ? undefined : y });
+                  }}
                   placeholder="Year"
                   maxLength={4}
                   className="w-14 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
@@ -336,7 +344,7 @@ export function DetailsCollapsible({
                   type="text"
                   inputMode="numeric"
                   value={mileage}
-                  onChange={(e) => onMileageChange(e.target.value)}
+                  onChange={(e) => onMileageChange(e.target.value.replace(/\D/g, ''))}
                   placeholder="Optional"
                   className="w-24 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />

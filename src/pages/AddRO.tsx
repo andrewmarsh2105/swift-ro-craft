@@ -361,8 +361,9 @@ export default function AddRO() {
               type="text"
               inputMode="numeric"
               value={roNumber}
-              onChange={e => setRoNumber(e.target.value)}
+              onChange={e => setRoNumber(e.target.value.slice(0, 20))}
               placeholder="RO #"
+              maxLength={20}
               className="w-20 h-11 px-2 bg-muted rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

@@ -112,7 +112,7 @@ const ROCard = memo(function ROCard({
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
           {/* Row 1: RO# · hours · status badges */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px] font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber}</span>
+            <span className="text-[15px] font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
             <span className="hours-pill flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
             <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
             <div className="flex-shrink-0">
