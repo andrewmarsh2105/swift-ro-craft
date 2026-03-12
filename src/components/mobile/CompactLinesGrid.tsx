@@ -16,6 +16,7 @@ interface CompactLinesGridProps {
   highlightedIds?: string[];
   roVehicle?: VehicleInfo;
   showVehicleChips?: boolean;
+  onSaveAsPreset?: (line: ROLine) => void;
 }
 
 function createEmptyLine(lineNo: number): ROLine {
@@ -42,35 +43,18 @@ function triggerHaptic() {
   }
 }
 
-export function CompactLinesGrid({ 
-  lines, 
-  onLinesChange, 
+export function CompactLinesGrid({
+  lines,
+  onLinesChange,
   presets = [],
   readOnly = false,
   highlightedIds = [],
   roVehicle,
   showVehicleChips = true,
+  onSaveAsPreset,
 }: CompactLinesGridProps) {
   const topRef = useRef<HTMLDivElement>(null);
   const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string; index: number } | null>(null);
-
-  const handleDuplicateLine = (index: number) => {
-    triggerHaptic();
-    const lineToDuplicate = lines[index];
-    const newLine: ROLine = {
-      ...lineToDuplicate,
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      lineNo: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const updatedLines = [newLine, ...lines].map((line, i) => ({
-      ...line,
-      lineNo: i + 1,
-    }));
-    onLinesChange(updatedLines);
-    toast.success(`Duplicated: ${lineToDuplicate.description || 'Line'}`);
-  };
 
   const handleRemoveLine = (index: number) => {
     triggerHaptic();
@@ -259,7 +243,9 @@ export function CompactLinesGrid({
         onClose={() => setExpandedLine(null)}
         lineNo={expandedLine?.lineNo ?? 0}
         description={expandedLine?.description ?? ''}
-        onDuplicate={!readOnly && expandedLine ? () => handleDuplicateLine(expandedLine.index) : undefined}
+        onSaveAsPreset={!readOnly && onSaveAsPreset && expandedLine
+          ? () => onSaveAsPreset(lines[expandedLine.index])
+          : undefined}
       />
     </div>
   );

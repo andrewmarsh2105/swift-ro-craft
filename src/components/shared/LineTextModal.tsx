@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X, Copy, Check, CopyPlus } from 'lucide-react';
+import { X, Copy, Check, BookmarkPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -16,10 +16,10 @@ interface LineTextModalProps {
   lineNo: number;
   description: string;
   onEdit?: () => void;
-  onDuplicate?: () => void;
+  onSaveAsPreset?: () => void;
 }
 
-export function LineTextModal({ open, onClose, lineNo, description, onEdit, onDuplicate }: LineTextModalProps) {
+export function LineTextModal({ open, onClose, lineNo, description, onEdit, onSaveAsPreset }: LineTextModalProps) {
   const isMobile = useIsMobile();
   const [copied, setCopied] = useState(false);
 
@@ -73,13 +73,13 @@ export function LineTextModal({ open, onClose, lineNo, description, onEdit, onDu
           )}
         </button>
 
-        {onDuplicate && (
+        {onSaveAsPreset && (
           <button
-            onClick={() => { onDuplicate(); onClose(); }}
+            onClick={() => { onSaveAsPreset(); onClose(); }}
             className="flex-1 flex items-center justify-center gap-2 h-11 rounded-lg border border-border bg-muted/50 hover:bg-muted text-sm font-medium transition-colors"
           >
-            <CopyPlus className="h-4 w-4" />
-            Duplicate
+            <BookmarkPlus className="h-4 w-4" />
+            Save Preset
           </button>
         )}
 
@@ -96,7 +96,7 @@ export function LineTextModal({ open, onClose, lineNo, description, onEdit, onDu
           onClick={onClose}
           className={cn(
             'flex items-center justify-center h-11 rounded-lg border border-border hover:bg-muted text-sm font-medium transition-colors',
-            (onEdit || onDuplicate) ? 'px-4' : 'flex-1'
+            (onEdit || onSaveAsPreset) ? 'px-4' : 'flex-1'
           )}
         >
           Close

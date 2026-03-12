@@ -31,7 +31,7 @@ export default function AddRO() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { settings, addRO, updateRO, updateAdvisors, ros, loadingROs } = useRO();
+  const { settings, addRO, updateRO, updateAdvisors, updatePresets, ros, loadingROs } = useRO();
   const { userSettings } = useFlagContext();
   const { isPro } = useSubscription();
 
@@ -206,6 +206,30 @@ export default function AddRO() {
     handlePresetAdd(preset.id);
     toast.success(`Added: ${preset.name} (${overrideHours !== undefined ? overrideHours : (preset.defaultHours || 0)}h)`);
   }, [lines]);
+
+  const handleSaveLineAsPreset = useCallback((line: ROLine) => {
+    const name = (line.description || '').trim();
+    if (!name) {
+      toast.error('Add a description before saving as a preset');
+      return;
+    }
+    const duplicate = settings.presets.find(
+      p => p.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      toast.error(`A preset named "${name}" already exists`);
+      return;
+    }
+    const newPreset: Preset = {
+      id: Date.now().toString(),
+      name,
+      laborType: line.laborType || 'customer-pay',
+      defaultHours: line.hoursPaid || undefined,
+    };
+    updatePresets([...settings.presets, newPreset]);
+    haptics.success();
+    toast.success(`Saved preset: ${name}`);
+  }, [settings.presets, updatePresets]);
 
   const handlePasteLines = async () => {
     try {
@@ -419,6 +443,7 @@ export default function AddRO() {
             highlightedIds={highlightedLineIds}
             roVehicle={vehicle}
             showVehicleChips={userSettings.showVehicleChips}
+            onSaveAsPreset={handleSaveLineAsPreset}
           />
         </div>
       </main>
