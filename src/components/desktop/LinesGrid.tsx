@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { Plus, Trash2, Copy, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
@@ -104,19 +104,6 @@ export function LinesGrid({
       const key = `${lines.length}-description`;
       inputRefs.current.get(key)?.focus();
     }, 50);
-  };
-
-  const handleDuplicateLine = (index: number) => {
-    const lineToDuplicate = lines[index];
-    const newLine: ROLine = {
-      ...lineToDuplicate,
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      lineNo: lines.length + 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    onLinesChange([...lines, newLine].map((l, i) => ({ ...l, lineNo: i + 1 })));
-    toast.success(`Duplicated: ${lineToDuplicate.description || 'Line'}`);
   };
 
   const handleRemoveLine = (index: number) => {
@@ -341,13 +328,6 @@ export function LinesGrid({
                 <div className="px-2 py-1 flex items-center justify-center gap-0.5">
                   {!readOnly && (
                     <>
-                      <button
-                        onClick={() => handleDuplicateLine(index)}
-                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
-                        title="Duplicate"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
                       <button
                         onClick={() => handleRemoveLine(index)}
                         className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Copy, Trash2, Check } from 'lucide-react';
+import { Plus, Trash2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -52,25 +52,6 @@ export function LineItemEditor({
       lineNo: i + 1,
     }));
     onLinesChange(updatedLines);
-  };
-
-  const handleDuplicateLine = (index: number) => {
-    triggerHaptic();
-    const lineToDuplicate = lines[index];
-    const newLine: ROLine = {
-      ...lineToDuplicate,
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      lineNo: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    // Add at top and renumber
-    const updatedLines = [newLine, ...lines].map((line, i) => ({
-      ...line,
-      lineNo: i + 1,
-    }));
-    onLinesChange(updatedLines);
-    toast.success(`Duplicated: ${lineToDuplicate.description || 'Line'}`);
   };
 
   const handleRemoveLine = (index: number) => {
@@ -195,13 +176,6 @@ export function LineItemEditor({
                     Line {line.lineNo}
                   </span>
                   <div className="flex-1" />
-                  <button
-                    onClick={() => handleDuplicateLine(index)}
-                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground tap-target touch-feedback rounded-lg"
-                    aria-label="Duplicate line"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
                   <button
                     onClick={() => handleRemoveLine(index)}
                     className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-destructive tap-target touch-feedback rounded-lg"
