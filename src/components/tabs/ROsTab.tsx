@@ -629,7 +629,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         initialEnd={customEnd}
       />
 
-      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
+      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} trigger="spreadsheet" />
     </div>
   );
 }

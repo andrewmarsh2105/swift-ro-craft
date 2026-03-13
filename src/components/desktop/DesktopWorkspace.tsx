@@ -391,6 +391,7 @@ export function DesktopWorkspace() {
       <ProUpgradeDialog
         open={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
+        trigger="spreadsheet"
       />
     </div>
   );

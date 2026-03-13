@@ -349,7 +349,7 @@ export function SettingsTab() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { userSettings, updateUserSetting } = useFlagContext();
-  const { isPro, subscriptionEnd, openPortal } = useSubscription();
+  const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
@@ -547,7 +547,30 @@ export function SettingsTab() {
                 <Crown className="h-5 w-5 text-primary" />
                 <span className="font-semibold">Pro Plan</span>
               </div>
-              {subscriptionEnd && (
+              {isNearExpiry && daysUntilEnd !== null && (
+                <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2.5">
+                  <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-snug">
+                    Your trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>. Add a payment method to keep Pro access.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { icon: Infinity, label: 'Unlimited ROs' },
+                  { icon: Camera, label: 'Scan with camera' },
+                  { icon: FileSpreadsheet, label: 'Spreadsheet view' },
+                  { icon: BarChart3, label: 'Period closeouts' },
+                  { icon: FileText, label: 'CSV / PDF exports' },
+                  { icon: Shield, label: 'Compare periods' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
+                    <Icon className="h-3 w-3 text-primary flex-shrink-0" />
+                    <span className="text-xs text-foreground/70 leading-tight">{label}</span>
+                  </div>
+                ))}
+              </div>
+              {subscriptionEnd && !isNearExpiry && (
                 <p className="text-xs text-muted-foreground">
                   Renews {new Date(subscriptionEnd).toLocaleDateString()}
                 </p>
@@ -572,8 +595,10 @@ export function SettingsTab() {
                 {[
                   { icon: Infinity, label: 'Unlimited ROs' },
                   { icon: Camera, label: 'Scan with camera' },
+                  { icon: FileSpreadsheet, label: 'Spreadsheet view' },
                   { icon: BarChart3, label: 'Period closeouts' },
-                  { icon: FileSpreadsheet, label: 'CSV / PDF exports' },
+                  { icon: FileText, label: 'CSV / PDF exports' },
+                  { icon: Shield, label: 'Compare periods' },
                 ].map(({ icon: Icon, label }) => (
                   <div key={label} className="flex items-center gap-2 bg-muted/60 rounded-lg px-2.5 py-2">
                     <Icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />

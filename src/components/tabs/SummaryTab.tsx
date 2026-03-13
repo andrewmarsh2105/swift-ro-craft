@@ -325,7 +325,12 @@ export function SummaryTab() {
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
+  const [upgradeTrigger, setUpgradeTrigger] = useState<import('@/lib/proFeatures').UpgradeTrigger>('generic');
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const openUpgrade = (trigger: import('@/lib/proFeatures').UpgradeTrigger) => {
+    setUpgradeTrigger(trigger);
+    setShowUpgrade(true);
+  };
 
   const { settings: goalSettings } = useUserSettings();
   const hoursGoalDaily = goalSettings.hoursGoalDaily;
@@ -440,7 +445,7 @@ export function SummaryTab() {
               <TabsTrigger value="compare" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Compare</TabsTrigger>
             ) : (
               <button
-                onClick={() => setShowUpgrade(true)}
+                onClick={() => openUpgrade('compare')}
                 className="flex-1 flex items-center justify-center gap-1.5 h-11 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent"
               >
                 Compare
@@ -825,7 +830,7 @@ export function SummaryTab() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     if (!isPro) {
-                      setShowUpgrade(true);
+                      openUpgrade('export');
                       return;
                     }
                     handleExportCSV();
@@ -932,7 +937,7 @@ export function SummaryTab() {
         />
       )}
 
-      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
+      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} trigger={upgradeTrigger} />
     </div>
   );
 }

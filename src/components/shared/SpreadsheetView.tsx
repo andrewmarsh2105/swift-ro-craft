@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect, memo, type ReactNode } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -23,7 +23,7 @@ import { LineTextModal } from '@/components/shared/LineTextModal';
 import { ColumnChooser } from '@/components/shared/spreadsheet/ColumnChooser';
 import {
   ALL_COLUMNS,
-  type ColumnId, type ViewMode, type Density,
+  type ColumnId, type ColumnDef, type ViewMode, type Density,
 } from '@/components/shared/spreadsheet/types';
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
@@ -40,6 +40,43 @@ import {
   type SpreadsheetLineRow,
   type SpreadsheetSubtotalRow,
 } from '@/lib/buildSpreadsheetRows';
+
+/* ─── Memoized line row ─── */
+interface LineRowProps {
+  line: SpreadsheetLineRow;
+  activeCols: ColumnDef[];
+  cellPx: string;
+  cellPy: string;
+  rowBg: string;
+  borderColorClass: string;
+  renderCellValue: (colId: ColumnId, row: SpreadsheetLineRow) => ReactNode;
+  onSelectRO: (ro: RepairOrder) => void;
+}
+
+const LineRow = memo(function LineRow({ line, activeCols, cellPx, cellPy, rowBg, borderColorClass, renderCellValue, onSelectRO }: LineRowProps) {
+  return (
+    <tr
+      className={cn('cursor-pointer hover:bg-accent/50 transition-colors border-t border-border/30', rowBg)}
+      onClick={() => line.ro && onSelectRO(line.ro)}
+    >
+      {activeCols.map((col, ci) => (
+        <td
+          key={col.id}
+          className={cn(
+            cellPx, cellPy,
+            col.align === 'right' && 'text-right',
+            col.align === 'center' && 'text-center',
+            col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
+            ci === 0 && `border-l-[3px] ${borderColorClass}`,
+            'align-top',
+          )}
+        >
+          {renderCellValue(col.id, line)}
+        </td>
+      ))}
+    </tr>
+  );
+});
 
 /* ─── Props ─── */
 interface SpreadsheetViewProps {
@@ -257,8 +294,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       XLSX.utils.book_append_sheet(wb, ws, 'Spreadsheet');
       XLSX.writeFile(wb, `spreadsheet-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
       toast.success('XLSX downloaded');
-    } catch (err) {
-      console.error('XLSX export failed', err);
+    } catch {
       toast.error('XLSX export failed');
     }
   }, [allRows, viewMode]);
@@ -273,8 +309,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         `${mode === 'payroll' ? 'Payroll' : 'Audit'} Report${rangeLabel ? ' — ' + rangeLabel : ''}`,
       );
       toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} PDF downloaded`);
-    } catch (err) {
-      console.error('PDF export failed', err);
+    } catch {
       toast.error('PDF export failed');
     }
   }, [allRows, rangeLabel]);
@@ -650,30 +685,17 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   : 'border-l-[hsl(var(--status-internal))]';
 
               return (
-                <tr
+                <LineRow
                   key={`line-${i}`}
-                  className={cn(
-                    'cursor-pointer hover:bg-accent/50 transition-colors border-t border-border/30',
-                    rowBg,
-                  )}
-                  onClick={() => line.ro && onSelectRO(line.ro)}
-                >
-                  {activeCols.map((col, ci) => (
-                    <td
-                      key={col.id}
-                      className={cn(
-                        cellPx, cellPy,
-                        col.align === 'right' && 'text-right',
-                        col.align === 'center' && 'text-center',
-                        col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
-                        ci === 0 && `border-l-[3px] ${borderColorClass}`,
-                        'align-top',
-                      )}
-                    >
-                      {renderCellValue(col.id, line)}
-                    </td>
-                  ))}
-                </tr>
+                  line={line}
+                  activeCols={activeCols}
+                  cellPx={cellPx}
+                  cellPy={cellPy}
+                  rowBg={rowBg}
+                  borderColorClass={borderColorClass}
+                  renderCellValue={renderCellValue}
+                  onSelectRO={onSelectRO}
+                />
               );
             })}
 

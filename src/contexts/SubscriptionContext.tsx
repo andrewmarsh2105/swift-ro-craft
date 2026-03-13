@@ -10,6 +10,10 @@ interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
   subscriptionEnd: string | null;
+  /** Days until subscription/trial ends. null when no active subscription. */
+  daysUntilEnd: number | null;
+  /** True when Pro is active and ends within 7 days (trial window). */
+  isNearExpiry: boolean;
   checkoutLoading: boolean;
   checkoutFallbackUrl: string | null;
   clearCheckoutFallback: () => void;
@@ -59,9 +63,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       prevIsPro.current = subscribed;
       setIsPro(subscribed);
       setSubscriptionEnd(data?.subscription_end || null);
-    } catch (err) {
-      console.error('Failed to check subscription:', err);
-      // Don't reset isPro on errors — preserve current state
+    } catch {
+      // Don't reset isPro on transient errors — preserve current state
     } finally {
       setLoading(false);
     }
@@ -134,9 +137,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         toast.error('Checkout URL not received. Please try again.');
       }
     } catch (err: any) {
-      const msg = err?.message || String(err);
-      console.error('[CHECKOUT] Failed:', msg);
-      toast.error(`Checkout failed: ${msg}`);
+      toast.error(`Checkout failed: ${err?.message || 'Please try again.'}`);
     }
     setCheckoutLoading(false);
   }, [session]);
@@ -148,14 +149,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err) {
-      console.error('Failed to open portal:', err);
+    } catch {
       toast.error('Could not open billing portal. Please try again.');
     }
   }, []);
 
+  const daysUntilEnd = subscriptionEnd
+    ? Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+  const isNearExpiry = isPro && daysUntilEnd !== null && daysUntilEnd <= 7;
+
   return (
-    <SubscriptionContext.Provider value={{ isPro, loading, subscriptionEnd, checkoutLoading, checkoutFallbackUrl, clearCheckoutFallback, checkSubscription, startCheckout, openPortal }}>
+    <SubscriptionContext.Provider value={{ isPro, loading, subscriptionEnd, daysUntilEnd, isNearExpiry, checkoutLoading, checkoutFallbackUrl, clearCheckoutFallback, checkSubscription, startCheckout, openPortal }}>
       {children}
     </SubscriptionContext.Provider>
   );

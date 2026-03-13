@@ -19,6 +19,7 @@ import { parsePastedLines } from '@/lib/parseLines';
 import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
+import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -59,8 +60,7 @@ export default function AddRO() {
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
   }, [ros]);
-  const RO_CAP = 150;
-  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_CAP;
+  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
 
   const filteredAdvisors = settings.advisors.filter(a =>
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
@@ -625,22 +625,23 @@ export default function AddRO() {
       {/* Cap Sheet */}
       <BottomSheet isOpen={showCapSheet} onClose={() => setShowCapSheet(false)} title="Monthly Limit Reached">
         <div className="p-6 space-y-4 text-center">
-          <p className="text-muted-foreground text-sm">
-            You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP}/month.
+          <p className="font-semibold text-base">You've added {monthlyROCount} ROs this month</p>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Free accounts are capped at {RO_MONTHLY_CAP} ROs/month. Go Pro and log every RO, every day — no cap.
           </p>
           <button
             onClick={() => { setShowCapSheet(false); setShowProUpgrade(true); }}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
           >
-            Upgrade to Pro
+            Start 7-Day Free Trial
           </button>
           <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
-            Maybe later
+            I'll wait until next month
           </button>
         </div>
       </BottomSheet>
 
-      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} />
+      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
     </div>
   );
 }

@@ -197,8 +197,7 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
       const { exportCloseoutPDF } = await import('@/lib/pdfExport');
       exportCloseoutPDF(closeout, mode);
       toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} PDF downloaded`);
-    } catch (err) {
-      console.error('PDF export failed', err);
+    } catch {
       toast.error('PDF export failed');
     }
   };
