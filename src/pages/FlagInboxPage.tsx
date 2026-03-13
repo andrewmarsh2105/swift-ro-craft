@@ -28,13 +28,14 @@ interface TbdItem {
 
 export default function FlagInboxPage() {
   const navigate = useNavigate();
-  const { flags, clearFlag, activeCount, loading, refetch } = useFlagContext();
+  const { flags, clearFlag, clearFlagsBulk, activeCount, loading, refetch } = useFlagContext();
   const roContext = useROSafe();
   const ros = roContext?.ros ?? [];
   const clearAllTbdLines = roContext?.clearAllTbdLines;
   const [typeFilter, setTypeFilter] = useState<FlagType | 'all' | 'tbd'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
   const [confirmClearTbd, setConfirmClearTbd] = useState(false);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   useEffect(() => {
     refetch();
@@ -60,7 +61,23 @@ export default function FlagInboxPage() {
   }, [ros]);
 
   const isTbdActive = typeFilter === 'tbd';
-  const totalBadge = activeCount + tbdItems.length;
+
+  // Badge reflects the active date-filter so the header count matches the list
+  const badgeFlags = useMemo(() => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    if (dateRange === 'today') return flags.filter(f => f.createdAt.split('T')[0] === today);
+    if (dateRange === 'this_week') {
+      const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+      return flags.filter(f => new Date(f.createdAt) >= weekAgo);
+    }
+    if (dateRange === 'this_month') {
+      const monthAgo = new Date(now); monthAgo.setMonth(monthAgo.getMonth() - 1);
+      return flags.filter(f => new Date(f.createdAt) >= monthAgo);
+    }
+    return flags;
+  }, [flags, dateRange]);
+  const totalBadge = badgeFlags.length + tbdItems.length;
 
   const filteredFlags = useMemo(() => {
     if (isTbdActive) return [];
@@ -294,47 +311,76 @@ export default function FlagInboxPage() {
             )}
           </div>
         ) : (
-          <div className="divide-y divide-border">
-            {filteredFlags.map((flag) => {
-              const lineDesc = getLineDesc(flag.roId, flag.roLineId);
-              return (
-                <div
-                  key={flag.id}
-                  className="px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors"
-                  onClick={() => handleFlagTap(flag.roId, flag.roLineId)}
-                >
-                  <Flag className={cn('h-4 w-4 mt-0.5 flex-shrink-0', FLAG_TYPE_COLORS[flag.flagType])} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded', FLAG_TYPE_BG[flag.flagType], FLAG_TYPE_COLORS[flag.flagType])}>
-                        {FLAG_TYPE_LABELS[flag.flagType]}
-                      </span>
-                      <span className="text-sm font-semibold">{getRoNumber(flag.roId)}</span>
-                    </div>
-                    {lineDesc && (
-                      <p className="text-xs text-muted-foreground truncate">{lineDesc}</p>
-                    )}
-                    {!flag.roLineId && (
-                      <p className="text-xs text-muted-foreground">RO-level flag</p>
-                    )}
-                    {flag.note && (
-                      <p className="text-xs text-foreground/80 mt-0.5">"{flag.note}"</p>
-                    )}
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {new Date(flag.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); clearFlag(flag.id); }}
-                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-                    title="Clear flag"
+          <>
+            <div className="divide-y divide-border">
+              {filteredFlags.map((flag) => {
+                const lineDesc = getLineDesc(flag.roId, flag.roLineId);
+                return (
+                  <div
+                    key={flag.id}
+                    className="px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors"
+                    onClick={() => handleFlagTap(flag.roId, flag.roLineId)}
                   >
-                    <Check className="h-4 w-4" />
+                    <Flag className={cn('h-4 w-4 mt-0.5 flex-shrink-0', FLAG_TYPE_COLORS[flag.flagType])} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded', FLAG_TYPE_BG[flag.flagType], FLAG_TYPE_COLORS[flag.flagType])}>
+                          {FLAG_TYPE_LABELS[flag.flagType]}
+                        </span>
+                        <span className="text-sm font-semibold">{getRoNumber(flag.roId)}</span>
+                      </div>
+                      {lineDesc && (
+                        <p className="text-xs text-muted-foreground truncate">{lineDesc}</p>
+                      )}
+                      {!flag.roLineId && (
+                        <p className="text-xs text-muted-foreground">RO-level flag</p>
+                      )}
+                      {flag.note && (
+                        <p className="text-xs text-foreground/80 mt-0.5">"{flag.note}"</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {new Date(flag.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); clearFlag(flag.id); }}
+                      className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                      title="Clear flag"
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-4 py-3 border-t border-border">
+              {confirmClearAll ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-destructive font-medium flex-1">Clear all {filteredFlags.length} flag(s)?</p>
+                  <button
+                    onClick={() => { clearFlagsBulk(filteredFlags.map(f => f.id)); setConfirmClearAll(false); }}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setConfirmClearAll(false)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground"
+                  >
+                    Cancel
                   </button>
                 </div>
-              );
-            })}
-          </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmClearAll(true)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear All Flags
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
