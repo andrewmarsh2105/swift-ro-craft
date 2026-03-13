@@ -183,6 +183,15 @@ export default function AddRO() {
     toast.success('New line added');
   };
 
+  const handleAddTBDLine = () => {
+    haptics.light();
+    const newLine = { ...createEmptyLine(1), isTbd: true };
+    const updatedLines = [newLine, ...lines].map((line, i) => ({ ...line, lineNo: i + 1 }));
+    setLines(updatedLines);
+    setHighlightedLineIds([newLine.id]);
+    toast.success('TBD line added');
+  };
+
   const handlePresetAdd = (presetId: string) => {
     setRecentlyAddedPresets(prev => [presetId, ...prev.filter(id => id !== presetId)].slice(0, 3));
   };
@@ -464,6 +473,13 @@ export default function AddRO() {
               </button>
 
               <button
+                onClick={handleAddTBDLine}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-full text-sm font-bold bg-amber-50 text-amber-600 border border-amber-300 active:scale-[0.96] transition-all dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700"
+              >
+                TBD
+              </button>
+
+              <button
                 onClick={handlePasteLines}
                 className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
@@ -509,6 +525,12 @@ export default function AddRO() {
               >
                 <Plus className="h-4 w-4" />
                 Add Line
+              </button>
+              <button
+                onClick={handleAddTBDLine}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-full text-sm font-bold bg-amber-50 text-amber-600 border border-amber-300 active:scale-[0.96] transition-all dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700"
+              >
+                TBD
               </button>
               <button
                 onClick={handlePasteLines}
