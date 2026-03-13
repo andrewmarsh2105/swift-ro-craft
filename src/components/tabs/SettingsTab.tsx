@@ -363,16 +363,19 @@ export function SettingsTab() {
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const { settings: syncedSettings, updateSetting } = useUserSettings();
-  const hoursGoalDaily = syncedSettings.hoursGoalDaily;
   const [localDisplayName, setLocalDisplayName] = useState(syncedSettings.displayName);
   const [localShopName, setLocalShopName] = useState(syncedSettings.shopName);
+  const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
+  const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
+  const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
   // Sync local state when synced settings load
   useEffect(() => {
     setLocalDisplayName(syncedSettings.displayName);
     setLocalShopName(syncedSettings.shopName);
-  }, [syncedSettings.displayName, syncedSettings.shopName]);
-  const hoursGoalWeekly = syncedSettings.hoursGoalWeekly;
-  const hourlyRate = syncedSettings.hourlyRate;
+    setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
+    setLocalWeeklyGoal(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
+    setLocalHourlyRate(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
+  }, [syncedSettings.displayName, syncedSettings.shopName, syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate]);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -621,7 +624,7 @@ export function SettingsTab() {
 
         {/* Profile */}
         <SettingsGroup title="Profile">
-          <div className="flex items-center justify-between gap-4">
+          <div className="p-4 flex items-center justify-between gap-4">
             <div>
               <span className="font-medium text-sm">Your name</span>
               <p className="text-xs text-muted-foreground">Shown in the app header</p>
@@ -635,7 +638,7 @@ export function SettingsTab() {
               className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
+          <div className="p-4 flex items-center justify-between gap-4">
             <div>
               <span className="font-medium text-sm">Shop name</span>
               <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
@@ -659,27 +662,24 @@ export function SettingsTab() {
             toggleValue={darkMode}
             onToggle={toggleDarkMode}
           />
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <span className="font-medium text-sm">Accent color</span>
-            </div>
+          <div className="p-4 flex items-center justify-between gap-4">
+            <span className="font-medium text-sm">Accent color</span>
             <div className="flex items-center gap-2">
-              {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => {
-                const hsl = ACCENT_COLORS[colorKey].light;
-                const isActive = (syncedSettings.accentColor || 'blue') === colorKey;
-                return (
-                  <button
-                    key={colorKey}
-                    onClick={() => updateSetting('accentColor', colorKey)}
-                    className="h-6 w-6 rounded-full flex-shrink-0 transition-all"
-                    style={{
-                      background: `hsl(${hsl})`,
-                      boxShadow: isActive ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(${hsl})` : undefined,
-                    }}
-                    title={colorKey.charAt(0).toUpperCase() + colorKey.slice(1)}
-                  />
-                );
-              })}
+              <span
+                className="h-4 w-4 rounded-full flex-shrink-0"
+                style={{ background: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
+              />
+              <select
+                value={syncedSettings.accentColor || 'blue'}
+                onChange={e => updateSetting('accentColor', e.target.value)}
+                className="h-9 pl-3 pr-7 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
+              >
+                {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => (
+                  <option key={colorKey} value={colorKey}>
+                    {colorKey.charAt(0).toUpperCase() + colorKey.slice(1)}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           {isPro && (
@@ -712,59 +712,60 @@ export function SettingsTab() {
 
         {/* Hours & Earnings */}
         <SettingsGroup title="Hours & Earnings">
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <span className="font-medium text-sm">Daily goal</span>
-                <p className="text-xs text-muted-foreground">Hours per day target</p>
-              </div>
+          <div className="p-4 flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Daily goal</span>
+              <p className="text-xs text-muted-foreground">Hours per day target</p>
+            </div>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              max={24}
+              step={0.5}
+              value={localDailyGoal}
+              onChange={e => setLocalDailyGoal(e.target.value)}
+              onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
+              placeholder="Off"
+              className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+            />
+          </div>
+          <div className="p-4 flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Weekly goal</span>
+              <p className="text-xs text-muted-foreground">Hours per week target</p>
+            </div>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              max={168}
+              step={1}
+              value={localWeeklyGoal}
+              onChange={e => setLocalWeeklyGoal(e.target.value)}
+              onBlur={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
+              placeholder="Off"
+              className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+            />
+          </div>
+          <div className="p-4 flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Flat rate</span>
+              <p className="text-xs text-muted-foreground">$/hr — shows earnings in Summary</p>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
               <input
                 type="number"
                 inputMode="decimal"
                 min={0}
-                max={24}
                 step={0.5}
-                value={hoursGoalDaily || ''}
-                onChange={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
+                value={localHourlyRate}
+                onChange={e => setLocalHourlyRate(e.target.value)}
+                onBlur={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
                 placeholder="Off"
-                className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                className="w-24 h-10 pl-7 pr-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <span className="font-medium text-sm">Weekly goal</span>
-                <p className="text-xs text-muted-foreground">Hours per week target</p>
-              </div>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                max={168}
-                step={1}
-                value={hoursGoalWeekly || ''}
-                onChange={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
-                placeholder="Off"
-                className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-              />
-            </div>
-            <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
-              <div>
-                <span className="font-medium text-sm">Flat rate</span>
-                <p className="text-xs text-muted-foreground">$/hr — shows earnings in Summary</p>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step={0.5}
-                  value={hourlyRate || ''}
-                  onChange={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
-                  placeholder="Off"
-                  className="w-24 h-10 pl-7 pr-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-                />
-              </div>
             </div>
           </div>
         </SettingsGroup>
