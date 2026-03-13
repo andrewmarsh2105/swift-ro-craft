@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => ({
         "apple-touch-icon.png",
         "icon-192.png",
         "icon-512.png",
-        "ro-logo.jpeg",
       ],
       manifest: {
         id: "/",
