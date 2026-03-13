@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { useUserSettings, ACCENT_COLORS } from '@/hooks/useUserSettings';
+import { ACCENT_COLORS } from '@/hooks/useUserSettings';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import {
@@ -348,7 +348,10 @@ export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  // Single shared source of truth — all reads/writes go through FlagContext's one useUserSettings instance
   const { userSettings, updateUserSetting } = useFlagContext();
+  const syncedSettings = userSettings;
+  const updateSetting = updateUserSetting;
   const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
@@ -362,13 +365,12 @@ export function SettingsTab() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
-  const { settings: syncedSettings, updateSetting } = useUserSettings();
   const [localDisplayName, setLocalDisplayName] = useState(syncedSettings.displayName);
   const [localShopName, setLocalShopName] = useState(syncedSettings.shopName);
   const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
   const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  // Sync local state when synced settings load
+  // Sync local state when settings load from Supabase
   useEffect(() => {
     setLocalDisplayName(syncedSettings.displayName);
     setLocalShopName(syncedSettings.shopName);
