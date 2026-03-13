@@ -1,0 +1,67 @@
+<!--
+  RO Navigator — Full Logo (Standalone SVG, font-free version)
+  Use for: document headers, exported proof packs, email headers,
+  any context where the React component is not available and
+  DM Sans / Inter may not be loaded.
+
+  This version renders "RO" and "Navigator" using a system sans-serif
+  stack. For brand-accurate rendering, export to PNG at 2× from Figma
+  or Illustrator after converting text to outlines with Inter Black.
+
+  For in-app use, use the Logo React component instead — it references
+  the loaded Inter font and renders more accurately.
+
+  Construction (240×48 viewBox — natural sidebar size):
+    Mark area:    48×48 (left side)
+    Circle:       cx=24, cy=24, r=14.4, stroke-width=2.16
+    Tick start:   (24 + 12.12×-0.5, 24 + 12.12×-0.866) = (17.94, 13.51)
+    Tick end:     (17.94 + 3.84×0.5, 13.51 + 3.84×0.866) = (19.86, 16.84)
+    "R" text:     x=3, y=35, font-size=30, weight=900
+    "Navigator":  x=64, y=32, font-size=15, weight=500, tracking=0.06em
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" fill="none">
+
+  <!-- R character -->
+  <text
+    x="3" y="36"
+    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="900"
+    font-size="30"
+    letter-spacing="-0.02em"
+    fill="#0C1829"
+  >R</text>
+
+  <!-- Reticle-O circle -->
+  <circle
+    cx="42" cy="24" r="14.4"
+    stroke="#0C1829"
+    stroke-width="2.16"
+  />
+
+  <!-- Amber indicator tick — 11 o'clock -->
+  <!--
+    Inner edge at 240°: (42 + (14.4-1.08)×-0.5, 24 + (14.4-1.08)×-0.866)
+    = (42 - 6.66, 24 - 11.53) = (35.34, 12.47)
+    Tick length: 3.84, direction (0.5, 0.866)
+    End: (35.34 + 1.92, 12.47 + 3.33) = (37.26, 15.80)
+  -->
+  <line
+    x1="35.3" y1="12.5"
+    x2="37.3" y2="15.8"
+    stroke="#D4890A"
+    stroke-width="2.16"
+    stroke-linecap="round"
+  />
+
+  <!-- "Navigator" wordmark -->
+  <text
+    x="66" y="32"
+    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="500"
+    font-size="14"
+    letter-spacing="0.08em"
+    fill="#0C1829"
+    text-anchor="start"
+  >NAVIGATOR</text>
+
+</svg>

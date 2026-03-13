@@ -77,6 +77,16 @@
     --sidebar-accent-foreground: 222 22% 14%;
     --sidebar-border: 220 14% 88%;
     --sidebar-ring: 214 95% 53%;
+
+    /* ─── Brand identity tokens ─────────────────────────────────
+       These are logo/brand colors. They do NOT replace --primary.
+       Use them only in: Logo component, brand marks, Pro badges,
+       splash screen, document headers, and marketing surfaces.
+    ─────────────────────────────────────────────────────────── */
+    --brand-navy:        220 61% 10%;   /* #0C1829 — logo fill on light */
+    --brand-amber:       37  86% 44%;   /* #D4890A — logo indicator, light bg */
+    --brand-amber-light: 38  90% 54%;   /* #F5A623 — logo indicator, dark bg */
+    --brand-slate:       213 52% 24%;   /* #1E3A5F — secondary brand tone */
   }
 
   .dark {

@@ -6,7 +6,7 @@ import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
-import roLogo from "@/assets/ro-logo.jpeg";
+import { Logo } from "@/components/brand";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
 import { useRO } from "@/contexts/ROContext";
@@ -204,18 +204,7 @@ export function DesktopWorkspace() {
 
       {/* App Bar */}
       <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border bg-card">
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
-            <img
-              src={roLogo}
-              alt="RO Navigator"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <span className="font-bold text-sm tracking-tight text-foreground">
-            RO Navigator
-          </span>
-        </div>
+        <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
 
         <div className="flex items-center gap-1">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} />

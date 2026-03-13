@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Lock } from 'lucide-react';
-import roLogo from '@/assets/ro-logo.jpeg';
+import { BrandMarkContainer } from '@/components/brand';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -82,8 +82,8 @@ export default function ResetPassword() {
         transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="text-center space-y-3">
-          <div className="mx-auto w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center">
-            <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
+          <div className="mx-auto">
+            <BrandMarkContainer size={56} />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Set New Password</h1>

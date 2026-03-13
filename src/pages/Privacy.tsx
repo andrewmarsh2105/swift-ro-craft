@@ -1,17 +1,14 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import roLogo from '@/assets/ro-logo.jpeg';
+import { Logo } from '@/components/brand';
 
 export default function Privacy() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="container flex items-center justify-between h-14 max-w-5xl mx-auto px-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center">
-              <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">RO Navigator</span>
+          <Link to="/">
+            <Logo variant="full" scheme="auto" size="md" className="text-foreground" />
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
             <ArrowLeft className="h-4 w-4" /> Back

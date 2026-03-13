@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { trackSignupCompleted } from '@/lib/analytics';
 import { Loader2, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, Shield, Wifi } from 'lucide-react';
-import roLogo from '@/assets/ro-logo.jpeg';
+import { Logo, BrandMarkContainer } from '@/components/brand';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -100,12 +100,7 @@ export default function Auth() {
 
         <div className="relative flex flex-col h-full p-10">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-white/30 flex-shrink-0">
-              <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
-            </div>
-            <span className="font-bold text-xl text-white tracking-tight">RO Navigator</span>
-          </div>
+          <Logo variant="full" scheme="dark" size="md" />
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
@@ -171,10 +166,8 @@ export default function Auth() {
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* Mobile-only branding */}
-            <div className="text-center space-y-2 md:hidden">
-              <div className="mx-auto w-12 h-12 rounded-2xl overflow-hidden ring-1 ring-border/50">
-                <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
-              </div>
+            <div className="flex flex-col items-center gap-2 md:hidden">
+              <BrandMarkContainer size={48} />
               <h1 className="text-xl font-bold tracking-tight">RO Navigator</h1>
             </div>
 

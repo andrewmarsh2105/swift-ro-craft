@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, ClipboardCheck, Flag, BarChart3, Check, ChevronDown, ChevronUp, Infinity, Camera, FileSpreadsheet, Shield, Wrench } from 'lucide-react';
-import roLogo from '@/assets/ro-logo.jpeg';
+import { Logo, BrandMarkContainer } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
@@ -100,12 +100,7 @@ export default function Landing() {
       {/* Nav */}
       <header className="border-b border-border/60 bg-background/90 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-[1100px] mx-auto flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-sm ring-1 ring-border/50">
-              <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
-            </div>
-            <span className="font-bold text-[17px] tracking-tight">RO Navigator</span>
-          </div>
+          <Logo variant="full" scheme="auto" size="md" className="text-foreground" />
           <div className="flex items-center gap-1">
             <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground hidden md:inline px-3 py-1.5 rounded-md hover:bg-muted transition-colors">Features</a>
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground hidden md:inline px-3 py-1.5 rounded-md hover:bg-muted transition-colors">Pricing</a>
@@ -551,9 +546,7 @@ export default function Landing() {
       <footer className="border-t border-border py-6 md:py-8 px-4">
         <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg overflow-hidden ring-1 ring-border/50">
-              <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
-            </div>
+            <BrandMarkContainer size={24} />
             <p className="text-xs text-muted-foreground/60">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
             </p>

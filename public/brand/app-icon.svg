@@ -1,0 +1,51 @@
+<!--
+  RO Navigator — App Icon SVG (PWA / Home Screen)
+  Larger version of the favicon mark, tuned for 512×512 export.
+  The stroke weights are proportionally thicker than the favicon
+  to maintain visual presence at a distance on a home screen.
+
+  Construction (100×100 coordinate space, export at any size):
+    Background:  100×100, rx=21 (≈21% corner radius — iOS safe)
+    Gradient:    Linear, top-left #0C1829 → bottom-right #1E3A5F
+    Circle:      cx=50, cy=50, r=30, stroke-width=4.5
+    Tick:        Start(36.1, 26.0) → End(40.1, 32.9), stroke-width=4.5
+
+  Export sizes needed:
+    512×512   — PWA maskable icon (with safe zone padding)
+    192×192   — Android standard PWA icon
+    180×180   — Apple Touch Icon
+    Any:      Scale this SVG, all proportions hold.
+
+  For maskable icon (Android): ensure the reticle-O fits within
+  the inner 80% of the canvas (safe zone). Increase background rx
+  to 0 (full bleed square) for maskable variant.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0C1829"/>
+      <stop offset="100%" stop-color="#1E3A5F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100" height="100" rx="21" fill="url(#bg)"/>
+
+  <!-- Reticle circle -->
+  <circle
+    cx="50" cy="50" r="30"
+    fill="none"
+    stroke="#F5A623"
+    stroke-width="4.5"
+  />
+
+  <!-- Indicator tick — 11 o'clock -->
+  <line
+    x1="36.1" y1="26.0"
+    x2="40.1" y2="32.9"
+    stroke="#F5A623"
+    stroke-width="4.5"
+    stroke-linecap="round"
+  />
+
+</svg>
