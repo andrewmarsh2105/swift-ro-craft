@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2, ClipboardPaste, AlertCircle } from 'lucide-react';
+import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2, ClipboardPaste, AlertCircle, Flag } from 'lucide-react';
+import type { FlagType } from '@/types/flags';
+import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
@@ -21,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
+import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 
 interface ROEditorProps {
   ro?: RepairOrder | null;
@@ -39,7 +43,7 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
 
 export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
-  const { userSettings } = useFlagContext();
+  const { userSettings, getFlagsForRO, addFlag, clearFlag } = useFlagContext();
   const { isPro } = useSubscription();
 
   // RO cap
@@ -49,6 +53,18 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
   }, [ros]);
   const isAtCap = !isPro && isNew && monthlyROCount >= RO_MONTHLY_CAP;
+
+  // Date range for filtering advisors to match the current list view filter
+  const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'desktop-list');
+  const advisorRangeBounds = useMemo(() => computeDateRangeBounds({
+    filter: dateFilter,
+    weekStartDay: userSettings.weekStartDay ?? 0,
+    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
+    hasCustomPayPeriod: !!(userSettings.payPeriodEndDates?.length),
+    customStart,
+    customEnd,
+  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, customStart, customEnd]);
 
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
@@ -79,7 +95,37 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const [showFlagPicker, setShowFlagPicker] = useState(false);
+  const [confirmClearFlag, setConfirmClearFlag] = useState(false);
+  const flagPickerRef = useRef<HTMLDivElement | null>(null);
   const linesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Advisors filtered to those active in the current date range
+  const rangeFilteredAdvisors = useMemo(() => {
+    if (dateFilter === 'all') return settings.advisors;
+    const rosInRange = filterROsByDateRange(ros, advisorRangeBounds);
+    const inRange = new Set(rosInRange.map(r => r.advisor).filter(Boolean));
+    return settings.advisors.filter(a => inRange.has(a.name) || a.name === advisor);
+  }, [settings.advisors, ros, advisorRangeBounds, dateFilter, advisor]);
+
+  // Active flags for this RO
+  const roFlags = useMemo(() => ro?.id ? getFlagsForRO(ro.id) : [], [ro?.id, getFlagsForRO]);
+  const isFlagged = roFlags.length > 0;
+
+  // Close flag picker on outside click
+  useEffect(() => {
+    if (!showFlagPicker && !confirmClearFlag) return;
+    const handler = (e: MouseEvent) => {
+      if (flagPickerRef.current && !flagPickerRef.current.contains(e.target as Node)) {
+        setShowFlagPicker(false);
+        setConfirmClearFlag(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFlagPicker, confirmClearFlag]);
+
+  const FLAG_OPTIONS: FlagType[] = ['needs_time', 'questionable', 'waiting', 'advisor_question', 'other'];
 
   // Duplicate RO check
   function checkDuplicateRO(roNum: string) {
@@ -265,7 +311,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
 
           <AdvisorCombobox
             value={advisor} onChange={setAdvisor}
-            advisors={settings.advisors}
+            advisors={rangeFilteredAdvisors}
             onCreateAdvisor={name => {
               const newAdvisor = { id: Date.now().toString(), name };
               updateAdvisors([...settings.advisors, newAdvisor]);
@@ -283,6 +329,64 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           >
             {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
+
+          {/* Flag button — only shown when editing an existing RO */}
+          {ro?.id && (
+            <div className="relative" ref={flagPickerRef}>
+              <button
+                onClick={() => {
+                  if (isFlagged) { setConfirmClearFlag(v => !v); setShowFlagPicker(false); }
+                  else { setShowFlagPicker(v => !v); setConfirmClearFlag(false); }
+                }}
+                title={isFlagged ? 'Flagged — click to remove' : 'Flag this RO'}
+                className={cn(
+                  'h-8 w-8 flex items-center justify-center rounded-md border transition-colors',
+                  isFlagged
+                    ? 'bg-orange-100 border-orange-300 text-orange-600 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-400'
+                    : 'bg-secondary border-border hover:bg-accent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Flag className={cn('h-4 w-4', isFlagged && 'fill-current')} />
+              </button>
+
+              {/* Flag type picker */}
+              {showFlagPicker && (
+                <div className="absolute top-9 left-0 z-50 bg-popover border border-border rounded-xl shadow-lg py-1 min-w-[175px]">
+                  {FLAG_OPTIONS.map(type => (
+                    <button
+                      key={type}
+                      onClick={() => { addFlag(ro.id, type); setShowFlagPicker(false); }}
+                      className={cn('w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted transition-colors text-left', FLAG_TYPE_COLORS[type])}
+                    >
+                      <Flag className="h-3.5 w-3.5 flex-shrink-0" />
+                      {FLAG_TYPE_LABELS[type]}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Confirm clear */}
+              {confirmClearFlag && (
+                <div className="absolute top-9 left-0 z-50 bg-popover border border-border rounded-xl shadow-lg p-3 min-w-[175px]">
+                  <p className="text-xs font-medium mb-2 text-foreground">Remove flag from RO?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { roFlags.forEach(f => clearFlag(f.id)); setConfirmClearFlag(false); }}
+                      className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground"
+                    >
+                      Remove
+                    </button>
+                    <button
+                      onClick={() => setConfirmClearFlag(false)}
+                      className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="ml-auto flex items-center gap-3 flex-shrink-0">
             <button

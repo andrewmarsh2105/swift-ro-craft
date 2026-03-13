@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ function SortHeader(props: {
   onClick: () => void;
   align?: "left" | "right";
 }) {
+  const Arrow = props.dir === "asc" ? ArrowUp : ArrowDown;
   return (
     <button
       onClick={props.onClick}
@@ -55,8 +56,7 @@ function SortHeader(props: {
       )}
     >
       {props.label}
-      <ArrowUpDown className="icon-row" />
-      {props.active && <span className="text-[9px] text-primary">{props.dir}</span>}
+      {props.active && <Arrow className="icon-row text-primary" />}
     </button>
   );
 }
@@ -331,16 +331,20 @@ export const ROListPanel = memo(function ROListPanel({
               <div className={cn("grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 bg-card border-b border-border", gridCols)}>
                 <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
                 <SortHeader label="RO #" active={sortKey === "ro"} dir={sortDir} onClick={() => toggleSort("ro")} />
-                <div className="flex items-center gap-1.5">
-                  <span className="section-title">Info</span>
-                  <button
-                    onClick={() => toggleSort("advisor")}
-                    className="section-title hover:text-foreground quiet-transition"
-                    title="Sort by advisor"
-                  >
-                    <ArrowUpDown className="h-2.5 w-2.5" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => toggleSort("advisor")}
+                  className={cn(
+                    "inline-flex items-center gap-1 section-title hover:text-foreground quiet-transition",
+                    sortKey === "advisor" ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  Info
+                  {sortKey === "advisor" && (
+                    sortDir === "asc"
+                      ? <ArrowUp className="icon-row text-primary" />
+                      : <ArrowDown className="icon-row text-primary" />
+                  )}
+                </button>
                 <SortHeader label="Hrs" active={sortKey === "hours"} dir={sortDir} onClick={() => toggleSort("hours")} align="right" />
                 <span className="section-title">Status</span>
                 <div />

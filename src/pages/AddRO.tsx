@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
+import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
@@ -62,7 +64,30 @@ export default function AddRO() {
   }, [ros]);
   const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
 
-  const filteredAdvisors = settings.advisors.filter(a =>
+  // Date range for filtering advisors to match the current list view filter
+  const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'mobile-ro-tab');
+  const advisorRangeBounds = useMemo(() => computeDateRangeBounds({
+    filter: dateFilter,
+    weekStartDay: userSettings.weekStartDay ?? 0,
+    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
+    hasCustomPayPeriod: !!(userSettings.payPeriodEndDates?.length),
+    customStart,
+    customEnd,
+  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, customStart, customEnd]);
+
+  const advisorsInRange = useMemo(() => {
+    const rosInRange = filterROsByDateRange(ros, advisorRangeBounds);
+    return new Set(rosInRange.map(r => r.advisor).filter(Boolean));
+  }, [ros, advisorRangeBounds]);
+
+  // Advisors filtered to those active in the current date range (all shown when filter is 'all')
+  const rangeFilteredAdvisors = useMemo(() => {
+    if (dateFilter === 'all') return settings.advisors;
+    return settings.advisors.filter(a => advisorsInRange.has(a.name) || a.name === advisor);
+  }, [settings.advisors, advisorsInRange, dateFilter, advisor]);
+
+  const filteredAdvisors = rangeFilteredAdvisors.filter(a =>
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
   );
   const linesContainerRef = useRef<HTMLDivElement>(null);
@@ -565,9 +590,9 @@ export default function AddRO() {
             onChange={e => setAdvisorSearch(e.target.value)}
             className="w-full h-11 px-3 bg-secondary rounded-md border border-input text-base focus:outline-none focus:ring-2 focus:ring-ring"
           />
-          {settings.advisors.length > 0 && !advisorSearch && (
+          {rangeFilteredAdvisors.length > 0 && !advisorSearch && (
             <div className="flex flex-wrap gap-1.5 pb-1">
-              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).map(adv => (
+              {[...rangeFilteredAdvisors].sort((a, b) => a.name.localeCompare(b.name)).map(adv => (
                 <button
                   key={adv.id}
                   onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}

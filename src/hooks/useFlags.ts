@@ -130,6 +130,27 @@ export function useFlags() {
     return flags.filter(f => f.roLineId === lineId);
   }, [flags]);
 
+  /** Bulk-clear a specific set of flag IDs (used for "Clear All" in inbox). */
+  const clearFlagsBulk = useCallback(async (flagIds: string[]) => {
+    if (!user || flagIds.length === 0) return;
+    setFlags(prev => prev.filter(f => !flagIds.includes(f.id)));
+    if (!isOnline) {
+      await Promise.all(flagIds.map(id => queueAction('clearFlag', { flagId: id })));
+      toast.info('Flags cleared offline — will sync when back online');
+      return;
+    }
+    try {
+      await supabase
+        .from('ro_flags')
+        .update({ cleared_at: new Date().toISOString() })
+        .in('id', flagIds);
+      toast.success(`Cleared ${flagIds.length} flag${flagIds.length === 1 ? '' : 's'}`);
+    } catch (err: any) {
+      await Promise.all(flagIds.map(id => queueAction('clearFlag', { flagId: id })));
+      toast.info('Network issue — flags cleared offline');
+    }
+  }, [user, isOnline, queueAction]);
+
   /** Bulk-clear all active flags for a set of RO IDs (used on period close-out). No individual toasts. */
   const clearFlagsForPeriod = useCallback(async (roIds: string[]) => {
     if (!user || roIds.length === 0) return;
@@ -162,6 +183,7 @@ export function useFlags() {
     loading,
     addFlag,
     clearFlag,
+    clearFlagsBulk,
     clearFlagsForPeriod,
     getFlagsForRO,
     getFlagsForLine,
