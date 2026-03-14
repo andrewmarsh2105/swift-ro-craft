@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { trackSignupCompleted } from '@/lib/analytics';
 import { Loader2, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, Shield, Wifi } from 'lucide-react';
-import { Logo, BrandMarkContainer } from '@/components/brand';
+import { Logo } from '@/components/brand';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -178,9 +178,8 @@ export default function Auth() {
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* Mobile-only branding */}
-            <div className="flex flex-col items-center gap-2 md:hidden">
-              <BrandMarkContainer size={48} />
-              <h1 className="text-xl font-bold tracking-tight">RO Navigator</h1>
+            <div className="flex items-center justify-center md:hidden">
+              <Logo variant="full" scheme="auto" size="lg" className="text-foreground" />
             </div>
 
             {/* Desktop heading */}

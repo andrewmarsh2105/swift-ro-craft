@@ -391,7 +391,7 @@ export default function Landing() {
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Simple, honest pricing</h2>
             <p className="text-sm text-muted-foreground">Start free. Upgrade when you need more.</p>
           </motion.div>
-          <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid sm:grid-cols-2 gap-4 md:gap-6 pt-4">
             {/* Free */}
             <motion.div
               className="bg-card rounded-2xl p-6 md:p-8 shadow-card border border-border/50 space-y-5 flex flex-col"
@@ -417,7 +417,7 @@ export default function Landing() {
 
             {/* Pro */}
             <motion.div
-              className="rounded-2xl p-6 md:p-8 ring-2 ring-primary space-y-5 relative flex flex-col overflow-hidden"
+              className="rounded-2xl p-6 md:p-8 ring-2 ring-primary space-y-5 relative flex flex-col"
               style={{
                 background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.06) 100%)',
               }}
