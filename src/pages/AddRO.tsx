@@ -56,6 +56,9 @@ export default function AddRO() {
   // Long-press preset hours sheet
   const [longPressPreset, setLongPressPreset] = useState<Preset | null>(null);
 
+  // Form state — advisor must be declared before the rangeFilteredAdvisors useMemo below
+  const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
+
   // RO cap
   const monthlyROCount = useMemo(() => {
     const now = new Date();
@@ -94,7 +97,6 @@ export default function AddRO() {
 
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
-  const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
   const [date, setDate] = useState(editingRO?.date || localDateStr());
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
   const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
