@@ -72,7 +72,6 @@ export function useUserSettings() {
   const [loaded, setLoaded] = useState(false);
 
   const fetchSettings = useCallback(async () => {
-    if (!userId) return;
     const { data } = await supabase
       .from('user_settings')
       .select('*')
@@ -106,7 +105,19 @@ export function useUserSettings() {
     setLoaded(true);
   }, [userId]);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  // When the user changes (sign-out, sign-in, or account switch), reset to defaults
+  // first so the SettingsTab sync effect always detects a real value change when the
+  // fresh DB data arrives, even if the new values happen to equal old stale values.
+  useEffect(() => {
+    if (!userId) {
+      setSettings(defaults);
+      setLoaded(false);
+      return;
+    }
+    setSettings(defaults);
+    setLoaded(false);
+    fetchSettings();
+  }, [userId]); // intentionally omit fetchSettings — userId change is the only trigger we want
 
   // Apply accent color CSS variables whenever accentColor or loaded changes
   useEffect(() => {

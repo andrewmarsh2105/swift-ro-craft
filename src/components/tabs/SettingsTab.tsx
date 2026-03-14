@@ -349,7 +349,7 @@ export function SettingsTab() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   // Single shared source of truth — all reads/writes go through FlagContext's one useUserSettings instance
-  const { userSettings, updateUserSetting } = useFlagContext();
+  const { userSettings, updateUserSetting, userSettingsLoaded } = useFlagContext();
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
   const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
@@ -370,14 +370,17 @@ export function SettingsTab() {
   const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
   const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  // Sync local state when settings load from Supabase
+  // Sync local state when settings load from Supabase.
+  // userSettingsLoaded is included so this fires every time a fresh fetch completes
+  // after sign-in, even when the DB values are identical to any prior stale state.
   useEffect(() => {
+    if (!userSettingsLoaded) return;
     setLocalDisplayName(syncedSettings.displayName);
     setLocalShopName(syncedSettings.shopName);
     setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
     setLocalWeeklyGoal(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
     setLocalHourlyRate(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  }, [syncedSettings.displayName, syncedSettings.shopName, syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate]);
+  }, [userSettingsLoaded, syncedSettings.displayName, syncedSettings.shopName, syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate]);
 
   useEffect(() => {
     async function checkAdmin() {
