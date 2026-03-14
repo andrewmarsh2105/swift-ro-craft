@@ -56,11 +56,24 @@ export function useROStore() {
   const userId = user?.id;
   const { isOnline, queueAction, registerRefresh } = useOffline();
   const [ros, setROs] = useState<RepairOrder[]>([]);
+  // Ref that always holds the latest ros array — used in callbacks that
+  // need to read current ROs without adding ros to their dep arrays.
+  const rosRef = useRef<RepairOrder[]>([]);
+  rosRef.current = ros;
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [loadingROs, setLoadingROs] = useState(true);
 
   // Tracks pending deletes for undo support: id → { timer, savedRO }
   const pendingDeletes = useRef<Map<string, { timer: ReturnType<typeof setTimeout>; savedRO: RepairOrder }>>(new Map());
+
+  // Cancel any in-flight delete timers when the store unmounts
+  useEffect(() => {
+    return () => {
+      for (const { timer } of pendingDeletes.current.values()) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
 
   // Fetch ROs with lines
   const fetchROs = useCallback(async () => {
@@ -380,13 +393,12 @@ export function useROStore() {
   const deleteRO = useCallback((id: string) => {
     if (!user) return;
 
-    // Find and save the RO before removing for undo
-    let savedRO: RepairOrder | undefined;
-    setROs(prev => {
-      savedRO = prev.find(r => r.id === id);
-      return prev.filter(r => r.id !== id);
-    });
+    // Read current state via ref (avoids adding `ros` to deps which would
+    // recreate the callback on every RO change)
+    const savedRO = rosRef.current.find(r => r.id === id);
     if (!savedRO) return;
+
+    setROs(prev => prev.filter(r => r.id !== id));
 
     if (!isOnline) {
       queueAction('deleteRO', { id });
