@@ -56,6 +56,12 @@ export default function AddRO() {
   // Long-press preset hours sheet
   const [longPressPreset, setLongPressPreset] = useState<Preset | null>(null);
 
+  // Advisor sheet: toggle to show all advisors regardless of date range
+  const [showAllAdvisors, setShowAllAdvisors] = useState(false);
+
+  // Form state — advisor must be declared before the rangeFilteredAdvisors useMemo below
+  const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
+
   // RO cap
   const monthlyROCount = useMemo(() => {
     const now = new Date();
@@ -81,20 +87,33 @@ export default function AddRO() {
     return new Set(rosInRange.map(r => r.advisor).filter(Boolean));
   }, [ros, advisorRangeBounds]);
 
+  // Unified advisor list: saved settings + any advisor names from ROs not already in settings
+  const allAdvisors = useMemo(() => {
+    const settingsNames = new Set(settings.advisors.map(a => a.name));
+    const extraFromROs = [...new Set(ros.map(r => r.advisor).filter(Boolean))]
+      .filter(name => !settingsNames.has(name))
+      .map(name => ({ id: name, name }));
+    return [...settings.advisors, ...extraFromROs];
+  }, [settings.advisors, ros]);
+
   // Advisors filtered to those active in the current date range (all shown when filter is 'all')
   const rangeFilteredAdvisors = useMemo(() => {
-    if (dateFilter === 'all') return settings.advisors;
-    return settings.advisors.filter(a => advisorsInRange.has(a.name) || a.name === advisor);
-  }, [settings.advisors, advisorsInRange, dateFilter, advisor]);
+    if (dateFilter === 'all') return allAdvisors;
+    return allAdvisors.filter(a => advisorsInRange.has(a.name) || a.name === advisor);
+  }, [allAdvisors, advisorsInRange, dateFilter, advisor]);
 
-  const filteredAdvisors = rangeFilteredAdvisors.filter(a =>
+  // When a date range is active and the toggle is off, show only range advisors; otherwise show all
+  const displayedAdvisors = (advisorRangeBounds && !showAllAdvisors)
+    ? rangeFilteredAdvisors
+    : allAdvisors;
+
+  const filteredAdvisors = displayedAdvisors.filter(a =>
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
   );
   const linesContainerRef = useRef<HTMLDivElement>(null);
 
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
-  const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
   const [date, setDate] = useState(editingRO?.date || localDateStr());
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
   const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
@@ -126,6 +145,38 @@ export default function AddRO() {
   const currentSnapshot = useMemo(() => JSON.stringify({
     roNumber, advisor, date, laborType, customerName, notes, vehicle, mileage, paidDate, lines
   }), [roNumber, advisor, date, laborType, customerName, notes, vehicle, mileage, paidDate, lines]);
+
+  // When editing, backfill form fields once the RO loads (handles the case where
+  // the component mounts before ros[] is populated — useState initial values only
+  // run once, so if editingRO was undefined on first render, fields stay empty).
+  const formSeededRef = useRef(false);
+  useEffect(() => {
+    if (editingRO && !formSeededRef.current) {
+      formSeededRef.current = true;
+      setRoNumber(editingRO.roNumber || '');
+      setAdvisor(editingRO.advisor || '');
+      setDate(editingRO.date || localDateStr());
+      setLaborType(editingRO.laborType || 'customer-pay');
+      setCustomerName(editingRO.customerName || '');
+      setNotes(editingRO.notes || '');
+      setVehicle(editingRO.vehicle || {});
+      setMileage(editingRO.mileage || '');
+      setPaidDate(editingRO.paidDate || '');
+      if (editingRO.lines?.length) {
+        setLines(editingRO.lines);
+      } else if (editingRO.paidHours > 0) {
+        setLines([{
+          id: Date.now().toString(),
+          lineNo: 1,
+          description: editingRO.workPerformed || 'General Labor',
+          hoursPaid: editingRO.paidHours,
+          laborType: editingRO.laborType,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }]);
+      }
+    }
+  }, [editingRO]);
 
   useEffect(() => {
     // Set initial snapshot once data is ready
@@ -372,7 +423,7 @@ export default function AddRO() {
     <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-x-hidden">
       {/* Header */}
       <PageHeader
-        title={editingRO ? `Edit RO #${editingRO.roNumber}` : 'New Repair Order'}
+        title={editingRO ? `Edit RO #${editingRO.roNumber}` : (userSettings.shopName || 'New Repair Order')}
         subtitle={`${totalHours.toFixed(1)}h${tbdCount > 0 ? ` · ${tbdCount} TBD` : ''} · ${lines.length} lines`}
         onBack={() => navigate(-1)}
         rightActions={isPro ? (
@@ -581,7 +632,7 @@ export default function AddRO() {
       />
 
       {/* Advisor Sheet */}
-      <BottomSheet isOpen={showAdvisorList} onClose={() => setShowAdvisorList(false)} title="Select Advisor">
+      <BottomSheet isOpen={showAdvisorList} onClose={() => { setShowAdvisorList(false); setShowAllAdvisors(false); }} title="Select Advisor">
         <div className="p-4 space-y-2">
           <input
             type="text"
@@ -590,9 +641,20 @@ export default function AddRO() {
             onChange={e => setAdvisorSearch(e.target.value)}
             className="w-full h-11 px-3 bg-secondary rounded-md border border-input text-base focus:outline-none focus:ring-2 focus:ring-ring"
           />
-          {rangeFilteredAdvisors.length > 0 && !advisorSearch && (
+          {advisorRangeBounds && !advisorSearch && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+              <span>{showAllAdvisors ? 'Showing all advisors' : `Filtered to: ${advisorRangeBounds.label}`}</span>
+              <button
+                onClick={() => setShowAllAdvisors(v => !v)}
+                className="text-primary font-medium underline-offset-2 hover:underline"
+              >
+                {showAllAdvisors ? 'Show range only' : 'Show all'}
+              </button>
+            </div>
+          )}
+          {displayedAdvisors.length > 0 && !advisorSearch && (
             <div className="flex flex-wrap gap-1.5 pb-1">
-              {[...rangeFilteredAdvisors].sort((a, b) => a.name.localeCompare(b.name)).map(adv => (
+              {[...displayedAdvisors].sort((a, b) => a.name.localeCompare(b.name)).map(adv => (
                 <button
                   key={adv.id}
                   onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
@@ -620,7 +682,7 @@ export default function AddRO() {
               {adv.name}
             </button>
           ))}
-          {advisorSearch.trim() && !settings.advisors.some(a => a.name.toLowerCase() === advisorSearch.trim().toLowerCase()) && (
+          {advisorSearch.trim() && !allAdvisors.some(a => a.name.toLowerCase() === advisorSearch.trim().toLowerCase()) && (
             <button
               onClick={() => {
                 const name = advisorSearch.trim();

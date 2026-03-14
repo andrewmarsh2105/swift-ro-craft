@@ -94,8 +94,9 @@ export function useROStore() {
     }
   }, [userId]);
 
-  // Track whether an updatePresets operation is in flight to prevent races
+  // Track whether an updatePresets/updateAdvisors operation is in flight to prevent races
   const presetsUpdating = useRef(false);
+  const advisorsUpdating = useRef(false);
 
   // Fetch presets (labor_references)
   const fetchPresets = useCallback(async () => {
@@ -124,6 +125,8 @@ export function useROStore() {
   // Fetch advisors from DB
   const fetchAdvisors = useCallback(async () => {
     if (!userId) return;
+    // Skip if an updateAdvisors call is in progress to prevent race conditions
+    if (advisorsUpdating.current) return;
     try {
       const { data, error } = await supabase
         .from('advisors')
@@ -381,6 +384,8 @@ export function useROStore() {
 
   const updateAdvisors = useCallback(async (advisors: Advisor[]) => {
     if (!user) return;
+    if (advisorsUpdating.current) return;
+    advisorsUpdating.current = true;
     setSettings(prev => ({ ...prev, advisors }));
     try {
       // Sync to DB: delete all, re-insert
@@ -393,11 +398,18 @@ export function useROStore() {
         const { error } = await supabase.from('advisors').insert(rows);
         if (error) throw error;
       }
+      // Only re-fetch on success to get DB-canonical IDs
+      await fetchAdvisors();
     } catch (err: unknown) {
       console.error('Failed to persist advisors', err);
       toast.error('Failed to save advisor changes');
+      // Revert optimistic update by re-fetching current DB state
+      advisorsUpdating.current = false;
+      await fetchAdvisors();
+      return;
+    } finally {
+      advisorsUpdating.current = false;
     }
-    await fetchAdvisors();
   }, [user, fetchAdvisors]);
 
   const getDaySummaries = useCallback((startDate: string, endDate: string): DaySummary[] => {
