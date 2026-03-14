@@ -127,11 +127,31 @@ export const ROListPanel = memo(function ROListPanel({
     Array.isArray(userSettings.payPeriodEndDates) &&
     userSettings.payPeriodEndDates.length > 0;
 
+  // Date range bounds for the current filter (used both for the advisor dropdown and filteredROs)
+  const listBounds = useMemo(() => computeDateRangeBounds({
+    filter: dateFilter,
+    weekStartDay: userSettings.weekStartDay ?? 0,
+    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
+    hasCustomPayPeriod,
+    customStart,
+    customEnd,
+  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+
+  // Advisor dropdown options: only advisors who have ROs in the current date range
   const advisors = useMemo(() => {
-    return Array.from(new Set(ros.map((r) => r.advisor).filter(Boolean))).sort((a, b) =>
+    const rangeROs = filterROsByDateRange(ros, listBounds);
+    return Array.from(new Set(rangeROs.map((r) => r.advisor).filter(Boolean))).sort((a, b) =>
       a.localeCompare(b),
     );
-  }, [ros]);
+  }, [ros, listBounds]);
+
+  // If the selected advisor isn't in the current range, reset to "all"
+  useEffect(() => {
+    if (advisorFilter !== "all" && !advisors.includes(advisorFilter)) {
+      setAdvisorFilter("all");
+    }
+  }, [advisors, advisorFilter]);
 
   const filteredROs = useMemo(() => {
     let result = ros;
@@ -160,16 +180,7 @@ export const ROListPanel = memo(function ROListPanel({
       });
     }
 
-    const bounds = computeDateRangeBounds({
-      filter: dateFilter,
-      weekStartDay: userSettings.weekStartDay ?? 0,
-      defaultSummaryRange: userSettings.defaultSummaryRange,
-      payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
-      hasCustomPayPeriod,
-      customStart,
-      customEnd,
-    });
-    result = filterROsByDateRange(result, bounds);
+    result = filterROsByDateRange(result, listBounds);
 
     const dir = sortDir === "asc" ? 1 : -1;
 
@@ -182,11 +193,7 @@ export const ROListPanel = memo(function ROListPanel({
     });
 
     return sorted;
-  }, [
-    ros, advisorFilter, deferredQuery, dateFilter, hasCustomPayPeriod,
-    sortKey, sortDir, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, userSettings.weekStartDay,
-    customStart, customEnd,
-  ]);
+  }, [ros, advisorFilter, deferredQuery, listBounds, sortKey, sortDir]);
 
   useEffect(() => {
     onFilteredROsChange?.(filteredROs);
