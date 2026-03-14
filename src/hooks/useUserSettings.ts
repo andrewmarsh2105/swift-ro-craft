@@ -105,16 +105,17 @@ export function useUserSettings() {
     setLoaded(true);
   }, [userId]);
 
-  // When the user changes (sign-out, sign-in, or account switch), reset to defaults
-  // first so the SettingsTab sync effect always detects a real value change when the
-  // fresh DB data arrives, even if the new values happen to equal old stale values.
+  // Sign-out: reset to defaults immediately so no previous user's data is visible.
+  // Sign-in / token-refresh re-auth: keep current settings visible while the fetch
+  // is in flight so values don't flicker to blank/zero.
+  // The SettingsTab sync effect depends on `userSettingsLoaded` (false→true), so it
+  // always re-runs when the fetch completes — no need to reset to defaults first.
   useEffect(() => {
     if (!userId) {
       setSettings(defaults);
       setLoaded(false);
       return;
     }
-    setSettings(defaults);
     setLoaded(false);
     fetchSettings();
   }, [userId]); // intentionally omit fetchSettings — userId change is the only trigger we want

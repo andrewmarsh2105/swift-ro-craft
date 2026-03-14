@@ -245,7 +245,7 @@ export const ROListPanel = memo(function ROListPanel({
         <div className="flex-shrink-0 px-3 pt-3 pb-2 border-b border-border space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="page-title">Repair Orders</h2>
+              <h2 className="page-title">{userSettings.shopName || 'Repair Orders'}</h2>
               <p className="page-subtitle tabular-nums">
                 {totals.totalAll} total •{" "}
                 {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
