@@ -74,6 +74,16 @@ export function useUserSettings() {
   settingsRef.current = settings;
   const [loaded, setLoaded] = useState(false);
 
+  const persistProfileSettingLocally = useCallback((key: 'displayName' | 'shopName', value: string) => {
+    const storageKey = key === 'displayName' ? 'ro-tracker-display-name' : 'ro-tracker-shop-name';
+    localStorage.setItem(storageKey, value);
+  }, []);
+
+  const getLocalProfileSetting = useCallback((key: 'displayName' | 'shopName') => {
+    const storageKey = key === 'displayName' ? 'ro-tracker-display-name' : 'ro-tracker-shop-name';
+    return localStorage.getItem(storageKey) || '';
+  }, []);
+
   const fetchSettings = useCallback(async () => {
     const { data } = await supabase
       .from('user_settings')
@@ -100,13 +110,19 @@ export function useUserSettings() {
         hoursGoalDaily: (data as any).hours_goal_daily ?? 0,
         hoursGoalWeekly: (data as any).hours_goal_weekly ?? 0,
         hourlyRate: (data as any).hourly_rate ?? 0,
-        displayName: (data as any).display_name || '',
-        shopName: (data as any).shop_name || '',
+        displayName: (data as any).display_name || getLocalProfileSetting('displayName'),
+        shopName: (data as any).shop_name || getLocalProfileSetting('shopName'),
         accentColor: (data as any).accent_color || 'blue',
       });
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        displayName: getLocalProfileSetting('displayName'),
+        shopName: getLocalProfileSetting('shopName'),
+      }));
     }
     setLoaded(true);
-  }, [userId]);
+  }, [getLocalProfileSetting, userId]);
 
   // Sign-out: reset to defaults immediately so no previous user's data is visible.
   // Sign-in / token-refresh re-auth: keep current settings visible while the fetch
@@ -136,6 +152,11 @@ export function useUserSettings() {
   const updateSetting = useCallback(async (key: keyof UserSettings, value: any) => {
     if (!userId) return;
     const previousValue = settingsRef.current[key];
+
+    if (key === 'displayName' || key === 'shopName') {
+      persistProfileSettingLocally(key, value);
+    }
+
     setSettings(prev => ({ ...prev, [key]: value }));
 
     const dbKey = key === 'showScanConfidence' ? 'show_scan_confidence'
@@ -167,10 +188,23 @@ export function useUserSettings() {
         [dbKey]: value,
       }, { onConflict: 'user_id' });
     if (error) {
+      const isMissingProfileColumn =
+        (key === 'displayName' || key === 'shopName')
+        && /column .* does not exist/i.test(error.message);
+
+      if (isMissingProfileColumn) {
+        toast.success('Saved on this device. Cloud sync for profile names is not available yet.');
+        return;
+      }
+
+      if (key === 'displayName' || key === 'shopName') {
+        persistProfileSettingLocally(key, String(previousValue ?? ''));
+      }
+
       setSettings(prev => ({ ...prev, [key]: previousValue }));
       toast.error('Failed to save setting. Please try again.');
     }
-  }, [userId]);
+  }, [persistProfileSettingLocally, userId]);
 
   return { settings, loaded, updateSetting };
 }
