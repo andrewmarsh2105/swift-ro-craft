@@ -4,8 +4,6 @@ import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { trackCheckoutStarted, trackPurchaseCompleted } from '@/lib/analytics';
 
-const PRO_PRODUCT_IDS = ['prod_TytAJ1A0OZTgh0', 'prod_U2nOsuL3zAYIwa', 'prod_U2ndu4y9M2upB3'];
-
 interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
@@ -25,7 +23,7 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   // Use user.id (stable string) so token refreshes (which create a new user object)
   // don't unnecessarily re-run subscription checks and cause isPro to flash false.
   const userId = user?.id ?? null;
@@ -125,7 +123,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setCheckoutLoading(true);
     setCheckoutFallbackUrl(null);
     try {
-      const token = session?.access_token;
+      // Always get a fresh token — the closure's `session` may be stale after a
+      // token refresh, which would send an expired JWT and get a 401 from checkout.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: plan || 'monthly' },
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -147,7 +148,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       toast.error(`Checkout failed: ${err?.message || 'Please try again.'}`);
     }
     setCheckoutLoading(false);
-  }, [session]);
+  }, [user]);
 
   const openPortal = useCallback(async () => {
     try {

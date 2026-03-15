@@ -2,6 +2,12 @@ import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
 import type { RepairOrder, ROLine } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 
+/** Wrap a CSV cell value in double-quotes, escaping any embedded quotes. */
+function csvCell(val: string | number | null | undefined): string {
+  const s = String(val ?? '');
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 export function generateLineCSV(report: PayPeriodReport): string {
   const headers = [
     'RO Number', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Line #', 'Description',
@@ -12,24 +18,25 @@ export function generateLineCSV(report: PayPeriodReport): string {
   const filtered = report.linesInRange.filter(({ line }) => line.description.trim() !== '' && !line.isTbd);
   let lastRoId = '';
   const rows = filtered.map(({ ro, line }) => {
-      const isFirstLine = ro.id !== lastRoId;
-      lastRoId = ro.id;
-      const vehicleLabel = formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) || '';
-      return [
-        isFirstLine ? ro.roNumber : '',
-        isFirstLine ? ro.date : '',
-        isFirstLine ? (ro.advisor || '—') : '',
-        isFirstLine ? `"${(ro.customerName || '').replace(/"/g, '""')}"` : '',
-        isFirstLine ? `"${vehicleLabel.replace(/"/g, '""')}"` : '',
-        line.lineNo.toString(),
-        `"${(line.description || '').replace(/"/g, '""')}"`,
-        line.laborType || 'customer-pay',
-        line.hoursPaid.toFixed(2),
-        line.matchedReferenceId || '',
-      ];
-    });
+    const isFirstLine = ro.id !== lastRoId;
+    lastRoId = ro.id;
+    const vehicleLabel = formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) || '';
+    return [
+      csvCell(isFirstLine ? ro.roNumber : ''),
+      csvCell(isFirstLine ? ro.date : ''),
+      csvCell(isFirstLine ? (ro.advisor || '—') : ''),
+      csvCell(isFirstLine ? (ro.customerName || '') : ''),
+      csvCell(isFirstLine ? vehicleLabel : ''),
+      csvCell(line.lineNo),
+      csvCell(line.description || ''),
+      csvCell(line.laborType || 'customer-pay'),
+      csvCell(line.hoursPaid.toFixed(2)),
+      csvCell(line.matchedReferenceId || ''),
+    ];
+  });
 
-  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  // UTF-8 BOM (\uFEFF) so Excel on Windows opens the file in the correct encoding
+  return '\uFEFF' + [headers.map(csvCell).join(','), ...rows.map(r => r.join(','))].join('\n');
 }
 
 export function generateSummaryText(report: PayPeriodReport): string {

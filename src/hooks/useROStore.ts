@@ -84,6 +84,7 @@ export function useROStore() {
       const { data: roRows, error } = await supabase
         .from('ros')
         .select('*')
+        .eq('user_id', userId)
         .order('date', { ascending: false })
         .limit(10000);
       if (error) throw error;
@@ -91,6 +92,7 @@ export function useROStore() {
       const { data: lineRows, error: lErr } = await supabase
         .from('ro_lines')
         .select('*')
+        .eq('user_id', userId)
         .order('line_no', { ascending: true })
         .limit(10000);
       if (lErr) throw lErr;
@@ -160,7 +162,13 @@ export function useROStore() {
             seededROs.push(dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]));
           }
           if (seededROs.length > 0) {
-            setROs([...seededROs].reverse());
+            // Merge into existing state rather than replace — avoids overwriting any RO
+            // the user added between fetchROs completing and the seeding IIFE finishing.
+            setROs(prev => {
+              const existingIds = new Set(prev.map(r => r.id));
+              const newOnes = seededROs.filter(r => !existingIds.has(r.id)).reverse();
+              return [...newOnes, ...prev];
+            });
             toast('Sample ROs added — explore the app, then delete them when ready', { duration: 6000 });
           }
         })();
@@ -288,11 +296,13 @@ export function useROStore() {
       const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
       if (lErr) {
         console.error('Failed to insert lines', lErr);
-        toast.error(`Lines failed to save: ${lErr.message}`);
         pushDebug({ action: 'insertLines FAIL', roId: newRow.id, error: lErr.message, lineCount: lineInserts.length });
-      } else {
-        pushDebug({ action: 'insertLines OK', roId: newRow.id, lineCount: lineInserts.length });
+        // Roll back the RO header so we don't leave an orphaned 0-hour record
+        await supabase.from('ros').delete().eq('id', newRow.id);
+        toast.error(`Failed to save RO: ${lErr.message}`);
+        return;
       }
+      pushDebug({ action: 'insertLines OK', roId: newRow.id, lineCount: lineInserts.length });
     }
 
     // Optimistic update: build RO locally instead of refetching everything
@@ -335,14 +345,19 @@ export function useROStore() {
       }
     }
 
-    // Replace lines if provided
+    // Replace lines if provided.
+    // Order matters for safety: insert new lines first, then delete old ones.
+    // If the insert fails we bail out with the old lines still intact.
+    // If the delete fails we have duplicate lines temporarily, but the user can
+    // edit the RO again to fix it — no payroll data is permanently lost.
     if (updates.lines) {
-      const { error: delErr } = await supabase.from('ro_lines').delete().eq('ro_id', id);
-      if (delErr) {
-        console.error('Failed to delete old lines', delErr);
-        toast.error(`Failed to update lines: ${delErr.message}`);
-        return false;
-      }
+      // Snapshot existing line IDs so we can target-delete only those rows
+      const { data: existingLines } = await supabase
+        .from('ro_lines')
+        .select('id')
+        .eq('ro_id', id);
+      const existingIds = (existingLines || []).map((l: { id: string }) => l.id);
+
       if (updates.lines.length > 0) {
         const lineInserts = toRoLineInserts({
           userId: user.id,
@@ -355,6 +370,15 @@ export function useROStore() {
           console.error('Failed to insert lines', insErr);
           toast.error(`Lines failed to save: ${insErr.message}`);
           return false;
+        }
+      }
+
+      // Delete old lines only after the new ones are safely written
+      if (existingIds.length > 0) {
+        const { error: delErr } = await supabase.from('ro_lines').delete().in('id', existingIds);
+        if (delErr) {
+          console.error('Failed to delete old lines', delErr);
+          // Non-fatal: new lines are saved, old ones are duplicates — re-fetch will sort it out
         }
       }
     }
@@ -475,7 +499,9 @@ export function useROStore() {
       });
 
       // Sync to DB: delete all, re-insert
-      await supabase.from('labor_references').delete().eq('user_id', user.id);
+      const { error: delErr } = await supabase.from('labor_references').delete().eq('user_id', user.id);
+      if (delErr) throw delErr;
+
       if (uniquePresets.length > 0) {
         const rows = uniquePresets.map((p, i) => ({
           user_id: user.id,
@@ -486,8 +512,16 @@ export function useROStore() {
           active: true,
           is_favorite: !!p.isFavorite,
         }));
-        await supabase.from('labor_references').insert(rows);
+        const { error: insErr } = await supabase.from('labor_references').insert(rows);
+        if (insErr) throw insErr;
       }
+    } catch (err: unknown) {
+      console.error('Failed to persist presets', err);
+      toast.error('Failed to save presets. Please try again.');
+      // Revert optimistic update by re-fetching current DB state
+      presetsUpdating.current = false;
+      await fetchPresets();
+      return;
     } finally {
       presetsUpdating.current = false;
     }

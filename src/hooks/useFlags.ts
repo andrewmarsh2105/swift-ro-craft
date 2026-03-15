@@ -167,12 +167,20 @@ export function useFlags() {
     }
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('ro_flags')
         .update({ cleared_at: new Date().toISOString() })
         .in('id', ids);
+      if (error) throw error;
     } catch (err: any) {
       console.error('Failed to clear period flags', err);
+      // Revert the optimistic removal so flags reappear and the user can retry
+      setFlags(prev => {
+        const clearedSet = new Set(ids);
+        const missing = toRemove.filter(f => !prev.some(p => p.id === f.id));
+        return clearedSet.size > 0 && missing.length > 0 ? [...prev, ...missing] : prev;
+      });
+      toast.error('Failed to clear flags for this period. Please try again.');
     }
   }, [user, isOnline, queueAction, flags]);
 

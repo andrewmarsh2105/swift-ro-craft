@@ -6,10 +6,10 @@ const ALLOWED_ORIGINS = [
   "https://ronavigator.com",
   "https://www.ronavigator.com",
   "https://app.ronavigator.com",
-  "https://swift-ro-craft.lovable.app",
-  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
-  "https://8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovableproject.com",
 ];
+
+// Only subscriptions for these product IDs grant Pro access
+const PRO_PRODUCT_IDS = ['prod_TytAJ1A0OZTgh0', 'prod_U2nOsuL3zAYIwa', 'prod_U2ndu4y9M2upB3'];
 
 function getSafeOrigin(req: Request): string | null {
   const origin = req.headers.get("origin");
@@ -78,7 +78,7 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated", { userId: user.id });
 
     // 1) Check pro_overrides table first
     const { data: overrideRow } = await supabaseAdmin
@@ -104,73 +104,64 @@ serve(async (req) => {
       .maybeSingle();
 
     const cachedCustomerId = settings?.stripe_customer_id;
-    logStep("Cached stripe_customer_id", { cachedCustomerId: cachedCustomerId || "none" });
+    logStep("Cached stripe_customer_id", { found: !!cachedCustomerId });
 
     const stripe = new Stripe(stripeKey);
-    logStep("Stripe key prefix", { prefix: stripeKey.substring(0, 7) });
 
     let validSub: any = null;
-    let allSubStatuses: string[] = [];
 
     // 3a) If we have a cached customer ID, try that first
     if (cachedCustomerId) {
-      logStep("Querying Stripe by cached customer ID", { cachedCustomerId });
+      logStep("Querying Stripe by cached customer ID");
       try {
         const subscriptions = await stripe.subscriptions.list({
           customer: cachedCustomerId,
           limit: 10,
         });
-        allSubStatuses.push(...subscriptions.data.map((s: any) => `${cachedCustomerId}:${s.status}`));
         validSub = subscriptions.data.find(
-          (s: any) => s.status === "active" || s.status === "trialing"
+          (s: any) => (s.status === "active" || s.status === "trialing") &&
+            s.items.data.some((i: any) => PRO_PRODUCT_IDS.includes(String(i.price?.product)))
         );
         if (validSub) {
           logStep("Valid sub found via cached customer ID", { subId: validSub.id, status: validSub.status });
         }
       } catch (err) {
-        logStep("Cached customer ID lookup failed, falling back to email", { error: String(err) });
+        logStep("Cached customer ID lookup failed, falling back to email");
       }
     }
 
     // 3b) Fallback: search by email if no valid sub found
     if (!validSub) {
-      logStep("Searching Stripe customers by email", { email: user.email });
+      logStep("Searching Stripe customers by email");
       const customers = await stripe.customers.list({ email: user.email, limit: 10 });
 
       if (customers.data.length === 0) {
-        logStep("No Stripe customer found for email", { email: user.email });
-        return new Response(JSON.stringify({
-          subscribed: false,
-          debug: { step: "no_customer", email: user.email, stripeKeyPrefix: stripeKey.substring(0, 7) },
-        }), { headers, status: 200 });
+        logStep("No Stripe customer found");
+        return new Response(JSON.stringify({ subscribed: false }), { headers, status: 200 });
       }
 
-      logStep("Found Stripe customers", {
-        count: customers.data.length,
-        ids: customers.data.map(c => c.id),
-      });
+      logStep("Found Stripe customers", { count: customers.data.length });
 
       for (const customer of customers.data) {
         const subscriptions = await stripe.subscriptions.list({
           customer: customer.id,
           limit: 10,
         });
-        allSubStatuses.push(...subscriptions.data.map((s: any) => `${customer.id}:${s.status}`));
         const found = subscriptions.data.find(
-          (s: any) => s.status === "active" || s.status === "trialing"
+          (s: any) => (s.status === "active" || s.status === "trialing") &&
+            s.items.data.some((i: any) => PRO_PRODUCT_IDS.includes(String(i.price?.product)))
         );
         if (found) {
           validSub = found;
-          // Persist customer ID for future fast lookups
           const foundCustomerId = customer.id;
-          logStep("Persisting stripe_customer_id from email fallback", { customerId: foundCustomerId });
+          logStep("Persisting stripe_customer_id from email fallback");
           await supabaseAdmin
             .from("user_settings")
-            .update({
+            .upsert({
+              user_id: user.id,
               stripe_customer_id: foundCustomerId,
               stripe_subscription_id: found.id,
-            })
-            .eq("user_id", user.id);
+            }, { onConflict: "user_id" });
           break;
         }
       }
@@ -191,20 +182,20 @@ serve(async (req) => {
         }
       } catch { /* non-fatal */ }
       productId = validSub.items.data[0]?.price?.product ?? null;
-      logStep("RESULT: subscribed", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd });
+      logStep("RESULT: subscribed", { subId: validSub.id, status: subStatus });
 
       // Sync cache
       await supabaseAdmin
         .from("user_settings")
-        .update({
+        .upsert({
+          user_id: user.id,
           is_pro: true,
           plan: subStatus === "trialing" ? "trial" : "pro",
           pro_expires_at: subscriptionEnd,
           stripe_subscription_id: validSub.id,
-        })
-        .eq("user_id", user.id);
+        }, { onConflict: "user_id" });
     } else {
-      logStep("RESULT: NOT subscribed", { allSubStatuses });
+      logStep("RESULT: NOT subscribed");
       // Clear stale cache
       await supabaseAdmin
         .from("user_settings")
@@ -217,17 +208,15 @@ serve(async (req) => {
       status: subStatus,
       product_id: productId,
       subscription_end: subscriptionEnd,
-      version: "2025-03-03b",
     }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
     logStep("ERROR", { message: errorMessage });
-
-    return new Response(JSON.stringify({
-      subscribed: false,
-      debug: { step: "exception", message: errorMessage, stripeKeyPrefix: stripeKey.substring(0, 7) },
-      version: "2025-03-03b",
-    }), { headers, status: 200 });
+    // Return 500 so the client's error handler fires and preserves current Pro state
+    // instead of resetting it on a transient server/Stripe error.
+    return new Response(JSON.stringify({ error: "Subscription check failed" }), {
+      headers,
+      status: 500,
+    });
   }
 });

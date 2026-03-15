@@ -11,6 +11,7 @@ import {
   type QueuedActionType,
   type SyncConflict,
 } from '@/lib/offlineQueue';
+import { toRosInsert, toRoLineInserts, toRosUpdate } from '@/features/ro/data/roMapper';
 
 const MAX_RETRIES = 3;
 
@@ -53,31 +54,20 @@ export function useOfflineSync() {
       switch (action.type) {
         case 'addRO': {
           const { ro } = action.payload;
+          // Use the canonical mapper so all fields (vehicle, mileage, paidDate, etc.) are included
           const { data: newRow, error } = await supabase
             .from('ros')
-            .insert({
-              user_id: user.id,
-              ro_number: ro.roNumber,
-              date: ro.date,
-              advisor_name: ro.advisor,
-              customer_name: ro.customerName || null,
-              notes: ro.notes || null,
-              status: 'draft',
-            })
+            .insert(toRosInsert(user.id, ro))
             .select()
             .single();
           if (error) throw error;
           if (ro.lines?.length > 0) {
-            const lineInserts = ro.lines.map((l: any, i: number) => ({
-              ro_id: newRow.id,
-              user_id: user.id,
-              line_no: i + 1,
-              description: l.description,
-              labor_type: l.laborType || 'customer-pay',
-              hours_paid: l.hoursPaid,
-              is_tbd: !!l.isTbd,
-              matched_reference_id: l.matchedReferenceId || null,
-            }));
+            const lineInserts = toRoLineInserts({
+              userId: user.id,
+              roId: newRow.id,
+              lines: ro.lines,
+              fallbackLaborType: ro.laborType || 'customer-pay',
+            });
             const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
             if (lErr) throw lErr;
           }
@@ -85,31 +75,33 @@ export function useOfflineSync() {
         }
         case 'updateRO': {
           const { id, updates } = action.payload;
-          const dbUpdates: any = {};
-          if (updates.roNumber !== undefined) dbUpdates.ro_number = updates.roNumber;
-          if (updates.advisor !== undefined) dbUpdates.advisor_name = updates.advisor;
-          if (updates.date !== undefined) dbUpdates.date = updates.date;
-          if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-          if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName || null;
+          // Use the canonical mapper so all fields are included
+          const dbUpdates = toRosUpdate(updates);
           if (Object.keys(dbUpdates).length > 0) {
             const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id);
             if (error) throw error;
           }
           if (updates.lines) {
-            await supabase.from('ro_lines').delete().eq('ro_id', id);
+            // Snapshot existing line IDs before touching anything
+            const { data: existingLines } = await supabase
+              .from('ro_lines').select('id').eq('ro_id', id);
+            const existingIds = (existingLines || []).map((l: { id: string }) => l.id);
+
+            // Insert new lines first — if this fails we throw and retry the whole action
             if (updates.lines.length > 0) {
-              const lineInserts = updates.lines.map((l: any, i: number) => ({
-                ro_id: id,
-                user_id: user.id,
-                line_no: i + 1,
-                description: l.description,
-                labor_type: l.laborType || 'customer-pay',
-                hours_paid: l.hoursPaid,
-                is_tbd: !!l.isTbd,
-                matched_reference_id: l.matchedReferenceId || null,
-              }));
-              const { error } = await supabase.from('ro_lines').insert(lineInserts);
-              if (error) throw error;
+              const lineInserts = toRoLineInserts({
+                userId: user.id,
+                roId: id,
+                lines: updates.lines,
+                fallbackLaborType: updates.laborType || 'customer-pay',
+              });
+              const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);
+              if (insErr) throw insErr;
+            }
+
+            // Delete old lines only after new ones are safely written
+            if (existingIds.length > 0) {
+              await supabase.from('ro_lines').delete().in('id', existingIds);
             }
           }
           return true;

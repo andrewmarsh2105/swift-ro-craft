@@ -53,13 +53,13 @@ serve(async (req) => {
         if (supabaseUserId && customerId) {
           await supabaseAdmin
             .from("user_settings")
-            .update({
+            .upsert({
+              user_id: supabaseUserId,
               stripe_customer_id: customerId,
               stripe_subscription_id: subscriptionId,
               is_pro: true,
               plan: "trial",
-            })
-            .eq("user_id", supabaseUserId);
+            }, { onConflict: "user_id" });
           logStep("Updated user_settings after checkout", { supabaseUserId });
         }
         break;
@@ -94,8 +94,7 @@ serve(async (req) => {
         if (supabaseUserId) {
           await supabaseAdmin
             .from("user_settings")
-            .update(updateData)
-            .eq("user_id", supabaseUserId);
+            .upsert({ user_id: supabaseUserId, ...updateData }, { onConflict: "user_id" });
           logStep("Updated via supabase_user_id", { supabaseUserId });
         } else {
           // Fallback: find user by stripe_customer_id
@@ -135,7 +134,7 @@ serve(async (req) => {
         if (supabaseUserId) {
           await supabaseAdmin
             .from("user_settings")
-            .update(clearData)
+            .update(clearData)  // .update is fine here — no row = no subscription to cancel anyway
             .eq("user_id", supabaseUserId);
         } else {
           const { data: settingsRows } = await supabaseAdmin

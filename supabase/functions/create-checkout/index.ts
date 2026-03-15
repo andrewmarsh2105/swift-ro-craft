@@ -6,9 +6,6 @@ const ALLOWED_ORIGINS = [
   "https://ronavigator.com",
   "https://www.ronavigator.com",
   "https://app.ronavigator.com",
-  "https://swift-ro-craft.lovable.app",
-  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
-  "https://8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovableproject.com",
 ];
 
 function getSafeOrigin(req: Request): string | null {
@@ -32,9 +29,14 @@ function corsHeaders(origin: string) {
   };
 }
 
+const monthlyPrice = Deno.env.get("STRIPE_PRICE_MONTHLY");
+const yearlyPrice = Deno.env.get("STRIPE_PRICE_YEARLY");
+if (!monthlyPrice || !yearlyPrice) {
+  throw new Error("STRIPE_PRICE_MONTHLY and STRIPE_PRICE_YEARLY env vars must be set");
+}
 const PRICES: Record<string, string> = {
-  monthly: Deno.env.get("STRIPE_PRICE_MONTHLY") || "price_1T4ho7QViI7PZv2KuEFblmXS",
-  yearly: Deno.env.get("STRIPE_PRICE_YEARLY") || "price_1T4i2KQViI7PZv2KS0I87NX0",
+  monthly: monthlyPrice,
+  yearly: yearlyPrice,
 };
 
 serve(async (req) => {
@@ -125,11 +127,10 @@ serve(async (req) => {
       console.log("[CREATE-CHECKOUT] Created new Stripe customer", { customerId, email: user.email });
     }
 
-    // Persist stripe_customer_id
+    // Persist stripe_customer_id — upsert handles users who have no settings row yet
     await supabaseAdmin
       .from("user_settings")
-      .update({ stripe_customer_id: customerId })
-      .eq("user_id", user.id);
+      .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" });
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
