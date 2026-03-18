@@ -532,12 +532,30 @@ export function useROStore() {
     if (!user) return;
     if (advisorsUpdating.current) return;
     advisorsUpdating.current = true;
-    setSettings(prev => ({ ...prev, advisors }));
+    const normalizedAdvisors = advisors
+      .map(a => ({ ...a, name: a.name.trim() }))
+      .filter(a => a.name.length > 0);
+
+    const uniqueByName = new Set<string>();
+    const uniqueAdvisors = normalizedAdvisors.filter((advisor) => {
+      const key = advisor.name.toLowerCase();
+      if (uniqueByName.has(key)) return false;
+      uniqueByName.add(key);
+      return true;
+    });
+
+    setSettings(prev => ({
+      ...prev,
+      advisors: uniqueAdvisors,
+      recentAdvisors: uniqueAdvisors.map(a => a.name).slice(0, 6),
+    }));
     try {
       // Sync to DB: delete all, re-insert
-      await supabase.from('advisors').delete().eq('user_id', user.id);
-      if (advisors.length > 0) {
-        const rows = advisors.map(a => ({
+      const { error: delErr } = await supabase.from('advisors').delete().eq('user_id', user.id);
+      if (delErr) throw delErr;
+
+      if (uniqueAdvisors.length > 0) {
+        const rows = uniqueAdvisors.map(a => ({
           user_id: user.id,
           name: a.name,
         }));
