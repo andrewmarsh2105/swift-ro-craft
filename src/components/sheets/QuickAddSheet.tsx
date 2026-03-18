@@ -188,7 +188,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       fullScreen
     >
       <div className="flex flex-col h-full min-h-0">
-        <div className="p-4 space-y-5">
+        <div className="p-4 space-y-5 pb-36">
           {/* Scan RO Photo Button — Pro only */}
           {isPro && (
             <button
@@ -248,8 +248,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                 />
               )}
               <Chip
-                label="New advisor"
+                label="＋ New advisor"
+                selected={showAdvisorCreate}
                 onSelect={() => setShowAdvisorCreate((v) => !v)}
+                className={cn(
+                  'border-primary/60 text-primary bg-primary/10',
+                  showAdvisorCreate && 'border-primary bg-primary text-primary-foreground'
+                )}
               />
             </div>
 
@@ -332,34 +337,36 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="sticky bottom-0 p-4 bg-card border-t border-border safe-bottom">
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleSave(false)}
-              disabled={!isValid}
-              className={cn(
-                'flex-1 h-11 rounded-full font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98]',
-                isValid
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              Save
-            </button>
-            {!editingRO && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+          <div className="p-4 safe-bottom">
+            <div className="flex gap-3">
               <button
-                onClick={() => handleSave(true)}
+                onClick={() => handleSave(false)}
                 disabled={!isValid}
                 className={cn(
-                  'h-11 px-6 rounded-full font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
+                  'flex-1 h-11 rounded-full font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98]',
                   isValid
-                    ? 'border-primary text-primary'
-                    : 'border-muted text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
                 )}
               >
-                Save + Add
+                Save
               </button>
-            )}
+              {!editingRO && (
+                <button
+                  onClick={() => handleSave(true)}
+                  disabled={!isValid}
+                  className={cn(
+                    'h-11 px-6 rounded-full font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
+                    isValid
+                      ? 'border-primary text-primary'
+                      : 'border-muted text-muted-foreground'
+                  )}
+                >
+                  Save + Add
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
