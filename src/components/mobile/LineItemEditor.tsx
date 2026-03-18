@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
@@ -12,6 +11,7 @@ interface LineItemEditorProps {
   onLinesChange: (lines: ROLine[]) => void;
   presets?: Preset[];
   showLaborType?: boolean;
+  onPresetApplied?: (preset: Preset) => void;
 }
 
 function createEmptyLine(lineNo: number): ROLine {
@@ -37,11 +37,11 @@ export function LineItemEditor({
   lines, 
   onLinesChange, 
   presets = [],
-  showLaborType = false 
+  showLaborType = false,
+  onPresetApplied,
 }: LineItemEditorProps) {
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
-  const topRef = useRef<HTMLDivElement>(null);
 
   const handleAddLine = () => {
     triggerHaptic();
@@ -87,10 +87,10 @@ export function LineItemEditor({
       return updated;
     });
 
-    // Create new line at TOP
+    // Create new line at bottom to avoid viewport jump while users add multiple presets
     const newLine: ROLine = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      lineNo: 1,
+      lineNo: lines.length + 1,
       description: preset.workTemplate || preset.name,
       hoursPaid: preset.defaultHours || 0,
       laborType: preset.laborType,
@@ -99,25 +99,24 @@ export function LineItemEditor({
       updatedAt: new Date().toISOString(),
     };
     
-    // Add at top and renumber all lines
-    const updatedLines = [newLine, ...lines].map((line, i) => ({
+    // Add at bottom and renumber all lines
+    const updatedLines = [...lines, newLine].map((line, i) => ({
       ...line,
       lineNo: i + 1,
     }));
     onLinesChange(updatedLines);
     
     // Show toast feedback
-    toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
-    
-    // Scroll to top to show new line
-    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const presetHours = Number(preset.defaultHours || 0).toFixed(1);
+    toast.success(`Added ${preset.name} -${presetHours}hrs`);
+    onPresetApplied?.(preset);
   };
 
   const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
   const hasEmptyHours = lines.some(line => line.description && !line.hoursPaid);
 
   return (
-    <div className="space-y-4" ref={topRef}>
+    <div className="space-y-4">
       {/* Preset Quick Add - At TOP */}
       {presets.length > 0 && (
         <PresetSearchRail
@@ -125,6 +124,7 @@ export function LineItemEditor({
           onSelect={handlePresetSelect}
           animatingId={animatingPresetId}
           layout="mobile"
+          mobileMode="grid"
         />
       )}
 

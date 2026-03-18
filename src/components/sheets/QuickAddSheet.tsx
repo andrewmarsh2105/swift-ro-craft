@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Camera, X, Plus } from 'lucide-react';
+import { Camera, X, UserPlus } from 'lucide-react';
 import { haptics } from '@/lib/haptics';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Chip } from '@/components/mobile/Chip';
@@ -26,11 +26,14 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const { isPro } = useSubscription();
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   const [showProUpgrade, setShowProUpgrade] = useState(false);
+  const [advisorDraft, setAdvisorDraft] = useState('');
+  const [showAdvisorCreate, setShowAdvisorCreate] = useState(false);
 
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
+  const [roDate, setRoDate] = useState(editingRO?.date || localDateStr());
   const [notes, setNotes] = useState(editingRO?.notes || '');
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (editingRO?.lines?.length) return editingRO.lines;
@@ -69,6 +72,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         setRoNumber(editingRO.roNumber);
         setAdvisor(editingRO.advisor);
         setLaborType(editingRO.laborType);
+        setRoDate(editingRO.date || localDateStr());
         setNotes(editingRO.notes || '');
         if (editingRO.lines?.length) {
           setLines(editingRO.lines);
@@ -103,6 +107,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setRoNumber('');
     setAdvisor('');
     setLaborType('customer-pay');
+    setRoDate(localDateStr());
     setNotes('');
     setLines([createEmptyLine(1)]);
     setPaidDate('');
@@ -130,7 +135,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       laborType,
       workPerformed: computedWorkPerformed,
       notes,
-      date: editingRO?.date || localDateStr(),
+      date: roDate || localDateStr(),
       photos: editingRO?.photos,
       lines,
       isSimpleMode: false,
@@ -160,6 +165,21 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
 
   const isValid = roNumber.trim() !== '';
 
+  const saveAdvisorQuickly = async () => {
+    const trimmed = advisorDraft.trim();
+    if (!trimmed) return;
+
+    const existing = settings.advisors.find(a => a.name.toLowerCase() === trimmed.toLowerCase());
+    if (!existing) {
+      await updateAdvisors([...settings.advisors, { id: Date.now().toString(), name: trimmed }]);
+      toast.success(`Advisor "${trimmed}" added`);
+    }
+
+    setAdvisor(trimmed);
+    setAdvisorDraft('');
+    setShowAdvisorCreate(false);
+  };
+
   return (
     <BottomSheet
       isOpen={isOpen}
@@ -167,33 +187,42 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       title={editingRO ? 'Edit RO' : 'Quick Add'}
       fullScreen
     >
-      <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex flex-col h-full min-h-0">
+        <div className="p-4 space-y-5">
           {/* Scan RO Photo Button — Pro only */}
           {isPro && (
             <button
               onClick={onScanPhoto}
-              className="w-full py-4 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center gap-3 text-primary font-semibold tap-target touch-feedback"
+              className="w-full py-4 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center gap-3 text-primary font-semibold tap-target touch-feedback sticky top-0 z-10"
             >
               <Camera className="h-6 w-6" />
               Scan RO Photo
             </button>
           )}
 
-          {/* RO Number */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              RO Number
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={roNumber}
-              onChange={(e) => setRoNumber(e.target.value.slice(0, 20))}
-              placeholder="Enter RO number"
-              maxLength={20}
-              className="w-full h-11 px-4 bg-secondary rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+          {/* Essentials */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">RO Number</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={roNumber}
+                onChange={(e) => setRoNumber(e.target.value.slice(0, 20))}
+                placeholder="Enter RO number"
+                maxLength={20}
+                className="w-full h-11 px-4 bg-secondary rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">RO Date</label>
+              <input
+                type="date"
+                value={roDate}
+                onChange={(e) => setRoDate(e.target.value)}
+                className="w-full h-11 px-2 bg-secondary rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
 
           {/* Advisor Selector */}
@@ -203,25 +232,54 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             </label>
 
             {/* Advisor chips from managed advisors */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5).map((adv) => (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).map((adv) => (
                 <Chip
                   key={adv.id}
-                  label={adv.name.split(' ')[0]} // First name only
+                  label={adv.name}
                   selected={advisor === adv.name}
                   onSelect={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
                 />
               ))}
-              {settings.advisors.length > 5 && (
+              {settings.advisors.length > 8 && (
                 <Chip
                   label="More..."
                   onSelect={() => setShowAdvisorList(true)}
                 />
               )}
+              <Chip
+                label="New advisor"
+                onSelect={() => setShowAdvisorCreate((v) => !v)}
+              />
             </div>
 
-            {/* Show selected advisor if not in first 5 */}
-            {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5).find(a => a.name === advisor) && (
+            {showAdvisorCreate && (
+              <div className="flex items-center gap-2 p-2 rounded-xl border border-border bg-secondary/60 mb-2">
+                <input
+                  type="text"
+                  value={advisorDraft}
+                  onChange={(e) => setAdvisorDraft(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      await saveAdvisorQuickly();
+                    }
+                  }}
+                  placeholder="Type advisor name"
+                  className="flex-1 h-10 px-3 rounded-lg bg-background border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <button
+                  onClick={saveAdvisorQuickly}
+                  className="h-10 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium"
+                  aria-label="Add advisor"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Show selected advisor if not in quick chips */}
+            {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).find(a => a.name === advisor) && (
               <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl">
                 <span className="font-medium">{advisor}</span>
                 <button onClick={() => setAdvisor('')} className="ml-auto">
