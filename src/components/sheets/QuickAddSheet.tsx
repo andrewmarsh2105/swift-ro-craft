@@ -188,7 +188,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       fullScreen
     >
       <div className="flex flex-col h-full min-h-0">
-        <div className="p-4 space-y-5">
+        <div className="p-4 space-y-5 pb-28">
           {/* Scan RO Photo Button — Pro only */}
           {isPro && (
             <button
@@ -248,8 +248,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                 />
               )}
               <Chip
-                label="New advisor"
+                label="＋ New advisor"
+                selected={showAdvisorCreate}
                 onSelect={() => setShowAdvisorCreate((v) => !v)}
+                className={cn(
+                  'border-primary/60 text-primary bg-primary/10',
+                  showAdvisorCreate && 'border-primary bg-primary text-primary-foreground'
+                )}
               />
             </div>
 
