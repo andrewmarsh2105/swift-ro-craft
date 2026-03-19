@@ -195,6 +195,7 @@ export function useROStore() {
       const { data, error } = await supabase
         .from('labor_references')
         .select('*')
+        .eq('user_id', userId)
         .eq('active', true)
         .order('sort_order', { ascending: true });
       if (error) throw error;
@@ -219,6 +220,7 @@ export function useROStore() {
       const { data, error } = await supabase
         .from('advisors')
         .select('*')
+        .eq('user_id', userId)
         .order('name', { ascending: true });
       if (error) throw error;
       const advisors: Advisor[] = (data || []).map((r) => {
