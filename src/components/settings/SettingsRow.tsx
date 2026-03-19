@@ -22,7 +22,7 @@ export function SettingsRow({ label, description, currentValue, value, onClick, 
       onClick={toggle ? () => !disabled && onToggle?.(!toggleValue) : onClick}
       disabled={disabled && !toggle}
       className={cn(
-        'w-full p-4 flex items-center justify-between tap-target touch-feedback',
+        'w-full p-4 flex items-center justify-between tap-target touch-feedback hover:bg-accent/30 quiet-transition',
         disabled && 'opacity-50'
       )}
     >
@@ -35,8 +35,8 @@ export function SettingsRow({ label, description, currentValue, value, onClick, 
       {toggle ? (
         <div
           className={cn(
-            'w-12 h-7 rounded-full relative transition-colors flex-shrink-0',
-            toggleValue ? 'bg-primary' : 'bg-muted'
+            'w-12 h-7 rounded-full relative transition-colors flex-shrink-0 border border-border/70',
+            toggleValue ? 'bg-primary' : 'bg-muted/80'
           )}
         >
           <div

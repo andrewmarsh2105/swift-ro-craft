@@ -575,9 +575,9 @@ export function SummaryTab() {
   const maxDayHours = Math.max(...report.byDay.map(d => d.totalHours), 1);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-accent/[0.12]">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/80">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full rounded-none bg-transparent h-11 gap-0 p-0">
             <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Summary</TabsTrigger>
@@ -633,7 +633,7 @@ export function SummaryTab() {
 
             {/* ── A) Top Controls ────────────────────── */}
             <div className="px-4 pt-3">
-              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/25 px-3 py-2.5 shadow-soft">
+              <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-card px-3 py-2.5 shadow-soft">
                 <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
                   <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0 flex-shrink-0">
                     <SelectValue />

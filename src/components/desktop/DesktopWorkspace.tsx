@@ -207,7 +207,7 @@ export function DesktopWorkspace() {
       <OfflineStatusBar />
 
       {/* App Bar */}
-      <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border bg-card">
+      <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border/80 bg-card/95 backdrop-blur-sm">
         <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
 
         <div className="flex items-center gap-1">
@@ -247,7 +247,7 @@ export function DesktopWorkspace() {
           {!isPro && (
             <button
               onClick={() => setShowUpgradeDialog(true)}
-              className="ml-1 h-9 px-3 rounded-md border bg-background text-[11px] font-semibold text-primary hover:bg-accent quiet-transition flex items-center gap-2"
+              className="ml-1 h-9 px-3 rounded-md border border-border/80 bg-accent/35 text-[11px] font-semibold text-primary hover:bg-accent/55 quiet-transition flex items-center gap-2"
               title="Upgrade to Pro"
             >
               <Crown className="h-3 w-3" />
@@ -270,10 +270,10 @@ export function DesktopWorkspace() {
           </Suspense>
         </div>
       ) : (
-        <div className={cn("flex-1 flex min-h-0", isDragging && "select-none")}>
+        <div className={cn("flex-1 flex min-h-0 p-2 gap-2", isDragging && "select-none")}>
           {/* Left Panel */}
           <div
-            className="min-w-0 flex-shrink-0 overflow-hidden"
+            className="min-w-0 flex-shrink-0 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)]"
             style={isWideList ? { flex: "1 1 0%" } : { width: splitter.width }}
           >
             <ROListPanel
@@ -290,7 +290,7 @@ export function DesktopWorkspace() {
             <>
               <div
                 className={cn(
-                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border bg-card hover:bg-accent quiet-transition",
+                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border/70 bg-accent/20 hover:bg-accent/40 quiet-transition rounded-md",
                   isDragging && "bg-accent",
                 )}
                 onPointerDown={handlePointerDown}
@@ -311,7 +311,7 @@ export function DesktopWorkspace() {
                 </div>
               </div>
 
-              <div className="flex-1 min-w-0 relative">
+              <div className="flex-1 min-w-0 relative rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)]">
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
                     <motion.div

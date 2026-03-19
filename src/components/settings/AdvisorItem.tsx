@@ -9,8 +9,8 @@ interface AdvisorItemProps {
 
 export function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
   return (
-    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3">
-      <User className="h-5 w-5 text-muted-foreground" />
+    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3 border border-border/70 shadow-[var(--shadow-sm)]">
+      <User className="h-5 w-5 text-primary/80" />
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{advisor.name}</div>
       </div>

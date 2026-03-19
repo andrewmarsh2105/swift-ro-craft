@@ -276,13 +276,13 @@ export const ROListPanel = memo(function ROListPanel({
 
   return (
     <>
-      <div className="flex flex-col h-full border-r border-border/70 bg-card">
+      <div className="flex flex-col h-full bg-card">
         {/* Header */}
-        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border/70 bg-muted/20 space-y-2.5">
+        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border/80 bg-accent/25 space-y-2.5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="page-title">{userSettings.shopName || 'Repair Orders'}</h2>
-              <div className="mt-1 inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background px-2.5 py-1.5 shadow-sm">
+              <div className="mt-1 inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.08] px-2.5 py-1.5 shadow-sm">
                 <span className="text-xl font-extrabold tabular-nums text-primary leading-none">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
@@ -297,7 +297,7 @@ export const ROListPanel = memo(function ROListPanel({
                 </Badge>
               </div>
             </div>
-            <Button size="sm" onClick={onAddNew} className="h-9 text-xs gap-1.5 rounded-full px-4">
+            <Button size="sm" onClick={onAddNew} className="h-9 text-xs gap-1.5 rounded-full px-4 bg-primary text-white hover:bg-primary/90">
               <Plus className="icon-row" />
               Add RO
             </Button>
@@ -310,7 +310,7 @@ export const ROListPanel = memo(function ROListPanel({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search RO #, advisor, vehicle, customer, work..."
-                className="h-10 pl-9 bg-background"
+                className="h-10 pl-9 bg-card border-border/80"
               />
             </div>
 
@@ -320,7 +320,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
-                  className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All dates</option>
                   <option value="today">Today</option>
@@ -337,7 +337,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <select
                   value={advisorFilter}
                   onChange={(e) => setAdvisorFilter(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All advisors</option>
                   {advisors.map((a) => (
@@ -411,27 +411,27 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 py-3 cursor-pointer text-xs border-b border-border/50 row-hover quiet-transition",
+                        "grid gap-x-2 items-start px-3 py-3 cursor-pointer text-xs border-b border-border/60 row-hover quiet-transition",
                         gridCols,
-                        selected && "bg-primary/10 border-l-2 border-l-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.18)]",
+                        selected && "bg-primary/12 border-l-2 border-l-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.22)]",
                       )}
                       onClick={() => onSelectRO(ro)}
                       role="row"
                     >
                       {/* Date */}
-                      <div className="meta-text tabular-nums whitespace-nowrap" role="cell">
+                      <div className="meta-text tabular-nums whitespace-nowrap text-foreground/75" role="cell">
                         {formatDateShort(effectiveDate(ro))}
                       </div>
 
                       {/* RO# */}
-                      <div className="font-semibold whitespace-nowrap tabular-nums" role="cell">#{ro.roNumber}</div>
+                      <div className="font-semibold whitespace-nowrap tabular-nums text-foreground" role="cell">#{ro.roNumber}</div>
 
                       {/* Info: two-line */}
                       <div className="min-w-0" role="cell">
                         <p className="text-[11px] font-semibold truncate">
                           {ro.advisor} · {vehicleLabel(ro)}
                         </p>
-                        <p className="meta-text truncate">{workSummary}</p>
+                        <p className="meta-text truncate text-foreground/70">{workSummary}</p>
                       </div>
 
                       {/* Hours */}
@@ -479,7 +479,7 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-3 py-2 border-t border-border bg-muted/30">
+        <div className="flex-shrink-0 px-3 py-2 border-t border-border/80 bg-accent/20">
           <div className="flex items-center justify-between meta-text">
             <span className="tabular-nums">
               {filteredROs.length} ROs{filteredROs.length > visibleCount ? ` (showing ${visible.length})` : ""}

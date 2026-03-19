@@ -17,7 +17,7 @@ export function PresetItem({ preset, onEdit, onDelete, onToggleFavorite }: Prese
   }[preset.laborType];
 
   return (
-    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3 overflow-hidden">
+    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3 overflow-hidden border border-border/70 shadow-[var(--shadow-sm)]">
       <button onClick={onToggleFavorite} className="p-1.5 tap-target touch-feedback flex-shrink-0">
         <Star className={cn('h-4 w-4', preset.isFavorite ? 'fill-primary text-primary' : 'text-muted-foreground')} />
       </button>

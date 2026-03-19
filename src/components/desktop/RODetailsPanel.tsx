@@ -63,7 +63,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3">
+      <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border/80 px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
       </div>
 
       {/* Body */}
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 bg-accent/[0.15]">
         {/* Details */}
         <SectionCard title="Details">
           <div className="inset-panel p-3 space-y-2">
@@ -221,7 +221,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
             <Copy className="icon-row" />
             Duplicate
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={onDelete}>
+          <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={onDelete}>
             <Trash2 className="icon-row" />
             Delete
           </Button>

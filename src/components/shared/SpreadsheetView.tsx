@@ -339,7 +339,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Helpers ─── */
   const getRowBg = (groupIndex: number) =>
-    groupIndex % 2 === 1 ? 'bg-muted/30' : 'bg-card';
+    groupIndex % 2 === 1 ? 'bg-accent/20' : 'bg-card';
 
   /* ─── Empty state ─── */
   if (filteredROs.length === 0) {
@@ -448,7 +448,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-            <div className="flex rounded-xl border border-border/80 overflow-hidden bg-muted/20 shadow-sm">
+            <div className="flex rounded-xl border border-border/80 overflow-hidden bg-accent/20 shadow-sm">
               {([
                 { value: 'today' as DateFilterKey, label: 'Today' },
                 { value: 'week' as DateFilterKey, label: 'Week' },
@@ -464,7 +464,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     'px-2.5 py-1.5 text-[11px] font-semibold tracking-wide transition-colors',
                     dateRange === opt.value
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-transparent text-muted-foreground hover:bg-muted',
+                      : 'bg-transparent text-muted-foreground hover:bg-accent/35',
                   )}
                 >
                   {opt.label}
@@ -477,7 +477,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           {computedRangeLabel && (
             <Badge
               variant="outline"
-              className={cn("gap-1 rounded-lg bg-background", dateRange === 'custom' && "cursor-pointer hover:bg-muted")}
+              className={cn("gap-1 rounded-lg bg-card", dateRange === 'custom' && "cursor-pointer hover:bg-accent/35")}
               onClick={() => { if (dateRange === 'custom') requestCustomDialog(); }}
             >
               <CalendarRange className="h-3 w-3" />
@@ -486,7 +486,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {/* View mode */}
-          <div className="flex rounded-xl border border-border/80 overflow-hidden bg-muted/20 shadow-sm">
+          <div className="flex rounded-xl border border-border/80 overflow-hidden bg-accent/20 shadow-sm">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
                 key={m}
@@ -495,7 +495,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   'px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors',
                   viewMode === m
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-transparent text-muted-foreground hover:bg-muted',
+                    : 'bg-transparent text-muted-foreground hover:bg-accent/35',
                 )}
               >
                 {m}
@@ -597,7 +597,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
 
                 return (
-                  <tr key={`rosub-${i}`} className="border-t border-border/50 bg-muted/15">
+                  <tr key={`rosub-${i}`} className="border-t border-border/60 bg-accent/15">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-xs text-right')}>
                       {sub.label}
                     </td>
@@ -625,7 +625,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1;
 
                 return (
-                  <tr key={`daysub-${i}`} className="border-t-2 border-border bg-muted/40">
+                  <tr key={`daysub-${i}`} className="border-t-2 border-border bg-accent/30">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
                       {sub.label}
                     </td>
@@ -644,7 +644,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1;
 
                 return (
-                  <tr key={`advsub-${i}`} className="border-t-2 border-border bg-muted/40">
+                  <tr key={`advsub-${i}`} className="border-t-2 border-border bg-accent/30">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
                       {sub.label}
                     </td>
@@ -721,7 +721,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 tabular-nums rounded-lg border border-border/70 bg-muted/20 px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 tabular-nums rounded-lg border border-border/70 bg-accent/20 px-3 py-1.5">
           <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {maskHours(warrantyHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {maskHours(cpHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {maskHours(internalHours, hideTotals)}h</span>

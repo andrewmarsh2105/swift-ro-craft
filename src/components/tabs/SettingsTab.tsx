@@ -558,9 +558,9 @@ export function SettingsTab() {
   const avatarInitial = (syncedSettings.displayName || user?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto pb-32">
+    <div className="flex flex-col h-full overflow-y-auto pb-32 bg-accent/[0.14]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border space-y-3">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border/80 space-y-3">
         <h1 className="text-2xl font-bold">Settings</h1>
         <SegmentedControl
           options={[
@@ -578,7 +578,7 @@ export function SettingsTab() {
             {/* Profile Card — tappable, opens Account sheet */}
             <button
               onClick={() => setShowAccountSheet(true)}
-              className="card-mobile p-4 w-full text-left tap-target touch-feedback"
+              className="card-mobile p-4 w-full text-left tap-target touch-feedback border border-border/80"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -636,7 +636,7 @@ export function SettingsTab() {
                   <select
                     value={syncedSettings.accentColor || 'blue'}
                     onChange={e => updateSetting('accentColor', e.target.value)}
-                    className="h-9 pl-3 pr-7 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
+                    className="h-9 pl-3 pr-7 text-sm bg-card rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
                   >
                     {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => (
                       <option key={colorKey} value={colorKey}>
@@ -695,7 +695,7 @@ export function SettingsTab() {
                   onChange={e => setLocalDailyGoal(e.target.value)}
                   onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
                   placeholder="Off"
-                  className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                  className="w-20 h-10 px-3 text-sm text-right bg-card rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                 />
               </div>
               <div className="p-4 flex items-center justify-between gap-4">

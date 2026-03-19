@@ -355,14 +355,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/80">
         <div className="px-4 pt-2.5">
         <div className="flex items-start justify-between pb-2 gap-2">
           <div className="min-w-0">
             <h2 className="page-title">{goalSettings.shopName || 'Repair Orders'}</h2>
-            <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-muted/35 px-2.5 py-1.5">
+            <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.08] px-2.5 py-1.5 shadow-sm">
               <span className="text-2xl font-bold tabular-nums text-primary leading-none tracking-tight">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
               </span>
@@ -381,7 +381,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               )}
               <Badge
                 variant="outline"
-                className={cn("gap-1 text-xs py-0.5 px-2 font-medium rounded-full", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
+                className={cn("gap-1 text-xs py-0.5 px-2 font-medium rounded-full border-border/80 bg-card/80", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
                 onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
               >
                 <CalendarRange className="h-3 w-3" />
@@ -413,7 +413,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </button>
             <button
               onClick={() => setShowFilters(true)}
-              className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted relative quiet-transition"
+              className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent/40 relative quiet-transition"
             >
               <SlidersHorizontal className="icon-toolbar" />
               {activeFiltersCount > 0 && (
@@ -433,7 +433,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search RO #, advisor, vehicle, work..."
-              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-muted/30 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-card text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -455,7 +455,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 'h-8 px-3.5 text-xs font-semibold rounded-full border quiet-transition',
                 dateFilter === value
                   ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                  : 'bg-card text-muted-foreground border-border hover:bg-accent/35'
               )}
             >
               {label}
@@ -478,7 +478,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </Suspense>
         </div>
       ) : (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32 bg-accent/[0.12]">
           {loadingROs ? (
             <div className="px-4 py-3 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
