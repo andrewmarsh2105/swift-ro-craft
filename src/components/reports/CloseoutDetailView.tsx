@@ -18,7 +18,7 @@ interface CloseoutDetailViewProps {
   closeout: CloseoutSnapshot;
 }
 
-type FilterMode = 'all' | 'flagged' | 'tbd';
+type FilterMode = 'all' | 'tbd';
 
 const RANGE_LABELS: Record<string, string> = {
   day: 'Day',
@@ -86,7 +86,7 @@ function ROItem({ ro, hide }: { ro: ROSnapshot; hide: boolean }) {
   );
 }
 
-function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; onClose: () => void }) {
+function CloseoutContent({ closeout }: { closeout: CloseoutSnapshot }) {
   const [filter, setFilter] = useState<FilterMode>('all');
   const { userSettings } = useFlagContext();
   const hide = userSettings.hideTotals ?? false;
@@ -247,7 +247,7 @@ export function CloseoutDetailView({ open, onClose, closeout }: CloseoutDetailVi
   if (isMobile) {
     return (
       <BottomSheet isOpen={open} onClose={onClose} title="Closeout Summary" fullHeight>
-        <CloseoutContent closeout={closeout} onClose={onClose} />
+        <CloseoutContent closeout={closeout} />
       </BottomSheet>
     );
   }
@@ -259,7 +259,7 @@ export function CloseoutDetailView({ open, onClose, closeout }: CloseoutDetailVi
           <DialogTitle>Closeout Summary</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-auto">
-          <CloseoutContent closeout={closeout} onClose={onClose} />
+          <CloseoutContent closeout={closeout} />
         </div>
       </DialogContent>
     </Dialog>

@@ -16,6 +16,11 @@ import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
 import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
 import { generateLineCSV, generateSummaryText, downloadCSV, shareSummary } from '@/lib/exportUtils';
 
+function asLaborType(value: string | undefined): 'customer-pay' | 'warranty' | 'internal' {
+  if (value === 'warranty' || value === 'internal') return value;
+  return 'customer-pay';
+}
+
 /** Build a minimal PayPeriodReport-compatible object from a frozen snapshot */
 function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
   const rosInRange = snapshot.roSnapshot.map(ro => ({
@@ -38,7 +43,7 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
       description: l.description,
       hoursPaid: l.hours,
       isTbd: l.isTbd,
-      laborType: (l.laborType as any) || 'customer-pay',
+      laborType: asLaborType(l.laborType),
       matchedReferenceId: l.matchedReferenceId,
       vehicleOverride: false,
       lineVehicle: undefined,
@@ -71,7 +76,7 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     })),
     byAdvisor: snapshot.breakdowns.byAdvisor || [],
     byLaborType: (snapshot.breakdowns.byLaborType || []).map(lt => ({
-      laborType: lt.laborType as any,
+      laborType: asLaborType(lt.laborType),
       label: lt.label,
       totalHours: lt.totalHours,
       lineCount: lt.lineCount,
@@ -92,9 +97,8 @@ interface ProofPackProps {
   snapshot?: CloseoutSnapshot;
 }
 
-function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClose: () => void }) {
+function ProofPackContent({ report }: { report: PayPeriodReport }) {
   const [showROs, setShowROs] = useState(false);
-  const [flaggedOnly, setFlaggedOnly] = useState(false);
   const { userSettings } = useFlagContext();
   const hide = userSettings.hideTotals ?? false;
 
@@ -127,10 +131,6 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
       toast.error('Share failed');
     }
   };
-
-  const displayROs = flaggedOnly
-    ? report.rosInRange.filter(ro => report.linesInRange.some(l => l.ro.id === ro.id))
-    : report.rosInRange;
 
   return (
     <div className="space-y-4 p-4">
@@ -229,11 +229,11 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
           className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2"
         >
           {showROs ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-          RO List ({displayROs.length})
+          RO List ({report.rosInRange.length})
         </button>
         {showROs && (
           <div className="space-y-1">
-            {displayROs.map(ro => {
+            {report.rosInRange.map(ro => {
               const roLines = (ro.lines || []).filter(l => l.description.trim() !== '' && !l.isTbd);
               const roTotal = roLines.reduce((s, l) => s + l.hoursPaid, 0);
               return (
@@ -286,7 +286,7 @@ export function ProofPack({ open, onClose, report, snapshot }: ProofPackProps) {
   if (isMobile) {
     return (
       <BottomSheet isOpen={open} onClose={onClose} title={title} fullHeight>
-        <ProofPackContent report={effectiveReport} onClose={onClose} />
+        <ProofPackContent report={effectiveReport} />
       </BottomSheet>
     );
   }
@@ -301,7 +301,7 @@ export function ProofPack({ open, onClose, report, snapshot }: ProofPackProps) {
           </DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-auto">
-          <ProofPackContent report={effectiveReport} onClose={onClose} />
+          <ProofPackContent report={effectiveReport} />
         </div>
       </DialogContent>
     </Dialog>
