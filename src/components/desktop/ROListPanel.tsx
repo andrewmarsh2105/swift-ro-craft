@@ -110,7 +110,7 @@ export const ROListPanel = memo(function ROListPanel({
   compact = false,
 }: ROListPanelProps) {
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
-  const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
+  const { flags, userSettings } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery);
@@ -212,6 +212,32 @@ export const ROListPanel = memo(function ROListPanel({
 
     return sorted;
   }, [ros, advisorFilter, deferredQuery, listBounds, sortKey, sortDir]);
+
+  const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
+
+  const flagCountByRO = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const flag of flags) {
+      if (flag.roLineId) continue;
+      map.set(flag.roId, (map.get(flag.roId) ?? 0) + 1);
+    }
+    return map;
+  }, [flags]);
+
+  const reviewIssueCountByRO = useMemo(() => {
+    const roNumberCounts = new Map<string, number>();
+    for (const ro of ros) {
+      if (!ro.roNumber) continue;
+      roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
+    }
+
+    const map = new Map<string, number>();
+    for (const ro of ros) {
+      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
+      map.set(ro.id, count > 1 ? getReviewIssues(ro, ros).length : 0);
+    }
+    return map;
+  }, [ros]);
 
   useEffect(() => {
     onFilteredROsChange?.(filteredROs);
@@ -373,8 +399,8 @@ export const ROListPanel = memo(function ROListPanel({
               <div>
                 {visible.map((ro) => {
                   const hours = calcHours(ro);
-                  const flags = getFlagsForRO(ro.id);
-                  const issues = getReviewIssues(ro, ros);
+                  const flagsCount = flagCountByRO.get(ro.id) ?? 0;
+                  const issuesCount = reviewIssueCountByRO.get(ro.id) ?? 0;
                   const selected = selectedROId === ro.id;
 
                   const workSummary = ro.lines?.length
@@ -415,7 +441,7 @@ export const ROListPanel = memo(function ROListPanel({
 
                       {/* Status chips */}
                       <div role="cell">
-                        <StatusChips ro={ro} flagsCount={flags.length} checksCount={issues.length} />
+                        <StatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
                       </div>
 
                       {/* Actions */}
@@ -429,7 +455,7 @@ export const ROListPanel = memo(function ROListPanel({
                           }}
                           onDelete={() => deleteRO(ro.id)}
                           onFlag={() => setFlaggingRO(ro)}
-                          existingRONumbers={ros.map((r) => r.roNumber)}
+                          existingRONumbers={existingRONumbers}
                           className="-mr-2"
                         />
                       </div>

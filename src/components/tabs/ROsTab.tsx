@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
@@ -22,7 +22,6 @@ import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { EmptyState } from '@/components/states/EmptyState';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
-import type { FlagType } from '@/types/flags';
 import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
@@ -85,16 +84,14 @@ interface ROCardProps {
   onFlag: () => void;
   onViewDetails: () => void;
   flags: import('@/types/flags').ROFlag[];
-  onClearFlag: (flagId: string) => void;
   reviewIssues: ReviewIssue[];
-  onConvertToFlag: (issue: ReviewIssue, flagType: FlagType, note?: string) => void;
   existingRONumbers: string[];
   hideTotals: boolean;
 }
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails,
-  flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers, hideTotals,
+  flags, reviewIssues, existingRONumbers, hideTotals,
 }: ROCardProps) {
   const roEffectiveDate = effectiveDate(ro);
   const hours = calcHours(ro);
@@ -174,7 +171,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const navigate = useNavigate();
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
-  const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
+  const { flags, userSettings } = useFlagContext();
 
   const hasCustomPayPeriod =
     userSettings.payPeriodType === 'custom' &&
@@ -286,6 +283,34 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return sortROs(result, filters.sortBy);
   }, [ros, deferredSearch, filters, rangeBounds]);
 
+  const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
+
+  const flagsByROId = useMemo(() => {
+    const map = new Map<string, import('@/types/flags').ROFlag[]>();
+    for (const flag of flags) {
+      if (flag.roLineId) continue;
+      const current = map.get(flag.roId);
+      if (current) current.push(flag);
+      else map.set(flag.roId, [flag]);
+    }
+    return map;
+  }, [flags]);
+
+  const reviewIssuesByROId = useMemo(() => {
+    const roNumberCounts = new Map<string, number>();
+    for (const ro of ros) {
+      if (!ro.roNumber) continue;
+      roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
+    }
+
+    const issuesMap = new Map<string, ReviewIssue[]>();
+    for (const ro of ros) {
+      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
+      issuesMap.set(ro.id, count > 1 ? getReviewIssues(ro, ros) : []);
+    }
+    return issuesMap;
+  }, [ros]);
+
   useEffect(() => {
     setVisibleCount(50);
   }, [searchQuery, filters, dateFilter]);
@@ -303,10 +328,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     const today = new Date().toISOString().slice(0, 10);
     return ros.filter(ro => (ro.date || '').startsWith(today)).reduce((s, ro) => s + calcHours(ro), 0);
   }, [ros, hoursGoalDaily]);
-
-  const handleConvertToFlag = useCallback((issue: ReviewIssue, flagType: FlagType, note?: string) => {
-    addFlag(issue.roId, flagType, note || issue.detail, issue.lineId);
-  }, [addFlag]);
 
   const activeFiltersCount =
     filters.advisors.length +
@@ -511,10 +532,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 <ROCard
                   key={ro.id}
                   ro={ro}
-                  flags={getFlagsForRO(ro.id)}
-                  onClearFlag={clearFlag}
-                  reviewIssues={getReviewIssues(ro, ros)}
-                  onConvertToFlag={handleConvertToFlag}
+                  flags={flagsByROId.get(ro.id) ?? []}
+                  reviewIssues={reviewIssuesByROId.get(ro.id) ?? []}
                   hideTotals={userSettings.hideTotals ?? false}
                   onEdit={() => onEditRO(ro)}
                   onFlag={() => setFlaggingRO(ro)}
@@ -527,7 +546,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                     setSelectedRO(ro);
                     setShowDetail(true);
                   }}
-                  existingRONumbers={ros.map(r => r.roNumber)}
+                  existingRONumbers={existingRONumbers}
                 />
               ))}
               {hasMore && (
@@ -556,7 +575,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           }
           setShowDetail(false);
         }}
-        existingRONumbers={ros.map(r => r.roNumber)}
+        existingRONumbers={existingRONumbers}
         onDelete={() => { if (selectedRO) deleteRO(selectedRO.id); setShowDetail(false); }}
       />
 
