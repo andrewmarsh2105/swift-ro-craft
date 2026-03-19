@@ -43,10 +43,10 @@ export function ReviewIndicator({ issues, onConvertToFlag, onGoToLine, size = 's
         <div
           key={`${issue.code}-${issue.lineId || i}`}
           className={cn(
-            'px-3 py-3 rounded-lg border',
+            'px-3 py-3 rounded-xl border',
             issue.severity === 'error'
-              ? 'bg-destructive/10 border-destructive/20'
-              : 'bg-yellow-500/10 border-yellow-500/20'
+              ? 'bg-destructive/10 border-destructive/30'
+              : 'bg-yellow-500/10 border-yellow-500/30'
           )}
         >
           <p className={cn(
@@ -75,7 +75,7 @@ export function ReviewIndicator({ issues, onConvertToFlag, onGoToLine, size = 's
               size="sm"
               variant="outline"
               onClick={() => setConvertingIssue(issue)}
-              className="h-7 text-[11px] text-orange-500 border-orange-500/30"
+              className="h-7 text-[11px] text-orange-600 border-orange-500/40"
             >
               <Flag className="h-3 w-3 mr-1" />
               Convert to flag
@@ -129,7 +129,7 @@ export function ReviewIndicator({ issues, onConvertToFlag, onGoToLine, size = 's
           e.stopPropagation();
           setOpen(true);
         }}
-        className="inline-flex items-center gap-0.5 text-yellow-500 hover:text-yellow-600 transition-colors"
+        className="inline-flex items-center gap-1 rounded-full bg-yellow-500/12 px-1.5 py-1 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-500/20 transition-colors"
         title={`${issues.length} review issue${issues.length !== 1 ? 's' : ''}`}
       >
         <AlertTriangle className={iconSize} />

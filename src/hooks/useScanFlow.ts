@@ -17,6 +17,10 @@ import type { Preset } from '@/types/ro';
 
 const MAX_RETRIES = 2;
 const LOW_CONFIDENCE_THRESHOLD = 0.5;
+const MAX_HOURS_PER_LINE = 24;
+const MAX_LINE_DESCRIPTION_LENGTH = 500;
+const MAX_CANDIDATE_DATES = 8;
+const VALID_LABOR_TYPES: ExtractedLine['laborType'][] = ['warranty', 'customer-pay', 'internal'];
 
 /** Match extracted line descriptions against presets to fill missing hours */
 function applyKeywordAutofill(lines: ExtractedLine[], presets: Preset[]): ExtractedLine[] {
@@ -58,6 +62,13 @@ export function useScanFlow() {
   const fileRef = useRef<File | null>(null);
   // Per-page template for the current upload
   const pageTemplateIdRef = useRef<string | null>(null);
+  const lastRunContextRef = useRef<{
+    roId?: string;
+    templateFieldMap?: Record<string, any>;
+    presets?: Preset[];
+    keywordAutofill?: boolean;
+    templateId?: string | null;
+  } | null>(null);
 
   const updateState = useCallback((state: ScanState, partial?: Partial<ScanSession>) => {
     setSession(prev => ({ ...prev, ...partial, state }));
@@ -88,6 +99,7 @@ export function useScanFlow() {
     retryCountRef.current = 0;
     fileRef.current = null;
     pageTemplateIdRef.current = null;
+    lastRunContextRef.current = null;
     setSession(createScanSession());
   }, []);
 
@@ -101,6 +113,8 @@ export function useScanFlow() {
     templateId?: string | null,
   ) => {
     if (!user) return;
+
+    lastRunContextRef.current = { roId, templateFieldMap, presets, keywordAutofill, templateId };
 
     if (busyRef.current) return;
     busyRef.current = true;
@@ -168,42 +182,79 @@ export function useScanFlow() {
 
       const ocrResult = await ocrResponse.json();
 
-      let extractedLines: ExtractedLine[] = (ocrResult.lines || []).map((line: any) => ({
-        id: generateLineId(),
-        description: line.description || '',
-        hours: Number(line.hours) || 0,
-        laborType: line.laborType || 'customer-pay',
-        confidence: Number(line.confidence) || 0.5,
-      }));
+      const rawLines = Array.isArray(ocrResult?.lines) ? ocrResult.lines : [];
+      let extractedLines: ExtractedLine[] = rawLines.map((line: any) => {
+        const rawDesc = typeof line?.description === 'string' ? line.description : String(line?.description ?? '');
+        const description = rawDesc.trim().slice(0, MAX_LINE_DESCRIPTION_LENGTH);
+        const numericHours = Number(line?.hours);
+        const safeHours = Number.isFinite(numericHours)
+          ? Math.max(0, Math.min(numericHours, MAX_HOURS_PER_LINE))
+          : 0;
+        const lineLaborType = VALID_LABOR_TYPES.includes(line?.laborType) ? line.laborType : 'customer-pay';
+        const numericConfidence = Number(line?.confidence);
+        const safeConfidence = Number.isFinite(numericConfidence)
+          ? Math.max(0, Math.min(numericConfidence, 1))
+          : 0.5;
+        return {
+          id: generateLineId(),
+          description,
+          hours: safeHours,
+          laborType: lineLaborType,
+          confidence: safeConfidence,
+        };
+      });
 
       if (keywordAutofill && presets && presets.length > 0) {
         extractedLines = applyKeywordAutofill(extractedLines, presets);
       }
 
       const candidateDates = Array.isArray(ocrResult.candidateDates)
-        ? ocrResult.candidateDates.map((c: any) => ({
-            value: c.value,
-            source: c.source || 'text',
-            originalFormat: c.originalFormat || c.value,
-          }))
+        ? ocrResult.candidateDates
+            .map((c: any) => ({
+              value: typeof c?.value === 'string' ? c.value : '',
+              source: c?.source === 'header' ? 'header' : 'text',
+              originalFormat: typeof c?.originalFormat === 'string' ? c.originalFormat : (typeof c?.value === 'string' ? c.value : ''),
+            }))
+            .filter(c => /^\d{4}-\d{2}-\d{2}$/.test(c.value))
+            .filter((c, idx, arr) => arr.findIndex(i => i.value === c.value) === idx)
+            .slice(0, MAX_CANDIDATE_DATES)
         : [];
 
+      const coerceNullableString = (value: unknown): string | null => {
+        if (value === null || value === undefined) return null;
+        const str = String(value).trim();
+        return str.length > 0 ? str : null;
+      };
+
+      const normalizedDate = coerceNullableString(ocrResult.date);
+      const safeDate = normalizedDate && /^\d{4}-\d{2}-\d{2}$/.test(normalizedDate) ? normalizedDate : null;
+      const mileageStr = coerceNullableString(ocrResult.mileage);
+      const safeMileage = mileageStr ? mileageStr.replace(/[^\d]/g, '').slice(0, 7) || null : null;
+      const numericYear = Number(ocrResult.vehicleYear);
+      const safeVehicleYear = Number.isInteger(numericYear) && numericYear >= 1900 && numericYear <= 2100 ? numericYear : null;
+
       const pageExtractedData: ExtractedData = {
-        roNumber: ocrResult.roNumber || null,
-        advisor: ocrResult.advisor || null,
-        date: ocrResult.date || null,
-        customerName: ocrResult.customerName || null,
-        mileage: ocrResult.mileage || null,
-        vehicleYear: ocrResult.vehicleYear ?? null,
-        vehicleMake: ocrResult.vehicleMake ?? null,
-        vehicleModel: ocrResult.vehicleModel ?? null,
-        vehicleVin: ocrResult.vehicleVin ?? null,
+        roNumber: coerceNullableString(ocrResult.roNumber),
+        advisor: coerceNullableString(ocrResult.advisor),
+        date: safeDate,
+        customerName: coerceNullableString(ocrResult.customerName),
+        mileage: safeMileage,
+        vehicleYear: safeVehicleYear,
+        vehicleMake: coerceNullableString(ocrResult.vehicleMake),
+        vehicleModel: coerceNullableString(ocrResult.vehicleModel),
+        vehicleVin: coerceNullableString(ocrResult.vehicleVin)?.toUpperCase().slice(0, 17) ?? null,
         candidateDates,
         lines: extractedLines,
         fieldConfidence: {
-          roNumber: ocrResult.fieldConfidence?.roNumber ?? 0.5,
-          advisor: ocrResult.fieldConfidence?.advisor ?? 0.5,
-          date: ocrResult.fieldConfidence?.date ?? 0.5,
+          roNumber: Number.isFinite(Number(ocrResult?.fieldConfidence?.roNumber))
+            ? Math.max(0, Math.min(Number(ocrResult.fieldConfidence.roNumber), 1))
+            : 0.5,
+          advisor: Number.isFinite(Number(ocrResult?.fieldConfidence?.advisor))
+            ? Math.max(0, Math.min(Number(ocrResult.fieldConfidence.advisor), 1))
+            : 0.5,
+          date: Number.isFinite(Number(ocrResult?.fieldConfidence?.date))
+            ? Math.max(0, Math.min(Number(ocrResult.fieldConfidence.date), 1))
+            : 0.5,
         },
       };
 
@@ -228,6 +279,9 @@ export function useScanFlow() {
               pendingHeaderConflicts: conflicts,
               pendingPageData: pageExtractedData,
               pendingPageNumber: pageNumber,
+              pendingPageImagePreviewUrl: previewUrl,
+              pendingPageStoragePath: path,
+              pendingPageTemplateId: templateId || null,
               // Temporarily show the new page's image during conflict resolution
               imagePreviewUrl: previewUrl,
             };
@@ -263,7 +317,23 @@ export function useScanFlow() {
       if (scanIdRef.current !== currentScanId) return;
       const errorMsg = err?.message || 'Unknown error';
       updateDebug({ lastError: errorMsg });
-      updateState('error', { errorMessage: errorMsg });
+      setSession(prev => {
+        if (prev.pages.length > 0) {
+          return {
+            ...prev,
+            state: 'review',
+            errorMessage: `Page scan failed: ${errorMsg}`,
+            pendingHeaderConflicts: [],
+            pendingPageData: null,
+            pendingPageNumber: null,
+            pendingPageImagePreviewUrl: null,
+            pendingPageStoragePath: null,
+            pendingPageTemplateId: null,
+            imagePreviewUrl: prev.pages[0]?.imagePreviewUrl ?? prev.imagePreviewUrl,
+          };
+        }
+        return { ...prev, state: 'error', errorMessage: errorMsg };
+      });
       toast.error(errorMsg);
     } finally {
       busyRef.current = false;
@@ -320,7 +390,15 @@ export function useScanFlow() {
 
     const file = fileRef.current;
     if (file && scanIdRef.current) {
-      runUploadAndOCR(file, scanIdRef.current);
+      runUploadAndOCR(
+        file,
+        scanIdRef.current,
+        lastRunContextRef.current?.roId,
+        lastRunContextRef.current?.templateFieldMap,
+        lastRunContextRef.current?.presets,
+        lastRunContextRef.current?.keywordAutofill,
+        lastRunContextRef.current?.templateId,
+      );
     } else {
       reset();
     }
@@ -357,11 +435,16 @@ export function useScanFlow() {
       }
 
       return mergePageIntoSession(
-        { ...prev, pendingHeaderConflicts: [], pendingPageData: null },
+        {
+          ...prev,
+          pendingHeaderConflicts: [],
+          pendingPageData: null,
+          pendingPageNumber: null,
+        },
         prev.pendingPageData,
-        prev.imagePreviewUrl,
-        prev.storagePath,
-        pageTemplateIdRef.current,
+        prev.pendingPageImagePreviewUrl,
+        prev.pendingPageStoragePath,
+        prev.pendingPageTemplateId ?? pageTemplateIdRef.current,
         overrides,
       );
     });
@@ -377,6 +460,9 @@ export function useScanFlow() {
       pendingHeaderConflicts: [],
       pendingPageData: null,
       pendingPageNumber: null,
+      pendingPageImagePreviewUrl: null,
+      pendingPageStoragePath: null,
+      pendingPageTemplateId: null,
       imagePreviewUrl: prev.pages[0]?.imagePreviewUrl ?? prev.imagePreviewUrl,
     }));
   }, []);

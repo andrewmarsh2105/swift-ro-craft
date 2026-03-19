@@ -6,7 +6,20 @@ const ALLOWED_ORIGINS = [
   "https://ronavigator.com",
   "https://www.ronavigator.com",
   "https://app.ronavigator.com",
+  "https://swift-ro-craft.lovable.app",
+  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
+  "https://8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovableproject.com",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
 ];
+
+const SUBSCRIPTION_BLOCKING_STATUSES = new Set([
+  "trialing",
+  "active",
+  "past_due",
+  "unpaid",
+  "incomplete",
+]);
 
 function getSafeOrigin(req: Request): string | null {
   const origin = req.headers.get("origin");
@@ -27,6 +40,13 @@ function corsHeaders(origin: string) {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
     "Vary": "Origin",
   };
+}
+
+function isUserOwnedCustomer(customer: Stripe.Customer, userId: string, userEmail: string): boolean {
+  if (customer.deleted) return false;
+  const metadataUserId = customer.metadata?.supabase_user_id;
+  if (metadataUserId) return metadataUserId === userId;
+  return (customer.email || "").toLowerCase() === userEmail.toLowerCase();
 }
 
 const monthlyPrice = Deno.env.get("STRIPE_PRICE_MONTHLY");
@@ -67,20 +87,31 @@ serve(async (req) => {
   );
 
   try {
-    const authHeader = req.headers.get("Authorization")!;
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header provided");
+
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError) throw new Error(`Authentication error: ${authError.message}`);
+
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    let plan = "monthly";
+    let plan: "monthly" | "yearly" = "monthly";
+    let requestId = "";
     try {
       const body = await req.json();
       if (body?.plan === "yearly") plan = "yearly";
+      if (typeof body?.request_id === "string") {
+        requestId = body.request_id.trim().slice(0, 80);
+      }
     } catch { /* default monthly */ }
 
     const priceId = PRICES[plan];
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "");
+    const stripe = new Stripe(stripeKey);
 
     // Try cached customer ID first
     const { data: settings } = await supabaseAdmin
@@ -93,29 +124,44 @@ serve(async (req) => {
 
     // Validate cached ID or search by email
     if (customerId) {
-      console.log("[CREATE-CHECKOUT] Using cached stripe_customer_id", { customerId });
-    } else {
-      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer.deleted || !isUserOwnedCustomer(customer, user.id, user.email)) {
+          customerId = undefined;
+        }
+      } catch {
+        customerId = undefined;
+      }
+    }
+
+    if (!customerId) {
+      const customers = await stripe.customers.list({ email: user.email, limit: 10 });
+      const matched = customers.data.find((c) => isUserOwnedCustomer(c, user.id, user.email));
+      if (matched) {
+        customerId = matched.id;
       }
     }
 
     if (customerId) {
-      // Prevent duplicate subscriptions
-      const existing = await stripe.subscriptions.list({ customer: customerId, limit: 5 });
-      const activeSub = existing.data.find(
-        (s: any) => s.status === "active" || s.status === "trialing"
-      );
-      if (activeSub) {
-        console.log("[CREATE-CHECKOUT] Already has active/trialing sub, redirecting to portal", {
-          customerId, subId: activeSub.id, status: activeSub.status,
+      // Keep metadata in sync for downstream webhook mapping
+      await stripe.customers.update(customerId, {
+        metadata: { supabase_user_id: user.id },
+      });
+
+      // Prevent duplicate / overlapping subscriptions
+      const existing = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+      const blockingSub = existing.data.find((s: any) => SUBSCRIPTION_BLOCKING_STATUSES.has(String(s.status)));
+      if (blockingSub) {
+        console.log("[CREATE-CHECKOUT] Existing subscription found, redirecting to portal", {
+          customerId,
+          subId: blockingSub.id,
+          status: blockingSub.status,
         });
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: customerId,
           return_url: `${safeOrigin}/`,
         });
-        return new Response(JSON.stringify({ url: portalSession.url, already_subscribed: true, version: "2025-03-03b" }), { headers, status: 200 });
+        return new Response(JSON.stringify({ url: portalSession.url, already_subscribed: true, version: "2026-03-19a" }), { headers, status: 200 });
       }
     } else {
       // Create new Stripe customer
@@ -132,9 +178,14 @@ serve(async (req) => {
       .from("user_settings")
       .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" });
 
+    const idempotencyKey = requestId
+      ? `checkout_${user.id}_${requestId}`
+      : `checkout_${user.id}_${plan}_${new Date().toISOString().slice(0, 16)}`;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       client_reference_id: user.id,
+      metadata: { supabase_user_id: user.id },
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       subscription_data: {
@@ -151,14 +202,18 @@ serve(async (req) => {
       },
       success_url: `${safeOrigin}/?checkout=success`,
       cancel_url: `${safeOrigin}/?checkout=cancel`,
+    }, {
+      idempotencyKey,
     });
 
-    return new Response(JSON.stringify({ url: session.url, version: "2025-03-03b" }), { headers, status: 200 });
+    return new Response(JSON.stringify({ url: session.url, version: "2026-03-19a" }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const isAuthError = errorMessage.includes("not authenticated") ||
                         errorMessage.includes("Authorization") ||
-                        errorMessage.includes("Auth session");
+                        errorMessage.includes("Auth session") ||
+                        errorMessage.includes("authentication error") ||
+                        errorMessage.includes("No authorization header");
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers,
       status: isAuthError ? 401 : 500,

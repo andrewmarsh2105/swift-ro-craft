@@ -89,6 +89,9 @@ export interface ScanSession {
   /** The newly-extracted page data awaiting merge/confirmation */
   pendingPageData: ExtractedData | null;
   pendingPageNumber: number | null;
+  pendingPageImagePreviewUrl: string | null;
+  pendingPageStoragePath: string | null;
+  pendingPageTemplateId: string | null;
 }
 
 export function createScanSession(): ScanSession {
@@ -111,6 +114,9 @@ export function createScanSession(): ScanSession {
     pendingHeaderConflicts: [],
     pendingPageData: null,
     pendingPageNumber: null,
+    pendingPageImagePreviewUrl: null,
+    pendingPageStoragePath: null,
+    pendingPageTemplateId: null,
   };
 }
 
@@ -212,6 +218,10 @@ export function mergePageIntoSession(
     pendingHeaderConflicts: [],
     pendingPageData: null,
     pendingPageNumber: null,
+    pendingPageImagePreviewUrl: null,
+    pendingPageStoragePath: null,
+    pendingPageTemplateId: null,
+    errorMessage: null,
     state: 'review',
   };
 }

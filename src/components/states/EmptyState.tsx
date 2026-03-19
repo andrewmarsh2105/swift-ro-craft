@@ -13,11 +13,11 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, title, description, actions, className, variant = 'filtered' }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center py-16 px-8 text-center", className)}>
+    <div className={cn("flex flex-col items-center justify-center py-16 px-8 text-center rounded-2xl border border-dashed border-border/80 bg-muted/20", className)}>
       {Icon && (
         <div
           className={cn(
-            "w-16 h-16 rounded-2xl flex items-center justify-center mb-5",
+            "w-16 h-16 rounded-2xl flex items-center justify-center mb-5 shadow-sm",
             variant === 'welcome'
               ? "bg-primary/10 border border-primary/20"
               : "bg-muted border border-border"
@@ -28,7 +28,7 @@ export function EmptyState({ icon: Icon, title, description, actions, className,
           />
         </div>
       )}
-      <p className={cn("font-semibold text-base", variant === 'welcome' ? "text-foreground" : "text-foreground/70")}>
+      <p className={cn("font-semibold text-base tracking-tight", variant === 'welcome' ? "text-foreground" : "text-foreground/80")}>
         {title}
       </p>
       {description && (

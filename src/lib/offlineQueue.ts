@@ -19,6 +19,8 @@ export interface QueuedAction {
   payload: any;
   createdAt: string;
   retries: number;
+  blocked?: boolean;
+  lastError?: string;
 }
 
 export interface SyncConflict {
@@ -119,7 +121,7 @@ export async function getAllQueued(): Promise<QueuedAction[]> {
   });
 }
 
-export async function incrementRetry(id: string): Promise<void> {
+export async function incrementRetry(id: string, error?: string, blocked: boolean = false): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -129,6 +131,28 @@ export async function incrementRetry(id: string): Promise<void> {
       const item = getReq.result as QueuedAction;
       if (item) {
         item.retries += 1;
+        item.blocked = blocked;
+        item.lastError = error || item.lastError;
+        store.put(item);
+      }
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function resetRetry(id: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const item = getReq.result as QueuedAction;
+      if (item) {
+        item.retries = 0;
+        item.blocked = false;
+        item.lastError = undefined;
         store.put(item);
       }
     };

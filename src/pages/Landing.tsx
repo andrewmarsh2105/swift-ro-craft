@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, ClipboardCheck, Flag, BarChart3, Check, ChevronDown, ChevronUp, Infinity, Camera, FileSpreadsheet, Shield, Wrench } from 'lucide-react';
+import { ArrowRight, ClipboardCheck, Flag, BarChart3, Check, ChevronDown, ChevronUp, InfinityIcon, Camera, FileSpreadsheet, Shield, Wrench } from 'lucide-react';
 import { Logo, BrandMarkContainer } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -354,7 +354,7 @@ export default function Landing() {
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Infinity, title: 'Unlimited ROs', desc: 'Log every RO on every shift — no limits, no counting.' },
+              { icon: InfinityIcon, title: 'Unlimited ROs', desc: 'Log every RO on every shift — no limits, no counting.' },
               { icon: Camera, title: 'RO Photo Scan', desc: 'Point your camera at a repair order — line items auto-fill in seconds via OCR.' },
               { icon: BarChart3, title: 'Period Closeouts', desc: 'Lock in your hours at period end. Compare this period vs. last to catch trends.' },
               { icon: FileSpreadsheet, title: 'Full Exports', desc: 'Send payroll CSV, audit XLSX, or PDF directly to your service manager.' },

@@ -8,6 +8,7 @@ interface PresetSearchRailProps {
   onSelect: (preset: Preset) => void;
   animatingId?: string | null;
   layout?: 'mobile' | 'desktop';
+  mobileMode?: 'rail' | 'grid';
 }
 
 export function PresetSearchRail({
@@ -15,8 +16,10 @@ export function PresetSearchRail({
   onSelect,
   animatingId,
   layout = 'desktop',
+  mobileMode = 'rail',
 }: PresetSearchRailProps) {
   const [search, setSearch] = useState('');
+  const [showAllMobile, setShowAllMobile] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -63,6 +66,77 @@ export function PresetSearchRail({
   );
 
   const isMobile = layout === 'mobile';
+  const mobileVisible = showAllMobile ? filtered : filtered.slice(0, 8);
+
+  if (isMobile && mobileMode === 'grid') {
+    return (
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search presets…"
+            className="w-full h-10 pl-8 pr-7 bg-secondary border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground"
+              aria-label="Clear preset search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {mobileVisible.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => onSelect(preset)}
+              className={cn(
+                'inline-flex items-center justify-between gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-150 min-h-[44px]',
+                animatingId === preset.id
+                  ? 'bg-primary text-primary-foreground border-primary scale-[0.98]'
+                  : preset.isFavorite
+                    ? 'bg-primary/10 border-primary/30 text-foreground'
+                    : 'bg-card border-border text-foreground',
+              )}
+            >
+              <span className="inline-flex items-center gap-1.5 min-w-0">
+                {animatingId === preset.id ? (
+                  <Check className="h-3 w-3 flex-shrink-0" />
+                ) : preset.isFavorite ? (
+                  <Star className="h-3 w-3 fill-primary text-primary flex-shrink-0" />
+                ) : (
+                  <Plus className="h-3 w-3 flex-shrink-0" />
+                )}
+                <span className="truncate">{preset.name}</span>
+              </span>
+              {preset.defaultHours != null && (
+                <span className="opacity-70 flex-shrink-0">{preset.defaultHours}h</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="text-sm text-muted-foreground py-1">No presets found</div>
+        )}
+
+        {filtered.length > 8 && (
+          <button
+            onClick={() => setShowAllMobile(v => !v)}
+            className="w-full h-9 rounded-lg border border-border bg-secondary text-sm font-medium"
+          >
+            {showAllMobile ? 'Show fewer presets' : `Show ${filtered.length - 8} more presets`}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

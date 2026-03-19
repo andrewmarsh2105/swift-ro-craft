@@ -75,7 +75,7 @@ interface LineRowProps {
 const LineRow = memo(function LineRow({ line, activeCols, cellPx, cellPy, rowBg, borderColorClass, renderCellValue, onSelectRO }: LineRowProps) {
   return (
     <tr
-      className={cn('cursor-pointer hover:bg-accent/50 transition-colors border-t border-border/30', rowBg)}
+      className={cn('cursor-pointer hover:bg-accent/65 transition-colors border-t border-border/40', rowBg)}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
       {activeCols.map((col, ci) => (
@@ -528,14 +528,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Helpers ─── */
   const getRowBg = (groupIndex: number) =>
-    groupIndex % 2 === 1 ? 'bg-muted/30' : 'bg-card';
+    groupIndex % 2 === 1 ? 'bg-accent/20' : 'bg-card';
 
   /* ─── Empty state ─── */
   if (filteredROs.length === 0) {
     return (
       <div className="h-full flex flex-col">
         {/* Still show toolbar so user can change range */}
-        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border bg-card flex-wrap">
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border/90 bg-gradient-to-r from-card to-accent/40 flex-wrap">
           {!isCloseout && (
             <DateFilterBar
               dateRange={dateRange}
@@ -559,8 +559,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   return (
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-card flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/40 backdrop-blur-sm flex-wrap shadow-[var(--shadow-sm)]">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           {/* Date range selector — local to spreadsheet, does not sync with other tabs */}
           {!isCloseout && (
             <DateFilterBar
@@ -574,16 +574,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {/* View mode */}
-          <div className="flex rounded-lg border border-border overflow-hidden">
+          <div className="flex rounded-xl border border-border/90 overflow-hidden bg-accent/35 shadow-[var(--shadow-sm)]">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
                 key={m}
                 onClick={() => handleViewModeChange(m)}
                 className={cn(
-                  'px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors',
+                  'px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors',
                   viewMode === m
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-card text-muted-foreground hover:bg-muted',
+                    : 'bg-transparent text-muted-foreground hover:bg-accent/35',
                 )}
               >
                 {m}
@@ -591,8 +591,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             ))}
           </div>
 
-          <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
-            <SelectTrigger className="h-7 w-[120px] text-[11px] font-semibold">
+            <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
+            <SelectTrigger className="h-9 w-[132px] text-xs font-semibold">
               <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
               <SelectValue placeholder="Group by" />
             </SelectTrigger>
@@ -607,7 +607,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
         <div className="flex items-center gap-1">
           <Button
-            variant="ghost" size="sm" className="h-7 gap-1 text-xs"
+            variant="ghost" size="sm" className="h-9 gap-1 text-xs"
             onClick={handleDensityChange}
             title={density === 'compact' ? 'Comfortable' : 'Compact'}
           >
@@ -619,7 +619,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           {isPro && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
+                <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs">
                   <Download className="h-3.5 w-3.5" />
                   Export
                 </Button>
@@ -645,7 +645,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {isPro && (
-            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={handlePrint}>
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={handlePrint}>
               <Printer className="h-3.5 w-3.5" />
             </Button>
           )}
@@ -655,7 +655,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* ─── Table ─── */}
       <div className="flex-1 overflow-auto" ref={tableRef}>
         <table className={cn('min-w-[900px] w-full border-collapse', textSize)}>
-          <thead className="sticky top-0 z-10 bg-card border-b-2 border-border">
+          <thead className="sticky top-0 z-10 bg-secondary/95 border-b-2 border-border shadow-[0_3px_8px_-6px_hsl(var(--foreground)/0.25)]">
             <tr>
               {activeCols.map((col) => (
                 <th
@@ -685,7 +685,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
 
                 return (
-                  <tr key={`rosub-${i}`} className="border-t border-border/50 bg-muted/15">
+                  <tr key={`rosub-${i}`} className="border-t border-border/60 bg-accent/15">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-xs text-right')}>
                       {sub.label}
                     </td>
@@ -713,7 +713,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1;
 
                 return (
-                  <tr key={`daysub-${i}`} className="border-t-2 border-border bg-muted/40">
+                  <tr key={`daysub-${i}`} className="border-t-2 border-border bg-accent/30">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
                       {sub.label}
                     </td>
@@ -732,7 +732,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1;
 
                 return (
-                  <tr key={`advsub-${i}`} className="border-t-2 border-border bg-muted/40">
+                  <tr key={`advsub-${i}`} className="border-t-2 border-border bg-accent/30">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
                       {sub.label}
                     </td>
@@ -751,7 +751,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1;
 
                 return (
-                  <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/5">
+                  <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/10">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-xs text-right')}>
                       {sub.label}
                     </td>
@@ -804,16 +804,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Footer ─── */}
-      <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2 flex items-center justify-between text-sm">
-        <div className="flex gap-4 text-muted-foreground">
+      <div className="flex-shrink-0 border-t-2 border-border bg-gradient-to-r from-card to-accent/35 px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
+        <div className="flex flex-wrap gap-3 sm:gap-4 text-muted-foreground">
           <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
-        <div className="flex items-center gap-3 tabular-nums">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 tabular-nums rounded-lg border border-border/70 bg-accent/20 px-3 py-1.5">
           <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {maskHours(warrantyHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {maskHours(cpHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {maskHours(internalHours, hideTotals)}h</span>
-          <span className="font-bold text-foreground ml-1">{maskHours(totalHours, hideTotals)}h total</span>
+          <span className="font-bold text-foreground ml-1 text-sm">{maskHours(totalHours, hideTotals)}h total</span>
         </div>
       </div>
 

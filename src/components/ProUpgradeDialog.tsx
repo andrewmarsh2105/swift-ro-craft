@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, Infinity, Shield, Check } from 'lucide-react';
+import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, InfinityIcon, Shield, Check } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { cn } from '@/lib/utils';
 import { type UpgradeTrigger, UPGRADE_CONTEXT } from '@/lib/proFeatures';
@@ -15,7 +15,7 @@ interface ProUpgradeDialogProps {
 
 const proFeatures = [
   {
-    icon: Infinity,
+    icon: InfinityIcon,
     title: 'Unlimited ROs',
     desc: 'No monthly cap — log every RO, every day.',
   },

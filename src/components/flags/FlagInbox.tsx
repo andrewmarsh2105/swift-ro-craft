@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { FlagType } from '@/types/flags';
+import type { LaborType } from '@/types/ro';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
 import { StatusPill } from '@/components/mobile/StatusPill';
 
@@ -30,7 +31,7 @@ interface TbdItem {
   lineId: string;
   lineNo: number;
   description: string;
-  laborType?: string;
+  laborType?: LaborType;
 }
 
 interface FlagInboxProps {
@@ -43,7 +44,7 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
   const [open, setOpen] = useState(false);
   const { flags, clearFlag, clearFlagsBulk, activeCount, refetch } = useFlagContext();
   const roContext = useROSafe();
-  const ros = roContext?.ros ?? [];
+  const ros = useMemo(() => roContext?.ros ?? [], [roContext?.ros]);
   const clearAllTbdLines = roContext?.clearAllTbdLines;
   const [typeFilter, setTypeFilter] = useState<FlagType | 'all' | 'tbd'>('all');
   const [dateRange, setDateRange] = useState<string>('this_week');
@@ -245,7 +246,7 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
                         </p>
                         {item.laborType && (
                           <div className="mt-1">
-                            <StatusPill type={item.laborType as any} size="sm" />
+                            <StatusPill type={item.laborType} size="sm" />
                           </div>
                         )}
                       </div>

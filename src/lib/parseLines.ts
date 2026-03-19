@@ -32,10 +32,10 @@ function detectLaborType(line: string, fallback: LaborType): { laborType: LaborT
   }
 
   // W: / CP: / I:
-  const prefix = raw.match(/^(warranty|w|cp|customer\s*pay|customer-pay|internal|i)\s*[:\-]\s*/i);
+  const prefix = raw.match(/^(warranty|w|cp|customer\s*pay|customer-pay|internal|i)\s*[:-]\s*/i);
   if (prefix) {
     const p = normalizePrefix(prefix[1]);
-    const rest = raw.replace(/^(warranty|w|cp|customer\s*pay|customer-pay|internal|i)\s*[:\-]\s*/i, "");
+    const rest = raw.replace(/^(warranty|w|cp|customer\s*pay|customer-pay|internal|i)\s*[:-]\s*/i, "");
     if (p === "w" || p === "warranty") return { laborType: "warranty", text: rest };
     if (p === "i" || p === "internal") return { laborType: "internal", text: rest };
     return { laborType: "customer-pay", text: rest };
@@ -47,8 +47,8 @@ function detectLaborType(line: string, fallback: LaborType): { laborType: LaborT
 function stripLineNumber(raw: string) {
   // L1: , 1) , 1. , Line 1:
   return raw
-    .replace(/^\s*(?:l\s*)?\d+\s*[:\.\)\-]\s*/i, "")
-    .replace(/^\s*line\s*\d+\s*[:\.\)\-]\s*/i, "")
+    .replace(/^\s*(?:l\s*)?\d+\s*[:.)-]\s*/i, "")
+    .replace(/^\s*line\s*\d+\s*[:.)-]\s*/i, "")
     .trim();
 }
 

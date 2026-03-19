@@ -7,12 +7,12 @@ const GA_ID = 'G-526451525';
 
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void;
-    dataLayer?: any[];
+    gtag?: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
   }
 }
 
-function gtag(...args: any[]) {
+function gtag(...args: unknown[]) {
   if (typeof window !== 'undefined' && window.gtag) {
     window.gtag(...args);
   }
@@ -35,7 +35,9 @@ function alreadySent(event: string, userId?: string): boolean {
 function markSent(event: string, userId?: string) {
   try {
     sessionStorage.setItem(dedupeKey(event, userId), '1');
-  } catch {}
+  } catch {
+    // Ignore sessionStorage errors (e.g., private browsing or blocked storage).
+  }
 }
 
 /**

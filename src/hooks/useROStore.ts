@@ -43,6 +43,15 @@ function dbToPreset(row: LaborReferenceRow): Preset {
   };
 }
 
+function effectiveDateOf(ro: RepairOrder): string {
+  const paidDate = ro.paidDate?.trim();
+  return paidDate && paidDate !== '—' ? paidDate : ro.date;
+}
+
+function paidLinesOf(ro: RepairOrder): ROLine[] {
+  return (ro.lines || []).filter(l => !l.isTbd);
+}
+
 const defaultSettings: Settings = {
   recentAdvisors: [],
   advisors: [],
@@ -69,8 +78,9 @@ export function useROStore() {
 
   // Cancel any in-flight delete timers when the store unmounts
   useEffect(() => {
+    const pendingDeletesRef = pendingDeletes.current;
     return () => {
-      for (const { timer } of pendingDeletes.current.values()) {
+      for (const { timer } of pendingDeletesRef.values()) {
         clearTimeout(timer);
       }
     };
@@ -194,6 +204,7 @@ export function useROStore() {
       const { data, error } = await supabase
         .from('labor_references')
         .select('*')
+        .eq('user_id', userId)
         .eq('active', true)
         .order('sort_order', { ascending: true });
       if (error) throw error;
@@ -218,6 +229,7 @@ export function useROStore() {
       const { data, error } = await supabase
         .from('advisors')
         .select('*')
+        .eq('user_id', userId)
         .order('name', { ascending: true });
       if (error) throw error;
       const advisors: Advisor[] = (data || []).map((r) => {
@@ -255,14 +267,15 @@ export function useROStore() {
   }, [user]);
 
   const addRO = useCallback(async (ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
+    if (!user) return null;
 
     // Queue if offline
     if (!isOnline) {
-      await queueAction('addRO', { ro });
-      toast.info('Saved offline — will sync when back online');
+      const queued = await queueAction('addRO', { ro });
+      if (!queued) return null;
+      toast.info('Saved offline to sync queue');
       pushDebug({ action: 'addRO QUEUED (offline)', userId: user.id });
-      return;
+      return { queuedOffline: true };
     }
 
     const { data: newRow, error } = await supabase
@@ -275,13 +288,16 @@ export function useROStore() {
       const msg = error?.message || 'Unknown error';
       // If network error, queue it
       if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-        await queueAction('addRO', { ro });
-        toast.info('Network issue — saved offline');
-        return;
+        const queued = await queueAction('addRO', { ro });
+        if (queued) {
+          toast.info('Network issue — saved to offline sync queue');
+          return { queuedOffline: true };
+        }
+        return null;
       }
       toast.error('Failed to create RO');
       pushDebug({ action: 'addRO FAIL', userId: user.id, error: msg });
-      return;
+      return null;
     }
     pushDebug({ action: 'addRO OK', roId: newRow.id, userId: user.id });
 
@@ -300,7 +316,7 @@ export function useROStore() {
         // Roll back the RO header so we don't leave an orphaned 0-hour record
         await supabase.from('ros').delete().eq('id', newRow.id);
         toast.error(`Failed to save RO: ${lErr.message}`);
-        return;
+        return null;
       }
       pushDebug({ action: 'insertLines OK', roId: newRow.id, lineCount: lineInserts.length });
     }
@@ -322,8 +338,9 @@ export function useROStore() {
 
     // Queue if offline
     if (!isOnline) {
-      await queueAction('updateRO', { id, updates });
-      toast.info('Update saved offline — will sync when back online');
+      const queued = await queueAction('updateRO', { id, updates });
+      if (!queued) return false;
+      toast.info('Update saved to offline sync queue');
       return true;
     }
 
@@ -336,9 +353,12 @@ export function useROStore() {
         console.error('updateRO DB error:', error);
         pushDebug({ action: 'updateRO FAIL', roId: id, error: msg, code: error.code });
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-          await queueAction('updateRO', { id, updates });
-          toast.info('Network issue — update saved offline');
-          return true;
+          const queued = await queueAction('updateRO', { id, updates });
+          if (queued) {
+            toast.info('Network issue — update saved to offline sync queue');
+            return true;
+          }
+          return false;
         }
         toast.error(`Failed to update RO: ${msg}`);
         return false;
@@ -426,8 +446,8 @@ export function useROStore() {
     setROs(prev => prev.filter(r => r.id !== id));
 
     if (!isOnline) {
-      queueAction('deleteRO', { id });
-      toast.info('Delete saved offline — will sync when back online');
+      void queueAction('deleteRO', { id });
+      toast.info('Delete saved to offline sync queue');
       return;
     }
 
@@ -458,7 +478,7 @@ export function useROStore() {
       if (error) {
         const msg = error.message || '';
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-          queueAction('deleteRO', { id });
+          void queueAction('deleteRO', { id });
           return;
         }
         // Restore on unexpected DB error
@@ -532,12 +552,30 @@ export function useROStore() {
     if (!user) return;
     if (advisorsUpdating.current) return;
     advisorsUpdating.current = true;
-    setSettings(prev => ({ ...prev, advisors }));
+    const normalizedAdvisors = advisors
+      .map(a => ({ ...a, name: a.name.trim() }))
+      .filter(a => a.name.length > 0);
+
+    const uniqueByName = new Set<string>();
+    const uniqueAdvisors = normalizedAdvisors.filter((advisor) => {
+      const key = advisor.name.toLowerCase();
+      if (uniqueByName.has(key)) return false;
+      uniqueByName.add(key);
+      return true;
+    });
+
+    setSettings(prev => ({
+      ...prev,
+      advisors: uniqueAdvisors,
+      recentAdvisors: uniqueAdvisors.map(a => a.name).slice(0, 6),
+    }));
     try {
       // Sync to DB: delete all, re-insert
-      await supabase.from('advisors').delete().eq('user_id', user.id);
-      if (advisors.length > 0) {
-        const rows = advisors.map(a => ({
+      const { error: delErr } = await supabase.from('advisors').delete().eq('user_id', user.id);
+      if (delErr) throw delErr;
+
+      if (uniqueAdvisors.length > 0) {
+        const rows = uniqueAdvisors.map(a => ({
           user_id: user.id,
           name: a.name,
         }));
@@ -564,15 +602,20 @@ export function useROStore() {
     const end = new Date(endDate);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dayROs = ros.filter(ro => (ro.paidDate || ro.date) === dateStr);
-      const allLines = dayROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
+      const dayROs = ros.filter(ro => effectiveDateOf(ro) === dateStr);
+      const lineROs = dayROs.filter(ro => ro.lines.length > 0);
+      const simpleROs = dayROs.filter(ro => ro.lines.length === 0);
+      const allLines = lineROs.flatMap(ro => paidLinesOf(ro));
       summaries.push({
         date: dateStr,
-        totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0),
+        totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0) + simpleROs.reduce((sum, ro) => sum + ro.paidHours, 0),
         roCount: dayROs.length,
-        warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0),
-        customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0),
-        internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0),
+        warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0)
+          + simpleROs.filter(ro => ro.laborType === 'warranty').reduce((sum, ro) => sum + ro.paidHours, 0),
+        customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0)
+          + simpleROs.filter(ro => ro.laborType === 'customer-pay').reduce((sum, ro) => sum + ro.paidHours, 0),
+        internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0)
+          + simpleROs.filter(ro => ro.laborType === 'internal').reduce((sum, ro) => sum + ro.paidHours, 0),
       });
     }
     return summaries;
@@ -581,7 +624,7 @@ export function useROStore() {
   const getAdvisorSummaries = useCallback((startDate?: string, endDate?: string): AdvisorSummary[] => {
     let filteredROs = ros;
     if (startDate && endDate) {
-      filteredROs = ros.filter(ro => (ro.paidDate || ro.date) >= startDate && (ro.paidDate || ro.date) <= endDate);
+      filteredROs = ros.filter(ro => effectiveDateOf(ro) >= startDate && effectiveDateOf(ro) <= endDate);
     }
     const advisorMap = new Map<string, AdvisorSummary>();
     filteredROs.forEach(ro => {
@@ -597,14 +640,19 @@ export function useROStore() {
   }, [ros]);
 
   const getWeekTotal = useCallback((startDate: string, endDate: string) => {
-    const weekROs = ros.filter(ro => (ro.paidDate || ro.date) >= startDate && (ro.paidDate || ro.date) <= endDate);
-    const allLines = weekROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
+    const weekROs = ros.filter(ro => effectiveDateOf(ro) >= startDate && effectiveDateOf(ro) <= endDate);
+    const lineROs = weekROs.filter(ro => ro.lines.length > 0);
+    const simpleROs = weekROs.filter(ro => ro.lines.length === 0);
+    const allLines = lineROs.flatMap(ro => paidLinesOf(ro));
     return {
-      totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0),
+      totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0) + simpleROs.reduce((sum, ro) => sum + ro.paidHours, 0),
       roCount: weekROs.length,
-      warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0),
-      customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0),
-      internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0),
+      warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0)
+        + simpleROs.filter(ro => ro.laborType === 'warranty').reduce((sum, ro) => sum + ro.paidHours, 0),
+      customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0)
+        + simpleROs.filter(ro => ro.laborType === 'customer-pay').reduce((sum, ro) => sum + ro.paidHours, 0),
+      internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0)
+        + simpleROs.filter(ro => ro.laborType === 'internal').reduce((sum, ro) => sum + ro.paidHours, 0),
     };
   }, [ros]);
 

@@ -2,10 +2,39 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
+const DEFAULT_PRO_PRODUCT_IDS = ["prod_TytAJ1A0OZTgh0", "prod_U2nOsuL3zAYIwa", "prod_U2ndu4y9M2upB3"];
+const ENV_PRODUCT_IDS = (Deno.env.get("STRIPE_PRO_PRODUCT_IDS") || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const PRO_PRODUCT_IDS = ENV_PRODUCT_IDS.length > 0 ? ENV_PRODUCT_IDS : DEFAULT_PRO_PRODUCT_IDS;
+
+const ACCESS_GRANTING_STATUSES = new Set(["active", "trialing"]);
+
 const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
+
+function isProSubscription(subscription: any): boolean {
+  return subscription?.items?.data?.some((item: any) => {
+    const product = String(item?.price?.product || "");
+    return PRO_PRODUCT_IDS.includes(product);
+  }) === true;
+}
+
+async function findUserIdByCustomerId(supabaseAdmin: any, customerId: string | null | undefined): Promise<string | null> {
+  if (!customerId) return null;
+
+  const { data: settingsRows } = await supabaseAdmin
+    .from("user_settings")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
+    .limit(1);
+
+  if (!settingsRows || settingsRows.length === 0) return null;
+  return settingsRows[0].user_id;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,11 +69,32 @@ serve(async (req) => {
 
   logStep("Event received", { type: event.type, id: event.id });
 
+  const { error: claimError } = await supabaseAdmin
+    .from("stripe_webhook_events")
+    .insert({ stripe_event_id: event.id, stripe_event_type: event.type });
+
+  if (claimError) {
+    const code = (claimError as any)?.code || "";
+    if (code === "23505") {
+      logStep("Duplicate event skipped", { id: event.id, type: event.type });
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    logStep("Failed to claim event", { id: event.id, error: claimError.message });
+    return new Response(JSON.stringify({ error: "Could not record webhook event" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as any;
-        const supabaseUserId = session.client_reference_id;
+        const supabaseUserId = session.client_reference_id || session.metadata?.supabase_user_id;
         const customerId = session.customer;
         const subscriptionId = session.subscription;
 
@@ -57,24 +107,42 @@ serve(async (req) => {
               user_id: supabaseUserId,
               stripe_customer_id: customerId,
               stripe_subscription_id: subscriptionId,
-              is_pro: true,
-              plan: "trial",
             }, { onConflict: "user_id" });
-          logStep("Updated user_settings after checkout", { supabaseUserId });
+          logStep("Updated user_settings identifiers after checkout", { supabaseUserId });
         }
         break;
       }
 
       case "customer.subscription.created":
-      case "customer.subscription.updated": {
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
         const subscription = event.data.object as any;
         const customerId = subscription.customer;
         const status = subscription.status;
-        const supabaseUserId = subscription.metadata?.supabase_user_id;
+        const metadataUserId = subscription.metadata?.supabase_user_id;
+        const isProProduct = isProSubscription(subscription);
 
-        logStep("subscription.created/updated", { customerId, status, supabaseUserId, subId: subscription.id });
+        logStep("subscription event", {
+          eventType: event.type,
+          customerId,
+          status,
+          metadataUserId,
+          subId: subscription.id,
+          isProProduct,
+        });
 
-        const isActive = status === "active" || status === "trialing";
+        if (!isProProduct) {
+          logStep("Ignoring non-Pro subscription", { subId: subscription.id, status });
+          break;
+        }
+
+        const supabaseUserId = metadataUserId || await findUserIdByCustomerId(supabaseAdmin, customerId);
+        if (!supabaseUserId) {
+          logStep("No user found for subscription event", { customerId, subId: subscription.id });
+          break;
+        }
+
+        const isActive = ACCESS_GRANTING_STATUSES.has(String(status));
         let subscriptionEnd: string | null = null;
         try {
           if (subscription.current_period_end && typeof subscription.current_period_end === "number") {
@@ -82,74 +150,36 @@ serve(async (req) => {
           }
         } catch { /* non-fatal */ }
 
-        const updateData: Record<string, any> = {
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscription.id,
-          is_pro: isActive,
-          plan: status === "trialing" ? "trial" : isActive ? "pro" : null,
-          pro_expires_at: subscriptionEnd,
-        };
+        await supabaseAdmin
+          .from("user_settings")
+          .upsert({
+            user_id: supabaseUserId,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: event.type === "customer.subscription.deleted" ? null : subscription.id,
+            is_pro: isActive,
+            plan: isActive ? (status === "trialing" ? "trial" : "pro") : null,
+            pro_expires_at: isActive ? subscriptionEnd : null,
+          }, { onConflict: "user_id" });
 
-        // Try by supabase_user_id metadata first, fallback to stripe_customer_id
-        if (supabaseUserId) {
-          await supabaseAdmin
-            .from("user_settings")
-            .upsert({ user_id: supabaseUserId, ...updateData }, { onConflict: "user_id" });
-          logStep("Updated via supabase_user_id", { supabaseUserId });
-        } else {
-          // Fallback: find user by stripe_customer_id
-          const { data: settingsRows } = await supabaseAdmin
-            .from("user_settings")
-            .select("user_id")
-            .eq("stripe_customer_id", customerId)
-            .limit(1);
-
-          if (settingsRows && settingsRows.length > 0) {
-            await supabaseAdmin
-              .from("user_settings")
-              .update(updateData)
-              .eq("user_id", settingsRows[0].user_id);
-            logStep("Updated via stripe_customer_id lookup", { userId: settingsRows[0].user_id });
-          } else {
-            logStep("No user found for customer", { customerId });
-          }
-        }
+        logStep("Updated user_settings from subscription event", {
+          supabaseUserId,
+          status,
+          isActive,
+          subscriptionEnd,
+        });
         break;
       }
 
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as any;
-        const customerId = subscription.customer;
-        const supabaseUserId = subscription.metadata?.supabase_user_id;
-
-        logStep("subscription.deleted", { customerId, supabaseUserId, subId: subscription.id });
-
-        const clearData = {
-          is_pro: false,
-          plan: null,
-          pro_expires_at: null,
-          stripe_subscription_id: null,
-        };
-
-        if (supabaseUserId) {
-          await supabaseAdmin
-            .from("user_settings")
-            .update(clearData)  // .update is fine here — no row = no subscription to cancel anyway
-            .eq("user_id", supabaseUserId);
-        } else {
-          const { data: settingsRows } = await supabaseAdmin
-            .from("user_settings")
-            .select("user_id")
-            .eq("stripe_customer_id", customerId)
-            .limit(1);
-
-          if (settingsRows && settingsRows.length > 0) {
-            await supabaseAdmin
-              .from("user_settings")
-              .update(clearData)
-              .eq("user_id", settingsRows[0].user_id);
-          }
-        }
+      case "invoice.payment_failed":
+      case "invoice.paid": {
+        const invoice = event.data.object as any;
+        logStep("invoice event received", {
+          type: event.type,
+          customerId: invoice.customer,
+          subscriptionId: invoice.subscription,
+          billingReason: invoice.billing_reason,
+        });
+        // Access updates are handled by customer.subscription.updated from Stripe.
         break;
       }
 
@@ -219,12 +249,30 @@ serve(async (req) => {
         logStep("Unhandled event type", { type: event.type });
     }
 
+    await supabaseAdmin
+      .from("stripe_webhook_events")
+      .update({ processed_at: new Date().toISOString(), processing_error: null })
+      .eq("stripe_event_id", event.id);
+
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     logStep("ERROR", { message: String(error) });
+
+    await supabaseAdmin
+      .from("stripe_webhook_events")
+      .update({ processing_error: String(error) })
+      .eq("stripe_event_id", event.id);
+
+    // Allow retries by removing lock row after failure.
+    await supabaseAdmin
+      .from("stripe_webhook_events")
+      .delete()
+      .eq("stripe_event_id", event.id)
+      .is("processed_at", null);
+
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

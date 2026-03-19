@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Calendar,
+  ChevronDown,
+  ChevronUp,
   Flag,
   Copy,
   FileText,
@@ -34,6 +36,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 import { maskHours } from "@/lib/maskHours";
 import { getReviewIssues, type ReviewIssue } from "@/lib/reviewRules";
 import { calcHours, effectiveDate, formatDateLong, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
+import { cn } from "@/lib/utils";
 
 import type { RepairOrder } from "@/types/ro";
 
@@ -107,12 +110,17 @@ export function RODetailSheet({
 
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
   const [convertingIssue, setConvertingIssue] = useState<ReviewIssue | null>(null);
+  const [expandedLineIds, setExpandedLineIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!showDuplicateDialog) return;
     setDupRONumber("");
     setDupWarning(null);
   }, [showDuplicateDialog]);
+
+  useEffect(() => {
+    setExpandedLineIds({});
+  }, [ro?.id, isOpen]);
 
   const flags = useMemo(() => (ro ? getFlagsForRO(ro.id) : []), [getFlagsForRO, ro]);
   const issues = useMemo(() => (ro ? getReviewIssues(ro, ros) : []), [ro, ros]);
@@ -326,7 +334,47 @@ export function RODetailSheet({
                         <div key={l.id} className="grid grid-cols-[2.5rem_1fr_3.5rem] py-1.5 items-start text-sm">
                           <span className="text-[11px] font-bold text-muted-foreground">L{l.lineNo}</span>
                           <div className="min-w-0">
-                            <p className="truncate font-medium">{l.description || "—"}</p>
+                            {(() => {
+                              const description = l.description || "—";
+                              const isExpanded = !!expandedLineIds[l.id];
+                              const canExpand = description.length > 110 || description.includes("\n");
+
+                              return (
+                                <>
+                                  <p
+                                    className={cn(
+                                      "font-medium whitespace-pre-wrap break-words",
+                                      !isExpanded && canExpand && "line-clamp-2",
+                                    )}
+                                  >
+                                    {description}
+                                  </p>
+                                  {canExpand && (
+                                    <button
+                                      type="button"
+                                      className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                                      onClick={() =>
+                                        setExpandedLineIds((prev) => ({ ...prev, [l.id]: !prev[l.id] }))
+                                      }
+                                      aria-expanded={isExpanded}
+                                      aria-label={`${isExpanded ? "Collapse" : "Expand"} description for line ${l.lineNo}`}
+                                    >
+                                      {isExpanded ? (
+                                        <>
+                                          <ChevronUp className="h-3 w-3" />
+                                          Show less
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="h-3 w-3" />
+                                          Show more
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </>
+                              );
+                            })()}
                             <div className="flex items-center gap-1 mt-0.5">
                               <StatusPill type={l.laborType} size="sm" />
                               {l.isTbd ? <Badge variant="outline" className="text-[9px]">TBD</Badge> : null}

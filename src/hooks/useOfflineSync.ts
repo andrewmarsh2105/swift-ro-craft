@@ -7,6 +7,7 @@ import {
   dequeue,
   getAllQueued,
   incrementRetry,
+  resetRetry,
   type QueuedAction,
   type QueuedActionType,
   type SyncConflict,
@@ -35,6 +36,16 @@ export function useOfflineSync() {
     setPendingCount(items.length);
   }, []);
 
+  const refreshConflicts = useCallback(async () => {
+    const items = await getAllQueued();
+    setConflicts(items
+      .filter(item => item.blocked)
+      .map(item => ({
+        queuedAction: item,
+        error: item.lastError || `Failed after ${MAX_RETRIES} attempts`,
+      })));
+  }, []);
+
   // Online/offline detection
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
@@ -48,8 +59,8 @@ export function useOfflineSync() {
   }, []);
 
   // Execute a single queued action against Supabase
-  const executeAction = useCallback(async (action: QueuedAction): Promise<boolean> => {
-    if (!user) return false;
+  const executeAction = useCallback(async (action: QueuedAction): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: 'User not authenticated' };
     try {
       switch (action.type) {
         case 'addRO': {
@@ -71,7 +82,7 @@ export function useOfflineSync() {
             const { error: lErr } = await supabase.from('ro_lines').insert(lineInserts);
             if (lErr) throw lErr;
           }
-          return true;
+          return { success: true };
         }
         case 'updateRO': {
           const { id, updates } = action.payload;
@@ -101,15 +112,16 @@ export function useOfflineSync() {
 
             // Delete old lines only after new ones are safely written
             if (existingIds.length > 0) {
-              await supabase.from('ro_lines').delete().in('id', existingIds);
+              const { error: delErr } = await supabase.from('ro_lines').delete().in('id', existingIds);
+              if (delErr) throw delErr;
             }
           }
-          return true;
+          return { success: true };
         }
         case 'deleteRO': {
           const { error } = await supabase.from('ros').delete().eq('id', action.payload.id);
           if (error) throw error;
-          return true;
+          return { success: true };
         }
         case 'addFlag': {
           const { roId, flagType, note, roLineId } = action.payload;
@@ -121,7 +133,7 @@ export function useOfflineSync() {
             note: note || null,
           });
           if (error) throw error;
-          return true;
+          return { success: true };
         }
         case 'clearFlag': {
           const { error } = await supabase
@@ -129,7 +141,7 @@ export function useOfflineSync() {
             .update({ cleared_at: new Date().toISOString() })
             .eq('id', action.payload.flagId);
           if (error) throw error;
-          return true;
+          return { success: true };
         }
         case 'uploadPhoto': {
           const { bucket, path, file } = action.payload;
@@ -146,7 +158,7 @@ export function useOfflineSync() {
             });
             if (recErr) throw recErr;
           }
-          return true;
+          return { success: true };
         }
         case 'addAdvisor': {
           const { name } = action.payload;
@@ -155,21 +167,22 @@ export function useOfflineSync() {
             name,
           });
           if (error) throw error;
-          return true;
+          return { success: true };
         }
         case 'deleteAdvisor': {
           const { id: advisorId } = action.payload;
           const { error } = await supabase.from('advisors').delete().eq('id', advisorId);
           if (error) throw error;
-          return true;
+          return { success: true };
         }
         default:
           console.warn('Unknown queued action type:', action.type);
-          return true; // dequeue unknown actions
+          return { success: true }; // dequeue unknown actions
       }
     } catch (err: any) {
-      console.error(`Sync failed for ${action.type}:`, err?.message);
-      return false;
+      const message = err?.message || 'Unknown sync error';
+      console.error(`Sync failed for ${action.type}:`, message);
+      return { success: false, error: message };
     }
   }, [user]);
 
@@ -186,32 +199,24 @@ export function useOfflineSync() {
       return;
     }
 
-    const newConflicts: SyncConflict[] = [];
     let synced = 0;
 
     for (const action of items) {
       if (!navigator.onLine) break; // stop if we lose connection mid-sync
+      if (action.blocked) continue;
 
-      const success = await executeAction(action);
-      if (success) {
+      const result = await executeAction(action);
+      if (result.success) {
         await dequeue(action.id);
         synced++;
       } else {
-        await incrementRetry(action.id);
-        if (action.retries + 1 >= MAX_RETRIES) {
-          newConflicts.push({
-            queuedAction: action,
-            error: `Failed after ${MAX_RETRIES} attempts`,
-          });
-        }
+        const nextRetryCount = action.retries + 1;
+        await incrementRetry(action.id, result.error, nextRetryCount >= MAX_RETRIES);
       }
     }
 
-    if (newConflicts.length > 0) {
-      setConflicts(prev => [...prev, ...newConflicts]);
-    }
-
     await refreshPendingCount();
+    await refreshConflicts();
 
     if (synced > 0) {
       toast.success(`Synced ${synced} pending change${synced > 1 ? 's' : ''}`);
@@ -223,7 +228,7 @@ export function useOfflineSync() {
 
     syncingRef.current = false;
     setSyncing(false);
-  }, [user, executeAction, refreshPendingCount]);
+  }, [user, executeAction, refreshPendingCount, refreshConflicts]);
 
   // Auto-sync when coming online
   useEffect(() => {
@@ -244,13 +249,22 @@ export function useOfflineSync() {
   // Init pending count
   useEffect(() => {
     refreshPendingCount();
-  }, [refreshPendingCount]);
+    refreshConflicts();
+  }, [refreshPendingCount, refreshConflicts]);
 
   // Queue an action (used when offline)
   const queueAction = useCallback(async (type: QueuedActionType, payload: any) => {
-    await enqueue({ type, payload });
-    await refreshPendingCount();
-  }, [refreshPendingCount]);
+    try {
+      await enqueue({ type, payload });
+      await refreshPendingCount();
+      await refreshConflicts();
+      return true;
+    } catch (err) {
+      console.error('Failed to queue offline action', err);
+      toast.error('Could not store offline change on this device');
+      return false;
+    }
+  }, [refreshPendingCount, refreshConflicts]);
 
   // Resolve a conflict by keeping local (retry) or discarding
   const resolveConflict = useCallback(async (conflict: SyncConflict, resolution: 'local' | 'server') => {
@@ -258,22 +272,23 @@ export function useOfflineSync() {
       // Discard the local action
       await dequeue(conflict.queuedAction.id);
     } else {
-      // Reset retries and try again
-      // We just re-attempt immediately
-      const success = await executeAction(conflict.queuedAction);
-      if (success) {
+      await resetRetry(conflict.queuedAction.id);
+      const retryable = { ...conflict.queuedAction, retries: 0, blocked: false, lastError: undefined };
+      const result = await executeAction(retryable);
+      if (result.success) {
         await dequeue(conflict.queuedAction.id);
       } else {
-        toast.error('Still unable to sync. Try again later.');
+        await incrementRetry(conflict.queuedAction.id, result.error, false);
+        toast.error(`Still unable to sync: ${result.error || 'Unknown error'}`);
         return;
       }
     }
-    setConflicts(prev => prev.filter(c => c.queuedAction.id !== conflict.queuedAction.id));
     await refreshPendingCount();
+    await refreshConflicts();
     if (refreshCallbackRef.current) {
       await refreshCallbackRef.current();
     }
-  }, [executeAction, refreshPendingCount]);
+  }, [executeAction, refreshPendingCount, refreshConflicts]);
 
   return {
     isOnline,

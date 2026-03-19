@@ -30,7 +30,6 @@ import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
-import { useUserSettings } from '@/hooks/useUserSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,7 +81,7 @@ function KPISkeleton() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="card-mobile p-4 space-y-2">
+        <div key={i} className="card-mobile p-4 space-y-2 bg-gradient-to-b from-card to-secondary/35">
           <Skeleton className="h-3 w-16" />
           <Skeleton className="h-8 w-24" />
           <Skeleton className="h-3 w-20" />
@@ -94,7 +93,7 @@ function KPISkeleton() {
 
 function BreakdownSkeleton() {
   return (
-    <div className="card-mobile p-4 space-y-3">
+    <div className="card-mobile p-4 space-y-3 bg-gradient-to-b from-card to-secondary/35">
       <Skeleton className="h-4 w-28" />
       {[...Array(5)].map((_, i) => (
         <div key={i} className="flex justify-between items-center">
@@ -151,21 +150,20 @@ function PeriodDatePicker({ label, start, end, onStartChange, onEndChange, accen
 }
 
 function MultiPeriodComparison({
+  weekStartDay,
   start1, end1, start2, end2,
   onStart1Change, onEnd1Change, onStart2Change, onEnd2Change,
 }: {
+  weekStartDay: number;
   start1?: Date; end1?: Date; start2?: Date; end2?: Date;
   onStart1Change: (d?: Date) => void; onEnd1Change: (d?: Date) => void;
   onStart2Change: (d?: Date) => void; onEnd2Change: (d?: Date) => void;
 }) {
-  const { settings: userSettings } = useUserSettings();
-  const weekStart = userSettings.weekStartDay ?? 0;
-
   // Quick preset helpers
   const applyPreset = useCallback((preset: 'this-vs-last-week' | 'this-vs-last-month' | 'today-vs-yesterday') => {
     const now = new Date();
     if (preset === 'this-vs-last-week') {
-      const diff = (now.getDay() - weekStart + 7) % 7;
+      const diff = (now.getDay() - weekStartDay + 7) % 7;
       const thisStart = new Date(now); thisStart.setDate(now.getDate() - diff);
       const thisEnd = new Date(thisStart); thisEnd.setDate(thisStart.getDate() + 6);
       const lastStart = new Date(thisStart); lastStart.setDate(thisStart.getDate() - 7);
@@ -185,7 +183,7 @@ function MultiPeriodComparison({
       onStart1Change(yesterday); onEnd1Change(yesterday);
       onStart2Change(today); onEnd2Change(today);
     }
-  }, [weekStart, onStart1Change, onEnd1Change, onStart2Change, onEnd2Change]);
+  }, [weekStartDay, onStart1Change, onEnd1Change, onStart2Change, onEnd2Change]);
 
   const range1 = start1 && end1 ? { start: localDateStr(start1), end: localDateStr(end1) } : null;
   const range2 = start2 && end2 ? { start: localDateStr(start2), end: localDateStr(end2) } : null;
@@ -255,7 +253,7 @@ function MultiPeriodComparison({
         <>
           {/* Summary hero row */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="card-mobile p-3 text-center space-y-0.5 border-l-[3px] border-primary">
+            <div className="card-mobile p-3 text-center space-y-0.5 border-l-4 border-primary bg-gradient-to-b from-primary/[0.1] to-card">
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period A</div>
               {start1 && end1 && (
                 <div className="text-[9px] text-muted-foreground/60">{format(start1, 'MMM d')}–{format(end1, 'MMM d')}</div>
@@ -268,7 +266,7 @@ function MultiPeriodComparison({
             <div className="flex flex-col items-center justify-center gap-1">
               <div className={cn('rounded-2xl px-3 py-2.5 flex flex-col items-center w-full', deltaBg)}>
                 <DeltaIcon className={cn('h-4 w-4', deltaColor)} />
-                <span className={cn('text-base font-bold tabular-nums mt-0.5', deltaColor)}>
+                <span className={cn('text-base font-extrabold tabular-nums mt-0.5', deltaColor)}>
                   {hide ? '--.-' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}h
                 </span>
                 <span className={cn('text-[10px] font-medium', deltaColor)}>
@@ -276,7 +274,7 @@ function MultiPeriodComparison({
                 </span>
               </div>
             </div>
-            <div className="card-mobile p-3 text-center space-y-0.5 border-l-[3px]" style={{ borderLeftColor: 'hsl(var(--chart-period-b))' }}>
+            <div className="card-mobile p-3 text-center space-y-0.5 border-l-4 bg-gradient-to-b from-accent/45 to-card" style={{ borderLeftColor: 'hsl(var(--chart-period-b))' }}>
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period B</div>
               {start2 && end2 && (
                 <div className="text-[9px] text-muted-foreground/60">{format(start2, 'MMM d')}–{format(end2, 'MMM d')}</div>
@@ -289,7 +287,7 @@ function MultiPeriodComparison({
           </div>
 
           {/* Chart */}
-          <div className="card-mobile p-4">
+          <div className="card-mobile p-4 bg-gradient-to-b from-card to-secondary/25">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Daily Hours Comparison</h4>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -317,9 +315,9 @@ function MultiPeriodComparison({
           </div>
 
           {/* Day-by-day breakdown — proper table layout */}
-          <div className="card-mobile overflow-hidden">
+          <div className="card-mobile overflow-hidden bg-gradient-to-b from-card to-secondary/25">
             {/* Column headers */}
-            <div className="grid items-center px-4 py-2 border-b-2 border-border bg-muted/50 gap-2"
+            <div className="grid items-center px-4 py-2 border-b-2 border-border bg-secondary/80 gap-2"
               style={{ gridTemplateColumns: '2.25rem 1fr 3rem 3rem 3.5rem' }}>
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Day</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trend</div>
@@ -422,7 +420,7 @@ function GoalProgressCard({ label, current, goal, hide }: { label: string; curre
   const pct = Math.min((current / goal) * 100, 100);
   const isComplete = current >= goal;
   return (
-    <div className="card-mobile p-4">
+    <div className="card-mobile p-4 bg-gradient-to-b from-card to-secondary/25">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Target className={cn('h-4 w-4', isComplete ? 'text-green-600 dark:text-green-400' : 'text-primary')} />
@@ -474,10 +472,9 @@ export function SummaryTab() {
     setShowUpgrade(true);
   };
 
-  const { settings: goalSettings } = useUserSettings();
-  const hoursGoalDaily = goalSettings.hoursGoalDaily;
-  const hoursGoalWeekly = goalSettings.hoursGoalWeekly;
-  const hourlyRate = goalSettings.hourlyRate;
+  const hoursGoalDaily = userSettings.hoursGoalDaily;
+  const hoursGoalWeekly = userSettings.hoursGoalWeekly;
+  const hourlyRate = userSettings.hourlyRate;
 
 
   // Closeout state
@@ -496,19 +493,20 @@ export function SummaryTab() {
 
   const today = new Date();
   const todayStr = localDateStr(today);
+  const todayForRange = useMemo(() => new Date(`${todayStr}T12:00:00`), [todayStr]);
 
   const dateRange = useMemo(() => {
     if (rangeMode === 'custom' && customStart && customEnd) {
       return { start: localDateStr(customStart), end: localDateStr(customEnd) };
     }
     if (rangeMode === 'pay_period' && hasCustomPayPeriod) {
-      return getCustomPayPeriodRange(payPeriodEndDates!, today);
+      return getCustomPayPeriodRange(payPeriodEndDates!, todayForRange);
     }
     if (rangeMode === 'day') return getDayRange();
     if (rangeMode === 'month') return getMonthRange();
     if (rangeMode === 'two_weeks') return getTwoWeekRange(weekStartDay);
     return getWeekRange(weekStartDay);
-  }, [rangeMode, todayStr, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates, weekStartDay]);
+  }, [rangeMode, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates, weekStartDay, todayForRange]);
 
   const report = usePayPeriodReport(dateRange.start, dateRange.end);
 
@@ -577,9 +575,9 @@ export function SummaryTab() {
   const maxDayHours = Math.max(...report.byDay.map(d => d.totalHours), 1);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-accent/[0.12]">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/80">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full rounded-none bg-transparent h-11 gap-0 p-0">
             <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Summary</TabsTrigger>
@@ -635,7 +633,7 @@ export function SummaryTab() {
 
             {/* ── A) Top Controls ────────────────────── */}
             <div className="px-4 pt-3">
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-card px-3 py-2.5 shadow-soft">
                 <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
                   <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0 flex-shrink-0">
                     <SelectValue />
@@ -649,7 +647,7 @@ export function SummaryTab() {
                     <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="font-semibold text-sm text-muted-foreground truncate flex-1">{viewModeLabel}</span>
+                <span className="font-semibold text-sm text-foreground/80 truncate flex-1">{viewModeLabel}</span>
                 {isPro && (
                   periodAlreadyClosed ? (
                     <button
@@ -708,14 +706,14 @@ export function SummaryTab() {
               <HideTotalsContext.Provider value={hideTotals}>
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                   {/* Total Hours */}
-                  <div className="card-mobile p-4 border-l-4 border-l-primary">
+                  <div className="card-mobile p-4 border-l-4 border-l-primary bg-primary/[0.06] shadow-sm">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Total Hours</div>
-                    <div className="text-3xl font-bold tabular-nums tracking-tight">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
+                    <div className="text-4xl font-extrabold tabular-nums tracking-tight text-primary">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
                     <div className="text-xs text-muted-foreground mt-1">{report.totalROs} ROs · {report.totalLines} lines</div>
                   </div>
 
                   {/* Avg Hours / RO */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-border/70">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Avg Hours / RO</div>
                     <div className="text-3xl font-bold tabular-nums tracking-tight">
                       {report.totalROs > 0 ? maskHours(Math.round((report.totalHours / report.totalROs) * 10) / 10, hideTotals) : '0'}<span className="text-xl ml-0.5 opacity-60">h</span>
@@ -724,7 +722,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* CP / W / I Breakdown */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-border/70">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">By Type</div>
                     <div className="space-y-1.5">
                       {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
@@ -738,7 +736,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* Flagged */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-orange-300/50 bg-orange-500/[0.06]">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Flagged</div>
                     <div className="flex items-baseline gap-1.5">
                       <Flag className={cn('h-4 w-4 flex-shrink-0', report.flaggedCount > 0 ? 'text-orange-500' : 'text-muted-foreground/40')} />
@@ -748,7 +746,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* TBD */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-yellow-300/50 bg-yellow-500/[0.06]">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">TBD</div>
                     <div className="flex items-baseline gap-1.5">
                       <Clock className={cn('h-4 w-4 flex-shrink-0', report.tbdLineCount > 0 ? 'text-yellow-500' : 'text-muted-foreground/40')} />
@@ -798,7 +796,7 @@ export function SummaryTab() {
             {/* ── C) Breakdown Row (2 cards) ─────────── */}
             <div className="px-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Hours by Day */}
-              <div className="card-mobile overflow-hidden">
+              <div className="card-mobile overflow-hidden bg-gradient-to-b from-card to-secondary/25">
                 <div className="px-4 pt-3 pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hours by Day</h3>
                 </div>
@@ -843,7 +841,7 @@ export function SummaryTab() {
               </div>
 
               {/* Hours by Advisor */}
-              <div className="card-mobile overflow-hidden">
+              <div className="card-mobile overflow-hidden bg-gradient-to-b from-card to-secondary/25">
                 <div className="px-4 pt-3 pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hours by Advisor</h3>
                 </div>
@@ -994,6 +992,7 @@ export function SummaryTab() {
           <div className="p-4">
             <HideTotalsContext.Provider value={hideTotals}>
               <MultiPeriodComparison
+                weekStartDay={weekStartDay}
                 start1={compareStart1} end1={compareEnd1}
                 start2={compareStart2} end2={compareEnd2}
                 onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import type { RepairOrder, LaborType, ROLine } from '@/types/ro';
+import { normalizeAdvisorName } from '@/lib/roFilters';
 
 export interface DayBreakdown {
   date: string;
@@ -164,9 +165,23 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
 
     // By advisor
     const advMap = new Map<string, AdvisorBreakdown>();
+    const displayAdvisorByKey = new Map<string, string>();
+    const advisorKey = (name?: string) => {
+      const normalized = normalizeAdvisorName(name);
+      return normalized || '—';
+    };
+
+    rosInRange.forEach((ro) => {
+      const key = advisorKey(ro.advisor);
+      if (!displayAdvisorByKey.has(key)) {
+        displayAdvisorByKey.set(key, ro.advisor?.trim() || '—');
+      }
+    });
+
     paidLines.forEach(({ ro, line }) => {
-      const adv = ro.advisor || '—';
-      const existing = advMap.get(adv);
+      const key = advisorKey(ro.advisor);
+      const adv = displayAdvisorByKey.get(key) || '—';
+      const existing = advMap.get(key);
       const lt = line.laborType || 'customer-pay';
       if (existing) {
         existing.totalHours += line.hoursPaid;
@@ -174,7 +189,7 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
         else if (lt === 'customer-pay') existing.customerPayHours += line.hoursPaid;
         else if (lt === 'internal') existing.internalHours += line.hoursPaid;
       } else {
-        advMap.set(adv, {
+        advMap.set(key, {
           advisor: adv,
           totalHours: line.hoursPaid,
           roCount: 0,
@@ -186,17 +201,18 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
     });
     // Include simple-mode ROs in advisor breakdown
     simpleROs.forEach(ro => {
-      const adv = ro.advisor || '—';
+      const key = advisorKey(ro.advisor);
+      const adv = displayAdvisorByKey.get(key) || '—';
       const h = ro.paidHours || 0;
       const lt = ro.laborType || 'customer-pay';
-      const existing = advMap.get(adv);
+      const existing = advMap.get(key);
       if (existing) {
         existing.totalHours += h;
         if (lt === 'warranty') existing.warrantyHours += h;
         else if (lt === 'customer-pay') existing.customerPayHours += h;
         else if (lt === 'internal') existing.internalHours += h;
       } else {
-        advMap.set(adv, {
+        advMap.set(key, {
           advisor: adv, totalHours: h, roCount: 0,
           warrantyHours: lt === 'warranty' ? h : 0,
           customerPayHours: lt === 'customer-pay' ? h : 0,
@@ -206,10 +222,11 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
     });
     // Set RO counts
     rosInRange.forEach(ro => {
-      const adv = ro.advisor || '—';
-      const existing = advMap.get(adv);
+      const key = advisorKey(ro.advisor);
+      const adv = displayAdvisorByKey.get(key) || '—';
+      const existing = advMap.get(key);
       if (existing) existing.roCount += 1;
-      else advMap.set(adv, { advisor: adv, totalHours: 0, roCount: 1, warrantyHours: 0, customerPayHours: 0, internalHours: 0 });
+      else advMap.set(key, { advisor: adv, totalHours: 0, roCount: 1, warrantyHours: 0, customerPayHours: 0, internalHours: 0 });
     });
     const byAdvisor = Array.from(advMap.values()).sort((a, b) => b.totalHours - a.totalHours);
 

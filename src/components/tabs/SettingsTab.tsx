@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet, Check } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, InfinityIcon, Camera, BarChart3, FileSpreadsheet, Check } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -43,7 +43,7 @@ function TemplatesSection() {
   const handleSave = async () => {
     if (!templateName.trim()) return;
     // Parse hints into a field map object
-    let fieldMap: Record<string, any> | undefined;
+    let fieldMap: Record<string, unknown> | undefined;
     if (templateHints.trim()) {
       try {
         fieldMap = JSON.parse(templateHints.trim());
@@ -64,7 +64,7 @@ function TemplatesSection() {
     setTemplateHints('');
   };
 
-  const handleEdit = (t: { id: string; name: string; fieldMapJson?: Record<string, any> | null }) => {
+  const handleEdit = (t: { id: string; name: string; fieldMapJson?: Record<string, unknown> | null }) => {
     setEditingId(t.id);
     setTemplateName(t.name);
     setTemplateHints(
@@ -213,8 +213,11 @@ function TemplatesSection() {
 }
 
 function PayPeriodRangeSection({ userSettings, updateUserSetting }: {
-  userSettings: any;
-  updateUserSetting: (key: string, value: any) => void;
+  userSettings: {
+    payPeriodType?: 'week' | 'two_weeks' | 'custom';
+    payPeriodEndDates?: number[] | null;
+  };
+  updateUserSetting: (key: string, value: unknown) => void;
 }) {
   const payPeriodType = userSettings.payPeriodType || 'week';
   const payPeriodEndDates: number[] = userSettings.payPeriodEndDates || [];
@@ -352,7 +355,7 @@ export function SettingsTab() {
   const { userSettings, updateUserSetting, userSettingsLoaded } = useFlagContext();
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
-  const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
+  const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, hasBillingIssue, openPortal } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
@@ -555,9 +558,9 @@ export function SettingsTab() {
   const avatarInitial = (syncedSettings.displayName || user?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto pb-32">
+    <div className="flex flex-col h-full overflow-y-auto pb-32 bg-accent/[0.14]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border space-y-3">
+      <div className="sticky top-0 z-30 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border/90 space-y-3 shadow-[var(--shadow-sm)]">
         <h1 className="text-2xl font-bold">Settings</h1>
         <SegmentedControl
           options={[
@@ -575,7 +578,7 @@ export function SettingsTab() {
             {/* Profile Card — tappable, opens Account sheet */}
             <button
               onClick={() => setShowAccountSheet(true)}
-              className="card-mobile p-4 w-full text-left tap-target touch-feedback"
+              className="card-mobile p-4 w-full text-left tap-target touch-feedback border border-border/90 bg-gradient-to-b from-card to-secondary/30"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -633,7 +636,7 @@ export function SettingsTab() {
                   <select
                     value={syncedSettings.accentColor || 'blue'}
                     onChange={e => updateSetting('accentColor', e.target.value)}
-                    className="h-9 pl-3 pr-7 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
+                    className="h-9 pl-3 pr-7 text-sm bg-card rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
                   >
                     {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => (
                       <option key={colorKey} value={colorKey}>
@@ -692,7 +695,7 @@ export function SettingsTab() {
                   onChange={e => setLocalDailyGoal(e.target.value)}
                   onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
                   placeholder="Off"
-                  className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                  className="w-20 h-10 px-3 text-sm text-right bg-card rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                 />
               </div>
               <div className="p-4 flex items-center justify-between gap-4">
@@ -1175,7 +1178,14 @@ export function SettingsTab() {
           {/* Plan */}
           <div className="card-mobile overflow-hidden">
             <button
-              onClick={() => { setShowAccountSheet(false); isPro ? openPortal() : setShowUpgradeDialog(true); }}
+              onClick={() => {
+                setShowAccountSheet(false);
+                if (isPro) {
+                  openPortal();
+                } else {
+                  setShowUpgradeDialog(true);
+                }
+              }}
               className="w-full p-4 flex items-center justify-between tap-target touch-feedback"
             >
               <span className="font-medium">Plan</span>
@@ -1196,6 +1206,14 @@ export function SettingsTab() {
                 <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-snug">
                   Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong> — add a payment method to keep Pro access.
+                </p>
+              </div>
+            )}
+            {hasBillingIssue && (
+              <div className="mx-4 mb-3 flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700 dark:text-red-400 leading-snug">
+                  We couldn't renew your Pro subscription. Open billing to update payment details.
                 </p>
               </div>
             )}

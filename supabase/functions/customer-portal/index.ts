@@ -9,6 +9,8 @@ const ALLOWED_ORIGINS = [
   "https://swift-ro-craft.lovable.app",
   "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
   "https://8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovableproject.com",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
 ];
 
 function getSafeOrigin(req: Request): string | null {
@@ -30,6 +32,13 @@ function corsHeaders(origin: string) {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
     "Vary": "Origin",
   };
+}
+
+function isUserOwnedCustomer(customer: Stripe.Customer, userId: string, userEmail: string): boolean {
+  if (customer.deleted) return false;
+  const metadataUserId = customer.metadata?.supabase_user_id;
+  if (metadataUserId) return metadataUserId === userId;
+  return (customer.email || "").toLowerCase() === userEmail.toLowerCase();
 }
 
 serve(async (req) => {
@@ -83,18 +92,34 @@ serve(async (req) => {
 
     let customerId = settings?.stripe_customer_id;
 
+    if (customerId) {
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer.deleted || !isUserOwnedCustomer(customer, user.id, user.email)) {
+          customerId = null;
+        }
+      } catch {
+        customerId = null;
+      }
+    }
+
     if (!customerId) {
-      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-      if (customers.data.length === 0) {
+      const customers = await stripe.customers.list({ email: user.email, limit: 10 });
+      const matched = customers.data.find((c) => isUserOwnedCustomer(c, user.id, user.email));
+      if (!matched) {
         throw new Error("No Stripe customer found for this user");
       }
-      customerId = customers.data[0].id;
+      customerId = matched.id;
       // Persist for next time
       await supabaseAdmin
         .from("user_settings")
-        .update({ stripe_customer_id: customerId })
-        .eq("user_id", user.id);
+        .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" });
     }
+
+    // Keep metadata linked for webhook fallback consistency
+    await stripe.customers.update(customerId, {
+      metadata: { supabase_user_id: user.id },
+    });
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,

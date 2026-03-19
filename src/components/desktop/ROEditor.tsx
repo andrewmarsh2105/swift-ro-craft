@@ -245,10 +245,12 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     setIsSaving(true);
     try {
       if (ro) {
-        await updateRO(ro.id, roData);
+        const success = await updateRO(ro.id, roData);
+        if (!success) return;
         toast.success('RO updated');
       } else {
-        await addRO(roData);
+        const saved = await addRO(roData);
+        if (!saved) return;
         toast.success('RO created');
       }
       haptics.success();

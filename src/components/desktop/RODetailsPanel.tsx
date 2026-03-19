@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { AlertTriangle, Clock, Copy, Flag, Pencil, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { AlertTriangle, ChevronDown, ChevronUp, Clock, Copy, Flag, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,11 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
   const { ros } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [flagOpen, setFlagOpen] = useState(false);
+  const [expandedLineIds, setExpandedLineIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setExpandedLineIds({});
+  }, [ro?.id]);
 
   if (!ro) {
     return (
@@ -63,7 +68,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3">
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm border-b border-border/90 px-4 py-3 shadow-[var(--shadow-sm)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -86,7 +91,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
               <Badge
                 variant={status.paid === "Paid" ? "outline" : "secondary"}
                 className={cn(
-                  "text-[9px] px-1.5 py-0",
+                  "text-[9px] px-2 py-0.5 font-semibold rounded-full",
                   status.paid === "Paid"
                     ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
                     : "text-muted-foreground",
@@ -95,19 +100,19 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
                 {status.paid}
               </Badge>
               {status.tbd > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
+                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full">
                   <Clock className="h-2.5 w-2.5" />
                   {status.tbd} TBD
                 </Badge>
               )}
               {status.flags > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
                   <Flag className="h-2.5 w-2.5" />
                   {status.flags} Flag
                 </Badge>
               )}
               {status.checks > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
                   <AlertTriangle className="h-2.5 w-2.5" />
                   {status.checks} Check
                 </Badge>
@@ -132,25 +137,25 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
       </div>
 
       {/* Body */}
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 bg-gradient-to-b from-accent/[0.26] via-background to-secondary/32">
         {/* Details */}
         <SectionCard title="Details">
           <div className="inset-panel p-3 space-y-2">
             <div className="flex justify-between">
               <span className="meta-text">Advisor</span>
-              <span className="text-xs font-medium">{ro.advisor}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.advisor}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">Customer</span>
-              <span className="text-xs font-medium">{ro.customerName || "—"}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.customerName || "—"}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">Mileage</span>
-              <span className="text-xs font-medium">{ro.mileage || "—"}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.mileage || "—"}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">Paid date</span>
-              <span className="text-xs font-medium">{ro.paidDate ? formatDateLong(ro.paidDate) : "—"}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.paidDate ? formatDateLong(ro.paidDate) : "—"}</span>
             </div>
           </div>
         </SectionCard>
@@ -160,11 +165,11 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
           <div className="inset-panel p-3 space-y-2">
             <div className="flex justify-between">
               <span className="meta-text">Vehicle</span>
-              <span className="text-xs font-medium">{vehicleLabel(ro)}</span>
+              <span className="text-xs font-semibold text-foreground">{vehicleLabel(ro)}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">VIN</span>
-              <span className="text-xs font-medium font-mono">{ro.vehicle?.vin || "—"}</span>
+              <span className="text-xs font-semibold text-foreground font-mono">{ro.vehicle?.vin || "—"}</span>
             </div>
           </div>
         </SectionCard>
@@ -176,7 +181,47 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
               {ro.lines.map((l) => (
                 <div key={l.id} className="inset-panel px-3 py-2 flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium truncate">{l.description || "—"}</p>
+                    {(() => {
+                      const description = l.description || "—";
+                      const isExpanded = !!expandedLineIds[l.id];
+                      const canExpand = description.length > 110 || description.includes("\n");
+
+                      return (
+                        <>
+                          <p
+                            className={cn(
+                              "text-xs font-semibold text-foreground whitespace-pre-wrap break-words",
+                              !isExpanded && canExpand && "line-clamp-2",
+                            )}
+                          >
+                            {description}
+                          </p>
+                          {canExpand && (
+                            <button
+                              type="button"
+                              className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                              onClick={() =>
+                                setExpandedLineIds((prev) => ({ ...prev, [l.id]: !prev[l.id] }))
+                              }
+                              aria-expanded={isExpanded}
+                              aria-label={`${isExpanded ? "Collapse" : "Expand"} description for line ${l.lineNo}`}
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-3 w-3" />
+                                  Show less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3 w-3" />
+                                  Show more
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <StatusPill type={l.laborType || ro.laborType} size="sm" />
                       {l.isTbd && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">TBD</Badge>}
@@ -221,7 +266,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
             <Copy className="icon-row" />
             Duplicate
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={onDelete}>
+          <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={onDelete}>
             <Trash2 className="icon-row" />
             Delete
           </Button>

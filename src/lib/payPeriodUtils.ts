@@ -19,58 +19,56 @@ export function getCustomPayPeriodRange(
     return { start: fmtDate(start), end: fmtDate(end) };
   }
 
-  const sorted = [...endDates].sort((a, b) => a - b);
-  const today = referenceDate.getDate();
+  const sorted = [...new Set(endDates)].sort((a, b) => a - b);
   const year = referenceDate.getFullYear();
   const month = referenceDate.getMonth();
+  const ref = atStartOfDay(referenceDate);
 
-  // Find which period we're currently in
-  // Each end date marks the last day of a period
-  // The start of a period is the day after the previous end date
+  const periods: Array<{ start: Date; end: Date }> = [];
 
+  // Periods that end in current month.
   for (let i = 0; i < sorted.length; i++) {
     const endDay = sorted[i];
     const prevEndDay = i === 0 ? sorted[sorted.length - 1] : sorted[i - 1];
 
-    let periodStart: Date;
-    let periodEnd: Date;
+    const end = dateWithClampedDay(year, month, endDay);
+    const prevEnd = i === 0
+      ? dateWithClampedDay(year, month - 1, prevEndDay)
+      : dateWithClampedDay(year, month, prevEndDay);
+    const start = addDays(prevEnd, 1);
 
-    if (i === 0) {
-      // First period: starts after last end date of previous month
-      periodStart = new Date(year, month - 1, prevEndDay + 1);
-      periodEnd = new Date(year, month, endDay);
-    } else {
-      periodStart = new Date(year, month, prevEndDay + 1);
-      periodEnd = new Date(year, month, endDay);
-    }
+    periods.push({ start, end });
+  }
 
-    // Clamp end day to actual month length
-    const lastDayOfEndMonth = new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, 0).getDate();
-    if (endDay > lastDayOfEndMonth) {
-      periodEnd = new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, 0);
-    }
+  // Wrap period that starts after this month's last end date and ends on next month's first end date.
+  const lastEnd = dateWithClampedDay(year, month, sorted[sorted.length - 1]);
+  const wrapEnd = dateWithClampedDay(year, month + 1, sorted[0]);
+  periods.push({ start: addDays(lastEnd, 1), end: wrapEnd });
 
-    if (today <= endDay || i === sorted.length - 1) {
-      // Check if today actually falls in this period
-      if (referenceDate >= periodStart && referenceDate <= periodEnd) {
-        return { start: fmtDate(periodStart), end: fmtDate(periodEnd) };
-      }
+  for (const period of periods) {
+    if (ref >= period.start && ref <= period.end) {
+      return { start: fmtDate(period.start), end: fmtDate(period.end) };
     }
   }
 
-  // If we haven't found a match, we're in the last period that wraps to next month
-  const lastEndDay = sorted[sorted.length - 1];
-  const periodStart = new Date(year, month, lastEndDay + 1);
-  const nextEndDay = sorted[0];
-  const periodEnd = new Date(year, month + 1, nextEndDay);
+  // Defensive fallback for malformed end-date lists.
+  return { start: fmtDate(periods[0].start), end: fmtDate(periods[0].end) };
+}
 
-  // Clamp
-  const lastDayOfNextMonth = new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, 0).getDate();
-  if (nextEndDay > lastDayOfNextMonth) {
-    periodEnd.setDate(lastDayOfNextMonth);
-  }
+function dateWithClampedDay(year: number, month: number, day: number): Date {
+  const d = new Date(year, month, 1);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return new Date(d.getFullYear(), d.getMonth(), Math.min(Math.max(day, 1), last));
+}
 
-  return { start: fmtDate(periodStart), end: fmtDate(periodEnd) };
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return atStartOfDay(d);
+}
+
+function atStartOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function fmtDate(d: Date): string {

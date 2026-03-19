@@ -21,15 +21,15 @@ export function SectionCard({
   return (
     <Card className={cn("overflow-hidden", className)}>
       {(title || rightSlot) && (
-        <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 bg-muted/20 pb-3">
           <div>
             {title && <CardTitle>{title}</CardTitle>}
-            {description && <CardDescription className="mt-0.5">{description}</CardDescription>}
+            {description && <CardDescription className="mt-1">{description}</CardDescription>}
           </div>
           {rightSlot}
         </CardHeader>
       )}
-      <CardContent className={cn(title ? "" : "pt-4", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn(title ? "pt-4" : "pt-5", contentClassName)}>{children}</CardContent>
     </Card>
   );
 }

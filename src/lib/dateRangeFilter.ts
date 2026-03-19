@@ -13,6 +13,12 @@ export interface DateRangeBounds {
   label: string;
 }
 
+function toDayKey(dateStr: string): number {
+  const m = dateStr?.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return NaN;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+}
+
 function localDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -116,13 +122,17 @@ export function computeDateRangeBounds(opts: ComputeDateRangeOpts): DateRangeBou
 }
 
 export function effectiveDate(ro: RepairOrder): string {
-  return ro.paidDate || ro.date;
+  const paidDate = ro.paidDate?.trim();
+  return paidDate && paidDate !== "—" ? paidDate : ro.date;
 }
 
 export function filterROsByDateRange(ros: RepairOrder[], bounds: DateRangeBounds | null): RepairOrder[] {
   if (!bounds) return ros;
+  const startKey = toDayKey(bounds.start);
+  const endKey = toDayKey(bounds.end);
+  if (isNaN(startKey) || isNaN(endKey)) return ros;
   return ros.filter((ro) => {
-    const d = effectiveDate(ro);
-    return d >= bounds.start && d <= bounds.end;
+    const dKey = toDayKey(effectiveDate(ro));
+    return !isNaN(dKey) && dKey >= startKey && dKey <= endKey;
   });
 }

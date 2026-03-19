@@ -16,6 +16,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
+import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
 import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
@@ -67,11 +68,11 @@ function StatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; flagsCo
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <Badge
         variant={status.paid === "Paid" ? "outline" : "secondary"}
         className={cn(
-          "text-[9px] px-1.5 py-0",
+          "text-[9px] px-2 py-0.5 font-semibold rounded-full",
           status.paid === "Paid"
             ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
             : "text-muted-foreground",
@@ -80,19 +81,19 @@ function StatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; flagsCo
         {status.paid}
       </Badge>
       {status.tbd > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
+        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full">
           <Clock className="h-2.5 w-2.5" />
           {status.tbd} TBD
         </Badge>
       )}
       {status.flags > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </Badge>
       )}
       {status.checks > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </Badge>
@@ -109,7 +110,7 @@ export const ROListPanel = memo(function ROListPanel({
   compact = false,
 }: ROListPanelProps) {
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
-  const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
+  const { flags, userSettings } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery);
@@ -141,9 +142,13 @@ export const ROListPanel = memo(function ROListPanel({
   // Advisor dropdown options: only advisors who have ROs in the current date range
   const advisors = useMemo(() => {
     const rangeROs = filterROsByDateRange(ros, listBounds);
-    return Array.from(new Set(rangeROs.map((r) => r.advisor).filter(Boolean))).sort((a, b) =>
-      a.localeCompare(b),
-    );
+    const firstSeenByKey = new Map<string, string>();
+    rangeROs.forEach((ro) => {
+      const normalized = normalizeAdvisorName(ro.advisor);
+      if (!normalized || firstSeenByKey.has(normalized)) return;
+      firstSeenByKey.set(normalized, ro.advisor.trim());
+    });
+    return Array.from(firstSeenByKey.values()).sort(compareAdvisorNames);
   }, [ros, listBounds]);
 
   // If the selected advisor isn't in the current range, reset to "all"
@@ -157,7 +162,8 @@ export const ROListPanel = memo(function ROListPanel({
     let result = ros;
 
     if (advisorFilter !== "all") {
-      result = result.filter((ro) => ro.advisor === advisorFilter);
+      const selectedAdvisor = normalizeAdvisorName(advisorFilter);
+      result = result.filter((ro) => normalizeAdvisorName(ro.advisor) === selectedAdvisor);
     }
 
     const q = deferredQuery.trim().toLowerCase();
@@ -185,15 +191,53 @@ export const ROListPanel = memo(function ROListPanel({
     const dir = sortDir === "asc" ? 1 : -1;
 
     const sorted = [...result].sort((a, b) => {
-      if (sortKey === "date") return effectiveDate(a).localeCompare(effectiveDate(b)) * dir;
-      if (sortKey === "ro") return a.roNumber.localeCompare(b.roNumber) * dir;
-      if (sortKey === "advisor") return a.advisor.localeCompare(b.advisor) * dir;
-      if (sortKey === "hours") return (calcHours(a) - calcHours(b)) * dir;
+      if (sortKey === "date") {
+        const byDate = effectiveDate(a).localeCompare(effectiveDate(b)) * dir;
+        if (byDate !== 0) return byDate;
+        return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      }
+      if (sortKey === "ro") return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      if (sortKey === "advisor") {
+        const byAdvisor = compareAdvisorNames(a.advisor, b.advisor) * dir;
+        if (byAdvisor !== 0) return byAdvisor;
+        return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      }
+      if (sortKey === "hours") {
+        const byHours = (calcHours(a) - calcHours(b)) * dir;
+        if (byHours !== 0) return byHours;
+        return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      }
       return 0;
     });
 
     return sorted;
   }, [ros, advisorFilter, deferredQuery, listBounds, sortKey, sortDir]);
+
+  const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
+
+  const flagCountByRO = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const flag of flags) {
+      if (flag.roLineId) continue;
+      map.set(flag.roId, (map.get(flag.roId) ?? 0) + 1);
+    }
+    return map;
+  }, [flags]);
+
+  const reviewIssueCountByRO = useMemo(() => {
+    const roNumberCounts = new Map<string, number>();
+    for (const ro of ros) {
+      if (!ro.roNumber) continue;
+      roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
+    }
+
+    const map = new Map<string, number>();
+    for (const ro of ros) {
+      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
+      map.set(ro.id, count > 1 ? getReviewIssues(ro, ros).length : 0);
+    }
+    return map;
+  }, [ros]);
 
   useEffect(() => {
     onFilteredROsChange?.(filteredROs);
@@ -205,15 +249,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
 
-  const rangeBounds = useMemo(() => computeDateRangeBounds({
-    filter: dateFilter,
-    weekStartDay: userSettings.weekStartDay ?? 0,
-    defaultSummaryRange: userSettings.defaultSummaryRange,
-    payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
-    hasCustomPayPeriod,
-    customStart,
-    customEnd,
-  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+  const rangeBounds = listBounds;
 
   const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
 
@@ -240,26 +276,28 @@ export const ROListPanel = memo(function ROListPanel({
 
   return (
     <>
-      <div className="flex flex-col h-full border-r border-border bg-card">
+      <div className="flex flex-col h-full bg-card">
         {/* Header */}
-        <div className="flex-shrink-0 px-3 pt-3 pb-2 border-b border-border space-y-2">
+        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border/90 bg-gradient-to-b from-primary/[0.13] via-accent/[0.34] to-card space-y-2.5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="page-title">{userSettings.shopName || 'Repair Orders'}</h2>
-              <p className="page-subtitle tabular-nums">
-                {totals.totalAll} total •{" "}
-                {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
-              </p>
-              <Badge
-                variant="outline"
-                className={cn("gap-1 mt-1", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
-                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
-              >
-                <CalendarRange className="h-3 w-3" />
-                {rangeChipLabel}
-              </Badge>
+              <h2 className="page-title text-foreground">{userSettings.shopName || 'Repair Orders'}</h2>
+              <div className="mt-1 inline-flex items-center gap-2 rounded-xl border border-primary/35 bg-primary/[0.14] px-2.5 py-1.5 shadow-[var(--shadow-sm)]">
+                <span className="text-xl font-extrabold tabular-nums text-primary leading-none">
+                  {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">{totals.totalAll} total</span>
+                <Badge
+                  variant="outline"
+                  className={cn("gap-1 h-5 text-[10px] px-1.5", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
+                  onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+                >
+                  <CalendarRange className="h-3 w-3" />
+                  {rangeChipLabel}
+                </Badge>
+              </div>
             </div>
-            <Button size="sm" onClick={onAddNew} className="h-8 text-xs gap-1.5">
+            <Button size="sm" onClick={onAddNew} className="h-9 text-xs gap-1.5 rounded-full px-4 bg-primary text-white hover:bg-primary/90 shadow-[var(--shadow-soft)]">
               <Plus className="icon-row" />
               Add RO
             </Button>
@@ -272,17 +310,17 @@ export const ROListPanel = memo(function ROListPanel({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search RO #, advisor, vehicle, customer, work..."
-                className="h-9 pl-9"
+                className="h-10 pl-9 bg-card border-border/90 shadow-[var(--shadow-sm)]"
               />
             </div>
 
-            <div className="flex gap-2">
-              <div className="flex-1 min-w-0">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <div className="min-w-0">
                 <label className="section-title mb-0.5 block">Date filter</label>
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
-                  className="h-7 w-full rounded-md border border-input bg-background px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-xs text-foreground shadow-[var(--shadow-sm)] focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All dates</option>
                   <option value="today">Today</option>
@@ -294,12 +332,12 @@ export const ROListPanel = memo(function ROListPanel({
                   <option value="custom">Custom…</option>
                 </select>
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0">
                 <label className="section-title mb-0.5 block">Advisor</label>
                 <select
                   value={advisorFilter}
                   onChange={(e) => setAdvisorFilter(e.target.value)}
-                  className="h-7 w-full rounded-md border border-input bg-background px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-xs text-foreground shadow-[var(--shadow-sm)] focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All advisors</option>
                   {advisors.map((a) => (
@@ -335,7 +373,7 @@ export const ROListPanel = memo(function ROListPanel({
           ) : (
             <div>
               {/* Grid header */}
-              <div className={cn("grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 bg-card border-b border-border", gridCols)}>
+              <div className={cn("grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border/90 shadow-[0_3px_10px_-8px_hsl(var(--foreground)/0.3)]", gridCols)}>
                 <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
                 <SortHeader label="RO #" active={sortKey === "ro"} dir={sortDir} onClick={() => toggleSort("ro")} />
                 <button
@@ -361,8 +399,8 @@ export const ROListPanel = memo(function ROListPanel({
               <div>
                 {visible.map((ro) => {
                   const hours = calcHours(ro);
-                  const flags = getFlagsForRO(ro.id);
-                  const issues = getReviewIssues(ro, ros);
+                  const flagsCount = flagCountByRO.get(ro.id) ?? 0;
+                  const issuesCount = reviewIssueCountByRO.get(ro.id) ?? 0;
                   const selected = selectedROId === ro.id;
 
                   const workSummary = ro.lines?.length
@@ -373,37 +411,39 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 py-2 cursor-pointer text-xs border-b border-border/50 row-hover quiet-transition",
+                        "grid gap-x-2 items-start px-3 py-3 cursor-pointer text-xs border-b border-border/70 row-hover quiet-transition",
                         gridCols,
-                        selected && "bg-primary/5 border-l-2 border-l-primary",
+                        selected
+                          ? "bg-primary/16 border-l-[3px] border-l-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.26)]"
+                          : "hover:bg-accent/35",
                       )}
                       onClick={() => onSelectRO(ro)}
                       role="row"
                     >
                       {/* Date */}
-                      <div className="meta-text tabular-nums whitespace-nowrap" role="cell">
+                      <div className="meta-text tabular-nums whitespace-nowrap text-foreground/75" role="cell">
                         {formatDateShort(effectiveDate(ro))}
                       </div>
 
                       {/* RO# */}
-                      <div className="font-medium whitespace-nowrap" role="cell">#{ro.roNumber}</div>
+                      <div className="font-bold whitespace-nowrap tabular-nums text-foreground" role="cell">#{ro.roNumber}</div>
 
                       {/* Info: two-line */}
                       <div className="min-w-0" role="cell">
-                        <p className="text-[11px] font-medium truncate">
+                        <p className="text-[11px] font-bold truncate text-foreground">
                           {ro.advisor} · {vehicleLabel(ro)}
                         </p>
-                        <p className="meta-text truncate">{workSummary}</p>
+                        <p className="meta-text truncate text-foreground/70">{workSummary}</p>
                       </div>
 
                       {/* Hours */}
-                      <div className="text-right font-bold tabular-nums whitespace-nowrap" role="cell">
+                      <div className="text-right font-extrabold tabular-nums whitespace-nowrap text-foreground" role="cell">
                         {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
                       </div>
 
                       {/* Status chips */}
                       <div role="cell">
-                        <StatusChips ro={ro} flagsCount={flags.length} checksCount={issues.length} />
+                        <StatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
                       </div>
 
                       {/* Actions */}
@@ -417,7 +457,7 @@ export const ROListPanel = memo(function ROListPanel({
                           }}
                           onDelete={() => deleteRO(ro.id)}
                           onFlag={() => setFlaggingRO(ro)}
-                          existingRONumbers={ros.map((r) => r.roNumber)}
+                          existingRONumbers={existingRONumbers}
                           className="-mr-2"
                         />
                       </div>
@@ -441,7 +481,7 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-3 py-2 border-t border-border bg-muted/30">
+        <div className="flex-shrink-0 px-3 py-2 border-t border-border/90 bg-gradient-to-r from-secondary/60 to-accent/45">
           <div className="flex items-center justify-between meta-text">
             <span className="tabular-nums">
               {filteredROs.length} ROs{filteredROs.length > visibleCount ? ` (showing ${visible.length})` : ""}

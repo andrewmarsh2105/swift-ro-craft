@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
@@ -22,12 +22,12 @@ import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { EmptyState } from '@/components/states/EmptyState';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
-import type { FlagType } from '@/types/flags';
 import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
+import { compareAdvisorNames, normalizeAdvisorName, sortROs } from '@/lib/roFilters';
 import { getStatusSummary } from '@/lib/roStatus';
 
 const SpreadsheetView = lazy(() =>
@@ -40,11 +40,11 @@ function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; f
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <Badge
         variant={status.paid === "Paid" ? "outline" : "secondary"}
         className={cn(
-          "text-[10px] px-1.5 py-0",
+          "text-[10px] px-2 py-0.5 font-semibold rounded-full",
           status.paid === "Paid"
             ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
             : "text-muted-foreground",
@@ -53,19 +53,19 @@ function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; f
         {status.paid}
       </Badge>
       {status.tbd > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full">
           <Clock className="h-2.5 w-2.5" />
           {status.tbd}
         </Badge>
       )}
       {status.flags > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </Badge>
       )}
       {status.checks > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </Badge>
@@ -84,16 +84,14 @@ interface ROCardProps {
   onFlag: () => void;
   onViewDetails: () => void;
   flags: import('@/types/flags').ROFlag[];
-  onClearFlag: (flagId: string) => void;
   reviewIssues: ReviewIssue[];
-  onConvertToFlag: (issue: ReviewIssue, flagType: FlagType, note?: string) => void;
   existingRONumbers: string[];
   hideTotals: boolean;
 }
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails,
-  flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers, hideTotals,
+  flags, reviewIssues, existingRONumbers, hideTotals,
 }: ROCardProps) {
   const roEffectiveDate = effectiveDate(ro);
   const hours = calcHours(ro);
@@ -107,34 +105,35 @@ const ROCard = memo(function ROCard({
 
   return (
     <div
-      className="card-mobile px-4 py-3 group row-hover quiet-transition border-l-[3px]"
+      className="card-mobile px-4 py-3.5 group row-hover quiet-transition border-l-4 border border-border/80 shadow-[var(--shadow-card)]"
       style={{ borderLeftColor: laborTypeColor }}
     >
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
           {/* Row 1: RO# · hours · status badges */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px] font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-base font-extrabold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
             <span className="hours-pill flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
-            <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
+            <span className="meta-text tabular-nums flex-shrink-0 bg-muted/60 px-2 py-0.5 rounded-full">{formatDateShort(roEffectiveDate)}</span>
             <div className="flex-shrink-0">
               <MobileStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
             </div>
           </div>
 
-          {/* Row 2: labor type · advisor · vehicle · work summary */}
-          <div className="flex items-center gap-1.5 mt-1.5">
+          {/* Row 2: labor type · advisor/vehicle + work summary */}
+          <div className="flex items-start gap-1.5 mt-2 min-w-0">
             <StatusPill type={ro.laborType} size="sm" />
-            <p className="meta-text truncate">
-              {ro.advisor}
-              {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
-              {' — '}
-              <span className="text-muted-foreground/65">
+            <div className="min-w-0 flex-1">
+              <p className="meta-text leading-snug truncate">
+                {ro.advisor}
+                {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
+              </p>
+              <p className="meta-text text-muted-foreground/75 leading-snug line-clamp-2 break-words">
                 {ro.lines?.length
                   ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(", ")
                   : ro.workPerformed || "—"}
-              </span>
-            </p>
+              </p>
+            </div>
           </div>
         </div>
 
@@ -173,7 +172,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const navigate = useNavigate();
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
-  const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
+  const { flags, userSettings } = useFlagContext();
 
   const hasCustomPayPeriod =
     userSettings.payPeriodType === 'custom' &&
@@ -193,13 +192,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const SCROLL_KEY = 'ui.mobile.roTab.scrollY';
 
   useEffect(() => {
+    const scrollEl = scrollRef.current;
     const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved && scrollRef.current) {
-      scrollRef.current.scrollTop = parseInt(saved, 10);
+    if (saved && scrollEl) {
+      scrollEl.scrollTop = parseInt(saved, 10);
     }
     return () => {
-      if (scrollRef.current) {
-        sessionStorage.setItem(SCROLL_KEY, String(scrollRef.current.scrollTop));
+      if (scrollEl) {
+        sessionStorage.setItem(SCROLL_KEY, String(scrollEl.scrollTop));
       }
     };
   }, []);
@@ -233,7 +233,25 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
 
-  const uniqueAdvisors = useMemo(() => [...new Set(ros.map(r => r.advisor))].sort(), [ros]);
+  const advisorsInRange = useMemo(() => {
+    const inRange = filterROsByDateRange(ros, rangeBounds);
+    const firstSeenByKey = new Map<string, string>();
+    inRange.forEach((ro) => {
+      const normalized = normalizeAdvisorName(ro.advisor);
+      if (!normalized || firstSeenByKey.has(normalized)) return;
+      firstSeenByKey.set(normalized, ro.advisor.trim());
+    });
+    return Array.from(firstSeenByKey.values()).sort(compareAdvisorNames);
+  }, [ros, rangeBounds]);
+
+  useEffect(() => {
+    setFilters((prev) => {
+      if (prev.advisors.length === 0) return prev;
+      const allowed = new Set(advisorsInRange.map((name) => normalizeAdvisorName(name)));
+      const nextAdvisors = prev.advisors.filter((name) => allowed.has(normalizeAdvisorName(name)));
+      return nextAdvisors.length === prev.advisors.length ? prev : { ...prev, advisors: nextAdvisors };
+    });
+  }, [advisorsInRange, setFilters]);
 
   // Pre-filtered ROs: search + advisor + labor type, sorted — but NO date filter.
   // SpreadsheetView manages its own local date range independently.
@@ -255,26 +273,46 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     }
 
     if (filters.advisors.length > 0) {
-      result = result.filter(ro => filters.advisors.includes(ro.advisor));
+      const selectedAdvisors = new Set(filters.advisors.map((a) => normalizeAdvisorName(a)));
+      result = result.filter(ro => selectedAdvisors.has(normalizeAdvisorName(ro.advisor)));
     }
 
     if (filters.laborTypes.length > 0) {
       result = result.filter(ro => filters.laborTypes.includes(ro.laborType));
     }
 
-    return [...result].sort((a, b) => {
-      if (filters.sortBy === 'date') return (b.paidDate || b.date).localeCompare(a.paidDate || a.date);
-      if (filters.sortBy === 'hours') return calcHours(b) - calcHours(a);
-      if (filters.sortBy === 'ro') return a.roNumber.localeCompare(b.roNumber);
-      if (filters.sortBy === 'advisor') return a.advisor.localeCompare(b.advisor);
-      if (filters.sortBy === 'customer') return (a.customerName || '').localeCompare(b.customerName || '');
-      if (filters.sortBy === 'laborType') return a.laborType.localeCompare(b.laborType);
-      return 0;
-    });
+    return sortROs(result, filters.sortBy);
   }, [ros, deferredSearch, filters]);
 
   // For cards view: apply date filter on top of pre-filtered ROs
   const filteredROs = useMemo(() => filterROsByDateRange(preFilteredROs, rangeBounds), [preFilteredROs, rangeBounds]);
+
+  const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
+
+  const flagsByROId = useMemo(() => {
+    const map = new Map<string, import('@/types/flags').ROFlag[]>();
+    for (const flag of flags) {
+      if (flag.roLineId) continue;
+      const current = map.get(flag.roId);
+      if (current) current.push(flag);
+      else map.set(flag.roId, [flag]);
+    }
+    return map;
+  }, [flags]);
+
+  const reviewIssuesByROId = useMemo(() => {
+    const roNumberCounts = new Map<string, number>();
+    for (const ro of ros) {
+      if (!ro.roNumber) continue;
+      roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
+    }
+    const issuesMap = new Map<string, ReviewIssue[]>();
+    for (const ro of ros) {
+      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
+      issuesMap.set(ro.id, count > 1 ? getReviewIssues(ro, ros) : []);
+    }
+    return issuesMap;
+  }, [ros]);
 
   useEffect(() => {
     setVisibleCount(50);
@@ -293,10 +331,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     const today = new Date().toISOString().slice(0, 10);
     return ros.filter(ro => (ro.date || '').startsWith(today)).reduce((s, ro) => s + calcHours(ro), 0);
   }, [ros, hoursGoalDaily]);
-
-  const handleConvertToFlag = useCallback((issue: ReviewIssue, flagType: FlagType, note?: string) => {
-    addFlag(issue.roId, flagType, note || issue.detail, issue.lineId);
-  }, [addFlag]);
 
   const activeFiltersCount =
     filters.advisors.length +
@@ -324,15 +358,15 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-background border-b border-border">
-        <div className="px-4">
-        <div className="flex items-center justify-between pt-2.5 pb-1">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/90 shadow-[var(--shadow-sm)]">
+        <div className="px-4 pt-2.5">
+        <div className="flex items-start justify-between pb-2 gap-2">
           <div className="min-w-0">
-            <h2 className="page-title">{goalSettings.shopName || 'Repair Orders'}</h2>
-            <div className="flex items-center gap-2 flex-wrap mt-1">
-              <span className="text-2xl font-bold tabular-nums text-primary leading-none">
+            <h2 className="page-title text-foreground">{goalSettings.shopName || 'Repair Orders'}</h2>
+            <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-primary/35 bg-primary/[0.15] px-2.5 py-1.5 shadow-[var(--shadow-sm)]">
+              <span className="text-2xl font-bold tabular-nums text-primary leading-none tracking-tight">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
               </span>
               <span className="text-sm text-muted-foreground tabular-nums font-medium leading-none">
@@ -350,7 +384,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               )}
               <Badge
                 variant="outline"
-                className={cn("gap-1 text-xs py-0.5 px-2 font-medium", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
+                className={cn("gap-1 text-xs py-0.5 px-2 font-medium rounded-full border-border/90 bg-card/90", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
                 onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
               >
                 <CalendarRange className="h-3 w-3" />
@@ -358,7 +392,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               </Badge>
             </div>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {goalSettings.displayName && (
               <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
                 {goalSettings.displayName.charAt(0).toUpperCase()}
@@ -368,8 +402,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <button
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
               className={cn(
-                'h-8 w-8 flex items-center justify-center rounded-full quiet-transition relative',
-                isPro && viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                'h-9 w-9 flex items-center justify-center rounded-full quiet-transition relative',
+                isPro && viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground shadow-[var(--shadow-soft)]' : 'text-muted-foreground hover:bg-muted'
               )}
               title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
             >
@@ -382,7 +416,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </button>
             <button
               onClick={() => setShowFilters(true)}
-              className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted relative quiet-transition"
+              className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent/60 relative quiet-transition"
             >
               <SlidersHorizontal className="icon-toolbar" />
               {activeFiltersCount > 0 && (
@@ -402,12 +436,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search RO #, advisor, vehicle, work..."
-              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-card text-sm shadow-[var(--shadow-sm)] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 pb-2">
+        {viewMode !== 'spreadsheet' && (
+          <div className="flex flex-wrap gap-1.5 pb-2.5">
           {([
             { value: 'all', label: 'All' },
             { value: 'today', label: 'Today' },
@@ -420,16 +455,17 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               key={value}
               onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
               className={cn(
-                'h-8 px-3 text-xs font-medium rounded-full border quiet-transition',
+                'h-8 px-3.5 text-xs font-semibold rounded-full border quiet-transition',
                 dateFilter === value
                   ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                  : 'bg-card text-muted-foreground border-border hover:bg-accent/50'
               )}
             >
               {label}
             </button>
           ))}
-        </div>
+          </div>
+        )}
         </div>
       </div>
 
@@ -444,7 +480,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </Suspense>
         </div>
       ) : (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32 bg-gradient-to-b from-accent/[0.22] via-background to-secondary/30">
           {loadingROs ? (
             <div className="px-4 py-3 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -493,15 +529,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               }
             />
           ) : (
-            <div className="px-4 py-2 space-y-1.5">
+            <div className="px-4 py-2.5 space-y-2">
               {visibleROs.map(ro => (
                 <ROCard
                   key={ro.id}
                   ro={ro}
-                  flags={getFlagsForRO(ro.id)}
-                  onClearFlag={clearFlag}
-                  reviewIssues={getReviewIssues(ro, ros)}
-                  onConvertToFlag={handleConvertToFlag}
+                  flags={flagsByROId.get(ro.id) ?? []}
+                  reviewIssues={reviewIssuesByROId.get(ro.id) ?? []}
                   hideTotals={userSettings.hideTotals ?? false}
                   onEdit={() => onEditRO(ro)}
                   onFlag={() => setFlaggingRO(ro)}
@@ -514,13 +548,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                     setSelectedRO(ro);
                     setShowDetail(true);
                   }}
-                  existingRONumbers={ros.map(r => r.roNumber)}
+                  existingRONumbers={existingRONumbers}
                 />
               ))}
               {hasMore && (
                 <button
                   onClick={() => setVisibleCount(c => c + 50)}
-                  className="w-full h-10 rounded-full border border-border bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
+                  className="w-full h-10 rounded-full border border-border/90 bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
                 >
                   Show {Math.min(50, filteredROs.length - visibleCount)} more
                 </button>
@@ -543,16 +577,16 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           }
           setShowDetail(false);
         }}
-        existingRONumbers={ros.map(r => r.roNumber)}
+        existingRONumbers={existingRONumbers}
         onDelete={() => { if (selectedRO) deleteRO(selectedRO.id); setShowDetail(false); }}
       />
 
       {/* Filter / Sort Bottom Sheet */}
       <BottomSheet isOpen={showFilters} onClose={() => setShowFilters(false)} title="Filter & Sort">
         <div className="p-4 space-y-5">
-          <div>
+          <div className="rounded-xl border border-border/90 bg-gradient-to-b from-secondary/70 to-card p-3 shadow-[var(--shadow-sm)]">
             <label className="section-title block mb-2">Sort By</label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {([
                 { value: 'date', label: 'Most recent' },
                 { value: 'ro', label: 'RO #' },
@@ -565,7 +599,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   key={o.value}
                   onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-full border quiet-transition min-h-[44px]',
+                    'px-3 py-1.5 text-xs font-medium rounded-full border quiet-transition min-h-[44px] text-left',
                     filters.sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-background text-muted-foreground border-border'
@@ -577,7 +611,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          <div>
+          <div className="rounded-xl border border-border/90 bg-gradient-to-b from-secondary/70 to-card p-3 shadow-[var(--shadow-sm)]">
             <label className="section-title block mb-2">Labor Type</label>
             <div className="flex flex-wrap gap-1.5">
               {(['warranty', 'customer-pay', 'internal'] as LaborType[]).map(type => (
@@ -591,11 +625,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          {uniqueAdvisors.length > 0 && (
-            <div>
+          {advisorsInRange.length > 0 && (
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
               <label className="section-title block mb-2">Advisor</label>
               <div className="flex flex-wrap gap-1.5">
-                {uniqueAdvisors.map(advisor => (
+                {advisorsInRange.map(advisor => (
                   <Chip
                     key={advisor}
                     label={advisor}

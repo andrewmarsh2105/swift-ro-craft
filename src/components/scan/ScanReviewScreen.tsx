@@ -26,6 +26,7 @@ interface ScanReviewScreenProps {
   pages: ScanPage[];
   pendingHeaderConflicts: HeaderConflict[];
   isAddingPage: boolean;
+  errorMessage: string | null;
   onUpdateData: (data: ExtractedData) => void;
   onApply: (data: ScanApplyData) => void;
   onRetake: () => void;
@@ -66,6 +67,7 @@ export function ScanReviewScreen({
   pages,
   pendingHeaderConflicts,
   isAddingPage,
+  errorMessage,
   onUpdateData,
   onApply,
   onRetake,
@@ -255,15 +257,15 @@ export function ScanReviewScreen({
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-background flex flex-col"
+        className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col"
       >
-        <div className="flex items-center justify-between p-4 border-b border-border safe-top">
+        <div className="flex items-center justify-between p-4 border-b border-border/70 bg-card safe-top">
           <div />
           <h2 className="font-semibold text-lg">Header Conflict</h2>
           <button onClick={onCancelPendingPage} className="text-sm text-muted-foreground">Cancel</button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3">
+          <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200/70 dark:border-yellow-700/40 rounded-xl p-3">
             <AlertTriangle className="h-5 w-5 flex-shrink-0" />
             <p className="text-sm font-medium">
               Page {pendingHeaderConflicts[0].pageNumber} has different header values. Choose which to keep:
@@ -328,10 +330,10 @@ export function ScanReviewScreen({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-background flex flex-col"
+      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border safe-top">
+      <div className="flex items-center justify-between p-4 border-b border-border/70 bg-card safe-top">
         <button
           onClick={onRetake}
           className="p-2 tap-target touch-feedback flex items-center gap-1 text-primary"
@@ -351,6 +353,13 @@ export function ScanReviewScreen({
       </div>
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+        {errorMessage && (
+          <div className="mx-4 mt-3 p-3 bg-destructive/10 rounded-xl flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+            <span className="text-xs text-destructive">{errorMessage}</span>
+          </div>
+        )}
+
         {/* Page thumbnails strip (multi-page) */}
         {isMultiPage && (
           <div className="px-4 pt-3">
@@ -427,7 +436,7 @@ export function ScanReviewScreen({
 
         {/* Cross-page duplicate warning */}
         {crossPageDupes.length > 0 && (
-          <div className="mx-4 mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl flex items-center gap-2">
+          <div className="mx-4 mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200/70 dark:border-yellow-700/40 rounded-xl flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
             <span className="text-xs text-yellow-700 dark:text-yellow-300">
               {crossPageDupes.length} duplicate {crossPageDupes.length === 1 ? 'line' : 'lines'} detected across pages. Review below.
@@ -802,7 +811,15 @@ export function ScanReviewScreen({
       </Dialog>
 
       {/* Duplicate lines prompt */}
-      <Dialog open={showDuplicatePrompt} onOpenChange={setShowDuplicatePrompt}>
+      <Dialog
+        open={showDuplicatePrompt}
+        onOpenChange={(open) => {
+          setShowDuplicatePrompt(open);
+          if (!open) {
+            setPendingApplyData(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

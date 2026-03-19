@@ -3,15 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { trackCheckoutStarted, trackPurchaseCompleted } from '@/lib/analytics';
+import { hasBillingIssue, hasProAccess, type StripeSubscriptionStatus } from '@/lib/subscriptionAccess';
+
+export type BillingStatus = StripeSubscriptionStatus;
 
 interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
   subscriptionEnd: string | null;
+  subscriptionStatus: BillingStatus;
   /** Days until subscription/trial ends. null when no active subscription. */
   daysUntilEnd: number | null;
   /** True when Pro is active and ends within 7 days (trial window). */
   isNearExpiry: boolean;
+  hasBillingIssue: boolean;
   checkoutLoading: boolean;
   checkoutFallbackUrl: string | null;
   clearCheckoutFallback: () => void;
@@ -31,6 +36,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const prevIsPro = useRef(false);
   const [loading, setLoading] = useState(true);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<BillingStatus>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutFallbackUrl, setCheckoutFallbackUrl] = useState<string | null>(null);
 
@@ -45,6 +51,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       // a token refresh before the new token is available. Only reset if genuinely signed out.
       if (!prevIsPro.current) {
         setIsPro(false);
+        setSubscriptionStatus(null);
       }
       setLoading(false);
       return;
@@ -59,26 +66,29 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const subscribed = data?.subscribed === true;
+      const status = (data?.status || null) as BillingStatus;
+      const subscribed = data?.subscribed === true || hasProAccess(status);
       // Track purchase_completed when Pro becomes active
       if (subscribed && !prevIsPro.current && sessionData.session?.user?.id) {
         trackPurchaseCompleted(sessionData.session.user.id);
       }
       prevIsPro.current = subscribed;
       setIsPro(subscribed);
+      setSubscriptionStatus(status);
       setSubscriptionEnd(data?.subscription_end || null);
     } catch {
       // Don't reset isPro on transient errors — preserve current state
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (userId) {
       checkSubscription();
     } else {
       setIsPro(false);
+      setSubscriptionStatus(null);
       prevIsPro.current = false;
       setLoading(false);
     }
@@ -116,6 +126,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setTimeout(tryCheck, delays[0]);
     } else if (params.get('checkout') === 'cancel') {
       window.history.replaceState({}, '', window.location.pathname);
+      toast.info('Checkout was canceled. No charges were made.');
     }
   }, [checkSubscription]);
 
@@ -127,8 +138,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       // token refresh, which would send an expired JWT and get a 401 from checkout.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
+      const requestId = crypto.randomUUID();
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: plan || 'monthly' },
+        body: { plan: plan || 'monthly', request_id: requestId },
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (error) throw error;
@@ -144,15 +156,20 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       } else {
         toast.error('Checkout URL not received. Please try again.');
       }
-    } catch (err: any) {
-      toast.error(`Checkout failed: ${err?.message || 'Please try again.'}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Please try again.';
+      toast.error(`Checkout failed: ${message}`);
     }
     setCheckoutLoading(false);
   }, [user]);
 
   const openPortal = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (error) throw error;
       if (data?.url) {
         window.location.href = data.url;
@@ -166,9 +183,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     ? Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
   const isNearExpiry = isPro && daysUntilEnd !== null && daysUntilEnd <= 7;
+  const hasBillingIssueState = !isPro && hasBillingIssue(subscriptionStatus);
 
   return (
-    <SubscriptionContext.Provider value={{ isPro, loading, subscriptionEnd, daysUntilEnd, isNearExpiry, checkoutLoading, checkoutFallbackUrl, clearCheckoutFallback, checkSubscription, startCheckout, openPortal }}>
+    <SubscriptionContext.Provider value={{ isPro, loading, subscriptionEnd, subscriptionStatus, daysUntilEnd, isNearExpiry, hasBillingIssue: hasBillingIssueState, checkoutLoading, checkoutFallbackUrl, clearCheckoutFallback, checkSubscription, startCheckout, openPortal }}>
       {children}
     </SubscriptionContext.Provider>
   );

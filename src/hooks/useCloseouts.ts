@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
-import type { RepairOrder, ROLine } from '@/types/ro';
 
 export type CloseoutRangeType = 'day' | 'week' | 'pay_period' | 'two_weeks' | 'month' | 'custom';
 
@@ -59,9 +59,14 @@ export interface CloseoutSnapshot {
   roIds: string[];
 }
 
-function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
+type CloseoutRow = Database['public']['Tables']['pay_period_closeouts']['Row'];
+type CloseoutInsert = Database['public']['Tables']['pay_period_closeouts']['Insert'];
+
+export function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
   return report.rosInRange.map(ro => {
     const paidLines = (ro.lines || []).filter(l => !l.isTbd && l.description.trim() !== '');
+    const simpleModeHours = (ro.lines || []).length === 0 ? (ro.paidHours || 0) : 0;
+    const effectiveSimpleLaborType = ro.laborType || 'customer-pay';
     const cpH = paidLines.filter(l => (l.laborType || 'customer-pay') === 'customer-pay').reduce((s, l) => s + l.hoursPaid, 0);
     const wH = paidLines.filter(l => l.laborType === 'warranty').reduce((s, l) => s + l.hoursPaid, 0);
     const iH = paidLines.filter(l => l.laborType === 'internal').reduce((s, l) => s + l.hoursPaid, 0);
@@ -71,15 +76,15 @@ function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
     return {
       roId: ro.id,
       roNumber: ro.roNumber,
-      roDate: ro.paidDate || ro.date,
+      roDate: ro.paidDate?.trim() && ro.paidDate !== '—' ? ro.paidDate : ro.date,
       advisor: ro.advisor || '—',
       customerName: ro.customerName,
       vehicle: vehicleParts.join(' ') || undefined,
       mileage: ro.mileage,
-      totalPaidHours: paidLines.reduce((s, l) => s + l.hoursPaid, 0),
-      cpHours: cpH,
-      wHours: wH,
-      iHours: iH,
+      totalPaidHours: paidLines.reduce((s, l) => s + l.hoursPaid, 0) + simpleModeHours,
+      cpHours: cpH + (simpleModeHours > 0 && effectiveSimpleLaborType === 'customer-pay' ? simpleModeHours : 0),
+      wHours: wH + (simpleModeHours > 0 && effectiveSimpleLaborType === 'warranty' ? simpleModeHours : 0),
+      iHours: iH + (simpleModeHours > 0 && effectiveSimpleLaborType === 'internal' ? simpleModeHours : 0),
       lines: (ro.lines || []).map(l => ({
         lineId: l.id,
         lineNo: l.lineNo,
@@ -107,7 +112,7 @@ export function useCloseouts() {
       .order('period_end', { ascending: false });
 
     if (!error && data) {
-      setCloseouts(data.map((row: any) => ({
+      setCloseouts(data.map((row: CloseoutRow) => ({
         id: row.id,
         rangeType: (row.range_type || 'pay_period') as CloseoutRangeType,
         periodStart: row.period_start,
@@ -153,7 +158,7 @@ export function useCloseouts() {
     const roSnapshot = buildROSnapshot(report);
     const roIds = report.rosInRange.map(r => r.id);
 
-    const { error } = await supabase.from('pay_period_closeouts').insert({
+    const payload: CloseoutInsert = {
       user_id: user.id,
       period_start: report.startDate,
       period_end: report.endDate,
@@ -162,7 +167,9 @@ export function useCloseouts() {
       breakdowns,
       ro_snapshot: roSnapshot,
       ro_ids: roIds,
-    } as any);
+    };
+
+    const { error } = await supabase.from('pay_period_closeouts').insert(payload);
 
     if (error) {
       console.error('Closeout insert error:', error);
@@ -185,7 +192,7 @@ export function useCloseouts() {
       return;
     }
     setCloseouts(prev => prev.filter(c => c.id !== id));
-  }, []);
+  }, [user]);
 
   const isRangeClosed = useCallback((start: string, end: string) => {
     return closeouts.some(c => c.periodStart === start && c.periodEnd === end);
