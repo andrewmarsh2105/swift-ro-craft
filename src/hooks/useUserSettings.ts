@@ -91,28 +91,29 @@ export function useUserSettings() {
       .eq('user_id', userId)
       .maybeSingle();
     if (data) {
+      const row = data as typeof data & Record<string, unknown>;
       setSettings({
         theme: data.theme || 'light',
         showScanConfidence: data.show_scan_confidence ?? false,
-        showVehicleChips: (data as any).show_vehicle_chips ?? true,
-        keywordAutofill: (data as any).keyword_autofill ?? true,
+        showVehicleChips: (row.show_vehicle_chips as boolean | undefined) ?? true,
+        keywordAutofill: (row.keyword_autofill as boolean | undefined) ?? true,
         flagInboxDateRange: data.flag_inbox_date_range || 'this_week',
         flagInboxTypes: data.flag_inbox_types || [],
         defaultSummaryRange: (data.default_summary_range as SummaryRange) || 'week',
-        defaultTemplateId: (data as any).default_template_id || null,
-        weekStartDay: (data as any).week_start_day ?? 0,
-        payPeriodType: ((data as any).pay_period_type as PayPeriodType) || 'week',
-        payPeriodEndDates: (data as any).pay_period_end_dates || null,
-        hideTotals: (data as any).hide_totals ?? false,
-        spreadsheetViewMode: (data as any).spreadsheet_view_mode || 'payroll',
-        spreadsheetDensity: (data as any).spreadsheet_density || 'comfortable',
-        spreadsheetGroupBy: (data as any).spreadsheet_group_by || 'date',
-        hoursGoalDaily: (data as any).hours_goal_daily ?? 0,
-        hoursGoalWeekly: (data as any).hours_goal_weekly ?? 0,
-        hourlyRate: (data as any).hourly_rate ?? 0,
-        displayName: (data as any).display_name || getLocalProfileSetting('displayName'),
-        shopName: (data as any).shop_name || getLocalProfileSetting('shopName'),
-        accentColor: (data as any).accent_color || 'blue',
+        defaultTemplateId: (row.default_template_id as string | null | undefined) ?? null,
+        weekStartDay: (row.week_start_day as number | undefined) ?? 0,
+        payPeriodType: (row.pay_period_type as PayPeriodType | undefined) || 'week',
+        payPeriodEndDates: (row.pay_period_end_dates as number[] | null | undefined) ?? null,
+        hideTotals: (row.hide_totals as boolean | undefined) ?? false,
+        spreadsheetViewMode: (row.spreadsheet_view_mode as string | undefined) || 'payroll',
+        spreadsheetDensity: (row.spreadsheet_density as string | undefined) || 'comfortable',
+        spreadsheetGroupBy: (row.spreadsheet_group_by as string | undefined) || 'date',
+        hoursGoalDaily: (row.hours_goal_daily as number | undefined) ?? 0,
+        hoursGoalWeekly: (row.hours_goal_weekly as number | undefined) ?? 0,
+        hourlyRate: (row.hourly_rate as number | undefined) ?? 0,
+        displayName: (row.display_name as string | undefined) || getLocalProfileSetting('displayName'),
+        shopName: (row.shop_name as string | undefined) || getLocalProfileSetting('shopName'),
+        accentColor: (row.accent_color as string | undefined) || 'blue',
       });
     } else {
       setSettings(prev => ({
@@ -137,7 +138,7 @@ export function useUserSettings() {
     }
     setLoaded(false);
     fetchSettings();
-  }, [userId]); // intentionally omit fetchSettings — userId change is the only trigger we want
+  }, [fetchSettings, userId]);
 
   // Apply accent color CSS variables whenever accentColor or loaded changes
   useEffect(() => {
@@ -149,7 +150,7 @@ export function useUserSettings() {
     localStorage.setItem('ro-tracker-accent', settings.accentColor);
   }, [settings.accentColor, loaded]);
 
-  const updateSetting = useCallback(async (key: keyof UserSettings, value: any) => {
+  const updateSetting = useCallback(async (key: keyof UserSettings, value: UserSettings[keyof UserSettings]) => {
     if (!userId) return;
     const previousValue = settingsRef.current[key];
 

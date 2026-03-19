@@ -72,7 +72,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (userId) {
@@ -144,8 +144,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       } else {
         toast.error('Checkout URL not received. Please try again.');
       }
-    } catch (err: any) {
-      toast.error(`Checkout failed: ${err?.message || 'Please try again.'}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Please try again.';
+      toast.error(`Checkout failed: ${message}`);
     }
     setCheckoutLoading(false);
   }, [user]);

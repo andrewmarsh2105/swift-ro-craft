@@ -19,7 +19,6 @@ export function FlagProvider({ children }: { children: ReactNode }) {
     userSettings,
     userSettingsLoaded,
     updateUserSetting: updateSetting,
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [flagStore, userSettings, userSettingsLoaded, updateSetting]);
 
   return (

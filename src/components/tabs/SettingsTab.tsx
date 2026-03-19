@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet, Check } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, InfinityIcon, Camera, BarChart3, FileSpreadsheet, Check } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -43,7 +43,7 @@ function TemplatesSection() {
   const handleSave = async () => {
     if (!templateName.trim()) return;
     // Parse hints into a field map object
-    let fieldMap: Record<string, any> | undefined;
+    let fieldMap: Record<string, unknown> | undefined;
     if (templateHints.trim()) {
       try {
         fieldMap = JSON.parse(templateHints.trim());
@@ -64,7 +64,7 @@ function TemplatesSection() {
     setTemplateHints('');
   };
 
-  const handleEdit = (t: { id: string; name: string; fieldMapJson?: Record<string, any> | null }) => {
+  const handleEdit = (t: { id: string; name: string; fieldMapJson?: Record<string, unknown> | null }) => {
     setEditingId(t.id);
     setTemplateName(t.name);
     setTemplateHints(
@@ -213,8 +213,11 @@ function TemplatesSection() {
 }
 
 function PayPeriodRangeSection({ userSettings, updateUserSetting }: {
-  userSettings: any;
-  updateUserSetting: (key: string, value: any) => void;
+  userSettings: {
+    payPeriodType?: 'week' | 'two_weeks' | 'custom';
+    payPeriodEndDates?: number[] | null;
+  };
+  updateUserSetting: (key: string, value: unknown) => void;
 }) {
   const payPeriodType = userSettings.payPeriodType || 'week';
   const payPeriodEndDates: number[] = userSettings.payPeriodEndDates || [];
@@ -1175,7 +1178,14 @@ export function SettingsTab() {
           {/* Plan */}
           <div className="card-mobile overflow-hidden">
             <button
-              onClick={() => { setShowAccountSheet(false); isPro ? openPortal() : setShowUpgradeDialog(true); }}
+              onClick={() => {
+                setShowAccountSheet(false);
+                if (isPro) {
+                  openPortal();
+                } else {
+                  setShowUpgradeDialog(true);
+                }
+              }}
               className="w-full p-4 flex items-center justify-between tap-target touch-feedback"
             >
               <span className="font-medium">Plan</span>

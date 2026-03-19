@@ -86,7 +86,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
               <Badge
                 variant={status.paid === "Paid" ? "outline" : "secondary"}
                 className={cn(
-                  "text-[9px] px-1.5 py-0",
+                  "text-[9px] px-2 py-0.5 font-semibold rounded-full",
                   status.paid === "Paid"
                     ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
                     : "text-muted-foreground",
@@ -95,19 +95,19 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
                 {status.paid}
               </Badge>
               {status.tbd > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
+                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full">
                   <Clock className="h-2.5 w-2.5" />
                   {status.tbd} TBD
                 </Badge>
               )}
               {status.flags > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
                   <Flag className="h-2.5 w-2.5" />
                   {status.flags} Flag
                 </Badge>
               )}
               {status.checks > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
                   <AlertTriangle className="h-2.5 w-2.5" />
                   {status.checks} Check
                 </Badge>

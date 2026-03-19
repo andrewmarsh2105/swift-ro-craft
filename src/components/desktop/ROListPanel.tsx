@@ -67,11 +67,11 @@ function StatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; flagsCo
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <Badge
         variant={status.paid === "Paid" ? "outline" : "secondary"}
         className={cn(
-          "text-[9px] px-1.5 py-0",
+          "text-[9px] px-2 py-0.5 font-semibold rounded-full",
           status.paid === "Paid"
             ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
             : "text-muted-foreground",
@@ -80,19 +80,19 @@ function StatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; flagsCo
         {status.paid}
       </Badge>
       {status.tbd > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
+        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full">
           <Clock className="h-2.5 w-2.5" />
           {status.tbd} TBD
         </Badge>
       )}
       {status.flags > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </Badge>
       )}
       {status.checks > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </Badge>
@@ -242,24 +242,26 @@ export const ROListPanel = memo(function ROListPanel({
     <>
       <div className="flex flex-col h-full border-r border-border bg-card">
         {/* Header */}
-        <div className="flex-shrink-0 px-3 pt-3 pb-2 border-b border-border space-y-2">
+        <div className="flex-shrink-0 px-3 pt-3 pb-2.5 border-b border-border space-y-2.5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="page-title">{userSettings.shopName || 'Repair Orders'}</h2>
-              <p className="page-subtitle tabular-nums">
-                {totals.totalAll} total •{" "}
-                {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
-              </p>
-              <Badge
-                variant="outline"
-                className={cn("gap-1 mt-1", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
-                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
-              >
-                <CalendarRange className="h-3 w-3" />
-                {rangeChipLabel}
-              </Badge>
+              <div className="mt-1 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-2 py-1">
+                <span className="text-lg font-bold tabular-nums text-primary leading-none">
+                  {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">{totals.totalAll} total</span>
+                <Badge
+                  variant="outline"
+                  className={cn("gap-1 h-5 text-[10px] px-1.5", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
+                  onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+                >
+                  <CalendarRange className="h-3 w-3" />
+                  {rangeChipLabel}
+                </Badge>
+              </div>
             </div>
-            <Button size="sm" onClick={onAddNew} className="h-8 text-xs gap-1.5">
+            <Button size="sm" onClick={onAddNew} className="h-8 text-xs gap-1.5 rounded-full">
               <Plus className="icon-row" />
               Add RO
             </Button>
@@ -272,7 +274,7 @@ export const ROListPanel = memo(function ROListPanel({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search RO #, advisor, vehicle, customer, work..."
-                className="h-9 pl-9"
+                className="h-9 pl-9 bg-muted/20"
               />
             </div>
 
@@ -282,7 +284,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
-                  className="h-7 w-full rounded-md border border-input bg-background px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-7 w-full rounded-md border border-input bg-muted/20 px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All dates</option>
                   <option value="today">Today</option>
@@ -299,7 +301,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <select
                   value={advisorFilter}
                   onChange={(e) => setAdvisorFilter(e.target.value)}
-                  className="h-7 w-full rounded-md border border-input bg-background px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-7 w-full rounded-md border border-input bg-muted/20 px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All advisors</option>
                   {advisors.map((a) => (
@@ -373,7 +375,7 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 py-2 cursor-pointer text-xs border-b border-border/50 row-hover quiet-transition",
+                        "grid gap-x-2 items-start px-3 py-2.5 cursor-pointer text-xs border-b border-border/50 row-hover quiet-transition",
                         gridCols,
                         selected && "bg-primary/5 border-l-2 border-l-primary",
                       )}
@@ -386,7 +388,7 @@ export const ROListPanel = memo(function ROListPanel({
                       </div>
 
                       {/* RO# */}
-                      <div className="font-medium whitespace-nowrap" role="cell">#{ro.roNumber}</div>
+                      <div className="font-semibold whitespace-nowrap tabular-nums" role="cell">#{ro.roNumber}</div>
 
                       {/* Info: two-line */}
                       <div className="min-w-0" role="cell">

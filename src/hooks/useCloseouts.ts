@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
-import type { RepairOrder, ROLine } from '@/types/ro';
 
 export type CloseoutRangeType = 'day' | 'week' | 'pay_period' | 'two_weeks' | 'month' | 'custom';
 
@@ -59,6 +59,9 @@ export interface CloseoutSnapshot {
   roIds: string[];
 }
 
+type CloseoutRow = Database['public']['Tables']['pay_period_closeouts']['Row'];
+type CloseoutInsert = Database['public']['Tables']['pay_period_closeouts']['Insert'];
+
 function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
   return report.rosInRange.map(ro => {
     const paidLines = (ro.lines || []).filter(l => !l.isTbd && l.description.trim() !== '');
@@ -107,7 +110,7 @@ export function useCloseouts() {
       .order('period_end', { ascending: false });
 
     if (!error && data) {
-      setCloseouts(data.map((row: any) => ({
+      setCloseouts(data.map((row: CloseoutRow) => ({
         id: row.id,
         rangeType: (row.range_type || 'pay_period') as CloseoutRangeType,
         periodStart: row.period_start,
@@ -153,7 +156,7 @@ export function useCloseouts() {
     const roSnapshot = buildROSnapshot(report);
     const roIds = report.rosInRange.map(r => r.id);
 
-    const { error } = await supabase.from('pay_period_closeouts').insert({
+    const payload: CloseoutInsert = {
       user_id: user.id,
       period_start: report.startDate,
       period_end: report.endDate,
@@ -162,7 +165,9 @@ export function useCloseouts() {
       breakdowns,
       ro_snapshot: roSnapshot,
       ro_ids: roIds,
-    } as any);
+    };
+
+    const { error } = await supabase.from('pay_period_closeouts').insert(payload);
 
     if (error) {
       console.error('Closeout insert error:', error);
@@ -185,7 +190,7 @@ export function useCloseouts() {
       return;
     }
     setCloseouts(prev => prev.filter(c => c.id !== id));
-  }, []);
+  }, [user]);
 
   const isRangeClosed = useCallback((start: string, end: string) => {
     return closeouts.some(c => c.periodStart === start && c.periodEnd === end);

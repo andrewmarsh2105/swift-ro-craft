@@ -496,19 +496,20 @@ export function SummaryTab() {
 
   const today = new Date();
   const todayStr = localDateStr(today);
+  const todayForRange = useMemo(() => new Date(`${todayStr}T12:00:00`), [todayStr]);
 
   const dateRange = useMemo(() => {
     if (rangeMode === 'custom' && customStart && customEnd) {
       return { start: localDateStr(customStart), end: localDateStr(customEnd) };
     }
     if (rangeMode === 'pay_period' && hasCustomPayPeriod) {
-      return getCustomPayPeriodRange(payPeriodEndDates!, today);
+      return getCustomPayPeriodRange(payPeriodEndDates!, todayForRange);
     }
     if (rangeMode === 'day') return getDayRange();
     if (rangeMode === 'month') return getMonthRange();
     if (rangeMode === 'two_weeks') return getTwoWeekRange(weekStartDay);
     return getWeekRange(weekStartDay);
-  }, [rangeMode, todayStr, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates, weekStartDay]);
+  }, [rangeMode, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates, weekStartDay, todayForRange]);
 
   const report = usePayPeriodReport(dateRange.start, dateRange.end);
 
@@ -635,7 +636,7 @@ export function SummaryTab() {
 
             {/* ── A) Top Controls ────────────────────── */}
             <div className="px-4 pt-3">
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/25 px-3 py-2.5 shadow-soft">
                 <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
                   <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0 flex-shrink-0">
                     <SelectValue />
@@ -649,7 +650,7 @@ export function SummaryTab() {
                     <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="font-semibold text-sm text-muted-foreground truncate flex-1">{viewModeLabel}</span>
+                <span className="font-semibold text-sm text-foreground/80 truncate flex-1">{viewModeLabel}</span>
                 {isPro && (
                   periodAlreadyClosed ? (
                     <button
@@ -708,14 +709,14 @@ export function SummaryTab() {
               <HideTotalsContext.Provider value={hideTotals}>
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                   {/* Total Hours */}
-                  <div className="card-mobile p-4 border-l-4 border-l-primary">
+                  <div className="card-mobile p-4 border-l-4 border-l-primary bg-primary/[0.04]">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Total Hours</div>
                     <div className="text-3xl font-bold tabular-nums tracking-tight">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
                     <div className="text-xs text-muted-foreground mt-1">{report.totalROs} ROs · {report.totalLines} lines</div>
                   </div>
 
                   {/* Avg Hours / RO */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-border/70">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Avg Hours / RO</div>
                     <div className="text-3xl font-bold tabular-nums tracking-tight">
                       {report.totalROs > 0 ? maskHours(Math.round((report.totalHours / report.totalROs) * 10) / 10, hideTotals) : '0'}<span className="text-xl ml-0.5 opacity-60">h</span>
@@ -724,7 +725,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* CP / W / I Breakdown */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-border/70">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">By Type</div>
                     <div className="space-y-1.5">
                       {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
@@ -738,7 +739,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* Flagged */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-orange-300/40 bg-orange-500/[0.04]">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Flagged</div>
                     <div className="flex items-baseline gap-1.5">
                       <Flag className={cn('h-4 w-4 flex-shrink-0', report.flaggedCount > 0 ? 'text-orange-500' : 'text-muted-foreground/40')} />
@@ -748,7 +749,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* TBD */}
-                  <div className="card-mobile p-4">
+                  <div className="card-mobile p-4 border border-yellow-300/40 bg-yellow-500/[0.04]">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">TBD</div>
                     <div className="flex items-baseline gap-1.5">
                       <Clock className={cn('h-4 w-4 flex-shrink-0', report.tbdLineCount > 0 ? 'text-yellow-500' : 'text-muted-foreground/40')} />

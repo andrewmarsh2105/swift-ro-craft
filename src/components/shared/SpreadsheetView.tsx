@@ -189,7 +189,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       filteredROs: filterROsByDateRange(ros, bounds),
       computedRangeLabel: bounds.label,
     };
-  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType, userSettings.weekStartDay, userSettings.defaultSummaryRange, hasCustomPayPeriod, customStart, customEnd]);
+  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.weekStartDay, userSettings.defaultSummaryRange, hasCustomPayPeriod, customStart, customEnd]);
 
   /* ─── Build rows using shared model ─── */
   const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy }), [filteredROs, computedRangeLabel, groupBy]);
@@ -419,7 +419,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   return (
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-card flex-wrap">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card/95 backdrop-blur-sm flex-wrap">
         <div className="flex items-center gap-2">
           {/* Date range selector */}
           {!isCloseout && (
@@ -448,7 +448,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-            <div className="flex rounded-lg border border-border overflow-hidden">
+            <div className="flex rounded-lg border border-border/80 overflow-hidden bg-muted/20">
               {([
                 { value: 'today' as DateFilterKey, label: 'Today' },
                 { value: 'week' as DateFilterKey, label: 'Week' },
@@ -464,7 +464,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
                     dateRange === opt.value
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-card text-muted-foreground hover:bg-muted',
+                      : 'bg-transparent text-muted-foreground hover:bg-muted',
                   )}
                 >
                   {opt.label}
@@ -486,7 +486,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {/* View mode */}
-          <div className="flex rounded-lg border border-border overflow-hidden">
+          <div className="flex rounded-lg border border-border/80 overflow-hidden bg-muted/20">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
                 key={m}
@@ -495,7 +495,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   'px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors',
                   viewMode === m
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-card text-muted-foreground hover:bg-muted',
+                    : 'bg-transparent text-muted-foreground hover:bg-muted',
                 )}
               >
                 {m}
@@ -716,16 +716,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Footer ─── */}
-      <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2 flex items-center justify-between text-sm">
+      <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2.5 flex items-center justify-between text-sm">
         <div className="flex gap-4 text-muted-foreground">
           <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
-        <div className="flex items-center gap-3 tabular-nums">
+        <div className="flex items-center gap-3 tabular-nums rounded-lg border border-border/70 bg-muted/20 px-3 py-1.5">
           <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {maskHours(warrantyHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {maskHours(cpHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {maskHours(internalHours, hideTotals)}h</span>
-          <span className="font-bold text-foreground ml-1">{maskHours(totalHours, hideTotals)}h total</span>
+          <span className="font-bold text-foreground ml-1 text-sm">{maskHours(totalHours, hideTotals)}h total</span>
         </div>
       </div>
 

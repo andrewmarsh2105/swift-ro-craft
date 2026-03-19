@@ -69,8 +69,9 @@ export function useROStore() {
 
   // Cancel any in-flight delete timers when the store unmounts
   useEffect(() => {
+    const pendingDeletesRef = pendingDeletes.current;
     return () => {
-      for (const { timer } of pendingDeletes.current.values()) {
+      for (const { timer } of pendingDeletesRef.values()) {
         clearTimeout(timer);
       }
     };

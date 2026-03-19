@@ -40,11 +40,11 @@ function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; f
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <Badge
         variant={status.paid === "Paid" ? "outline" : "secondary"}
         className={cn(
-          "text-[10px] px-1.5 py-0",
+          "text-[10px] px-2 py-0.5 font-semibold rounded-full",
           status.paid === "Paid"
             ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
             : "text-muted-foreground",
@@ -53,19 +53,19 @@ function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; f
         {status.paid}
       </Badge>
       {status.tbd > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full">
           <Clock className="h-2.5 w-2.5" />
           {status.tbd}
         </Badge>
       )}
       {status.flags > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 text-[hsl(var(--status-internal))]">
+        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </Badge>
       )}
       {status.checks > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 text-[hsl(var(--destructive))]">
+        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </Badge>
@@ -107,29 +107,29 @@ const ROCard = memo(function ROCard({
 
   return (
     <div
-      className="card-mobile px-4 py-3 group row-hover quiet-transition border-l-[3px]"
+      className="card-mobile px-4 py-3.5 group row-hover quiet-transition border-l-[3px] border border-border/70 shadow-soft"
       style={{ borderLeftColor: laborTypeColor }}
     >
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
           {/* Row 1: RO# · hours · status badges */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px] font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-base font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
             <span className="hours-pill flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
-            <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
+            <span className="meta-text tabular-nums flex-shrink-0 bg-muted/60 px-2 py-0.5 rounded-full">{formatDateShort(roEffectiveDate)}</span>
             <div className="flex-shrink-0">
               <MobileStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
             </div>
           </div>
 
           {/* Row 2: labor type · advisor · vehicle · work summary */}
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-start gap-1.5 mt-2">
             <StatusPill type={ro.laborType} size="sm" />
-            <p className="meta-text truncate">
+            <p className="meta-text leading-snug">
               {ro.advisor}
               {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
               {' — '}
-              <span className="text-muted-foreground/65">
+              <span className="text-muted-foreground/75 block truncate">
                 {ro.lines?.length
                   ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(", ")
                   : ro.workPerformed || "—"}
@@ -193,13 +193,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const SCROLL_KEY = 'ui.mobile.roTab.scrollY';
 
   useEffect(() => {
+    const scrollEl = scrollRef.current;
     const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved && scrollRef.current) {
-      scrollRef.current.scrollTop = parseInt(saved, 10);
+    if (saved && scrollEl) {
+      scrollEl.scrollTop = parseInt(saved, 10);
     }
     return () => {
-      if (scrollRef.current) {
-        sessionStorage.setItem(SCROLL_KEY, String(scrollRef.current.scrollTop));
+      if (scrollEl) {
+        sessionStorage.setItem(SCROLL_KEY, String(scrollEl.scrollTop));
       }
     };
   }, []);
@@ -273,7 +274,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     });
 
     return sorted;
-  }, [ros, deferredSearch, filters, hasCustomPayPeriod, userSettings, rangeBounds]);
+  }, [ros, deferredSearch, filters, rangeBounds]);
 
   useEffect(() => {
     setVisibleCount(50);
@@ -325,13 +326,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-background border-b border-border">
-        <div className="px-4">
-        <div className="flex items-center justify-between pt-2.5 pb-1">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="px-4 pt-2.5">
+        <div className="flex items-start justify-between pb-2 gap-2">
           <div className="min-w-0">
             <h2 className="page-title">{goalSettings.shopName || 'Repair Orders'}</h2>
-            <div className="flex items-center gap-2 flex-wrap mt-1">
-              <span className="text-2xl font-bold tabular-nums text-primary leading-none">
+            <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-muted/35 px-2.5 py-1.5">
+              <span className="text-2xl font-bold tabular-nums text-primary leading-none tracking-tight">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
               </span>
               <span className="text-sm text-muted-foreground tabular-nums font-medium leading-none">
@@ -349,7 +350,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               )}
               <Badge
                 variant="outline"
-                className={cn("gap-1 text-xs py-0.5 px-2 font-medium", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
+                className={cn("gap-1 text-xs py-0.5 px-2 font-medium rounded-full", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
                 onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
               >
                 <CalendarRange className="h-3 w-3" />
@@ -401,12 +402,12 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search RO #, advisor, vehicle, work..."
-              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-muted/30 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 pb-2">
+        <div className="flex flex-wrap gap-1.5 pb-2.5">
           {([
             { value: 'all', label: 'All' },
             { value: 'today', label: 'Today' },
@@ -419,7 +420,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               key={value}
               onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
               className={cn(
-                'h-8 px-3 text-xs font-medium rounded-full border quiet-transition',
+                'h-8 px-3.5 text-xs font-semibold rounded-full border quiet-transition',
                 dateFilter === value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
@@ -493,7 +494,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               }
             />
           ) : (
-            <div className="px-4 py-2 space-y-1.5">
+            <div className="px-4 py-2.5 space-y-2">
               {visibleROs.map(ro => (
                 <ROCard
                   key={ro.id}
@@ -550,7 +551,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* Filter / Sort Bottom Sheet */}
       <BottomSheet isOpen={showFilters} onClose={() => setShowFilters(false)} title="Filter & Sort">
         <div className="p-4 space-y-5">
-          <div>
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
             <label className="section-title block mb-2">Sort By</label>
             <div className="flex flex-wrap gap-1.5">
               {([
@@ -577,7 +578,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          <div>
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
             <label className="section-title block mb-2">Labor Type</label>
             <div className="flex flex-wrap gap-1.5">
               {(['warranty', 'customer-pay', 'internal'] as LaborType[]).map(type => (
@@ -592,7 +593,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
 
           {uniqueAdvisors.length > 0 && (
-            <div>
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
               <label className="section-title block mb-2">Advisor</label>
               <div className="flex flex-wrap gap-1.5">
                 {uniqueAdvisors.map(advisor => (
