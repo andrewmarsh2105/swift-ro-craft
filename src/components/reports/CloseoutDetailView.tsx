@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Flag, AlertCircle, Download, Copy, Share2, FileSpreadsheet, FileText } from 'lucide-react';
 import { maskHours } from '@/lib/maskHours';
-import { csvCell, typeCode, downloadCSVFile, buildCSV } from '@/lib/csvUtils';
+import { downloadCSVFile } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { CloseoutSnapshot, ROSnapshot } from '@/hooks/useCloseouts';
+import { buildCloseoutCSV } from '@/lib/closeoutExport';
 
 interface CloseoutDetailViewProps {
   open: boolean;
@@ -120,73 +121,7 @@ function CloseoutContent({ closeout, onClose }: { closeout: CloseoutSnapshot; on
   };
 
   const handleExportCSV = (mode: 'payroll' | 'full' = 'payroll') => {
-    const payrollHeaders = ['RO#', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Work Performed', 'Hours', 'Type'];
-    const fullHeaders = [...payrollHeaders, 'Line#', 'Mileage'];
-    const headers = mode === 'full' ? fullHeaders : payrollHeaders;
-
-    const sorted = [...ros].sort((a, b) => a.roDate.localeCompare(b.roDate) || a.roNumber.localeCompare(b.roNumber));
-
-    const csvRows: string[][] = [];
-    let currentDate = '';
-    let dayTotal = 0;
-
-    for (const ro of sorted) {
-      const paidLines = ro.lines.filter(l => !l.isTbd);
-      if (paidLines.length === 0) continue;
-
-      if (currentDate && ro.roDate !== currentDate) {
-        const totalRow = headers.map(h => {
-          if (h === 'Date') return csvCell(currentDate);
-          if (h === 'Work Performed') return csvCell('DAY TOTAL');
-          if (h === 'Hours') return csvCell(dayTotal.toFixed(2));
-          return csvCell('');
-        });
-        csvRows.push(totalRow);
-        dayTotal = 0;
-      }
-      currentDate = ro.roDate;
-
-      paidLines.forEach((l) => {
-        dayTotal += l.hours;
-        // Repeat RO-level fields on EVERY row
-        const base = [
-          csvCell(ro.roNumber),
-          csvCell(ro.roDate),
-          csvCell(ro.advisor),
-          csvCell(ro.customerName || ''),
-          csvCell(ro.vehicle || ''),
-          csvCell(l.description),
-          csvCell(l.hours.toFixed(2)),
-          csvCell(typeCode(l.laborType)),
-        ];
-        if (mode === 'full') {
-          base.push(csvCell(l.lineNo));
-          base.push(csvCell(ro.mileage || ''));
-        }
-        csvRows.push(base);
-      });
-    }
-
-    if (currentDate) {
-      const totalRow = headers.map(h => {
-        if (h === 'Date') return csvCell(currentDate);
-        if (h === 'Work Performed') return csvCell('DAY TOTAL');
-        if (h === 'Hours') return csvCell(dayTotal.toFixed(2));
-        return csvCell('');
-      });
-      csvRows.push(totalRow);
-    }
-
-    const periodTotal = sorted.reduce((sum, ro) => sum + ro.totalPaidHours, 0);
-    const periodRow = headers.map(h => {
-      if (h === 'Date') return csvCell(`${closeout.periodStart}\u2013${closeout.periodEnd}`);
-      if (h === 'Work Performed') return csvCell('PERIOD TOTAL');
-      if (h === 'Hours') return csvCell(periodTotal.toFixed(2));
-      return csvCell('');
-    });
-    csvRows.push(periodRow);
-
-    const csv = buildCSV(headers, csvRows);
+    const csv = buildCloseoutCSV(closeout, mode);
     const label = mode === 'full' ? 'audit' : 'payroll';
     downloadCSVFile(csv, `closeout-${label}-${closeout.periodStart}-to-${closeout.periodEnd}.csv`);
     toast.success(`${mode === 'full' ? 'Full' : 'Payroll'} CSV downloaded`);

@@ -27,6 +27,7 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     customerName: ro.customerName,
     mileage: ro.mileage,
     vehicle: undefined,
+    vehicleLabel: ro.vehicle,
     paidHours: ro.totalPaidHours,
     laborType: 'customer-pay' as const,
     workPerformed: ro.lines.map(l => l.description).join('\n'),
@@ -50,6 +51,7 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     updatedAt: snapshot.closedAt,
   }));
   const linesInRange = rosInRange.flatMap(ro => ro.lines.map(line => ({ ro, line })));
+  const tbdHours = linesInRange.filter(({ line }) => line.isTbd).reduce((sum, { line }) => sum + line.hoursPaid, 0);
 
   return {
     startDate: snapshot.periodStart,
@@ -58,7 +60,7 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     totalROs: snapshot.totals.totalROs,
     totalLines: snapshot.totals.totalLines,
     tbdLineCount: snapshot.totals.tbdCount,
-    tbdHours: 0,
+    tbdHours,
     byDay: (snapshot.breakdowns.byDay || []).map(d => ({
       date: d.date,
       totalHours: d.totalHours,
@@ -76,7 +78,7 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     })),
     byLaborRef: snapshot.breakdowns.byLaborRef || [],
     missingHoursCount: 0,
-    needsReviewCount: 0,
+    needsReviewCount: snapshot.totals.needsReviewCount,
     flaggedCount: snapshot.totals.flaggedCount,
     rosInRange,
     linesInRange,
@@ -97,21 +99,33 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
   const hide = userSettings.hideTotals ?? false;
 
   const handleExportCSV = () => {
-    const csv = generateLineCSV(report);
-    downloadCSV(csv, `proof-pack-${report.startDate}-to-${report.endDate}.csv`);
-    toast.success('CSV downloaded');
+    try {
+      const csv = generateLineCSV(report);
+      downloadCSV(csv, `proof-pack-${report.startDate}-to-${report.endDate}.csv`);
+      toast.success('CSV downloaded');
+    } catch {
+      toast.error('CSV export failed');
+    }
   };
 
   const handleCopy = async () => {
-    const text = generateSummaryText(report);
-    await navigator.clipboard.writeText(text);
-    toast.success('Summary copied');
+    try {
+      const text = generateSummaryText(report);
+      await navigator.clipboard.writeText(text);
+      toast.success('Summary copied');
+    } catch {
+      toast.error('Copy failed');
+    }
   };
 
   const handleShare = async () => {
-    const text = generateSummaryText(report);
-    await shareSummary(text);
-    toast.success('Shared');
+    try {
+      const text = generateSummaryText(report);
+      await shareSummary(text);
+      toast.success('Shared');
+    } catch {
+      toast.error('Share failed');
+    }
   };
 
   const displayROs = flaggedOnly

@@ -5,7 +5,7 @@ import { formatVehicleChip } from '@/types/ro';
 /** Wrap a CSV cell value in double-quotes, escaping any embedded quotes. */
 function csvCell(val: string | number | null | undefined): string {
   const s = String(val ?? '');
-  return `"${s.replace(/"/g, '""')}"`;
+  return `"${s.replace(/"/g, '""').replace(/\r?\n|\r/g, ' ')}"`;
 }
 
 export function generateLineCSV(report: PayPeriodReport): string {
@@ -20,10 +20,12 @@ export function generateLineCSV(report: PayPeriodReport): string {
   const rows = filtered.map(({ ro, line }) => {
     const isFirstLine = ro.id !== lastRoId;
     lastRoId = ro.id;
-    const vehicleLabel = formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) || '';
+    const vehicleLabel =
+      formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) ||
+      ((ro as { vehicleLabel?: string }).vehicleLabel || '');
     return [
       csvCell(isFirstLine ? ro.roNumber : ''),
-      csvCell(isFirstLine ? ro.date : ''),
+      csvCell(isFirstLine ? (ro.paidDate?.trim() && ro.paidDate !== '—' ? ro.paidDate : ro.date) : ''),
       csvCell(isFirstLine ? (ro.advisor || '—') : ''),
       csvCell(isFirstLine ? (ro.customerName || '') : ''),
       csvCell(isFirstLine ? vehicleLabel : ''),
