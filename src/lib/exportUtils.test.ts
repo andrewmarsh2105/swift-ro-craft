@@ -26,16 +26,17 @@ function makeRO(partial: Partial<RepairOrder>): RepairOrder {
 }
 
 describe('exportUtils', () => {
-  it('generateLineCSV includes only paid non-TBD lines and groups RO details by first line', () => {
+  it('generateLineCSV includes only paid non-TBD lines and uses paidDate for exported date', () => {
     const ro = makeRO({
       id: 'ro-1',
       roNumber: '2001',
       date: '2026-03-03',
+      paidDate: '2026-03-04',
       advisor: 'Alex',
       customerName: 'Pat',
       vehicle: { year: 2024, make: 'Honda', model: 'Civic' },
       lines: [
-        { id: 'a', lineNo: 1, description: 'Paid line', hoursPaid: 1.25, laborType: 'customer-pay', createdAt: '', updatedAt: '' },
+        { id: 'a', lineNo: 1, description: 'Paid line\nwith newline', hoursPaid: 1.25, laborType: 'customer-pay', createdAt: '', updatedAt: '' },
         { id: 'b', lineNo: 2, description: '', hoursPaid: 2, laborType: 'warranty', createdAt: '', updatedAt: '' },
         { id: 'c', lineNo: 3, description: 'TBD line', hoursPaid: 0.5, laborType: 'internal', isTbd: true, createdAt: '', updatedAt: '' },
       ],
@@ -65,8 +66,10 @@ describe('exportUtils', () => {
 
     expect(rows).toHaveLength(2); // header + 1 paid row
     expect(rows[1]).toContain('"2001"');
+    expect(rows[1]).toContain('"2026-03-04"');
     expect(rows[1]).toContain('"1.25"');
     expect(rows[1]).toContain("\"'24 Honda Civic\"");
+    expect(rows[1]).toContain('"Paid line with newline"');
     expect(rows[1]).not.toContain('TBD line');
   });
 
@@ -95,5 +98,40 @@ describe('exportUtils', () => {
     expect(text).toContain('TBD: 2 lines (1.2h) — not counted in totals');
     expect(text).toContain('WARNINGS:');
     expect(text).toContain('🚩 3 flagged items');
+  });
+
+  it('generateLineCSV falls back to vehicleLabel for snapshot-derived reports', () => {
+    const ro = makeRO({
+      id: 'ro-snapshot',
+      roNumber: '3002',
+      date: '2026-03-05',
+      vehicle: undefined,
+      lines: [
+        { id: 'l1', lineNo: 1, description: 'Oil change', hoursPaid: 1.0, laborType: 'customer-pay', createdAt: '', updatedAt: '' },
+      ],
+    }) as RepairOrder & { vehicleLabel?: string };
+    ro.vehicleLabel = "'23 Toyota Camry";
+
+    const report = {
+      startDate: '2026-03-01',
+      endDate: '2026-03-31',
+      totalHours: 1.0,
+      totalROs: 1,
+      totalLines: 1,
+      tbdLineCount: 0,
+      tbdHours: 0,
+      byDay: [],
+      byAdvisor: [],
+      byLaborType: [],
+      byLaborRef: [],
+      missingHoursCount: 0,
+      needsReviewCount: 0,
+      flaggedCount: 0,
+      rosInRange: [ro],
+      linesInRange: ro.lines.map(line => ({ ro, line })),
+    } satisfies PayPeriodReport;
+
+    const csv = generateLineCSV(report);
+    expect(csv).toContain("\"'23 Toyota Camry\"");
   });
 });
