@@ -278,13 +278,13 @@ export const ROListPanel = memo(function ROListPanel({
               />
             </div>
 
-            <div className="flex gap-2">
-              <div className="flex-1 min-w-0">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <div className="min-w-0">
                 <label className="section-title mb-0.5 block">Date filter</label>
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
-                  className="h-7 w-full rounded-md border border-input bg-muted/20 px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border border-input bg-muted/20 px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All dates</option>
                   <option value="today">Today</option>
@@ -296,12 +296,12 @@ export const ROListPanel = memo(function ROListPanel({
                   <option value="custom">Custom…</option>
                 </select>
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0">
                 <label className="section-title mb-0.5 block">Advisor</label>
                 <select
                   value={advisorFilter}
                   onChange={(e) => setAdvisorFilter(e.target.value)}
-                  className="h-7 w-full rounded-md border border-input bg-muted/20 px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border border-input bg-muted/20 px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All advisors</option>
                   {advisors.map((a) => (

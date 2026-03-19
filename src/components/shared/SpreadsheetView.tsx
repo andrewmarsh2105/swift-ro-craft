@@ -420,13 +420,13 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
       <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card/95 backdrop-blur-sm flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           {/* Date range selector */}
           {!isCloseout && (
             isMobile ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 gap-1 text-[11px]">
+                  <Button variant="outline" size="sm" className="h-9 gap-1 text-xs">
                     <CalendarRange className="h-3 w-3" />
                     {dateRange === 'all' ? 'All' : dateRange === 'custom' ? 'Custom' : dateRange === 'pay_period' ? 'Pay Period' : dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}
                     <ChevronDown className="h-3 w-3" />
@@ -503,8 +503,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             ))}
           </div>
 
-          <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
-            <SelectTrigger className="h-7 w-[120px] text-[11px] font-semibold">
+            <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
+            <SelectTrigger className="h-9 w-[132px] text-xs font-semibold">
               <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
               <SelectValue placeholder="Group by" />
             </SelectTrigger>
@@ -519,7 +519,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
         <div className="flex items-center gap-1">
           <Button
-            variant="ghost" size="sm" className="h-7 gap-1 text-xs"
+            variant="ghost" size="sm" className="h-9 gap-1 text-xs"
             onClick={handleDensityChange}
             title={density === 'compact' ? 'Comfortable' : 'Compact'}
           >
@@ -531,7 +531,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           {isPro && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
+                <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs">
                   <Download className="h-3.5 w-3.5" />
                   Export
                 </Button>
@@ -557,7 +557,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {isPro && (
-            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={handlePrint}>
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={handlePrint}>
               <Printer className="h-3.5 w-3.5" />
             </Button>
           )}
@@ -716,12 +716,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Footer ─── */}
-      <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2.5 flex items-center justify-between text-sm">
-        <div className="flex gap-4 text-muted-foreground">
+      <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
+        <div className="flex flex-wrap gap-3 sm:gap-4 text-muted-foreground">
           <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
-        <div className="flex items-center gap-3 tabular-nums rounded-lg border border-border/70 bg-muted/20 px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 tabular-nums rounded-lg border border-border/70 bg-muted/20 px-3 py-1.5">
           <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {maskHours(warrantyHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {maskHours(cpHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {maskHours(internalHours, hideTotals)}h</span>
