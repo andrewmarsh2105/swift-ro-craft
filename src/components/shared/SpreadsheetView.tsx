@@ -4,13 +4,13 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
-  Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarRange,
+  Printer, Download, ChevronDown,
+  Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarRange, CalendarDays,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
@@ -28,8 +28,7 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
-import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from '@/lib/dateRangeFilter';
-import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import {
   buildSpreadsheetRows,
@@ -40,6 +39,26 @@ import {
   type SpreadsheetLineRow,
   type SpreadsheetSubtotalRow,
 } from '@/lib/buildSpreadsheetRows';
+
+/* ─── Spreadsheet-local date range (independent from global shared state) ─── */
+const SS_LS_KEY = "ui.spreadsheet.dateRange.v1";
+
+interface SSDateState {
+  dateFilter: DateFilterKey;
+  customStart?: string;
+  customEnd?: string;
+}
+
+function readSSLS(): SSDateState | null {
+  try {
+    const raw = localStorage.getItem(SS_LS_KEY);
+    return raw ? (JSON.parse(raw) as SSDateState) : null;
+  } catch { return null; }
+}
+
+function writeSSLS(s: SSDateState) {
+  try { localStorage.setItem(SS_LS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
 
 /* ─── Memoized line row ─── */
 interface LineRowProps {
@@ -99,6 +118,118 @@ const AUDIT_DISPLAY_COLUMNS: ColumnId[] = [
 
 const ROW_BATCH = 120;
 
+/* ─── Date filter bar (spreadsheet-local, does not sync with other tabs) ─── */
+interface DateFilterBarProps {
+  dateRange: DateFilterKey;
+  computedRangeLabel: string;
+  hasCustomPayPeriod: boolean;
+  isMobile: boolean;
+  onSelect: (f: DateFilterKey) => void;
+  onCustomRequest: () => void;
+}
+
+function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMobile, onSelect, onCustomRequest }: DateFilterBarProps) {
+  const filterOpts: { value: DateFilterKey; label: string }[] = [
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
+    { value: 'all', label: 'All' },
+    { value: 'custom', label: isMobile ? 'Custom…' : 'Custom' },
+  ];
+
+  const activeLabelShort =
+    dateRange === 'all' ? 'All'
+    : dateRange === 'today' ? 'Today'
+    : dateRange === 'week' ? 'Week'
+    : dateRange === 'month' ? 'Month'
+    : dateRange === 'pay_period' ? 'Pay Period'
+    : 'Custom';
+
+  if (isMobile) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-7 gap-1 text-[11px] max-w-[140px]">
+              <CalendarDays className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{activeLabelShort}</span>
+              <ChevronDown className="h-3 w-3 flex-shrink-0" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[160px]">
+            <div className="px-2 py-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Spreadsheet Range</p>
+            </div>
+            <DropdownMenuSeparator />
+            {filterOpts.map(opt => (
+              <DropdownMenuItem
+                key={opt.value}
+                onClick={() => opt.value === 'custom' ? onCustomRequest() : onSelect(opt.value)}
+                className={cn(dateRange === opt.value && 'bg-primary/10 text-primary font-semibold')}
+              >
+                {opt.label}
+                {opt.value === 'pay_period' && dateRange === 'pay_period' && computedRangeLabel && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">{computedRangeLabel}</span>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {computedRangeLabel && (
+          <Badge
+            variant={dateRange === 'custom' ? 'secondary' : 'outline'}
+            className={cn(
+              'gap-1 text-[10px] px-1.5 py-0 h-5 font-medium',
+              dateRange === 'custom' && 'cursor-pointer hover:bg-muted',
+            )}
+            onClick={() => { if (dateRange === 'custom') onCustomRequest(); }}
+          >
+            {computedRangeLabel}
+          </Badge>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0 rounded-lg border border-border overflow-hidden bg-card">
+        {filterOpts.map((opt, idx) => (
+          <button
+            key={opt.value}
+            onClick={() => opt.value === 'custom' ? onCustomRequest() : onSelect(opt.value)}
+            className={cn(
+              'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors whitespace-nowrap',
+              idx > 0 && 'border-l border-border/60',
+              dateRange === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {computedRangeLabel && (
+        <Badge
+          variant={dateRange === 'custom' ? 'secondary' : 'outline'}
+          className={cn(
+            'gap-1 text-[10px] px-2 h-5 font-medium shrink-0',
+            dateRange === 'custom' && 'cursor-pointer hover:bg-muted',
+          )}
+          onClick={() => { if (dateRange === 'custom') onCustomRequest(); }}
+        >
+          <CalendarRange className="h-2.5 w-2.5" />
+          {computedRangeLabel}
+        </Badge>
+      )}
+    </div>
+  );
+}
+
 /* ─── Component ─── */
 export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: SpreadsheetViewProps) {
   const tableRef = useRef<HTMLDivElement>(null);
@@ -114,7 +245,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
   const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
-  const { dateFilter: dateRange, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog, requestCustomDialog } = useSharedDateRange('week', 'spreadsheet');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
@@ -122,6 +252,65 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const hasCustomPayPeriod = userSettings.payPeriodType === 'custom' &&
     Array.isArray(userSettings.payPeriodEndDates) &&
     (userSettings.payPeriodEndDates as number[]).length > 0;
+
+  /* ─── Local (spreadsheet-only) date range state ─── */
+  const ssDefaultFilter: DateFilterKey = hasCustomPayPeriod ? 'pay_period' : 'week';
+  const ssSaved = readSSLS();
+  const [dateRange, setDateRangeRaw] = useState<DateFilterKey>(ssSaved?.dateFilter ?? ssDefaultFilter);
+  const [customStart, setCustomStart] = useState<string | undefined>(ssSaved?.customStart);
+  const [customEnd, setCustomEnd] = useState<string | undefined>(ssSaved?.customEnd);
+  const [showCustomDialog, setShowCustomDialog] = useState(false);
+  const [prevFilter, setPrevFilter] = useState<DateFilterKey>(ssSaved?.dateFilter ?? ssDefaultFilter);
+  const [stashedCustomStart, setStashedCustomStart] = useState<string | undefined>(ssSaved?.customStart);
+  const [stashedCustomEnd, setStashedCustomEnd] = useState<string | undefined>(ssSaved?.customEnd);
+
+  useEffect(() => {
+    writeSSLS({ dateFilter: dateRange, customStart, customEnd });
+  }, [dateRange, customStart, customEnd]);
+
+  const setDateRange = useCallback((f: DateFilterKey) => {
+    if (f === 'custom') {
+      setPrevFilter(dateRange);
+      setDateRangeRaw('custom');
+      setShowCustomDialog(true);
+    } else {
+      setDateRangeRaw(f);
+    }
+  }, [dateRange]);
+
+  const requestCustomDialog = useCallback(() => {
+    if (dateRange === 'custom' && customStart && customEnd) {
+      setStashedCustomStart(customStart);
+      setStashedCustomEnd(customEnd);
+      setPrevFilter('custom');
+      setCustomStart(undefined);
+      setCustomEnd(undefined);
+    } else {
+      setPrevFilter(dateRange);
+      setDateRangeRaw('custom');
+    }
+    setShowCustomDialog(true);
+  }, [dateRange, customStart, customEnd]);
+
+  const applyCustom = useCallback((start: string, end: string) => {
+    setCustomStart(start);
+    setCustomEnd(end);
+    setStashedCustomStart(start);
+    setStashedCustomEnd(end);
+    setDateRangeRaw('custom');
+    setShowCustomDialog(false);
+  }, []);
+
+  const cancelCustom = useCallback(() => {
+    if (stashedCustomStart && stashedCustomEnd) {
+      setCustomStart(stashedCustomStart);
+      setCustomEnd(stashedCustomEnd);
+      setDateRangeRaw('custom');
+    } else {
+      setDateRangeRaw(prevFilter !== 'custom' ? prevFilter : 'week');
+    }
+    setShowCustomDialog(false);
+  }, [stashedCustomStart, stashedCustomEnd, prevFilter]);
 
   useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
   useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
@@ -346,71 +535,22 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     return (
       <div className="h-full flex flex-col">
         {/* Still show toolbar so user can change range */}
-        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border/90 bg-gradient-to-r from-card to-accent/40">
-        {!isCloseout && (
-            isMobile ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 gap-1 text-[11px]">
-                    <CalendarRange className="h-3 w-3" />
-                    {dateRange === 'all' ? 'All' : dateRange === 'custom' ? 'Custom' : dateRange === 'pay_period' ? 'Pay Period' : dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}
-                    <ChevronDown className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {([
-                    { value: 'today' as DateFilterKey, label: 'Today' },
-                    { value: 'week' as DateFilterKey, label: 'Week' },
-                    { value: 'month' as DateFilterKey, label: 'Month' },
-                    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
-                    { value: 'all' as DateFilterKey, label: 'All' },
-                    { value: 'custom' as DateFilterKey, label: 'Custom…' },
-                  ]).map(opt => (
-                    <DropdownMenuItem key={opt.value} onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}>
-                      {opt.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-            <div className="flex rounded-lg border border-border overflow-hidden">
-              {([
-                { value: 'today' as DateFilterKey, label: 'Today' },
-                { value: 'week' as DateFilterKey, label: 'Week' },
-                { value: 'month' as DateFilterKey, label: 'Month' },
-                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
-                { value: 'all' as DateFilterKey, label: 'All' },
-                { value: 'custom' as DateFilterKey, label: 'Custom' },
-              ]).map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}
-                  className={cn(
-                    'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
-                    dateRange === opt.value
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-card text-muted-foreground hover:bg-muted',
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            )
-          )}
-          {computedRangeLabel && (
-            <Badge
-              variant="outline"
-              className={cn("gap-1", dateRange === 'custom' && "cursor-pointer hover:bg-muted")}
-              onClick={() => { if (dateRange === 'custom') requestCustomDialog(); }}
-            >
-              <CalendarRange className="h-3 w-3" />
-              {computedRangeLabel}
-            </Badge>
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border/90 bg-gradient-to-r from-card to-accent/40 flex-wrap">
+          {!isCloseout && (
+            <DateFilterBar
+              dateRange={dateRange}
+              computedRangeLabel={computedRangeLabel}
+              hasCustomPayPeriod={hasCustomPayPeriod}
+              isMobile={isMobile}
+              onSelect={setDateRange}
+              onCustomRequest={requestCustomDialog}
+            />
           )}
         </div>
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          <p className="text-lg font-medium">No ROs in this range</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
+          <CalendarDays className="h-8 w-8 opacity-30" />
+          <p className="text-base font-medium">No ROs in this range</p>
+          <p className="text-xs opacity-60">Try a different date range</p>
         </div>
       </div>
     );
@@ -421,68 +561,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* ─── Toolbar ─── */}
       <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/40 backdrop-blur-sm flex-wrap shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          {/* Date range selector */}
+          {/* Date range selector — local to spreadsheet, does not sync with other tabs */}
           {!isCloseout && (
-            isMobile ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-1 text-xs">
-                    <CalendarRange className="h-3 w-3" />
-                    {dateRange === 'all' ? 'All' : dateRange === 'custom' ? 'Custom' : dateRange === 'pay_period' ? 'Pay Period' : dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}
-                    <ChevronDown className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {([
-                    { value: 'today' as DateFilterKey, label: 'Today' },
-                    { value: 'week' as DateFilterKey, label: 'Week' },
-                    { value: 'month' as DateFilterKey, label: 'Month' },
-                    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
-                    { value: 'all' as DateFilterKey, label: 'All' },
-                    { value: 'custom' as DateFilterKey, label: 'Custom…' },
-                  ]).map(opt => (
-                    <DropdownMenuItem key={opt.value} onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}>
-                      {opt.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-            <div className="flex rounded-xl border border-border/90 overflow-hidden bg-accent/35 shadow-[var(--shadow-sm)]">
-              {([
-                { value: 'today' as DateFilterKey, label: 'Today' },
-                { value: 'week' as DateFilterKey, label: 'Week' },
-                { value: 'month' as DateFilterKey, label: 'Month' },
-                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
-                { value: 'all' as DateFilterKey, label: 'All' },
-                { value: 'custom' as DateFilterKey, label: 'Custom' },
-              ]).map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}
-                  className={cn(
-                    'px-2.5 py-1.5 text-[11px] font-semibold tracking-wide transition-colors',
-                    dateRange === opt.value
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-transparent text-muted-foreground hover:bg-accent/35',
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            )
-          )}
-
-          {computedRangeLabel && (
-            <Badge
-              variant="outline"
-              className={cn("gap-1 rounded-lg bg-card", dateRange === 'custom' && "cursor-pointer hover:bg-accent/35")}
-              onClick={() => { if (dateRange === 'custom') requestCustomDialog(); }}
-            >
-              <CalendarRange className="h-3 w-3" />
-              {computedRangeLabel}
-            </Badge>
+            <DateFilterBar
+              dateRange={dateRange}
+              computedRangeLabel={computedRangeLabel}
+              hasCustomPayPeriod={hasCustomPayPeriod}
+              isMobile={isMobile}
+              onSelect={setDateRange}
+              onCustomRequest={requestCustomDialog}
+            />
           )}
 
           {/* View mode */}

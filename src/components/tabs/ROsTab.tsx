@@ -253,7 +253,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     });
   }, [advisorsInRange, setFilters]);
 
-  const filteredROs = useMemo(() => {
+  // Pre-filtered ROs: search + advisor + labor type, sorted — but NO date filter.
+  // SpreadsheetView manages its own local date range independently.
+  const preFilteredROs = useMemo(() => {
     let result = ros;
 
     if (deferredSearch.trim()) {
@@ -279,10 +281,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       result = result.filter(ro => filters.laborTypes.includes(ro.laborType));
     }
 
-    result = filterROsByDateRange(result, rangeBounds);
-
     return sortROs(result, filters.sortBy);
-  }, [ros, deferredSearch, filters, rangeBounds]);
+  }, [ros, deferredSearch, filters]);
+
+  // For cards view: apply date filter on top of pre-filtered ROs
+  const filteredROs = useMemo(() => filterROsByDateRange(preFilteredROs, rangeBounds), [preFilteredROs, rangeBounds]);
 
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
 
@@ -303,7 +306,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       if (!ro.roNumber) continue;
       roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
     }
-
     const issuesMap = new Map<string, ReviewIssue[]>();
     for (const ro of ros) {
       const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
@@ -472,8 +474,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="flex-1 overflow-hidden">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
             <SpreadsheetView
-              ros={filteredROs}
-              rangeLabel={rangeChipLabel}
+              ros={preFilteredROs}
               onSelectRO={ro => { setSelectedRO(ro); setShowDetail(true); }}
             />
           </Suspense>
