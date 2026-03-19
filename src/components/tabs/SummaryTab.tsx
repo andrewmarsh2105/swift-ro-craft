@@ -30,7 +30,6 @@ import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
-import { useUserSettings } from '@/hooks/useUserSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -151,21 +150,20 @@ function PeriodDatePicker({ label, start, end, onStartChange, onEndChange, accen
 }
 
 function MultiPeriodComparison({
+  weekStartDay,
   start1, end1, start2, end2,
   onStart1Change, onEnd1Change, onStart2Change, onEnd2Change,
 }: {
+  weekStartDay: number;
   start1?: Date; end1?: Date; start2?: Date; end2?: Date;
   onStart1Change: (d?: Date) => void; onEnd1Change: (d?: Date) => void;
   onStart2Change: (d?: Date) => void; onEnd2Change: (d?: Date) => void;
 }) {
-  const { settings: userSettings } = useUserSettings();
-  const weekStart = userSettings.weekStartDay ?? 0;
-
   // Quick preset helpers
   const applyPreset = useCallback((preset: 'this-vs-last-week' | 'this-vs-last-month' | 'today-vs-yesterday') => {
     const now = new Date();
     if (preset === 'this-vs-last-week') {
-      const diff = (now.getDay() - weekStart + 7) % 7;
+      const diff = (now.getDay() - weekStartDay + 7) % 7;
       const thisStart = new Date(now); thisStart.setDate(now.getDate() - diff);
       const thisEnd = new Date(thisStart); thisEnd.setDate(thisStart.getDate() + 6);
       const lastStart = new Date(thisStart); lastStart.setDate(thisStart.getDate() - 7);
@@ -185,7 +183,7 @@ function MultiPeriodComparison({
       onStart1Change(yesterday); onEnd1Change(yesterday);
       onStart2Change(today); onEnd2Change(today);
     }
-  }, [weekStart, onStart1Change, onEnd1Change, onStart2Change, onEnd2Change]);
+  }, [weekStartDay, onStart1Change, onEnd1Change, onStart2Change, onEnd2Change]);
 
   const range1 = start1 && end1 ? { start: localDateStr(start1), end: localDateStr(end1) } : null;
   const range2 = start2 && end2 ? { start: localDateStr(start2), end: localDateStr(end2) } : null;
@@ -474,10 +472,9 @@ export function SummaryTab() {
     setShowUpgrade(true);
   };
 
-  const { settings: goalSettings } = useUserSettings();
-  const hoursGoalDaily = goalSettings.hoursGoalDaily;
-  const hoursGoalWeekly = goalSettings.hoursGoalWeekly;
-  const hourlyRate = goalSettings.hourlyRate;
+  const hoursGoalDaily = userSettings.hoursGoalDaily;
+  const hoursGoalWeekly = userSettings.hoursGoalWeekly;
+  const hourlyRate = userSettings.hourlyRate;
 
 
   // Closeout state
@@ -995,6 +992,7 @@ export function SummaryTab() {
           <div className="p-4">
             <HideTotalsContext.Provider value={hideTotals}>
               <MultiPeriodComparison
+                weekStartDay={weekStartDay}
                 start1={compareStart1} end1={compareEnd1}
                 start2={compareStart2} end2={compareEnd2}
                 onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
