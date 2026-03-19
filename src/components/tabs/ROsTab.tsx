@@ -120,19 +120,20 @@ const ROCard = memo(function ROCard({
             </div>
           </div>
 
-          {/* Row 2: labor type · advisor · vehicle · work summary */}
-          <div className="flex items-start gap-1.5 mt-2">
+          {/* Row 2: labor type · advisor/vehicle + work summary */}
+          <div className="flex items-start gap-1.5 mt-2 min-w-0">
             <StatusPill type={ro.laborType} size="sm" />
-            <p className="meta-text leading-snug">
-              {ro.advisor}
-              {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
-              {' — '}
-              <span className="text-muted-foreground/75 block truncate">
+            <div className="min-w-0 flex-1">
+              <p className="meta-text leading-snug truncate">
+                {ro.advisor}
+                {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
+              </p>
+              <p className="meta-text text-muted-foreground/75 leading-snug line-clamp-2 break-words">
                 {ro.lines?.length
                   ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(", ")
                   : ro.workPerformed || "—"}
-              </span>
-            </p>
+              </p>
+            </div>
           </div>
         </div>
 

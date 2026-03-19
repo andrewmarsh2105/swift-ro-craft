@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { AlertTriangle, Clock, Copy, Flag, Pencil, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { AlertTriangle, ChevronDown, ChevronUp, Clock, Copy, Flag, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,11 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
   const { ros } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [flagOpen, setFlagOpen] = useState(false);
+  const [expandedLineIds, setExpandedLineIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setExpandedLineIds({});
+  }, [ro?.id]);
 
   if (!ro) {
     return (
@@ -176,7 +181,47 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
               {ro.lines.map((l) => (
                 <div key={l.id} className="inset-panel px-3 py-2 flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-foreground truncate">{l.description || "—"}</p>
+                    {(() => {
+                      const description = l.description || "—";
+                      const isExpanded = !!expandedLineIds[l.id];
+                      const canExpand = description.length > 110 || description.includes("\n");
+
+                      return (
+                        <>
+                          <p
+                            className={cn(
+                              "text-xs font-semibold text-foreground whitespace-pre-wrap break-words",
+                              !isExpanded && canExpand && "line-clamp-2",
+                            )}
+                          >
+                            {description}
+                          </p>
+                          {canExpand && (
+                            <button
+                              type="button"
+                              className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                              onClick={() =>
+                                setExpandedLineIds((prev) => ({ ...prev, [l.id]: !prev[l.id] }))
+                              }
+                              aria-expanded={isExpanded}
+                              aria-label={`${isExpanded ? "Collapse" : "Expand"} description for line ${l.lineNo}`}
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-3 w-3" />
+                                  Show less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3 w-3" />
+                                  Show more
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <StatusPill type={l.laborType || ro.laborType} size="sm" />
                       {l.isTbd && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">TBD</Badge>}
