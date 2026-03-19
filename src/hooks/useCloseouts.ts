@@ -62,9 +62,11 @@ export interface CloseoutSnapshot {
 type CloseoutRow = Database['public']['Tables']['pay_period_closeouts']['Row'];
 type CloseoutInsert = Database['public']['Tables']['pay_period_closeouts']['Insert'];
 
-function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
+export function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
   return report.rosInRange.map(ro => {
     const paidLines = (ro.lines || []).filter(l => !l.isTbd && l.description.trim() !== '');
+    const simpleModeHours = (ro.lines || []).length === 0 ? (ro.paidHours || 0) : 0;
+    const effectiveSimpleLaborType = ro.laborType || 'customer-pay';
     const cpH = paidLines.filter(l => (l.laborType || 'customer-pay') === 'customer-pay').reduce((s, l) => s + l.hoursPaid, 0);
     const wH = paidLines.filter(l => l.laborType === 'warranty').reduce((s, l) => s + l.hoursPaid, 0);
     const iH = paidLines.filter(l => l.laborType === 'internal').reduce((s, l) => s + l.hoursPaid, 0);
@@ -74,15 +76,15 @@ function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
     return {
       roId: ro.id,
       roNumber: ro.roNumber,
-      roDate: ro.paidDate || ro.date,
+      roDate: ro.paidDate?.trim() && ro.paidDate !== '—' ? ro.paidDate : ro.date,
       advisor: ro.advisor || '—',
       customerName: ro.customerName,
       vehicle: vehicleParts.join(' ') || undefined,
       mileage: ro.mileage,
-      totalPaidHours: paidLines.reduce((s, l) => s + l.hoursPaid, 0),
-      cpHours: cpH,
-      wHours: wH,
-      iHours: iH,
+      totalPaidHours: paidLines.reduce((s, l) => s + l.hoursPaid, 0) + simpleModeHours,
+      cpHours: cpH + (simpleModeHours > 0 && effectiveSimpleLaborType === 'customer-pay' ? simpleModeHours : 0),
+      wHours: wH + (simpleModeHours > 0 && effectiveSimpleLaborType === 'warranty' ? simpleModeHours : 0),
+      iHours: iH + (simpleModeHours > 0 && effectiveSimpleLaborType === 'internal' ? simpleModeHours : 0),
       lines: (ro.lines || []).map(l => ({
         lineId: l.id,
         lineNo: l.lineNo,

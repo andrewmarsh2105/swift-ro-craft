@@ -43,6 +43,15 @@ function dbToPreset(row: LaborReferenceRow): Preset {
   };
 }
 
+function effectiveDateOf(ro: RepairOrder): string {
+  const paidDate = ro.paidDate?.trim();
+  return paidDate && paidDate !== '—' ? paidDate : ro.date;
+}
+
+function paidLinesOf(ro: RepairOrder): ROLine[] {
+  return (ro.lines || []).filter(l => !l.isTbd);
+}
+
 const defaultSettings: Settings = {
   recentAdvisors: [],
   advisors: [],
@@ -585,15 +594,20 @@ export function useROStore() {
     const end = new Date(endDate);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dayROs = ros.filter(ro => (ro.paidDate || ro.date) === dateStr);
-      const allLines = dayROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
+      const dayROs = ros.filter(ro => effectiveDateOf(ro) === dateStr);
+      const lineROs = dayROs.filter(ro => ro.lines.length > 0);
+      const simpleROs = dayROs.filter(ro => ro.lines.length === 0);
+      const allLines = lineROs.flatMap(ro => paidLinesOf(ro));
       summaries.push({
         date: dateStr,
-        totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0),
+        totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0) + simpleROs.reduce((sum, ro) => sum + ro.paidHours, 0),
         roCount: dayROs.length,
-        warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0),
-        customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0),
-        internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0),
+        warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0)
+          + simpleROs.filter(ro => ro.laborType === 'warranty').reduce((sum, ro) => sum + ro.paidHours, 0),
+        customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0)
+          + simpleROs.filter(ro => ro.laborType === 'customer-pay').reduce((sum, ro) => sum + ro.paidHours, 0),
+        internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0)
+          + simpleROs.filter(ro => ro.laborType === 'internal').reduce((sum, ro) => sum + ro.paidHours, 0),
       });
     }
     return summaries;
@@ -602,7 +616,7 @@ export function useROStore() {
   const getAdvisorSummaries = useCallback((startDate?: string, endDate?: string): AdvisorSummary[] => {
     let filteredROs = ros;
     if (startDate && endDate) {
-      filteredROs = ros.filter(ro => (ro.paidDate || ro.date) >= startDate && (ro.paidDate || ro.date) <= endDate);
+      filteredROs = ros.filter(ro => effectiveDateOf(ro) >= startDate && effectiveDateOf(ro) <= endDate);
     }
     const advisorMap = new Map<string, AdvisorSummary>();
     filteredROs.forEach(ro => {
@@ -618,14 +632,19 @@ export function useROStore() {
   }, [ros]);
 
   const getWeekTotal = useCallback((startDate: string, endDate: string) => {
-    const weekROs = ros.filter(ro => (ro.paidDate || ro.date) >= startDate && (ro.paidDate || ro.date) <= endDate);
-    const allLines = weekROs.flatMap(ro => ro.lines.filter(l => !l.isTbd));
+    const weekROs = ros.filter(ro => effectiveDateOf(ro) >= startDate && effectiveDateOf(ro) <= endDate);
+    const lineROs = weekROs.filter(ro => ro.lines.length > 0);
+    const simpleROs = weekROs.filter(ro => ro.lines.length === 0);
+    const allLines = lineROs.flatMap(ro => paidLinesOf(ro));
     return {
-      totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0),
+      totalHours: allLines.reduce((sum, l) => sum + l.hoursPaid, 0) + simpleROs.reduce((sum, ro) => sum + ro.paidHours, 0),
       roCount: weekROs.length,
-      warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0),
-      customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0),
-      internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0),
+      warrantyHours: allLines.filter(l => l.laborType === 'warranty').reduce((sum, l) => sum + l.hoursPaid, 0)
+        + simpleROs.filter(ro => ro.laborType === 'warranty').reduce((sum, ro) => sum + ro.paidHours, 0),
+      customerPayHours: allLines.filter(l => l.laborType === 'customer-pay').reduce((sum, l) => sum + l.hoursPaid, 0)
+        + simpleROs.filter(ro => ro.laborType === 'customer-pay').reduce((sum, ro) => sum + ro.paidHours, 0),
+      internalHours: allLines.filter(l => l.laborType === 'internal').reduce((sum, l) => sum + l.hoursPaid, 0)
+        + simpleROs.filter(ro => ro.laborType === 'internal').reduce((sum, ro) => sum + ro.paidHours, 0),
     };
   }, [ros]);
 

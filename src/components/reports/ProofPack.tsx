@@ -18,6 +18,39 @@ import { generateLineCSV, generateSummaryText, downloadCSV, shareSummary } from 
 
 /** Build a minimal PayPeriodReport-compatible object from a frozen snapshot */
 function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
+  const rosInRange = snapshot.roSnapshot.map(ro => ({
+    id: ro.roId,
+    roNumber: ro.roNumber,
+    date: ro.roDate,
+    paidDate: undefined,
+    advisor: ro.advisor,
+    customerName: ro.customerName,
+    mileage: ro.mileage,
+    vehicle: undefined,
+    paidHours: ro.totalPaidHours,
+    laborType: 'customer-pay' as const,
+    workPerformed: ro.lines.map(l => l.description).join('\n'),
+    notes: undefined,
+    lines: ro.lines.map(l => ({
+      id: l.lineId,
+      lineNo: l.lineNo,
+      description: l.description,
+      hoursPaid: l.hours,
+      isTbd: l.isTbd,
+      laborType: (l.laborType as any) || 'customer-pay',
+      matchedReferenceId: l.matchedReferenceId,
+      vehicleOverride: false,
+      lineVehicle: undefined,
+      createdAt: snapshot.closedAt,
+      updatedAt: snapshot.closedAt,
+    })),
+    isSimpleMode: ro.lines.length === 0,
+    photos: [],
+    createdAt: snapshot.closedAt,
+    updatedAt: snapshot.closedAt,
+  }));
+  const linesInRange = rosInRange.flatMap(ro => ro.lines.map(line => ({ ro, line })));
+
   return {
     startDate: snapshot.periodStart,
     endDate: snapshot.periodEnd,
@@ -45,8 +78,8 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     missingHoursCount: 0,
     needsReviewCount: 0,
     flaggedCount: snapshot.totals.flaggedCount,
-    rosInRange: [],
-    linesInRange: [],
+    rosInRange,
+    linesInRange,
   };
 }
 
@@ -187,7 +220,7 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
         {showROs && (
           <div className="space-y-1">
             {displayROs.map(ro => {
-              const roLines = (ro.lines || []).filter(l => l.description.trim() !== '');
+              const roLines = (ro.lines || []).filter(l => l.description.trim() !== '' && !l.isTbd);
               const roTotal = roLines.reduce((s, l) => s + l.hoursPaid, 0);
               return (
                 <div key={ro.id} className="py-2 px-3 bg-card rounded-lg">
