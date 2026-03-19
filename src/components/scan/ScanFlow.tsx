@@ -143,6 +143,7 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
         pages={pages}
         pendingHeaderConflicts={pendingHeaderConflicts}
         isAddingPage={isAddingPage}
+        errorMessage={errorMessage}
         onUpdateData={updateExtractedData}
         onApply={onApply}
         onRetake={() => reset()}

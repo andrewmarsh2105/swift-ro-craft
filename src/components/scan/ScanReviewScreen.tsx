@@ -26,6 +26,7 @@ interface ScanReviewScreenProps {
   pages: ScanPage[];
   pendingHeaderConflicts: HeaderConflict[];
   isAddingPage: boolean;
+  errorMessage: string | null;
   onUpdateData: (data: ExtractedData) => void;
   onApply: (data: ScanApplyData) => void;
   onRetake: () => void;
@@ -66,6 +67,7 @@ export function ScanReviewScreen({
   pages,
   pendingHeaderConflicts,
   isAddingPage,
+  errorMessage,
   onUpdateData,
   onApply,
   onRetake,
@@ -351,6 +353,13 @@ export function ScanReviewScreen({
       </div>
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+        {errorMessage && (
+          <div className="mx-4 mt-3 p-3 bg-destructive/10 rounded-xl flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+            <span className="text-xs text-destructive">{errorMessage}</span>
+          </div>
+        )}
+
         {/* Page thumbnails strip (multi-page) */}
         {isMultiPage && (
           <div className="px-4 pt-3">
@@ -802,7 +811,15 @@ export function ScanReviewScreen({
       </Dialog>
 
       {/* Duplicate lines prompt */}
-      <Dialog open={showDuplicatePrompt} onOpenChange={setShowDuplicatePrompt}>
+      <Dialog
+        open={showDuplicatePrompt}
+        onOpenChange={(open) => {
+          setShowDuplicatePrompt(open);
+          if (!open) {
+            setPendingApplyData(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
