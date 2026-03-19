@@ -358,7 +358,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               </Badge>
             </div>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {goalSettings.displayName && (
               <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
                 {goalSettings.displayName.charAt(0).toUpperCase()}
@@ -368,7 +368,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <button
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
               className={cn(
-                'h-8 w-8 flex items-center justify-center rounded-full quiet-transition relative',
+                'h-9 w-9 flex items-center justify-center rounded-full quiet-transition relative',
                 isPro && viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
               )}
               title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
@@ -382,7 +382,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </button>
             <button
               onClick={() => setShowFilters(true)}
-              className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted relative quiet-transition"
+              className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted relative quiet-transition"
             >
               <SlidersHorizontal className="icon-toolbar" />
               {activeFiltersCount > 0 && (
@@ -553,7 +553,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="p-4 space-y-5">
           <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
             <label className="section-title block mb-2">Sort By</label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {([
                 { value: 'date', label: 'Most recent' },
                 { value: 'ro', label: 'RO #' },
@@ -566,7 +566,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   key={o.value}
                   onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-full border quiet-transition min-h-[44px]',
+                    'px-3 py-1.5 text-xs font-medium rounded-full border quiet-transition min-h-[44px] text-left',
                     filters.sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-background text-muted-foreground border-border'

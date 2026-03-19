@@ -84,7 +84,7 @@ export default function AddROPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* RO # and Date fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="ro-number">RO #</Label>
             <Input
@@ -125,7 +125,7 @@ export default function AddROPage() {
         />
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Labor Type</h3>
               <p className="text-xs text-muted-foreground">
@@ -133,7 +133,7 @@ export default function AddROPage() {
               </p>
             </div>
             <Select value={form.laborType} onValueChange={onLaborTypeChange}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -67,12 +67,12 @@ export function CustomDateRangeDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[420px] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Custom Date Range</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3 py-4">
+        <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2">
           {/* Start */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Start</label>
@@ -134,11 +134,11 @@ export function CustomDateRangeDialog({
           <p className="text-xs text-destructive">Start date must be before end date.</p>
         )}
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button onClick={handleApply} disabled={!canApply}>
+          <Button onClick={handleApply} disabled={!canApply} className="w-full sm:w-auto">
             Apply
           </Button>
         </DialogFooter>
