@@ -16,6 +16,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
+import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
 import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
@@ -141,9 +142,13 @@ export const ROListPanel = memo(function ROListPanel({
   // Advisor dropdown options: only advisors who have ROs in the current date range
   const advisors = useMemo(() => {
     const rangeROs = filterROsByDateRange(ros, listBounds);
-    return Array.from(new Set(rangeROs.map((r) => r.advisor).filter(Boolean))).sort((a, b) =>
-      a.localeCompare(b),
-    );
+    const firstSeenByKey = new Map<string, string>();
+    rangeROs.forEach((ro) => {
+      const normalized = normalizeAdvisorName(ro.advisor);
+      if (!normalized || firstSeenByKey.has(normalized)) return;
+      firstSeenByKey.set(normalized, ro.advisor.trim());
+    });
+    return Array.from(firstSeenByKey.values()).sort(compareAdvisorNames);
   }, [ros, listBounds]);
 
   // If the selected advisor isn't in the current range, reset to "all"
@@ -157,7 +162,8 @@ export const ROListPanel = memo(function ROListPanel({
     let result = ros;
 
     if (advisorFilter !== "all") {
-      result = result.filter((ro) => ro.advisor === advisorFilter);
+      const selectedAdvisor = normalizeAdvisorName(advisorFilter);
+      result = result.filter((ro) => normalizeAdvisorName(ro.advisor) === selectedAdvisor);
     }
 
     const q = deferredQuery.trim().toLowerCase();
@@ -185,10 +191,22 @@ export const ROListPanel = memo(function ROListPanel({
     const dir = sortDir === "asc" ? 1 : -1;
 
     const sorted = [...result].sort((a, b) => {
-      if (sortKey === "date") return effectiveDate(a).localeCompare(effectiveDate(b)) * dir;
-      if (sortKey === "ro") return a.roNumber.localeCompare(b.roNumber) * dir;
-      if (sortKey === "advisor") return a.advisor.localeCompare(b.advisor) * dir;
-      if (sortKey === "hours") return (calcHours(a) - calcHours(b)) * dir;
+      if (sortKey === "date") {
+        const byDate = effectiveDate(a).localeCompare(effectiveDate(b)) * dir;
+        if (byDate !== 0) return byDate;
+        return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      }
+      if (sortKey === "ro") return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      if (sortKey === "advisor") {
+        const byAdvisor = compareAdvisorNames(a.advisor, b.advisor) * dir;
+        if (byAdvisor !== 0) return byAdvisor;
+        return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      }
+      if (sortKey === "hours") {
+        const byHours = (calcHours(a) - calcHours(b)) * dir;
+        if (byHours !== 0) return byHours;
+        return compareRONumbers(a.roNumber, b.roNumber) * dir;
+      }
       return 0;
     });
 
@@ -205,15 +223,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
 
-  const rangeBounds = useMemo(() => computeDateRangeBounds({
-    filter: dateFilter,
-    weekStartDay: userSettings.weekStartDay ?? 0,
-    defaultSummaryRange: userSettings.defaultSummaryRange,
-    payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
-    hasCustomPayPeriod,
-    customStart,
-    customEnd,
-  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+  const rangeBounds = listBounds;
 
   const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
 

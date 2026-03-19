@@ -28,6 +28,7 @@ import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
+import { compareAdvisorNames, normalizeAdvisorName, sortROs } from '@/lib/roFilters';
 import { getStatusSummary } from '@/lib/roStatus';
 
 const SpreadsheetView = lazy(() =>
@@ -234,7 +235,25 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
 
-  const uniqueAdvisors = useMemo(() => [...new Set(ros.map(r => r.advisor))].sort(), [ros]);
+  const advisorsInRange = useMemo(() => {
+    const inRange = filterROsByDateRange(ros, rangeBounds);
+    const firstSeenByKey = new Map<string, string>();
+    inRange.forEach((ro) => {
+      const normalized = normalizeAdvisorName(ro.advisor);
+      if (!normalized || firstSeenByKey.has(normalized)) return;
+      firstSeenByKey.set(normalized, ro.advisor.trim());
+    });
+    return Array.from(firstSeenByKey.values()).sort(compareAdvisorNames);
+  }, [ros, rangeBounds]);
+
+  useEffect(() => {
+    setFilters((prev) => {
+      if (prev.advisors.length === 0) return prev;
+      const allowed = new Set(advisorsInRange.map((name) => normalizeAdvisorName(name)));
+      const nextAdvisors = prev.advisors.filter((name) => allowed.has(normalizeAdvisorName(name)));
+      return nextAdvisors.length === prev.advisors.length ? prev : { ...prev, advisors: nextAdvisors };
+    });
+  }, [advisorsInRange, setFilters]);
 
   const filteredROs = useMemo(() => {
     let result = ros;
@@ -254,7 +273,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     }
 
     if (filters.advisors.length > 0) {
-      result = result.filter(ro => filters.advisors.includes(ro.advisor));
+      const selectedAdvisors = new Set(filters.advisors.map((a) => normalizeAdvisorName(a)));
+      result = result.filter(ro => selectedAdvisors.has(normalizeAdvisorName(ro.advisor)));
     }
 
     if (filters.laborTypes.length > 0) {
@@ -263,17 +283,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
     result = filterROsByDateRange(result, rangeBounds);
 
-    const sorted = [...result].sort((a, b) => {
-      if (filters.sortBy === 'date') return (b.paidDate || b.date).localeCompare(a.paidDate || a.date);
-      if (filters.sortBy === 'hours') return calcHours(b) - calcHours(a);
-      if (filters.sortBy === 'ro') return a.roNumber.localeCompare(b.roNumber);
-      if (filters.sortBy === 'advisor') return a.advisor.localeCompare(b.advisor);
-      if (filters.sortBy === 'customer') return (a.customerName || '').localeCompare(b.customerName || '');
-      if (filters.sortBy === 'laborType') return a.laborType.localeCompare(b.laborType);
-      return 0;
-    });
-
-    return sorted;
+    return sortROs(result, filters.sortBy);
   }, [ros, deferredSearch, filters, rangeBounds]);
 
   useEffect(() => {
@@ -407,7 +417,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 pb-2.5">
+        {viewMode !== 'spreadsheet' && (
+          <div className="flex flex-wrap gap-1.5 pb-2.5">
           {([
             { value: 'all', label: 'All' },
             { value: 'today', label: 'Today' },
@@ -429,7 +440,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {label}
             </button>
           ))}
-        </div>
+          </div>
+        )}
         </div>
       </div>
 
@@ -592,11 +604,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          {uniqueAdvisors.length > 0 && (
+          {advisorsInRange.length > 0 && (
             <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
               <label className="section-title block mb-2">Advisor</label>
               <div className="flex flex-wrap gap-1.5">
-                {uniqueAdvisors.map(advisor => (
+                {advisorsInRange.map(advisor => (
                   <Chip
                     key={advisor}
                     label={advisor}

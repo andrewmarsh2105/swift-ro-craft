@@ -79,6 +79,9 @@ export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: st
       setCustomStart(undefined);
       setCustomEnd(undefined);
     } else {
+      // Fresh custom selection should not restore a stale previous custom range on cancel.
+      setStashedCustomStart(undefined);
+      setStashedCustomEnd(undefined);
       setPrevFilter(dateFilter);
       setDateFilter("custom");
     }
