@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useId, useRef } from 'react';
 import { motion, AnimatePresence, PanInfo, useDragControls } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,9 @@ export function BottomSheet({
   className 
 }: BottomSheetProps) {
   const dragControls = useDragControls();
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
@@ -34,6 +37,58 @@ export function BottomSheet({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+
+    const focusable = sheet.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const firstFocusable = focusable[0];
+    if (firstFocusable) {
+      firstFocusable.focus();
+    } else {
+      sheet.focus();
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const interactive = sheet.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!interactive.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = interactive[0];
+      const last = interactive[interactive.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [isOpen, onClose]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.velocity.y > 500 || info.offset.y > 100) {
@@ -71,6 +126,11 @@ export function BottomSheet({
               fullScreen ? 'top-[env(safe-area-inset-top,0px)]' : fullHeight ? 'h-[95vh]' : 'max-h-[85vh]',
               className
             )}
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
+            tabIndex={-1}
             style={{
               boxShadow: 'var(--shadow-sheet)',
             }}
@@ -86,7 +146,7 @@ export function BottomSheet({
             {/* Header */}
             {title && (
               <div className="px-4 pb-3 border-b border-border flex-shrink-0">
-                <h2 className="text-lg font-semibold text-center">{title}</h2>
+                <h2 id={titleId} className="text-lg font-semibold text-center">{title}</h2>
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, Plus, Loader2, User, FileText, ClipboardPaste } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -428,8 +428,10 @@ export default function AddRO() {
         onBack={() => navigate(-1)}
         rightActions={isPro ? (
           <button
+            type="button"
             onClick={() => setShowScanFlow(true)}
-            className="h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="Open scan flow"
           >
             <Camera className="h-5 w-5" />
           </button>
@@ -448,6 +450,8 @@ export default function AddRO() {
               onChange={e => setRoNumber(e.target.value.slice(0, 20))}
               placeholder="RO #"
               maxLength={20}
+              aria-label="Repair order number"
+              aria-required="true"
               className="w-20 h-11 px-2 bg-muted rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -457,16 +461,19 @@ export default function AddRO() {
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
+              aria-label="Repair order date"
               className="w-[120px] h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
           <button
+            type="button"
             onClick={() => setShowAdvisorList(true)}
             className={cn(
-              'flex-1 min-w-[120px] h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden',
+              'flex-1 min-w-[120px] h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
             )}
+            aria-label={advisor ? `Selected advisor ${advisor}` : 'Select advisor'}
           >
             <User className="h-4 w-4 flex-shrink-0" />
             <span className="truncate">{advisor || 'Advisor'}</span>
@@ -516,6 +523,7 @@ export default function AddRO() {
           {presetsVisible ? (
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={handleAddLine}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
               >
@@ -524,9 +532,11 @@ export default function AddRO() {
               </button>
 
               <button
+                type="button"
                 onClick={handlePasteLines}
                 className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
+                aria-label="Paste lines from clipboard"
               >
                 <ClipboardPaste className="h-4 w-4" />
               </button>
@@ -564,6 +574,7 @@ export default function AddRO() {
           ) : (
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={handleAddLine}
                 className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
               >
@@ -571,9 +582,11 @@ export default function AddRO() {
                 Add Line
               </button>
               <button
+                type="button"
                 onClick={handlePasteLines}
                 className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
+                aria-label="Paste lines from clipboard"
               >
                 <ClipboardPaste className="h-4 w-4" />
               </button>
@@ -587,13 +600,14 @@ export default function AddRO() {
             <span className="text-[17px] font-bold text-primary tabular-nums leading-none">
               {totalHours.toFixed(1)}h
             </span>
-            <span className="text-xs text-muted-foreground leading-none">
+            <span className="text-xs text-muted-foreground leading-none" aria-live="polite">
               {lines.length} {lines.length === 1 ? 'line' : 'lines'}
               {tbdCount > 0 && <span className="ml-1 text-destructive font-medium">· {tbdCount} TBD</span>}
             </span>
           </div>
           {!editingRO && (
             <button
+              type="button"
               onClick={() => handleSave(true)}
               disabled={!isValid || isSaving}
               className={cn(
@@ -605,6 +619,7 @@ export default function AddRO() {
             </button>
           )}
           <button
+            type="button"
             onClick={() => handleSave(false)}
             disabled={!isValid || isSaving}
             className={cn(
@@ -639,14 +654,17 @@ export default function AddRO() {
             placeholder="Search or add new advisor..."
             value={advisorSearch}
             onChange={e => setAdvisorSearch(e.target.value)}
+            aria-label="Search advisors"
             className="w-full h-11 px-3 bg-secondary rounded-md border border-input text-base focus:outline-none focus:ring-2 focus:ring-ring"
           />
           {advisorRangeBounds && !advisorSearch && (
             <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
               <span>{showAllAdvisors ? 'Showing all advisors' : `Filtered to: ${advisorRangeBounds.label}`}</span>
               <button
+                type="button"
                 onClick={() => setShowAllAdvisors(v => !v)}
-                className="text-primary font-medium underline-offset-2 hover:underline"
+                className="text-primary font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                aria-pressed={showAllAdvisors}
               >
                 {showAllAdvisors ? 'Show range only' : 'Show all'}
               </button>
@@ -656,14 +674,16 @@ export default function AddRO() {
             <div className="flex flex-wrap gap-1.5 pb-1">
               {[...displayedAdvisors].sort((a, b) => a.name.localeCompare(b.name)).map(adv => (
                 <button
+                  type="button"
                   key={adv.id}
                   onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
                   className={cn(
-                    'h-8 px-3 rounded-full text-xs font-medium border transition-colors active:scale-95',
+                    'h-8 px-3 rounded-full text-xs font-medium border transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     advisor === adv.name
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-muted text-muted-foreground border-border'
                   )}
+                  aria-pressed={advisor === adv.name}
                 >
                   {adv.name.split(' ')[0]}
                 </button>
@@ -672,25 +692,28 @@ export default function AddRO() {
           )}
           {filteredAdvisors.map(adv => (
             <button
+              type="button"
               key={adv.id}
               onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
               className={cn(
-                'w-full p-3 rounded-md text-left text-sm font-medium min-h-[44px] border',
+                'w-full p-3 rounded-md text-left text-sm font-medium min-h-[44px] border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 advisor === adv.name ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border'
               )}
+              aria-pressed={advisor === adv.name}
             >
               {adv.name}
             </button>
           ))}
           {advisorSearch.trim() && !allAdvisors.some(a => a.name.toLowerCase() === advisorSearch.trim().toLowerCase()) && (
             <button
+              type="button"
               onClick={() => {
                 const name = advisorSearch.trim();
                 updateAdvisors([...settings.advisors, { id: Date.now().toString(), name }]);
                 setAdvisor(name); setShowAdvisorList(false); setAdvisorSearch('');
                 toast.success(`Advisor "${name}" created`);
               }}
-              className="w-full p-3 rounded-md text-left text-sm font-medium min-h-[44px] bg-primary/10 text-primary border border-dashed border-primary/30 flex items-center gap-2"
+              className="w-full p-3 rounded-md text-left text-sm font-medium min-h-[44px] bg-primary/10 text-primary border border-dashed border-primary/30 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <Plus className="h-4 w-4" />
               Add: "{advisorSearch.trim()}"
@@ -757,22 +780,31 @@ function PresetButton({
     clearLongPress();
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onTap();
+  };
+
   useEffect(() => {
     return () => clearLongPress();
   }, []);
 
   return (
     <button
+      type="button"
+      onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onPointerLeave={handlePointerCancel}
       className={cn(
-        'flex-shrink-0 px-3 h-11 border rounded-full text-sm font-medium flex items-center gap-1.5 transition-all duration-150 min-h-[44px] select-none touch-manipulation',
+        'flex-shrink-0 px-3 h-11 border rounded-full text-sm font-medium flex items-center gap-1.5 transition-all duration-150 min-h-[44px] select-none touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         isPressed
           ? 'bg-primary text-primary-foreground border-primary scale-95'
           : 'bg-card border-border hover:bg-primary/10 hover:border-primary/30 active:scale-95'
       )}
+      aria-label={`Add preset ${preset.name}`}
     >
       {isPressed ? (
         <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex">✓</motion.span>

@@ -59,14 +59,17 @@ function IconButton(props: {
 }) {
   return (
     <button
+      type="button"
       onClick={props.onClick}
       className={cn(
-        "h-8 w-8 flex items-center justify-center rounded-md quiet-transition",
+        "h-9 w-9 flex items-center justify-center rounded-md quiet-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         props.active
           ? "bg-primary text-primary-foreground"
           : "hover:bg-muted text-muted-foreground hover:text-foreground"
       )}
       title={props.title}
+      aria-label={props.title}
+      aria-pressed={props.active}
     >
       {props.children}
     </button>
