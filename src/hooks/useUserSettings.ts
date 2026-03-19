@@ -189,9 +189,14 @@ export function useUserSettings() {
         [dbKey]: value,
       }, { onConflict: 'user_id' });
     if (error) {
+      const errorText = [error.message, error.details, error.hint].filter(Boolean).join(' ');
       const isMissingProfileColumn =
         (key === 'displayName' || key === 'shopName')
-        && /column .* does not exist/i.test(error.message);
+        && (
+          /column .* does not exist/i.test(errorText)
+          || /could not find the .* column/i.test(errorText)
+          || error.code === 'PGRST204'
+        );
 
       if (isMissingProfileColumn) {
         toast.success('Saved on this device. Cloud sync for profile names is not available yet.');
