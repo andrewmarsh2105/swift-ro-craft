@@ -464,12 +464,17 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          accent_color: string | null
           created_at: string
           default_summary_range: string
           default_template_id: string | null
+          display_name: string | null
           flag_inbox_date_range: string | null
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
           hide_totals: boolean | null
+          hourly_rate: number | null
+          hours_goal_daily: number | null
+          hours_goal_weekly: number | null
           id: string
           is_pro: boolean
           keyword_autofill: boolean
@@ -477,6 +482,7 @@ export type Database = {
           pay_period_type: string
           plan: string | null
           pro_expires_at: string | null
+          shop_name: string | null
           show_scan_confidence: boolean | null
           show_vehicle_chips: boolean | null
           spreadsheet_density: string | null
@@ -490,12 +496,17 @@ export type Database = {
           week_start_day: number
         }
         Insert: {
+          accent_color?: string | null
           created_at?: string
           default_summary_range?: string
           default_template_id?: string | null
+          display_name?: string | null
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           hide_totals?: boolean | null
+          hourly_rate?: number | null
+          hours_goal_daily?: number | null
+          hours_goal_weekly?: number | null
           id?: string
           is_pro?: boolean
           keyword_autofill?: boolean
@@ -503,6 +514,7 @@ export type Database = {
           pay_period_type?: string
           plan?: string | null
           pro_expires_at?: string | null
+          shop_name?: string | null
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null
@@ -516,12 +528,17 @@ export type Database = {
           week_start_day?: number
         }
         Update: {
+          accent_color?: string | null
           created_at?: string
           default_summary_range?: string
           default_template_id?: string | null
+          display_name?: string | null
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           hide_totals?: boolean | null
+          hourly_rate?: number | null
+          hours_goal_daily?: number | null
+          hours_goal_weekly?: number | null
           id?: string
           is_pro?: boolean
           keyword_autofill?: boolean
@@ -529,6 +546,7 @@ export type Database = {
           pay_period_type?: string
           plan?: string | null
           pro_expires_at?: string | null
+          shop_name?: string | null
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null

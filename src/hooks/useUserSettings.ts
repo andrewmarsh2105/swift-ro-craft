@@ -76,6 +76,30 @@ export function useUserSettings() {
   const hasShownProfileCloudSyncToastRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
 
+  // ── Goals / rate local-storage helpers ────────────────────────────────────
+  // If the DB columns (hours_goal_daily, hours_goal_weekly, hourly_rate) haven't
+  // been applied yet the upsert will fail.  We persist these values to
+  // localStorage as a reliable fallback so the UI never shows "save failed".
+  const GOAL_LS_KEYS = {
+    hoursGoalDaily:  'ro-tracker-goal-daily',
+    hoursGoalWeekly: 'ro-tracker-goal-weekly',
+    hourlyRate:      'ro-tracker-hourly-rate',
+  } as const;
+  type GoalKey = keyof typeof GOAL_LS_KEYS;
+  const isGoalKey = (k: string): k is GoalKey => k in GOAL_LS_KEYS;
+
+  const getLocalGoal = useCallback((key: GoalKey): number => {
+    const raw = localStorage.getItem(GOAL_LS_KEYS[key]);
+    return raw !== null ? parseFloat(raw) || 0 : 0;
+  }, []);
+
+  const persistLocalGoal = useCallback((key: GoalKey, value: number) => {
+    localStorage.setItem(GOAL_LS_KEYS[key], String(value));
+  }, []);
+
+  const goalsCloudSyncUnavailableRef = useRef(false);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const persistProfileSettingLocally = useCallback((key: 'displayName' | 'shopName', value: string) => {
     const storageKey = key === 'displayName' ? 'ro-tracker-display-name' : 'ro-tracker-shop-name';
     localStorage.setItem(storageKey, value);
@@ -110,9 +134,9 @@ export function useUserSettings() {
         spreadsheetViewMode: (row.spreadsheet_view_mode as string | undefined) || 'payroll',
         spreadsheetDensity: (row.spreadsheet_density as string | undefined) || 'comfortable',
         spreadsheetGroupBy: (row.spreadsheet_group_by as string | undefined) || 'date',
-        hoursGoalDaily: (row.hours_goal_daily as number | undefined) ?? 0,
-        hoursGoalWeekly: (row.hours_goal_weekly as number | undefined) ?? 0,
-        hourlyRate: (row.hourly_rate as number | undefined) ?? 0,
+        hoursGoalDaily: (row.hours_goal_daily as number | undefined) || getLocalGoal('hoursGoalDaily'),
+        hoursGoalWeekly: (row.hours_goal_weekly as number | undefined) || getLocalGoal('hoursGoalWeekly'),
+        hourlyRate: (row.hourly_rate as number | undefined) || getLocalGoal('hourlyRate'),
         displayName: (row.display_name as string | undefined) || getLocalProfileSetting('displayName'),
         shopName: (row.shop_name as string | undefined) || getLocalProfileSetting('shopName'),
         accentColor: (row.accent_color as string | undefined) || 'blue',
@@ -122,6 +146,9 @@ export function useUserSettings() {
         ...prev,
         displayName: getLocalProfileSetting('displayName'),
         shopName: getLocalProfileSetting('shopName'),
+        hoursGoalDaily: getLocalGoal('hoursGoalDaily'),
+        hoursGoalWeekly: getLocalGoal('hoursGoalWeekly'),
+        hourlyRate: getLocalGoal('hourlyRate'),
       }));
     }
     setLoaded(true);
@@ -167,6 +194,15 @@ export function useUserSettings() {
       }
     }
 
+    // Always persist goal/rate values locally so they survive DB column errors.
+    if (isGoalKey(key)) {
+      persistLocalGoal(key, Number(value) || 0);
+      if (goalsCloudSyncUnavailableRef.current) {
+        setSettings(prev => ({ ...prev, [key]: value }));
+        return;
+      }
+    }
+
     setSettings(prev => ({ ...prev, [key]: value }));
 
     const dbKey = key === 'showScanConfidence' ? 'show_scan_confidence'
@@ -199,13 +235,13 @@ export function useUserSettings() {
       }, { onConflict: 'user_id' });
     if (error) {
       const errorText = [error.message, error.details, error.hint].filter(Boolean).join(' ');
-      const isMissingProfileColumn =
-        (key === 'displayName' || key === 'shopName')
-        && (
-          /column .* does not exist/i.test(errorText)
-          || /could not find the .* column/i.test(errorText)
-          || error.code === 'PGRST204'
-        );
+      const isMissingColumn =
+        /column .* does not exist/i.test(errorText)
+        || /could not find the .* column/i.test(errorText)
+        || error.code === 'PGRST204';
+
+      const isMissingProfileColumn = (key === 'displayName' || key === 'shopName') && isMissingColumn;
+      const isMissingGoalColumn = isGoalKey(key) && isMissingColumn;
 
       if (isMissingProfileColumn) {
         profileCloudSyncUnavailableRef.current = true;
@@ -213,6 +249,12 @@ export function useUserSettings() {
           hasShownProfileCloudSyncToastRef.current = true;
           toast.success('Saved on this device. Cloud sync for profile names is not available yet.');
         }
+        return;
+      }
+
+      if (isMissingGoalColumn) {
+        // DB columns not yet migrated — value is already persisted to localStorage above.
+        goalsCloudSyncUnavailableRef.current = true;
         return;
       }
 
