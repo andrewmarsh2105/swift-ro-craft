@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown } from 'lucide-react';
+import { SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -362,110 +362,126 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/90 shadow-[var(--shadow-sm)]">
         <div className="px-4 pt-2.5">
-        <div className="flex items-start justify-between pb-2 gap-2">
-          <div className="min-w-0">
+
+          {/* Row 1: Shop name + action icons */}
+          <div className="flex items-center justify-between pb-2 gap-2">
             <h2 className="page-title text-foreground">{goalSettings.shopName || 'Repair Orders'}</h2>
-            <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-primary/35 bg-primary/[0.15] px-2.5 py-1.5 shadow-[var(--shadow-sm)]">
-              <span className="text-2xl font-bold tabular-nums text-primary leading-none tracking-tight">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {goalSettings.displayName && (
+                <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
+                  {goalSettings.displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              {/* Spreadsheet view — more prominent, bordered */}
+              <button
+                onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
+                className={cn(
+                  'h-9 w-9 flex items-center justify-center rounded-full quiet-transition relative border',
+                  isPro && viewMode === 'spreadsheet'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-[var(--shadow-soft)]'
+                    : 'text-foreground bg-accent/40 border-border hover:bg-accent'
+                )}
+                title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
+              >
+                {viewMode === 'spreadsheet' && isPro ? <LayoutList className="icon-toolbar" /> : <Table2 className="icon-toolbar" />}
+                {!isPro && (
+                  <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center">
+                    <Crown className="h-2 w-2 text-primary-foreground" />
+                  </span>
+                )}
+              </button>
+              {/* Flag Inbox — far right */}
+              <FlagInbox />
+            </div>
+          </div>
+
+          {/* Row 2: Compact summary pill + search bar with filter icon */}
+          <div className="flex items-center gap-2 pb-2">
+            {/* Compact blue summary */}
+            <div className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-primary/35 bg-primary/[0.15] px-2 py-1 shadow-[var(--shadow-sm)]">
+              <span className="text-lg font-bold tabular-nums text-primary leading-none tracking-tight">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
               </span>
-              <span className="text-sm text-muted-foreground tabular-nums font-medium leading-none">
+              <span className="text-xs text-muted-foreground tabular-nums font-medium leading-none">
                 {filteredROs.length} ROs
               </span>
               {hoursGoalDaily > 0 && (
                 <span className={cn(
-                  'text-xs font-semibold tabular-nums leading-none px-2 py-0.5 rounded-full',
+                  'text-[10px] font-semibold tabular-nums leading-none px-1.5 py-0.5 rounded-full',
                   todayHours >= hoursGoalDaily
                     ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                     : 'bg-primary/10 text-primary'
                 )}>
-                  {todayHours.toFixed(1)} / {hoursGoalDaily}h today
+                  {todayHours.toFixed(1)}/{hoursGoalDaily}h
                 </span>
               )}
-              <Badge
-                variant="outline"
-                className={cn("gap-1 text-xs py-0.5 px-2 font-medium rounded-full border-border/90 bg-card/90", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
-                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+            </div>
+
+            {/* Search bar — filter icon replaces magnifying glass */}
+            <div className="relative flex-1">
+              <button
+                onClick={() => setShowFilters(true)}
+                className={cn(
+                  "absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center quiet-transition z-10",
+                  activeFiltersCount > 0 ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                <CalendarRange className="h-3 w-3" />
-                {rangeChipLabel}
-              </Badge>
+                <SlidersHorizontal className="icon-toolbar" />
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search RO #, advisor, vehicle, work..."
+                className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-card text-sm shadow-[var(--shadow-sm)] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {goalSettings.displayName && (
-              <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
-                {goalSettings.displayName.charAt(0).toUpperCase()}
+
+          {/* Row 3: Date filter chips + range label */}
+          {viewMode !== 'spreadsheet' && (
+            <div className="pb-2.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {([
+                  { value: 'all', label: 'All' },
+                  { value: 'today', label: 'Today' },
+                  { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : 'Week' },
+                  { value: 'month', label: 'Month' },
+                  ...(hasCustomPayPeriod ? [{ value: 'pay_period' as const, label: 'Pay Period' }] : []),
+                  { value: 'custom' as const, label: 'Custom' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
+                    className={cn(
+                      'h-8 px-3.5 text-xs font-semibold rounded-full border quiet-transition',
+                      dateFilter === value
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card text-muted-foreground border-border hover:bg-accent/50'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+                {/* Date range label — moved out of the summary box, lives here near the chips */}
+                <span
+                  className={cn(
+                    "ml-auto flex items-center gap-1 text-xs font-medium text-muted-foreground",
+                    dateFilter === "custom" && "cursor-pointer hover:text-foreground"
+                  )}
+                  onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+                >
+                  <CalendarRange className="h-3 w-3" />
+                  {rangeChipLabel}
+                </span>
               </div>
-            )}
-            <FlagInbox />
-            <button
-              onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
-              className={cn(
-                'h-9 w-9 flex items-center justify-center rounded-full quiet-transition relative',
-                isPro && viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground shadow-[var(--shadow-soft)]' : 'text-muted-foreground hover:bg-muted'
-              )}
-              title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
-            >
-              {viewMode === 'spreadsheet' && isPro ? <LayoutList className="icon-toolbar" /> : <Table2 className="icon-toolbar" />}
-              {!isPro && (
-                <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center">
-                  <Crown className="h-2 w-2 text-primary-foreground" />
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setShowFilters(true)}
-              className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent/60 relative quiet-transition"
-            >
-              <SlidersHorizontal className="icon-toolbar" />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="pb-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 icon-toolbar text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search RO #, advisor, vehicle, work..."
-              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-card text-sm shadow-[var(--shadow-sm)] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-
-        {viewMode !== 'spreadsheet' && (
-          <div className="flex flex-wrap gap-1.5 pb-2.5">
-          {([
-            { value: 'all', label: 'All' },
-            { value: 'today', label: 'Today' },
-            { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : 'Week' },
-            { value: 'month', label: 'Month' },
-            ...(hasCustomPayPeriod ? [{ value: 'pay_period' as const, label: 'Pay Period' }] : []),
-            { value: 'custom' as const, label: 'Custom' },
-          ] as const).map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
-              className={cn(
-                'h-8 px-3.5 text-xs font-semibold rounded-full border quiet-transition',
-                dateFilter === value
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-card text-muted-foreground border-border hover:bg-accent/50'
-              )}
-            >
-              {label}
-            </button>
-          ))}
-          </div>
-        )}
+            </div>
+          )}
         </div>
       </div>
 
