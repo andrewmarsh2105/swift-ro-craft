@@ -307,6 +307,15 @@ export default function AddRO() {
     toast.success(`Saved preset: ${name}`);
   }, [settings.presets, updatePresets]);
 
+  const allLinesTbd = lines.length > 0 && lines.every(l => l.isTbd);
+
+  const handleToggleAllTbd = () => {
+    haptics.light();
+    const markTbd = !allLinesTbd;
+    setLines(prev => prev.map(l => ({ ...l, isTbd: markTbd, updatedAt: new Date().toISOString() })));
+    toast.success(markTbd ? 'All lines marked TBD' : 'TBD cleared from all lines');
+  };
+
   const handlePasteLines = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -541,6 +550,22 @@ export default function AddRO() {
                 <ClipboardPaste className="h-4 w-4" />
               </button>
 
+              <button
+                type="button"
+                onClick={handleToggleAllTbd}
+                className={cn(
+                  'flex-shrink-0 h-10 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
+                  allLinesTbd
+                    ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
+                    : 'bg-secondary text-muted-foreground border-border'
+                )}
+                title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
+                aria-label={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
+                aria-pressed={allLinesTbd}
+              >
+                TBD All
+              </button>
+
               {quickPresets.length > 0 ? (
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
@@ -589,6 +614,21 @@ export default function AddRO() {
                 aria-label="Paste lines from clipboard"
               >
                 <ClipboardPaste className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleAllTbd}
+                className={cn(
+                  'flex-shrink-0 h-10 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
+                  allLinesTbd
+                    ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
+                    : 'bg-secondary text-muted-foreground border-border'
+                )}
+                title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
+                aria-label={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
+                aria-pressed={allLinesTbd}
+              >
+                TBD All
               </button>
             </div>
           )}

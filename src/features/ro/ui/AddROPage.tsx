@@ -160,16 +160,34 @@ export default function AddROPage() {
         <div className="space-y-4">
           <div className="sticky top-0 z-10 flex items-center justify-between bg-background py-2">
             <h3 className="text-sm font-semibold text-foreground">Lines</h3>
-            <span className="hours-pill">
-              {totals.paidHours.toFixed(1)}h total
-            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const allTbd = form.lines.length > 0 && form.lines.every(l => l.isTbd);
+                  form.lines.forEach((_, idx) => form.updateLine(idx, { isTbd: !allTbd }));
+                }}
+                className={
+                  form.lines.length > 0 && form.lines.every(l => l.isTbd)
+                    ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
+                    : ''
+                }
+              >
+                TBD All
+              </Button>
+              <span className="hours-pill">
+                {totals.paidHours.toFixed(1)}h total
+              </span>
+            </div>
           </div>
 
           <div className="space-y-2">
             {form.lines.map((line, idx) => (
               <div
                 key={line.id}
-                className="rounded-lg border bg-card p-3 space-y-2"
+                className={`rounded-lg border bg-card p-3 space-y-2 ${line.isTbd ? 'border-l-[3px] border-l-amber-400' : ''}`}
               >
                 {/* Row 1: Full-width description */}
                 <Input
@@ -178,14 +196,28 @@ export default function AddROPage() {
                   onChange={(e) => form.updateLine(idx, { description: e.target.value })}
                   placeholder="Work performed..."
                 />
-                {/* Row 2: Hours + delete */}
+                {/* Row 2: TBD + Hours + delete */}
                 <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => form.updateLine(idx, { isTbd: !line.isTbd })}
+                    className={
+                      line.isTbd
+                        ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700 font-bold'
+                        : 'text-muted-foreground'
+                    }
+                  >
+                    TBD
+                  </Button>
                   <Input
-                    className="w-24 text-right"
+                    className={`w-24 text-right${line.isTbd ? ' line-through text-muted-foreground' : ''}`}
                     value={line.hoursPaid || ""}
                     onChange={(e) =>
                       form.updateLine(idx, { hoursPaid: Number(e.target.value || 0) })
                     }
+                    placeholder={line.isTbd ? "—" : "0.0"}
                     type="number"
                     inputMode="decimal"
                     step="0.1"
