@@ -219,9 +219,9 @@ export function RODetailSheet({
                       <Flag className="h-3 w-3 mr-1" />
                       Flag
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onEdit}>
-                      <Pencil className="h-3 w-3 mr-1" />
-                      Edit
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setShowDuplicateDialog(true)}>
+                      <Copy className="h-3 w-3 mr-1" />
+                      Duplicate
                     </Button>
                   </div>
                 </div>
@@ -418,9 +418,9 @@ export function RODetailSheet({
             {/* ── Footer ── */}
             <div className="flex-shrink-0 px-4 py-3 border-t border-border bg-card safe-area-bottom">
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 h-12 text-sm" onClick={() => setShowDuplicateDialog(true)}>
-                  <Copy className="h-4 w-4 mr-1.5" />
-                  Duplicate
+                <Button className="flex-1 h-12 text-sm bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
+                  <Pencil className="h-4 w-4 mr-1.5" />
+                  Edit
                 </Button>
                 <Button variant="destructive" className="flex-1 h-12 text-sm" onClick={() => setShowDeleteConfirm(true)}>
                   <Trash2 className="h-4 w-4 mr-1.5" />

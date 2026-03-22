@@ -6,15 +6,6 @@ import { toast } from 'sonner';
 export type SummaryRange = 'week' | 'two_weeks';
 export type PayPeriodType = 'week' | 'two_weeks' | 'custom';
 
-export const ACCENT_COLORS: Record<string, { light: string; dark: string }> = {
-  blue:   { light: '214 95% 53%', dark: '214 90% 65%' },
-  green:  { light: '142 65% 42%', dark: '142 60% 52%' },
-  purple: { light: '263 75% 58%', dark: '263 70% 68%' },
-  orange: { light:  '24 90% 50%', dark:  '24 85% 62%' },
-  rose:   { light: '346 80% 52%', dark: '346 75% 65%' },
-  teal:   { light: '175 75% 40%', dark: '175 70% 52%' },
-};
-
 interface UserSettings {
   theme: string;
   showScanConfidence: boolean;
@@ -36,7 +27,6 @@ interface UserSettings {
   hourlyRate: number;
   displayName: string;
   shopName: string;
-  accentColor: string;
 }
 
 const defaults: UserSettings = {
@@ -60,7 +50,6 @@ const defaults: UserSettings = {
   hourlyRate: 0,
   displayName: '',
   shopName: '',
-  accentColor: 'blue',
 };
 
 export function useUserSettings() {
@@ -139,7 +128,6 @@ export function useUserSettings() {
         hourlyRate: (row.hourly_rate as number | undefined) || getLocalGoal('hourlyRate'),
         displayName: (row.display_name as string | undefined) || getLocalProfileSetting('displayName'),
         shopName: (row.shop_name as string | undefined) || getLocalProfileSetting('shopName'),
-        accentColor: (row.accent_color as string | undefined) || 'blue',
       });
     } else {
       setSettings(prev => ({
@@ -168,16 +156,6 @@ export function useUserSettings() {
     setLoaded(false);
     fetchSettings();
   }, [fetchSettings, userId]);
-
-  // Apply accent color CSS variables whenever accentColor or loaded changes
-  useEffect(() => {
-    if (!loaded) return;
-    const isDark = document.documentElement.classList.contains('dark');
-    const hsl = ACCENT_COLORS[settings.accentColor]?.[isDark ? 'dark' : 'light'] ?? ACCENT_COLORS.blue.light;
-    document.documentElement.style.setProperty('--primary', hsl);
-    document.documentElement.style.setProperty('--ring', hsl);
-    localStorage.setItem('ro-tracker-accent', settings.accentColor);
-  }, [settings.accentColor, loaded]);
 
   const updateSetting = useCallback(async (key: keyof UserSettings, value: UserSettings[keyof UserSettings]) => {
     if (!userId) return;
@@ -224,7 +202,6 @@ export function useUserSettings() {
       : key === 'hourlyRate' ? 'hourly_rate'
       : key === 'displayName' ? 'display_name'
       : key === 'shopName' ? 'shop_name'
-      : key === 'accentColor' ? 'accent_color'
       : key;
 
     const { error } = await supabase

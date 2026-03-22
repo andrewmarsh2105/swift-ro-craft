@@ -128,9 +128,9 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
               <Flag className="icon-row" />
               Flag
             </Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={onEdit}>
-              <Pencil className="icon-row" />
-              Edit
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => onDuplicate(String(Number(ro.roNumber) + 1))}>
+              <Copy className="icon-row" />
+              Duplicate
             </Button>
           </div>
         </div>
@@ -262,9 +262,9 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
 
         {/* Actions */}
         <div className="flex gap-2 pt-2 pb-4">
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => onDuplicate(String(Number(ro.roNumber) + 1))}>
-            <Copy className="icon-row" />
-            Duplicate
+          <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
+            <Pencil className="icon-row" />
+            Edit
           </Button>
           <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={onDelete}>
             <Trash2 className="icon-row" />

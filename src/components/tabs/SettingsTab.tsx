@@ -9,7 +9,6 @@ import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { ACCENT_COLORS } from '@/hooks/useUserSettings';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import {
@@ -523,12 +522,9 @@ export function SettingsTab() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    // Re-apply accent color for the new theme
-    const hsl = ACCENT_COLORS[syncedSettings.accentColor]?.[enabled ? 'dark' : 'light'];
-    if (hsl) {
-      document.documentElement.style.setProperty('--primary', hsl);
-      document.documentElement.style.setProperty('--ring', hsl);
-    }
+    const blueHsl = enabled ? '214 90% 65%' : '214 95% 53%';
+    document.documentElement.style.setProperty('--primary', blueHsl);
+    document.documentElement.style.setProperty('--ring', blueHsl);
   };
 
   const handleClearAllClick = () => {
@@ -551,7 +547,6 @@ export function SettingsTab() {
   };
 
   // Derived display values for settings rows
-  const accentLabel = (syncedSettings.accentColor || 'blue').charAt(0).toUpperCase() + (syncedSettings.accentColor || 'blue').slice(1);
   const dailyGoalLabel = syncedSettings.hoursGoalDaily > 0 ? `${syncedSettings.hoursGoalDaily}h` : 'Off';
   const weeklyGoalLabel = syncedSettings.hoursGoalWeekly > 0 ? `${syncedSettings.hoursGoalWeekly}h` : 'Off';
   const rateLabel = syncedSettings.hourlyRate > 0 ? `$${syncedSettings.hourlyRate}/hr` : 'Off';
@@ -583,7 +578,7 @@ export function SettingsTab() {
               <div className="flex items-center gap-3">
                 <div
                   className="h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xl font-bold select-none"
-                  style={{ backgroundColor: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
+                  style={{ backgroundColor: 'hsl(214 95% 53%)' }}
                 >
                   {avatarInitial}
                 </div>
@@ -626,26 +621,6 @@ export function SettingsTab() {
                 toggleValue={darkMode}
                 onToggle={toggleDarkMode}
               />
-              <div className="p-4 flex items-center justify-between gap-4">
-                <span className="font-medium text-sm">Accent color</span>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="h-4 w-4 rounded-full flex-shrink-0"
-                    style={{ background: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
-                  />
-                  <select
-                    value={syncedSettings.accentColor || 'blue'}
-                    onChange={e => updateSetting('accentColor', e.target.value)}
-                    className="h-9 pl-3 pr-7 text-sm bg-card rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
-                  >
-                    {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => (
-                      <option key={colorKey} value={colorKey}>
-                        {colorKey.charAt(0).toUpperCase() + colorKey.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
               <SettingsRow
                 label="Hide Hour Totals"
                 toggle
@@ -1103,7 +1078,7 @@ export function SettingsTab() {
           <div className="flex items-center gap-4">
             <div
               className="h-16 w-16 rounded-full flex items-center justify-center flex-shrink-0 text-white text-2xl font-bold select-none"
-              style={{ backgroundColor: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
+              style={{ backgroundColor: 'hsl(214 95% 53%)' }}
             >
               {avatarInitial}
             </div>
