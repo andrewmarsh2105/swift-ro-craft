@@ -120,6 +120,10 @@ export function RODetailSheet({
 
   useEffect(() => {
     setExpandedLineIds({});
+    if (!isOpen) {
+      setFlagDialogOpen(false);
+      setConvertingIssue(null);
+    }
   }, [ro?.id, isOpen]);
 
   const flags = useMemo(() => (ro ? getFlagsForRO(ro.id) : []), [getFlagsForRO, ro]);

@@ -100,13 +100,14 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const flagPickerRef = useRef<HTMLDivElement | null>(null);
   const linesContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Advisors filtered to those active in the current date range
+  // Advisors filtered to those active in the current date range.
+  // For new ROs skip range-filtering so the list is never empty on first use.
   const rangeFilteredAdvisors = useMemo(() => {
-    if (dateFilter === 'all') return settings.advisors;
+    if (dateFilter === 'all' || isNew) return settings.advisors;
     const rosInRange = filterROsByDateRange(ros, advisorRangeBounds);
     const inRange = new Set(rosInRange.map(r => r.advisor).filter(Boolean));
     return settings.advisors.filter(a => inRange.has(a.name) || a.name === advisor);
-  }, [settings.advisors, ros, advisorRangeBounds, dateFilter, advisor]);
+  }, [settings.advisors, ros, advisorRangeBounds, dateFilter, advisor, isNew]);
 
   // Active flags for this RO
   const roFlags = useMemo(() => ro?.id ? getFlagsForRO(ro.id) : [], [ro?.id, getFlagsForRO]);

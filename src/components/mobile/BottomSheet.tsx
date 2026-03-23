@@ -123,6 +123,7 @@ export function BottomSheet({
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             drag="y"
             dragControls={dragControls}
+            dragListener={false}
             dragConstraints={{ top: 0 }}
             dragElastic={0.2}
             onDragEnd={handleDragEnd}

@@ -101,8 +101,9 @@ export default function AddRO() {
     return allAdvisors.filter(a => advisorsInRange.has(a.name) || a.name === advisor);
   }, [allAdvisors, advisorsInRange, dateFilter, advisor]);
 
-  // When a date range is active and the toggle is off, show only range advisors; otherwise show all
-  const displayedAdvisors = (advisorRangeBounds && !showAllAdvisors)
+  // When a date range is active, the toggle is off, and editing an existing RO, show only range
+  // advisors; for new ROs always show all so the advisor list isn't empty on first use.
+  const displayedAdvisors = (advisorRangeBounds && !showAllAdvisors && !!editingROId)
     ? rangeFilteredAdvisors
     : allAdvisors;
 
