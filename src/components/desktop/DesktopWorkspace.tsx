@@ -77,7 +77,7 @@ function IconButton(props: {
 }
 
 export function DesktopWorkspace() {
-  const { ros, deleteRO, duplicateRO } = useRO();
+  const { ros, deleteRO } = useRO();
   const { isPro } = useSubscription();
   const splitter = useSplitterWidth();
 
@@ -177,12 +177,6 @@ export function DesktopWorkspace() {
     deleteRO(selectedRO.id);
     setSelectedRO(null);
     setRightPanel("none");
-  };
-
-  const handleDuplicateFromDetails = (newRONumber: string) => {
-    if (!selectedRO) return;
-    duplicateRO(selectedRO.id, newRONumber);
-    toast.success(`Duplicated RO #${selectedRO.roNumber} → #${newRONumber}`);
   };
 
   const togglePanel = (panel: "settings" | "summary") => {
@@ -369,7 +363,6 @@ export function DesktopWorkspace() {
                       <RODetailsPanel
                         ro={selectedRO}
                         onEdit={handleEditRO}
-                        onDuplicate={handleDuplicateFromDetails}
                         onDelete={handleDeleteFromDetails}
                       />
                     </motion.div>

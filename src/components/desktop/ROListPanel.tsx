@@ -109,7 +109,7 @@ export const ROListPanel = memo(function ROListPanel({
   onFilteredROsChange,
   compact = false,
 }: ROListPanelProps) {
-  const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
+  const { ros, deleteRO, loadingROs } = useRO();
   const { flags, userSettings } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -451,10 +451,6 @@ export const ROListPanel = memo(function ROListPanel({
                         <ROActionMenu
                           roNumber={ro.roNumber}
                           onEdit={() => onSelectRO(ro)}
-                          onDuplicate={(newRONumber) => {
-                            duplicateRO(ro.id, newRONumber);
-                            toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
-                          }}
                           onDelete={() => deleteRO(ro.id)}
                           onFlag={() => setFlaggingRO(ro)}
                           existingRONumbers={existingRONumbers}

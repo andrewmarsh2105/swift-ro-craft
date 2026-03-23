@@ -79,7 +79,6 @@ function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; f
 interface ROCardProps {
   ro: RepairOrder;
   onEdit: () => void;
-  onDuplicate: (newRONumber: string) => void;
   onDelete: () => void;
   onFlag: () => void;
   onViewDetails: () => void;
@@ -90,7 +89,7 @@ interface ROCardProps {
 }
 
 const ROCard = memo(function ROCard({
-  ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails,
+  ro, onEdit, onDelete, onFlag, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
 }: ROCardProps) {
   const roEffectiveDate = effectiveDate(ro);
@@ -142,7 +141,6 @@ const ROCard = memo(function ROCard({
           <ROActionMenu
             roNumber={ro.roNumber}
             onEdit={onEdit}
-            onDuplicate={onDuplicate}
             onDelete={onDelete}
             onFlag={onFlag}
             existingRONumbers={existingRONumbers}
@@ -170,7 +168,7 @@ interface ROsTabProps {
 
 export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const navigate = useNavigate();
-  const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
+  const { ros, deleteRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
   const { flags, userSettings } = useFlagContext();
 
@@ -555,10 +553,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   hideTotals={userSettings.hideTotals ?? false}
                   onEdit={() => onEditRO(ro)}
                   onFlag={() => setFlaggingRO(ro)}
-                  onDuplicate={newRONumber => {
-                    duplicateRO(ro.id, newRONumber);
-                    toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
-                  }}
                   onDelete={() => deleteRO(ro.id)}
                   onViewDetails={() => {
                     setSelectedRO(ro);
@@ -586,13 +580,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         onClose={() => setShowDetail(false)}
         ro={selectedRO}
         onEdit={() => { setShowDetail(false); if (selectedRO) onEditRO(selectedRO); }}
-        onDuplicate={newRONumber => {
-          if (selectedRO) {
-            duplicateRO(selectedRO.id, newRONumber);
-            toast.success(`Duplicated RO #${selectedRO.roNumber} → #${newRONumber}`);
-          }
-          setShowDetail(false);
-        }}
         existingRONumbers={existingRONumbers}
         onDelete={() => { if (selectedRO) deleteRO(selectedRO.id); setShowDetail(false); }}
       />

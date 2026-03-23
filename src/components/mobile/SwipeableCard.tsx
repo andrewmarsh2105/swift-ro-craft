@@ -1,6 +1,6 @@
 import { ReactNode, useState, useRef } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
-import { Pencil, Copy, Trash2, MoreVertical } from 'lucide-react';
+import { Pencil, Trash2, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -22,7 +22,6 @@ interface SwipeableCardProps {
   children: ReactNode;
   roNumber?: string;
   onEdit?: () => void;
-  onDuplicate?: () => void;
   onDelete?: () => void;
   onViewDetails?: () => void;
   className?: string;
@@ -30,14 +29,13 @@ interface SwipeableCardProps {
 
 const SWIPE_THRESHOLD = 80;
 
-export function SwipeableCard({ 
-  children, 
+export function SwipeableCard({
+  children,
   roNumber,
-  onEdit, 
-  onDuplicate, 
+  onEdit,
   onDelete,
   onViewDetails,
-  className 
+  className
 }: SwipeableCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isRevealed, setIsRevealed] = useState<'left' | 'right' | null>(null);
@@ -45,16 +43,12 @@ export function SwipeableCard({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Transform for action reveals
-  const leftActionOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1]);
   const rightActionOpacity = useTransform(x, [-SWIPE_THRESHOLD, 0], [1, 0]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     const { offset, velocity } = info;
-    
-    if (offset.x > SWIPE_THRESHOLD || velocity.x > 500) {
-      // Swipe right - Duplicate
-      setIsRevealed('right');
-    } else if (offset.x < -SWIPE_THRESHOLD || velocity.x < -500) {
+
+    if (offset.x < -SWIPE_THRESHOLD || velocity.x < -500) {
       // Swipe left - Show delete/edit actions
       setIsRevealed('left');
     } else {
@@ -65,11 +59,10 @@ export function SwipeableCard({
     x.set(0);
   };
 
-  const handleActionClick = (action: 'edit' | 'delete' | 'duplicate') => {
+  const handleActionClick = (action: 'edit' | 'delete') => {
     setIsRevealed(null);
     if (action === 'edit') onEdit?.();
     if (action === 'delete') setShowDeleteConfirm(true);
-    if (action === 'duplicate') onDuplicate?.();
   };
 
   const handleConfirmDelete = () => {
@@ -80,14 +73,6 @@ export function SwipeableCard({
   return (
     <>
       <div className="relative overflow-hidden rounded-xl" ref={containerRef}>
-        {/* Left action - Duplicate (swipe right reveals this) */}
-        <motion.div 
-          className="swipe-action-duplicate absolute inset-y-0 left-0 w-20 flex items-center justify-center bg-blue-500"
-          style={{ opacity: leftActionOpacity }}
-        >
-          <Copy className="h-6 w-6 text-white" />
-        </motion.div>
-
         {/* Right actions - Delete & Edit (swipe left reveals these) */}
         <motion.div 
           className="absolute inset-y-0 right-0 flex items-stretch"
@@ -138,22 +123,6 @@ export function SwipeableCard({
                   </button>
                 </>
               )}
-              {isRevealed === 'right' && (
-                <>
-                  <button
-                    onClick={() => handleActionClick('duplicate')}
-                    className="w-20 bg-blue-500 flex items-center justify-center tap-target"
-                  >
-                    <Copy className="h-5 w-5 text-white" />
-                  </button>
-                  <button
-                    onClick={() => setIsRevealed(null)}
-                    className="flex-1 bg-muted flex items-center justify-center"
-                  >
-                    <span className="text-sm font-medium text-muted-foreground">Cancel</span>
-                  </button>
-                </>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -191,11 +160,7 @@ export function SwipeableCard({
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onDuplicate} className="tap-target">
-                  <Copy className="h-4 w-4 mr-2" />
-                  Duplicate
-                </DropdownMenuItem>
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => setShowDeleteConfirm(true)}
                   className="tap-target text-destructive focus:text-destructive"
                 >
