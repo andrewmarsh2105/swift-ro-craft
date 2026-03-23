@@ -582,6 +582,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         onEdit={() => { setShowDetail(false); if (selectedRO) onEditRO(selectedRO); }}
         existingRONumbers={existingRONumbers}
         onDelete={() => { if (selectedRO) deleteRO(selectedRO.id); setShowDetail(false); }}
+        onSelectRO={(ro) => { setSelectedRO(ro); setShowDetail(true); }}
       />
 
       {/* Filter / Sort Bottom Sheet */}

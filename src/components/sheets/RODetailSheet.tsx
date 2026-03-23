@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   Calendar,
   ChevronDown,
   ChevronUp,
@@ -46,6 +47,7 @@ interface RODetailSheetProps {
   ro: RepairOrder | null;
   onEdit: () => void;
   onDelete: () => void;
+  onSelectRO?: (ro: RepairOrder) => void;
   existingRONumbers?: string[];
 }
 
@@ -58,7 +60,11 @@ async function copyToClipboard(label: string, value: string) {
   }
 }
 
-function ChecksPanel(props: { issues: ReviewIssue[]; onConvert: (issue: ReviewIssue) => void }) {
+function ChecksPanel(props: {
+  issues: ReviewIssue[];
+  onConvert: (issue: ReviewIssue) => void;
+  onGoToDuplicateRO?: (roId: string) => void;
+}) {
   if (!props.issues.length) return null;
 
   return (
@@ -74,13 +80,23 @@ function ChecksPanel(props: { issues: ReviewIssue[]; onConvert: (issue: ReviewIs
               <p className="text-sm font-semibold text-foreground">{i.title}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{i.detail}</p>
               <div className="mt-1.5">
-                <button
-                  onClick={() => props.onConvert(i)}
-                  className="text-[11px] font-semibold text-primary hover:underline"
-                >
-                  <Flag className="h-3 w-3 inline mr-1" />
-                  Convert to flag
-                </button>
+                {i.code === 'duplicate_ro' && i.duplicateRoIds && props.onGoToDuplicateRO ? (
+                  <button
+                    onClick={() => props.onGoToDuplicateRO!(i.duplicateRoIds![0])}
+                    className="text-[11px] font-semibold text-blue-600 hover:underline"
+                  >
+                    <ArrowRight className="h-3 w-3 inline mr-1" />
+                    Go to duplicate RO
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => props.onConvert(i)}
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    <Flag className="h-3 w-3 inline mr-1" />
+                    Convert to flag
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -96,6 +112,7 @@ export function RODetailSheet({
   ro,
   onEdit,
   onDelete,
+  onSelectRO,
   existingRONumbers = [],
 }: RODetailSheetProps) {
   const { ros } = useRO();
@@ -383,7 +400,14 @@ export function RODetailSheet({
 
               {issues.length ? (
                 <SectionCard title="Checks">
-                  <ChecksPanel issues={issues} onConvert={openConvertDialog} />
+                  <ChecksPanel
+                    issues={issues}
+                    onConvert={openConvertDialog}
+                    onGoToDuplicateRO={onSelectRO ? (roId) => {
+                      const dupRO = ros.find((r) => r.id === roId);
+                      if (dupRO) { onClose(); onSelectRO(dupRO); }
+                    } : undefined}
+                  />
                 </SectionCard>
               ) : null}
 

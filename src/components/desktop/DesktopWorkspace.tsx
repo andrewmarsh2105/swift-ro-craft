@@ -364,6 +364,7 @@ export function DesktopWorkspace() {
                         ro={selectedRO}
                         onEdit={handleEditRO}
                         onDelete={handleDeleteFromDetails}
+                        onSelectRO={handleSelectRO}
                       />
                     </motion.div>
                   ) : null}

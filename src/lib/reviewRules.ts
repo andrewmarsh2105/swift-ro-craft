@@ -11,6 +11,7 @@ export interface ReviewIssue {
   roId: string;
   lineId?: string;
   lineNo?: number;
+  duplicateRoIds?: string[];
 }
 
 /**
@@ -33,6 +34,7 @@ export function getReviewIssues(ro: RepairOrder, allROs: RepairOrder[]): ReviewI
         suggestedAction: 'info',
         severity: 'error',
         roId: ro.id,
+        duplicateRoIds: dupes.map((d) => d.id),
       });
     }
   }

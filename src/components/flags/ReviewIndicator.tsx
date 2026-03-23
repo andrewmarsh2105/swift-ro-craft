@@ -25,10 +25,11 @@ interface ReviewIndicatorProps {
   issues: ReviewIssue[];
   onConvertToFlag: (issue: ReviewIssue, flagType: FlagType, note?: string) => void;
   onGoToLine?: (lineId: string) => void;
+  onGoToDuplicateRO?: (roId: string) => void;
   size?: 'sm' | 'md';
 }
 
-export function ReviewIndicator({ issues, onConvertToFlag, onGoToLine, size = 'sm' }: ReviewIndicatorProps) {
+export function ReviewIndicator({ issues, onConvertToFlag, onGoToLine, onGoToDuplicateRO, size = 'sm' }: ReviewIndicatorProps) {
   const [open, setOpen] = useState(false);
   const [convertingIssue, setConvertingIssue] = useState<ReviewIssue | null>(null);
   const isMobile = useIsMobile();
@@ -71,15 +72,30 @@ export function ReviewIndicator({ issues, onConvertToFlag, onGoToLine, size = 's
                 Go to line {issue.lineNo}
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setConvertingIssue(issue)}
-              className="h-7 text-[11px] text-orange-600 border-orange-500/40"
-            >
-              <Flag className="h-3 w-3 mr-1" />
-              Convert to flag
-            </Button>
+            {issue.code === 'duplicate_ro' && issue.duplicateRoIds && onGoToDuplicateRO ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onGoToDuplicateRO(issue.duplicateRoIds![0]);
+                  setOpen(false);
+                }}
+                className="h-7 text-[11px] text-blue-600 border-blue-500/40"
+              >
+                <ArrowRight className="h-3 w-3 mr-1" />
+                Go to duplicate RO
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setConvertingIssue(issue)}
+                className="h-7 text-[11px] text-orange-600 border-orange-500/40"
+              >
+                <Flag className="h-3 w-3 mr-1" />
+                Convert to flag
+              </Button>
+            )}
           </div>
         </div>
       ))}

@@ -35,9 +35,10 @@ interface RODetailsPanelProps {
   ro: RepairOrder | null;
   onEdit: () => void;
   onDelete: () => void;
+  onSelectRO?: (ro: RepairOrder) => void;
 }
 
-export function RODetailsPanel({ ro, onEdit, onDelete }: RODetailsPanelProps) {
+export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPanelProps) {
   const { ros } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [flagOpen, setFlagOpen] = useState(false);
@@ -243,6 +244,10 @@ export function RODetailsPanel({ ro, onEdit, onDelete }: RODetailsPanelProps) {
                 onConvertToFlag={(issue, flagType, note) =>
                   addFlag(issue.roId, flagType, note || issue.detail, issue.lineId)
                 }
+                onGoToDuplicateRO={onSelectRO ? (roId) => {
+                  const dupRO = ros.find((r) => r.id === roId);
+                  if (dupRO) onSelectRO(dupRO);
+                } : undefined}
               />
             ) : (
               <p className="meta-text">No checks.</p>
