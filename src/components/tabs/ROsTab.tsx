@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2 } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, StickyNote } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -25,7 +25,7 @@ import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
-import { compareAdvisorNames, normalizeAdvisorName, sortROs } from '@/lib/roFilters';
+import { compareAdvisorNames, normalizeAdvisorName, sortROs, matchesSearchQuery } from '@/lib/roFilters';
 import { getStatusSummary } from '@/lib/roStatus';
 
 const SpreadsheetView = lazy(() =>
@@ -45,6 +45,7 @@ function InlineStatusChips({
   ro, flagsCount, checksCount,
 }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
+  const hasNotes = !!(ro.notes && ro.notes.trim());
   return (
     <div className="flex items-center gap-1">
       {/* Paid status — only show if clearly notable */}
@@ -73,6 +74,11 @@ function InlineStatusChips({
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           <span>{status.checks}</span>
+        </span>
+      )}
+      {hasNotes && (
+        <span className="inline-flex items-center text-[9px] font-bold text-muted-foreground/60 leading-none" title="Has notes">
+          <StickyNote className="h-2.5 w-2.5" />
         </span>
       )}
     </div>
@@ -118,41 +124,49 @@ const ROCard = memo(function ROCard({
         onClick={onViewDetails}
       >
         {/* Main content */}
-        <div className="flex-1 min-w-0 px-3 py-2.5">
-          {/* Top row: RO# + hours + date + status */}
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[14px] font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0">
+        <div className="flex-1 min-w-0 px-3 py-2">
+          {/* Top row: RO# + hours + type + customer name + date + status */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[13px] font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0">
               #{ro.roNumber || '—'}
             </span>
             <span className="hours-pill flex-shrink-0 text-[11px]">
               {maskHours(hours, hideTotals)}h
             </span>
             <StatusPill type={ro.laborType} size="sm" className="flex-shrink-0" />
-            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0 ml-auto">
+            {/* Customer name — primary differentiator, fills available space */}
+            {ro.customerName ? (
+              <span className="text-[11px] font-semibold text-foreground/90 truncate min-w-0 flex-1">
+                {ro.customerName}
+              </span>
+            ) : (
+              <span className="flex-1" />
+            )}
+            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
               {roDate}
             </span>
             <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
           </div>
 
           {/* Bottom row: Advisor · vehicle · work */}
-          <div className="flex items-baseline gap-1 mt-1 min-w-0">
+          <div className="flex items-baseline gap-1 mt-0.5 min-w-0">
             {ro.advisor && (
-              <span className="text-[11px] font-semibold text-foreground/80 truncate flex-shrink-0 max-w-[120px]">
+              <span className="text-[10px] font-medium text-foreground/60 truncate flex-shrink-0 max-w-[110px]">
                 {ro.advisor}
               </span>
             )}
             {vehicle !== '—' && (
               <>
-                <span className="text-muted-foreground/40 text-[10px] flex-shrink-0">·</span>
-                <span className="text-[11px] text-muted-foreground truncate flex-shrink-0 max-w-[90px]">
+                <span className="text-muted-foreground/30 text-[9px] flex-shrink-0">·</span>
+                <span className="text-[10px] text-muted-foreground/70 truncate flex-shrink-0 max-w-[90px]">
                   {vehicle}
                 </span>
               </>
             )}
             {workSummary && workSummary !== '—' && (
               <>
-                <span className="text-muted-foreground/30 text-[10px] flex-shrink-0">—</span>
-                <span className="text-[11px] text-muted-foreground/70 truncate min-w-0">
+                <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">—</span>
+                <span className="text-[10px] text-muted-foreground/55 truncate min-w-0">
                   {workSummary}
                 </span>
               </>
@@ -282,17 +296,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     let result = ros;
 
     if (deferredSearch.trim()) {
-      const q = deferredSearch.toLowerCase();
-      result = result.filter(ro => {
-        const vehicleStr = [ro.vehicle?.year?.toString(), ro.vehicle?.make, ro.vehicle?.model].filter(Boolean).join(' ').toLowerCase();
-        return (
-          ro.roNumber.toLowerCase().includes(q) ||
-          ro.advisor.toLowerCase().includes(q) ||
-          (ro.workPerformed || '').toLowerCase().includes(q) ||
-          (ro.customerName || '').toLowerCase().includes(q) ||
-          vehicleStr.includes(q)
-        );
-      });
+      const q = deferredSearch.trim();
+      result = result.filter(ro => matchesSearchQuery(ro, q));
     }
 
     if (filters.advisors.length > 0) {
@@ -477,7 +482,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search RO, advisor, vehicle, work..."
+              placeholder="Search name, RO#, VIN, work, notes…"
               className="w-full h-8 pl-8 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>

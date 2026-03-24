@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
-import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers } from "@/lib/roFilters";
+import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers, matchesSearchQuery } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
 import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
@@ -75,6 +75,7 @@ function RowStatusChips({
   ro, flagsCount, checksCount,
 }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
+  const hasNotes = !!(ro.notes && ro.notes.trim());
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -104,6 +105,11 @@ function RowStatusChips({
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
+        </span>
+      )}
+      {hasNotes && (
+        <span className="inline-flex items-center text-[9px] text-muted-foreground/50 leading-none" title="Has notes">
+          <StickyNote className="h-2.5 w-2.5" />
         </span>
       )}
     </div>
@@ -197,24 +203,9 @@ export const ROListPanel = memo(function ROListPanel({
       result = result.filter((ro) => normalizeAdvisorName(ro.advisor) === selectedAdvisor);
     }
 
-    const q = deferredQuery.trim().toLowerCase();
+    const q = deferredQuery.trim();
     if (q) {
-      result = result.filter((ro) => {
-        const v = vehicleLabel(ro).toLowerCase();
-        const work = (ro.workPerformed || "").toLowerCase();
-        const customer = (ro.customerName || "").toLowerCase();
-        const lineText = ro.lines?.length
-          ? ro.lines.map((l) => l.description).filter(Boolean).join(" ").toLowerCase()
-          : "";
-        return (
-          ro.roNumber.toLowerCase().includes(q) ||
-          ro.advisor.toLowerCase().includes(q) ||
-          v.includes(q) ||
-          customer.includes(q) ||
-          work.includes(q) ||
-          lineText.includes(q)
-        );
-      });
+      result = result.filter((ro) => matchesSearchQuery(ro, q));
     }
 
     result = filterROsByDateRange(result, listBounds);
@@ -306,7 +297,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   /* Grid columns: Type-dot | Date | RO# | Info | Hrs | Status | Actions */
   const gridCols = compact
-    ? "grid-cols-[4px_60px_76px_1fr_52px_110px_28px]"
+    ? "grid-cols-[3px_58px_72px_1fr_48px_100px_24px]"
     : "grid-cols-[4px_66px_84px_1fr_60px_130px_28px]";
 
   return (
@@ -347,7 +338,7 @@ export const ROListPanel = memo(function ROListPanel({
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search RO, advisor, vehicle, customer, work…"
+                placeholder="Search name, RO#, VIN, lines, notes…"
                 className="w-full h-8 pl-8 pr-3 rounded-lg border border-input bg-background text-[11px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
                 style={{ boxShadow: 'var(--shadow-sm)' }}
               />
@@ -465,7 +456,8 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 py-2 cursor-pointer text-xs quiet-transition group",
+                        "grid gap-x-2 items-start px-3 cursor-pointer text-xs quiet-transition group",
+                        compact ? "py-1.5" : "py-2",
                         gridCols,
                         selected
                           ? "bg-primary/[0.07] border-l-2 border-l-primary"
@@ -493,10 +485,17 @@ export const ROListPanel = memo(function ROListPanel({
                         #{ro.roNumber}
                       </div>
 
-                      {/* Info: two-line */}
+                      {/* Info: two-line — customer first when available */}
                       <div className="min-w-0" role="cell">
                         <p className="text-[11px] font-semibold truncate text-foreground leading-snug">
-                          {ro.advisor}
+                          {ro.customerName ? (
+                            <>
+                              {ro.customerName}
+                              <span className="font-normal text-muted-foreground"> · {ro.advisor}</span>
+                            </>
+                          ) : (
+                            ro.advisor
+                          )}
                           {vehicleLabel(ro) !== "—" && (
                             <span className="font-normal text-muted-foreground"> · {vehicleLabel(ro)}</span>
                           )}

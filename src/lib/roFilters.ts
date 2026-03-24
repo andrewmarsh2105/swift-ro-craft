@@ -5,6 +5,33 @@ export function normalizeAdvisorName(name?: string | null): string {
   return (name || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+/**
+ * Shared full-text search across all RO fields used in every list view.
+ * Searches: RO#, advisor, customer name, vehicle (year/make/model), VIN,
+ * work performed, notes, mileage, and all line descriptions.
+ */
+export function matchesSearchQuery(ro: RepairOrder, q: string): boolean {
+  if (!q) return true;
+  const lq = q.toLowerCase();
+  if (ro.roNumber.toLowerCase().includes(lq)) return true;
+  if (ro.advisor.toLowerCase().includes(lq)) return true;
+  if ((ro.customerName || '').toLowerCase().includes(lq)) return true;
+  const v = ro.vehicle;
+  if (v) {
+    const vehicleStr = [v.year?.toString(), v.make, v.model].filter(Boolean).join(' ').toLowerCase();
+    if (vehicleStr.includes(lq)) return true;
+    if ((v.vin || '').toLowerCase().includes(lq)) return true;
+  }
+  if ((ro.workPerformed || '').toLowerCase().includes(lq)) return true;
+  if ((ro.notes || '').toLowerCase().includes(lq)) return true;
+  if ((ro.mileage || '').toLowerCase().includes(lq)) return true;
+  if (ro.lines?.length) {
+    const lineText = ro.lines.map((l) => l.description).filter(Boolean).join(' ').toLowerCase();
+    if (lineText.includes(lq)) return true;
+  }
+  return false;
+}
+
 export function compareAdvisorNames(a?: string | null, b?: string | null): number {
   return normalizeAdvisorName(a).localeCompare(normalizeAdvisorName(b));
 }
