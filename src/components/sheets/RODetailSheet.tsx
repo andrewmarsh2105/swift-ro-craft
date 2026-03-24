@@ -10,6 +10,7 @@ import {
   FileText,
   Pencil,
   Trash2,
+  X,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -206,8 +207,17 @@ export function RODetailSheet({
                 </div>
 
                 <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                  <div className="hours-pill text-base font-bold text-primary">
-                    {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                  <div className="flex items-center gap-1">
+                    <div className="hours-pill text-base font-bold text-primary mr-1">
+                      {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      aria-label="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-1">
