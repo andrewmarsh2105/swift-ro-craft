@@ -1,6 +1,5 @@
-import { useState, useMemo, createContext, useContext, useCallback } from 'react';
-import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown, Lock, Target, DollarSign, Crown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useState, useMemo } from 'react';
+import { Download, Copy, FileText, Flag, CalendarIcon, Clock, AlertCircle, ChevronDown, Lock, Target, DollarSign, Crown } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -11,8 +10,7 @@ import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn, localDateStr } from '@/lib/utils';
 import { maskHours } from '@/lib/maskHours';
-import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Table, TableBody, TableFooter, TableRow, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -28,7 +26,6 @@ import { ClosedPeriodsList } from '@/components/reports/ClosedPeriodsList';
 import { CloseoutDetailView } from '@/components/reports/CloseoutDetailView';
 import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
-import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
 import {
   DropdownMenu,
@@ -37,54 +34,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { HideTotalsContext } from '@/contexts/HideTotalsContext';
+import { MultiPeriodComparison } from '@/components/summary/MultiPeriodComparison';
+import { getDayRange, getWeekRange, getMonthRange, getTwoWeekRange, getLastWeekRange } from '@/lib/summaryDateRanges';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const HideTotalsContext = createContext(false);
-const useHideTotals = () => useContext(HideTotalsContext);
-
-// ── Date range helpers ────────────────────────────────────
-function getDayRange(): { start: string; end: string } {
-  const d = new Date();
-  const s = localDateStr(d);
-  return { start: s, end: s };
-}
-
-function getWeekRange(weekStartDay: number): { start: string; end: string } {
-  const d = new Date();
-  const diff = (d.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(d);
-  start.setDate(d.getDate() - diff);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  return { start: localDateStr(start), end: localDateStr(end) };
-}
-
-function getMonthRange(): { start: string; end: string } {
-  const d = new Date();
-  const start = new Date(d.getFullYear(), d.getMonth(), 1);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  return { start: localDateStr(start), end: localDateStr(end) };
-}
-
-function getTwoWeekRange(weekStartDay: number): { start: string; end: string } {
-  const d = new Date();
-  const diff = (d.getDay() - weekStartDay + 7) % 7;
-  const end = new Date(d);
-  end.setDate(d.getDate() + (6 - diff));
-  const start = new Date(end);
-  start.setDate(end.getDate() - 13);
-  return { start: localDateStr(start), end: localDateStr(end) };
-}
-
-function getLastWeekRange(weekStartDay: number): { start: string; end: string } {
-  const d = new Date();
-  const diff = (d.getDay() - weekStartDay + 7) % 7;
-  const start = new Date(d);
-  start.setDate(d.getDate() - diff - 7);
-  const end = new Date(d);
-  end.setDate(d.getDate() - diff - 1);
-  return { start: localDateStr(start), end: localDateStr(end) };
-}
 
 // ── Skeleton loaders ──────────────────────────────────────
 function KPISkeleton() {
