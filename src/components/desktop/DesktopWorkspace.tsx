@@ -296,7 +296,7 @@ export function DesktopWorkspace() {
         <div className="flex-1 min-h-0">
           <Suspense fallback={<PanelFallback />}>
             <SpreadsheetView
-              ros={filteredROs}
+              ros={ros}
               onSelectRO={(ro) => {
                 setViewMode("split");
                 handleSelectRO(ro);
