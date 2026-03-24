@@ -60,7 +60,7 @@ export function sortROs(ros: RepairOrder[], sortBy: ROListSortKey): RepairOrder[
     if (sortBy === 'date') {
       return (
         effectiveDate(b).localeCompare(effectiveDate(a)) ||
-        compareRONumbers(b.roNumber, a.roNumber)
+        b.createdAt.localeCompare(a.createdAt)
       );
     }
     if (sortBy === 'hours') return calcHours(b) - calcHours(a) || compareRONumbers(a.roNumber, b.roNumber);

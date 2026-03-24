@@ -110,15 +110,18 @@ describe('roFilters', () => {
     expect(normalizeAdvisorName('  ALEx   sMITH  ')).toBe('alex smith');
   });
 
-  it('sorts by effective date descending and applies stable RO-number ordering on ties', () => {
+  it('sorts by effective date descending and breaks ties by most recently inputted (createdAt)', () => {
     const ros = [
-      makeRO({ id: 'a', roNumber: '101', date: '2026-03-09', paidDate: '2026-03-11' }),
-      makeRO({ id: 'b', roNumber: '100', date: '2026-03-10', paidDate: '2026-03-11' }),
-      makeRO({ id: 'c', roNumber: '99', date: '2026-03-12' }),
+      makeRO({ id: 'a', roNumber: '101', date: '2026-03-09', paidDate: '2026-03-11', createdAt: '2026-03-11T10:00:00Z' }),
+      makeRO({ id: 'b', roNumber: '100', date: '2026-03-10', paidDate: '2026-03-11', createdAt: '2026-03-11T12:00:00Z' }),
+      makeRO({ id: 'c', roNumber: '99', date: '2026-03-12', createdAt: '2026-03-12T00:00:00Z' }),
     ];
 
     const sorted = sortROs(ros, 'date');
-    expect(sorted.map(r => r.id)).toEqual(['c', 'a', 'b']);
+    // c: most recent date (2026-03-12)
+    // b: same date as a (2026-03-11 via paidDate), but inputted later (12:00 > 10:00)
+    // a: same date as b, inputted earlier
+    expect(sorted.map(r => r.id)).toEqual(['c', 'b', 'a']);
   });
 
   it('sorts by hours descending and breaks ties with RO number ascending', () => {
