@@ -7,6 +7,7 @@ import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
 const RANGE_LABELS: Record<string, string> = {
   day: 'Day',
   week: 'Week',
+  last_week: 'Last Wk',
   two_weeks: '2 Wks',
   pay_period: 'Pay Period',
   month: 'Month',

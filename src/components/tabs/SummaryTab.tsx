@@ -76,6 +76,16 @@ function getTwoWeekRange(weekStartDay: number): { start: string; end: string } {
   return { start: localDateStr(start), end: localDateStr(end) };
 }
 
+function getLastWeekRange(weekStartDay: number): { start: string; end: string } {
+  const d = new Date();
+  const diff = (d.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(d);
+  start.setDate(d.getDate() - diff - 7);
+  const end = new Date(d);
+  end.setDate(d.getDate() - diff - 1);
+  return { start: localDateStr(start), end: localDateStr(end) };
+}
+
 // ── Skeleton loaders ──────────────────────────────────────
 function KPISkeleton() {
   return (
@@ -503,6 +513,7 @@ export function SummaryTab() {
       return getCustomPayPeriodRange(payPeriodEndDates!, todayForRange);
     }
     if (rangeMode === 'day') return getDayRange();
+    if (rangeMode === 'last_week') return getLastWeekRange(weekStartDay);
     if (rangeMode === 'month') return getMonthRange();
     if (rangeMode === 'two_weeks') return getTwoWeekRange(weekStartDay);
     return getWeekRange(weekStartDay);
@@ -531,6 +542,7 @@ export function SummaryTab() {
 
   const rangeTypeForCloseout: CloseoutRangeType = rangeMode === 'pay_period' ? 'pay_period'
     : rangeMode === 'two_weeks' ? 'two_weeks'
+    : rangeMode === 'last_week' ? 'last_week'
     : rangeMode === 'month' ? 'month'
     : rangeMode === 'custom' ? 'custom'
     : rangeMode === 'day' ? 'day' : 'week';
@@ -641,6 +653,7 @@ export function SummaryTab() {
                   <SelectContent>
                     <SelectItem value="day">Day</SelectItem>
                     <SelectItem value="week">Week</SelectItem>
+                    <SelectItem value="last_week">Last Week</SelectItem>
                     <SelectItem value="two_weeks">2 Weeks</SelectItem>
                     {hasCustomPayPeriod && <SelectItem value="pay_period">Pay Period</SelectItem>}
                     <SelectItem value="month">Month</SelectItem>

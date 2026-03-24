@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
 
-export type CloseoutRangeType = 'day' | 'week' | 'pay_period' | 'two_weeks' | 'month' | 'custom';
+export type CloseoutRangeType = 'day' | 'week' | 'last_week' | 'pay_period' | 'two_weeks' | 'month' | 'custom';
 
 export interface ROSnapshotLine {
   lineId: string;
