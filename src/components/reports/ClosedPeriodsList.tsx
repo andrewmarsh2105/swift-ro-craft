@@ -27,20 +27,21 @@ export function ClosedPeriodsList({ closeouts, hideTotals, onViewProofPack, onVi
   if (closeouts.length === 0) return null;
 
   return (
-    <div className="px-4">
+    <div className="px-4 space-y-2">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 w-full text-left py-2"
+        className="flex items-center gap-2 w-full text-left px-3 py-2.5 rounded-lg border border-border/70 bg-card hover:bg-muted/50 transition-colors"
       >
-        {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Closed Periods ({closeouts.length})
+        <Lock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+        <span className="text-sm font-medium flex-1">
+          Closed Periods
         </span>
+        <span className="text-xs text-muted-foreground mr-1">{closeouts.length}</span>
+        {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
       </button>
 
       {expanded && (
-        <div className="space-y-2 pb-2">
+        <div className="space-y-1.5">
           {closeouts.map(c => {
             const start = new Date(c.periodStart + 'T12:00:00');
             const end = new Date(c.periodEnd + 'T12:00:00');

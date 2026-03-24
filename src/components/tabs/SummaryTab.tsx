@@ -69,6 +69,16 @@ function BreakdownSkeleton() {
   );
 }
 
+// ── Section Label ─────────────────────────────────────────
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 px-4">
+      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">{children}</span>
+      <div className="flex-1 h-px bg-border/60" />
+    </div>
+  );
+}
+
 // ── Goal Progress Card ─────────────────────────────────────
 function GoalProgressCard({ label, current, goal, hide }: { label: string; current: number; goal: number; hide: boolean }) {
   const pct = Math.min((current / goal) * 100, 100);
@@ -358,100 +368,89 @@ export function SummaryTab() {
               </div>
             )}
 
-            {/* ── B) KPI Row ─────────────────────────── */}
-            <div className="px-4">
-              <HideTotalsContext.Provider value={hideTotals}>
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                  {/* Total Hours */}
-                  <div className="card-mobile p-4 border-l-4 border-l-primary bg-primary/[0.06] shadow-sm">
-                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Total Hours</div>
-                    <div className="text-4xl font-extrabold tabular-nums tracking-tight text-primary">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
-                    <div className="text-xs text-muted-foreground mt-1">{report.totalROs} ROs · {report.totalLines} lines</div>
+            {/* ── B) KPI ─────────────────────────── */}
+            <HideTotalsContext.Provider value={hideTotals}>
+            <div className="px-4 space-y-3">
+              {/* Hero row: Total Hours (dominant) + Avg/RO (secondary) */}
+              <div className="grid grid-cols-5 gap-3">
+                <div className="col-span-3 card-mobile p-4 border-l-4 border-l-primary bg-primary/[0.06] shadow-sm">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Total Hours</div>
+                  <div className="text-4xl font-extrabold tabular-nums tracking-tight text-primary leading-none">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
+                  <div className="text-xs text-muted-foreground mt-1.5">{report.totalROs} ROs · {report.totalLines} lines</div>
+                </div>
+                <div className="col-span-2 card-mobile p-4 flex flex-col justify-between">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Avg / RO</div>
+                  <div className="text-2xl font-bold tabular-nums tracking-tight leading-none">
+                    {report.totalROs > 0 ? maskHours(Math.round((report.totalHours / report.totalROs) * 10) / 10, hideTotals) : '0'}<span className="text-base ml-0.5 opacity-60">h</span>
                   </div>
+                  <div className="text-xs text-muted-foreground mt-1">per RO</div>
+                </div>
+              </div>
 
-                  {/* Avg Hours / RO */}
-                  <div className="card-mobile p-4 border border-border/70">
-                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Avg Hours / RO</div>
-                    <div className="text-3xl font-bold tabular-nums tracking-tight">
-                      {report.totalROs > 0 ? maskHours(Math.round((report.totalHours / report.totalROs) * 10) / 10, hideTotals) : '0'}<span className="text-xl ml-0.5 opacity-60">h</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">per repair order</div>
+              {/* Compact status bar: By Type | Flagged | TBD */}
+              <div className="card-mobile p-3 flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+                  {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
+                    <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
+                  )) : (
+                    <span className="text-xs text-muted-foreground">No type data</span>
+                  )}
+                </div>
+                <div className="h-4 w-px bg-border/60 flex-shrink-0" />
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-1">
+                    <Flag className={cn('h-3.5 w-3.5 flex-shrink-0', report.flaggedCount > 0 ? 'text-orange-500' : 'text-muted-foreground/30')} />
+                    <span className={cn('text-sm font-bold tabular-nums', report.flaggedCount > 0 ? 'text-orange-500' : 'text-muted-foreground/40')}>{report.flaggedCount}</span>
+                    <span className="text-xs text-muted-foreground">flagged</span>
                   </div>
-
-                  {/* CP / W / I Breakdown */}
-                  <div className="card-mobile p-4 border border-border/70">
-                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">By Type</div>
-                    <div className="space-y-1.5">
-                      {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
-                        <div key={lt.laborType} className="flex items-center justify-between text-sm">
-                          <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" />
-                        </div>
-                      )) : (
-                        <span className="text-xs text-muted-foreground">No data</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Flagged */}
-                  <div className="card-mobile p-4 border border-orange-300/50 bg-orange-500/[0.06]">
-                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Flagged</div>
-                    <div className="flex items-baseline gap-1.5">
-                      <Flag className={cn('h-4 w-4 flex-shrink-0', report.flaggedCount > 0 ? 'text-orange-500' : 'text-muted-foreground/40')} />
-                      <span className="text-3xl font-bold tabular-nums">{report.flaggedCount}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">items in range</div>
-                  </div>
-
-                  {/* TBD */}
-                  <div className="card-mobile p-4 border border-yellow-300/50 bg-yellow-500/[0.06]">
-                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">TBD</div>
-                    <div className="flex items-baseline gap-1.5">
-                      <Clock className={cn('h-4 w-4 flex-shrink-0', report.tbdLineCount > 0 ? 'text-yellow-500' : 'text-muted-foreground/40')} />
-                      <span className="text-3xl font-bold tabular-nums">{report.tbdLineCount}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {report.tbdLineCount > 0 ? `${hideTotals ? '--.-' : report.tbdHours.toFixed(1)}h excluded` : 'none excluded'}
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className={cn('h-3.5 w-3.5 flex-shrink-0', report.tbdLineCount > 0 ? 'text-yellow-500' : 'text-muted-foreground/30')} />
+                    <span className={cn('text-sm font-bold tabular-nums', report.tbdLineCount > 0 ? 'text-yellow-500' : 'text-muted-foreground/40')}>{report.tbdLineCount}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {report.tbdLineCount > 0 && !hideTotals ? `TBD · ${report.tbdHours.toFixed(1)}h excl.` : 'TBD'}
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                {/* Hours Goal Progress + Earnings */}
-                {(hoursGoalDaily > 0 || hoursGoalWeekly > 0 || hourlyRate > 0) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                    {hoursGoalDaily > 0 && rangeMode === 'day' && (
-                      <GoalProgressCard
-                        label="Daily Goal"
-                        current={report.totalHours}
-                        goal={hoursGoalDaily}
-                        hide={hideTotals}
-                      />
-                    )}
-                    {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
-                      <GoalProgressCard
-                        label="Weekly Goal"
-                        current={report.totalHours}
-                        goal={hoursGoalWeekly}
-                        hide={hideTotals}
-                      />
-                    )}
-                    {hourlyRate > 0 && !hideTotals && (
-                      <div className="card-mobile p-4 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                          <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Est. Earnings</div>
-                          <div className="text-xl font-bold tabular-nums">${(report.totalHours * hourlyRate).toFixed(0)}</div>
-                        </div>
+              {/* Hours Goal Progress + Earnings */}
+              {(hoursGoalDaily > 0 || hoursGoalWeekly > 0 || hourlyRate > 0) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {hoursGoalDaily > 0 && rangeMode === 'day' && (
+                    <GoalProgressCard
+                      label="Daily Goal"
+                      current={report.totalHours}
+                      goal={hoursGoalDaily}
+                      hide={hideTotals}
+                    />
+                  )}
+                  {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
+                    <GoalProgressCard
+                      label="Weekly Goal"
+                      current={report.totalHours}
+                      goal={hoursGoalWeekly}
+                      hide={hideTotals}
+                    />
+                  )}
+                  {hourlyRate > 0 && !hideTotals && (
+                    <div className="card-mobile p-4 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
                       </div>
-                    )}
-                  </div>
-                )}
-              </HideTotalsContext.Provider>
+                      <div>
+                        <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Est. Earnings</div>
+                        <div className="text-xl font-bold tabular-nums">${(report.totalHours * hourlyRate).toFixed(0)}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+            </HideTotalsContext.Provider>
 
-            {/* ── C) Breakdown Row (2 cards) ─────────── */}
-            <div className="px-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* ── C) Breakdown ─────────────────────── */}
+            <SectionLabel>Breakdown</SectionLabel>
+            <div className="px-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
               {/* Hours by Day */}
               <div className="card-mobile overflow-hidden bg-gradient-to-b from-card to-secondary/25">
                 <div className="px-4 pt-3 pb-2">
@@ -541,12 +540,12 @@ export function SummaryTab() {
               </div>
             </div>
 
-            {/* ── D) More Breakdowns (collapsed) ─────── */}
+            {/* ── D) More Detail (collapsed) ─────── */}
             <div className="px-4">
               <Accordion type="single" collapsible>
                 <AccordionItem value="more" className="border rounded-lg bg-card">
                   <AccordionTrigger className="px-4 py-3 text-sm font-semibold text-muted-foreground hover:no-underline">
-                    More Breakdowns
+                    More Detail
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4 space-y-4">
                     {/* Labor Type Breakdown */}
@@ -591,18 +590,11 @@ export function SummaryTab() {
               </Accordion>
             </div>
 
-            {/* ── Closed Periods List ─────────────────── */}
-            {isPro && (
-            <ClosedPeriodsList
-              closeouts={closeouts}
-              hideTotals={hideTotals}
-              onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
-              onViewDetail={(c) => setDetailCloseout(c)}
-            />
-            )}
+            {/* ── Export & History ─────────────────────────── */}
+            <SectionLabel>Export & History</SectionLabel>
 
-            {/* ── Export Menu (single button) ─────────────────── */}
-            <div className="px-4 space-y-2 pt-2 pb-4">
+            {/* Export Menu */}
+            <div className="px-4 space-y-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" className="w-full h-12 cursor-pointer">
@@ -642,6 +634,18 @@ export function SummaryTab() {
                 Exports use the selected range. CSV excludes TBD lines.
               </p>
             </div>
+
+            {/* Closed Periods */}
+            {isPro && (
+              <div className="pb-4">
+                <ClosedPeriodsList
+                  closeouts={closeouts}
+                  hideTotals={hideTotals}
+                  onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
+                  onViewDetail={(c) => setDetailCloseout(c)}
+                />
+              </div>
+            )}
           </div>
         )}
 

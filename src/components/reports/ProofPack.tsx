@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FileText, Download, Copy, Share2, Flag, AlertTriangle, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileText, Download, Copy, Share2, Flag, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -226,10 +227,11 @@ function ProofPackContent({ report }: { report: PayPeriodReport }) {
       <div>
         <button
           onClick={() => setShowROs(!showROs)}
-          className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2"
+          className="flex items-center gap-2 w-full text-left px-3 py-2.5 rounded-lg border border-border/70 bg-card hover:bg-muted/50 transition-colors mb-2"
         >
-          {showROs ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-          RO List ({report.rosInRange.length})
+          <span className="text-sm font-medium flex-1">RO List</span>
+          <span className="text-xs text-muted-foreground mr-1">{report.rosInRange.length}</span>
+          {showROs ? <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
         </button>
         {showROs && (
           <div className="space-y-1">
@@ -251,28 +253,21 @@ function ProofPackContent({ report }: { report: PayPeriodReport }) {
       </div>
 
       {/* Export Actions */}
-      <div className="grid grid-cols-2 gap-3 pt-2 pb-4">
-        <button
-          onClick={handleCopy}
-          className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
-        >
-          <Copy className="h-4 w-4" />
-          Copy
-        </button>
-        <button
-          onClick={handleExportCSV}
-          className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
-        >
-          <Download className="h-4 w-4" />
-          CSV
-        </button>
-        <button
-          onClick={handleShare}
-          className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm col-span-2"
-        >
+      <div className="pt-2 pb-4 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="secondary" onClick={handleCopy} className="h-11 gap-2">
+            <Copy className="h-4 w-4" />
+            Copy
+          </Button>
+          <Button variant="secondary" onClick={handleExportCSV} className="h-11 gap-2">
+            <Download className="h-4 w-4" />
+            CSV
+          </Button>
+        </div>
+        <Button variant="outline" onClick={handleShare} className="w-full h-11 gap-2">
           <Share2 className="h-4 w-4" />
           Share
-        </button>
+        </Button>
       </div>
     </div>
   );
