@@ -88,6 +88,13 @@ if (!rootElement) {
     '<button onclick="window.location.reload()" style="padding:.5rem 1rem;border-radius:.375rem;background:#2B82F0;color:#fff;border:none;cursor:pointer">Reload</button>' +
     '</div>';
 } else {
+  // Signal the index.html boot watchdog that React is about to mount.
+  // This prevents the watchdog from showing the error fallback UI in cases
+  // where module loading succeeds but render takes longer than the timeout.
+  // Must be called BEFORE createRoot().render() so the watchdog sees it even
+  // if render itself throws (which would be caught by ErrorBoundary below).
+  (window as { __signalBootOk?: () => void }).__signalBootOk?.();
+
   // Wrap the entire React tree in an ErrorBoundary so that any uncaught
   // exception thrown during provider initialization (outside the inner
   // BrowserRouter-scoped boundary) still shows a friendly error screen

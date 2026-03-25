@@ -74,6 +74,14 @@ export default defineConfig({
       workbox: {
         // Cache all static assets
         globPatterns: ["**/*.{js,css,html,ico,png,jpeg,jpg,svg,webp,woff2}"],
+
+        // Remove caches that belong to previous SW versions when a new SW
+        // activates.  Without this, old JS/CSS chunks from prior builds linger
+        // in the cache and can be served for asset requests that no longer
+        // match any precache entry, causing "Failed to fetch dynamically
+        // imported module" errors and the infinite loading screen.
+        cleanupOutdatedCaches: true,
+
         // Network-first for Supabase API calls (so live data is always fresh)
         runtimeCaching: [
           {
@@ -98,6 +106,10 @@ export default defineConfig({
         // Serve the app shell for all SPA routes (including /auth and /reset-password)
         // so the app loads correctly when navigated directly or when offline.
         navigateFallback: "/index.html",
+        // clientsClaim: immediately take control of all open tabs when the new
+        // SW activates.  Combined with the controllerchange reload in main.tsx,
+        // this ensures pages refresh against the new asset hashes right away
+        // instead of serving stale chunks until the user manually reloads.
         clientsClaim: true,
         skipWaiting: true,
       },

@@ -60,6 +60,106 @@
       message and a reload button instead of a blank white page.
       The inline styles are intentionally minimal so they work without CSS.
     -->
+    <!--
+      Boot watchdog (plain script — runs before the module bundle).
+      main.tsx calls window.__signalBootOk() once React is about to mount.
+      If that signal never arrives within BOOT_TIMEOUT ms, the spinner is
+      replaced with a visible error + cache-clearing recovery button so the
+      user is never stranded on an infinite loading screen.
+    -->
+    <script>
+      (function () {
+        'use strict';
+        var BOOT_TIMEOUT = 12000; // ms before showing the fallback error UI
+
+        // Flag set by main.tsx right before createRoot().render()
+        window.__bootOk = false;
+        window.__signalBootOk = function () {
+          window.__bootOk = true;
+        };
+
+        function clearCachesAndReload() {
+          try { sessionStorage.removeItem('sw-reload-pending'); } catch (_) {}
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              var unregPromises = regs.map(function (r) { return r.unregister(); });
+              Promise.all(unregPromises).then(function () {
+                if ('caches' in window) {
+                  return caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                  });
+                }
+              }).then(function () {
+                window.location.reload();
+              });
+            }).catch(function () { window.location.reload(); });
+          } else {
+            window.location.reload();
+          }
+        }
+
+        function showBootFailure(reason) {
+          if (window.__bootOk) return; // React already mounted — do nothing
+          var root = document.getElementById('root');
+          if (!root) return;
+          root.innerHTML =
+            '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+            'font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#111827;padding:1rem">' +
+            '<div style="text-align:center;max-width:26rem;">' +
+            '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" ' +
+            'style="margin:0 auto 1rem;display:block" aria-hidden="true">' +
+            '<circle cx="12" cy="12" r="10"/>' +
+            '<line x1="12" y1="8" x2="12" y2="12"/>' +
+            '<circle cx="12" cy="16" r="0.6" fill="#ef4444"/>' +
+            '</svg>' +
+            '<p style="margin:0 0 0.4rem;font-weight:600;font-size:1.05rem">RO Navigator failed to load</p>' +
+            '<p style="margin:0 0 1.5rem;color:#6b7280;font-size:0.875rem;line-height:1.5">' +
+            (reason || 'The app could not start. A stale browser cache or network error is the most likely cause.') +
+            '</p>' +
+            '<button id="boot-retry-btn" style="display:inline-flex;align-items:center;gap:0.35rem;' +
+            'padding:0.55rem 1.25rem;border-radius:0.4rem;background:#2B82F0;color:#fff;border:none;' +
+            'cursor:pointer;font-size:0.875rem;font-family:inherit">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">' +
+            '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>' +
+            '<path d="M21 3v5h-5"/>' +
+            '<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>' +
+            '<path d="M3 21v-5h5"/>' +
+            '</svg>' +
+            'Clear cache &amp; retry' +
+            '</button>' +
+            '<p style="margin:0.9rem 0 0;font-size:0.75rem;color:#9ca3af">' +
+            'Hard refresh: <kbd style="font-family:inherit">Ctrl+Shift+R</kbd> (Win) / ' +
+            '<kbd style="font-family:inherit">Cmd+Shift+R</kbd> (Mac)' +
+            '</p>' +
+            '</div></div>';
+          var btn = document.getElementById('boot-retry-btn');
+          if (btn) btn.addEventListener('click', clearCachesAndReload);
+        }
+
+        // ── Resource-load error capture (capture phase catches script/link errors) ──
+        // Fires when a <script type="module"> or a CSS chunk 404s — which happens
+        // when a stale service worker serves an old index.html whose chunk hashes
+        // no longer exist after a new deploy.
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && !window.__bootOk) {
+            showBootFailure(
+              'A required file could not be loaded (the app cache may be out of date). ' +
+              'Clearing the cache and retrying usually fixes this.'
+            );
+          }
+        }, true /* capture phase */);
+
+        // ── Watchdog timeout ──
+        // Falls back to the error UI if React never signals a successful mount.
+        setTimeout(function () {
+          if (!window.__bootOk) {
+            showBootFailure(null);
+          }
+        }, BOOT_TIMEOUT);
+      })();
+    </script>
+
     <div id="root">
       <div id="pre-render-loading" style="
         min-height: 100vh;
@@ -88,7 +188,6 @@
       </div>
       <style>
         @keyframes spin { to { transform: rotate(360deg); } }
-        /* Auto-hide after 30s if React never mounts (true JS failure) */
         #pre-render-loading { transition: opacity 0.2s; }
       </style>
     </div>
