@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Lock } from 'lucide-react';
@@ -10,22 +10,41 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
 
+// How long to wait for PASSWORD_RECOVERY event before showing an error.
+const RECOVERY_TIMEOUT_MS = 6_000;
+
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const resolved = useRef(false);
 
   // Supabase fires PASSWORD_RECOVERY once it validates the token in the URL hash.
   // We wait for that event before showing the form so we know the session is active.
+  // If the event never fires (expired/invalid link, or direct navigation), show an
+  // error after RECOVERY_TIMEOUT_MS instead of spinning forever.
   useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!resolved.current) {
+        resolved.current = true;
+        setTimedOut(true);
+      }
+    }, RECOVERY_TIMEOUT_MS);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
+        clearTimeout(timeoutId);
+        resolved.current = true;
         setReady(true);
       }
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +71,26 @@ export default function ResetPassword() {
   };
 
   if (!ready) {
+    if (timedOut) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background p-6">
+          <div className="max-w-sm w-full text-center space-y-4">
+            <BrandMarkContainer size={56} className="mx-auto" />
+            <h1 className="text-xl font-bold text-foreground">Link expired or invalid</h1>
+            <p className="text-sm text-muted-foreground">
+              This password reset link has expired or has already been used.
+              Request a new one from the sign-in page.
+            </p>
+            <Link
+              to="/auth"
+              className="inline-flex items-center justify-center px-5 h-10 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Back to Sign In
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

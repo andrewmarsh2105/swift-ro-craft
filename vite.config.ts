@@ -95,9 +95,9 @@ export default defineConfig({
             },
           },
         ],
-        // Don't cache auth-sensitive navigation routes at the SW level
+        // Serve the app shell for all SPA routes (including /auth and /reset-password)
+        // so the app loads correctly when navigated directly or when offline.
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/\/auth/, /\/reset-password/],
         clientsClaim: true,
         skipWaiting: true,
       },
