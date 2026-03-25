@@ -75,6 +75,13 @@ function safeLocalStorage(): Storage | undefined {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Export the resolved URL so other modules (e.g. useScanFlow) can build
+// edge-function URLs with the same fallback logic instead of reading
+// import.meta.env.VITE_SUPABASE_URL directly (which is undefined in
+// deployed builds that don't have the env var set, causing iOS Safari to
+// throw "The string did not match the expected pattern" on fetch()).
+export { SUPABASE_URL };
+
 export const supabase = createClient<Database>(
   SUPABASE_URL ?? 'https://placeholder.supabase.co',
   SUPABASE_PUBLISHABLE_KEY ?? 'placeholder-anon-key',
