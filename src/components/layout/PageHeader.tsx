@@ -30,7 +30,8 @@ export function PageHeader({
         {onBack && (
           <button
             onClick={onBack}
-            className="flex items-center justify-center h-8 w-8 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            className="flex items-center justify-center h-11 w-11 -ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            aria-label="Go back"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>

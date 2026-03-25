@@ -32,9 +32,9 @@ function createEmptyLine(lineNo: number): ROLine {
 }
 
 const LABOR_TYPES: { value: LaborType; label: string; short: string }[] = [
-  { value: 'warranty', label: 'Warranty', short: 'W' },
-  { value: 'customer-pay', label: 'Customer Pay', short: 'CP' },
-  { value: 'internal', label: 'Internal', short: 'I' },
+  { value: 'warranty', label: 'Warranty', short: 'Warr' },
+  { value: 'customer-pay', label: 'Customer Pay', short: 'Cust' },
+  { value: 'internal', label: 'Internal', short: 'Int' },
 ];
 
 function triggerHaptic() {
@@ -163,7 +163,7 @@ export function CompactLinesGrid({
                     value={line.laborType || ''}
                     onChange={(e) => handleLineChange(index, { laborType: e.target.value as LaborType || undefined })}
                     disabled={readOnly}
-                    className="h-11 px-3 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[80px]"
+                    className="h-11 px-3 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[88px]"
                   >
                     <option value="">Default</option>
                     {LABOR_TYPES.map((t) => (

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_CONFIGURED } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { trackCheckoutStarted, trackPurchaseCompleted } from '@/lib/analytics';
@@ -42,22 +42,40 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const clearCheckoutFallback = useCallback(() => setCheckoutFallbackUrl(null), []);
 
+  // Maximum time to wait for getSession() + Edge Function before giving up.
+  // Without this, a hung getSession() (wrong project URL, DNS failure, network
+  // outage) left loading=true forever because getSession() was previously outside
+  // the try/finally block that calls setLoading(false).
+  const SUBSCRIPTION_CHECK_TIMEOUT_MS = 10_000;
+
   const checkSubscription = useCallback(async () => {
-    // Always get fresh session to avoid stale closures (e.g. post-checkout redirect)
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-    if (!token) {
-      // If the user was previously pro, don't reset — this can happen briefly during
-      // a token refresh before the new token is available. Only reset if genuinely signed out.
-      if (!prevIsPro.current) {
-        setIsPro(false);
-        setSubscriptionStatus(null);
-      }
+    // Safety timeout — mirrors AUTH_TIMEOUT_MS in AuthContext. If the whole
+    // check stalls (bad env vars, Supabase unreachable, Edge Function cold-start),
+    // loading clears within a bounded time so the app never hangs forever.
+    const timeoutHandle = setTimeout(() => {
+      console.warn(
+        `[Subscription] checkSubscription did not resolve within ${SUBSCRIPTION_CHECK_TIMEOUT_MS}ms. ` +
+        'Defaulting to not-subscribed. Check Supabase connectivity and Edge Function health.'
+      );
       setLoading(false);
-      return;
-    }
+    }, SUBSCRIPTION_CHECK_TIMEOUT_MS);
 
     try {
+      // getSession() is now inside try/finally so a hung call is covered by both
+      // the timeout above and the finally block — previously it was outside both,
+      // meaning a stall here left loading=true with no recovery path.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        // If the user was previously pro, don't reset — this can happen briefly during
+        // a token refresh before the new token is available. Only reset if genuinely signed out.
+        if (!prevIsPro.current) {
+          setIsPro(false);
+          setSubscriptionStatus(null);
+        }
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -79,11 +97,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } catch {
       // Don't reset isPro on transient errors — preserve current state
     } finally {
+      clearTimeout(timeoutHandle);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // Short-circuit immediately when Supabase is not configured. Any API calls
+    // would fail against placeholder.supabase.co (DNS error) and we'd waste the
+    // full SUBSCRIPTION_CHECK_TIMEOUT_MS before loading clears.
+    if (!SUPABASE_CONFIGURED) {
+      setLoading(false);
+      return;
+    }
     if (userId) {
       checkSubscription();
     } else {
@@ -95,7 +121,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [userId, checkSubscription]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !SUPABASE_CONFIGURED) return;
     const interval = setInterval(checkSubscription, 60_000);
     return () => clearInterval(interval);
   }, [userId, checkSubscription]);

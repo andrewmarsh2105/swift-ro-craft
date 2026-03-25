@@ -73,6 +73,30 @@ try {
 }
 
 // ---------------------------------------------------------------------------
+// Stale auth token scrub
+// ---------------------------------------------------------------------------
+// Supabase stores sessions in localStorage under keys scoped to the project
+// ref: sb-<project-ref>-auth-token. After a project migration (new Supabase
+// project, same domain), a stale token from the old project ref lingers and
+// triggers a failing token-refresh chain on startup that adds several seconds
+// of latency before AuthContext resolves to logged-out. Scrub any tokens
+// whose embedded project ref does NOT match the current build's project ID.
+try {
+  const currentRef = import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined;
+  if (currentRef) {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('sb-') && key.endsWith('-auth-token') && !key.includes(currentRef)) {
+        localStorage.removeItem(key);
+        console.warn(`[startup] Removed stale auth token from old Supabase project: ${key}`);
+      }
+    }
+  }
+} catch {
+  // localStorage may be unavailable in private-browsing — safe to skip.
+}
+
+// ---------------------------------------------------------------------------
 // Mount
 // ---------------------------------------------------------------------------
 const rootElement = document.getElementById('root');

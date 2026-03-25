@@ -66,7 +66,7 @@ export function DetailsCollapsible({
         <button
           className={cn(
             'w-full flex items-center gap-2 text-xs hover:bg-muted/50 transition-colors',
-            isDesktop ? 'px-4 py-1.5' : 'px-3 py-1.5',
+            isDesktop ? 'px-4 py-1.5' : 'px-3 min-h-[44px]',
             'border-t border-border/50'
           )}
         >

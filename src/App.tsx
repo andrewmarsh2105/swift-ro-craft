@@ -99,13 +99,20 @@ const App = () => {
   if (!SUPABASE_CONFIGURED) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
-        <div className="max-w-md w-full text-center">
-          <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="text-lg font-semibold mb-2">App configuration error</h1>
-          <p className="text-muted-foreground text-sm mb-4">
-            Supabase environment variables are missing. The app cannot authenticate or load data.
-            Check that <code className="font-mono text-xs">VITE_SUPABASE_URL</code> and{' '}
-            <code className="font-mono text-xs">VITE_SUPABASE_PUBLISHABLE_KEY</code> are set.
+        <div className="max-w-md w-full text-center space-y-4">
+          <AlertTriangle className="h-10 w-10 text-destructive mx-auto" />
+          <div>
+            <h1 className="text-lg font-semibold mb-1">App configuration error</h1>
+            <p className="text-muted-foreground text-sm">
+              Supabase environment variables are missing. The app cannot authenticate or load data.
+              Check that <code className="font-mono text-xs">VITE_SUPABASE_URL</code> and{' '}
+              <code className="font-mono text-xs">VITE_SUPABASE_PUBLISHABLE_KEY</code> are set.
+            </p>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            If you are the site owner, set these variables in your hosting platform's environment
+            settings (Netlify → Site settings → Environment variables, Vercel → Project settings →
+            Environment variables), then redeploy.
           </p>
           <button
             onClick={() => window.location.reload()}

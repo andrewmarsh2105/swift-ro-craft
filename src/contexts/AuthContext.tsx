@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_CONFIGURED } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -28,6 +28,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resolved = useRef(false);
 
   useEffect(() => {
+    // Short-circuit immediately when Supabase is not configured. Any API calls
+    // would fail against placeholder.supabase.co (DNS error) and we'd waste the
+    // full AUTH_TIMEOUT_MS before loading clears. The config-error UI in App.tsx
+    // handles the user-visible explanation.
+    if (!SUPABASE_CONFIGURED) {
+      resolved.current = true;
+      setLoading(false);
+      return;
+    }
+
     // Safety timeout: if neither onAuthStateChange nor getSession resolve
     // within AUTH_TIMEOUT_MS, default to logged-out so the UI renders.
     const timeoutId = setTimeout(() => {

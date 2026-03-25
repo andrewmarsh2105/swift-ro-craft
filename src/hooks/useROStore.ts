@@ -159,20 +159,32 @@ export function useROStore() {
       // ── Phase 1: parallel fetch ──────────────────────────────────────────
       // Run both Supabase queries concurrently — saves one full network RTT
       // compared to the old sequential await pattern.
-      const [roResult, lineResult] = await Promise.all([
-        supabase
-          .from('ros')
-          .select('*')
-          .eq('user_id', userId)
-          .gte('date', hotCutoff)          // Hot window only in Phase 1
-          .order('date', { ascending: false })
-          .limit(3000),
-        supabase
-          .from('ro_lines')
-          .select('*')
-          .eq('user_id', userId)           // ALL lines so search works for old ROs too
-          .order('line_no', { ascending: true })
-          .limit(10000),
+      // Wrapped in Promise.race with a 15 s timeout so loadingROs never stays
+      // true forever when Supabase is unreachable (wrong project, network down).
+      // The existing catch/finally below handles the TimeoutError by setting
+      // fetchError=true and calling setLoadingROs(false) — no extra code needed.
+      const [roResult, lineResult] = await Promise.race([
+        Promise.all([
+          supabase
+            .from('ros')
+            .select('*')
+            .eq('user_id', userId)
+            .gte('date', hotCutoff)          // Hot window only in Phase 1
+            .order('date', { ascending: false })
+            .limit(3000),
+          supabase
+            .from('ro_lines')
+            .select('*')
+            .eq('user_id', userId)           // ALL lines so search works for old ROs too
+            .order('line_no', { ascending: true })
+            .limit(10000),
+        ]),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('[ROStore] fetchROs timed out — Supabase may be unreachable.')),
+            15_000
+          )
+        ),
       ]);
 
       if (roResult.error) throw roResult.error;

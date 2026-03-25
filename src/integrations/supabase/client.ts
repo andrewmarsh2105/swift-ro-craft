@@ -3,6 +3,7 @@ import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined;
 
 // DO NOT throw here. A module-level throw prevents React from mounting at all,
 // leaving the user on the pre-render loading screen forever with no recovery
@@ -19,6 +20,19 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
  * silently failing on every auth / data call.
  */
 export const SUPABASE_CONFIGURED = !!(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+
+// Catch the "right format, wrong project" misconfiguration: the URL is present
+// but points at a different project than the one this build was compiled for.
+// This surfaces immediately in DevTools and hosting-platform logs instead of
+// manifesting as a cryptic infinite loading screen.
+if (SUPABASE_CONFIGURED && SUPABASE_PROJECT_ID && !SUPABASE_URL?.includes(SUPABASE_PROJECT_ID)) {
+  console.error(
+    `[Supabase] VITE_SUPABASE_URL ("${SUPABASE_URL}") does not contain the expected ` +
+    `project ref "${SUPABASE_PROJECT_ID}" from VITE_SUPABASE_PROJECT_ID. ` +
+    'Environment variables are likely misconfigured for this deployment — ' +
+    'auth and all data calls will fail.'
+  );
+}
 
 /**
  * Returns localStorage when it is actually accessible, otherwise undefined.
