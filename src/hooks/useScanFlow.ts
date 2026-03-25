@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -159,7 +159,7 @@ export function useScanFlow() {
       const accessToken = sessionData?.session?.access_token;
 
       const ocrResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ocr-extract`,
+        `${SUPABASE_URL}/functions/v1/ocr-extract`,
         {
           method: 'POST',
           headers: {
