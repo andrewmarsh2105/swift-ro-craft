@@ -53,7 +53,45 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <!--
+      Pre-render loading state.
+      React replaces this content when it mounts.  If JavaScript never loads
+      (blocked, network failure, parse error) the user still sees a meaningful
+      message and a reload button instead of a blank white page.
+      The inline styles are intentionally minimal so they work without CSS.
+    -->
+    <div id="root">
+      <div id="pre-render-loading" style="
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #ffffff;
+        color: #111827;
+      ">
+        <div style="text-align: center; padding: 2rem; max-width: 24rem;">
+          <div style="
+            width: 2rem; height: 2rem; margin: 0 auto 1rem;
+            border: 3px solid #e5e7eb;
+            border-top-color: #2B82F0;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          "></div>
+          <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">Loading RO Navigator…</p>
+          <noscript>
+            <p style="margin-top: 1rem; color: #ef4444; font-size: 0.875rem;">
+              JavaScript is required to run this app. Please enable JavaScript and reload the page.
+            </p>
+          </noscript>
+        </div>
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Auto-hide after 30s if React never mounts (true JS failure) */
+        #pre-render-loading { transition: opacity 0.2s; }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -91,40 +91,48 @@ const LazyFallback = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <SubscriptionProvider>
-      <OfflineProvider>
-      <ROProvider>
-        <FlagProvider>
-          <TooltipProvider>
-            <Sonner />
-            
-            <BrowserRouter>
-              <ErrorBoundary>
-              <Suspense fallback={<LazyFallback />}>
-                <Routes>
-                  <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/" element={<HomeRoute />} />
-                  <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
-                  <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
-                  <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/terms" element={<Terms />} />
-                  <Route path="/support" element={<Support />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-              </ErrorBoundary>
-            </BrowserRouter>
-          </TooltipProvider>
-        </FlagProvider>
-      </ROProvider>
-      </OfflineProvider>
-      </SubscriptionProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  // Outer ErrorBoundary catches crashes in any Provider (AuthProvider,
+  // SubscriptionProvider, OfflineProvider, ROProvider, FlagProvider).
+  // Previously, the only ErrorBoundary was inside BrowserRouter which means
+  // provider-level errors produced a blank white screen.
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <SubscriptionProvider>
+        <OfflineProvider>
+        <ROProvider>
+          <FlagProvider>
+            <TooltipProvider>
+              <Sonner />
+
+              <BrowserRouter>
+                {/* Inner boundary catches router/route-level errors without
+                    requiring a full page reload for non-critical failures. */}
+                <ErrorBoundary>
+                <Suspense fallback={<LazyFallback />}>
+                  <Routes>
+                    <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/" element={<HomeRoute />} />
+                    <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
+                    <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
+                    <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/support" element={<Support />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+                </ErrorBoundary>
+              </BrowserRouter>
+            </TooltipProvider>
+          </FlagProvider>
+        </ROProvider>
+        </OfflineProvider>
+        </SubscriptionProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
