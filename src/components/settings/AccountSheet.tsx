@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, LogOut, Shield, Star, Check } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, LogOut, Shield, Star } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +45,8 @@ export function AccountSheet({
   const [localDisplayName, setLocalDisplayName] = useState(displayName);
   const [localShopName, setLocalShopName] = useState(shopName);
   const initializedRef = useRef(false);
+  const [savedField, setSavedField] = useState<string | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync local state when the sheet opens
   useEffect(() => {
@@ -56,13 +58,31 @@ export function AccountSheet({
       }
     } else {
       initializedRef.current = false;
+      setSavedField(null);
     }
   }, [isOpen, displayName, shopName]);
 
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
+
+  const handleSave = (field: 'displayName' | 'shopName', value: string) => {
+    updateSetting(field, value);
+    setSavedField(field);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSavedField(null), 2000);
+  };
+
+  const displayNameDirty = localDisplayName.trim() !== displayName;
+  const shopNameDirty = localShopName.trim() !== shopName;
+
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Account">
-      <div className="p-4 space-y-6">
-        {/* Avatar + email */}
+      <div className="p-4 space-y-5">
+
+        {/* Avatar + email header */}
         <div className="flex items-center gap-4">
           <div
             className="h-16 w-16 rounded-full flex items-center justify-center flex-shrink-0 text-white text-2xl font-bold select-none"
@@ -78,63 +98,79 @@ export function AccountSheet({
           </div>
         </div>
 
-        {/* Name fields */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="shrink-0">
-              <span className="font-medium text-sm">Your name</span>
-              <p className="text-xs text-muted-foreground">Shown in the app header</p>
-            </div>
-            <div className="flex items-center gap-2">
+        {/* Profile fields — stacked, full-width */}
+        <div className="space-y-2">
+          <h4 className="text-xs font-bold text-foreground/70 uppercase tracking-wider px-1">Profile</h4>
+          <div className="card-mobile divide-y divide-border/80 border border-border/90 bg-gradient-to-b from-card to-secondary/35 overflow-hidden">
+
+            {/* Your name */}
+            <div className="p-4 space-y-2">
+              <div className="flex items-center justify-between min-h-[20px]">
+                <label className="text-sm font-medium">Your name</label>
+                {savedField === 'displayName' ? (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" /> Saved
+                  </span>
+                ) : displayNameDirty ? (
+                  <button
+                    onClick={() => handleSave('displayName', localDisplayName.trim())}
+                    className="text-xs font-semibold text-primary"
+                  >
+                    Save
+                  </button>
+                ) : null}
+              </div>
               <input
                 type="text"
                 value={localDisplayName}
                 onChange={e => setLocalDisplayName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && updateSetting('displayName', localDisplayName.trim())}
+                onBlur={() => {
+                  if (displayNameDirty) handleSave('displayName', localDisplayName.trim());
+                }}
+                onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                 placeholder="e.g. Mike"
-                className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <button
-                onClick={() => updateSetting('displayName', localDisplayName.trim())}
                 className={cn(
-                  'h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-colors',
-                  localDisplayName.trim() !== displayName
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
+                  'w-full h-11 px-3 text-sm bg-muted rounded-lg border focus:outline-none focus:ring-2 focus:ring-ring',
+                  displayNameDirty ? 'border-primary/50' : 'border-input'
                 )}
-                aria-label="Save name"
-              >
-                <Check className="h-4 w-4" />
-              </button>
+              />
+              <p className="text-xs text-muted-foreground">Shown in the app header</p>
             </div>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <div className="shrink-0">
-              <span className="font-medium text-sm">Shop name</span>
-              <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
-            </div>
-            <div className="flex items-center gap-2">
+
+            {/* Shop name */}
+            <div className="p-4 space-y-2">
+              <div className="flex items-center justify-between min-h-[20px]">
+                <label className="text-sm font-medium">Shop name</label>
+                {savedField === 'shopName' ? (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" /> Saved
+                  </span>
+                ) : shopNameDirty ? (
+                  <button
+                    onClick={() => handleSave('shopName', localShopName.trim())}
+                    className="text-xs font-semibold text-primary"
+                  >
+                    Save
+                  </button>
+                ) : null}
+              </div>
               <input
                 type="text"
                 value={localShopName}
                 onChange={e => setLocalShopName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && updateSetting('shopName', localShopName.trim())}
+                onBlur={() => {
+                  if (shopNameDirty) handleSave('shopName', localShopName.trim());
+                }}
+                onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                 placeholder="e.g. Smith's Auto"
-                className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <button
-                onClick={() => updateSetting('shopName', localShopName.trim())}
                 className={cn(
-                  'h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-colors',
-                  localShopName.trim() !== shopName
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
+                  'w-full h-11 px-3 text-sm bg-muted rounded-lg border focus:outline-none focus:ring-2 focus:ring-ring',
+                  shopNameDirty ? 'border-primary/50' : 'border-input'
                 )}
-                aria-label="Save shop name"
-              >
-                <Check className="h-4 w-4" />
-              </button>
+              />
+              <p className="text-xs text-muted-foreground">Replaces "Repair Orders" as the page title</p>
             </div>
+
           </div>
         </div>
 
@@ -202,6 +238,7 @@ export function AccountSheet({
             <span className="font-medium">Sign Out</span>
           </button>
         </div>
+
       </div>
     </BottomSheet>
   );

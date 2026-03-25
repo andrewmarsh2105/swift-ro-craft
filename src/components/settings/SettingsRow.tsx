@@ -22,14 +22,14 @@ export function SettingsRow({ label, description, currentValue, value, onClick, 
       onClick={toggle ? () => !disabled && onToggle?.(!toggleValue) : onClick}
       disabled={disabled && !toggle}
       className={cn(
-        'w-full p-4 flex items-center justify-between tap-target touch-feedback hover:bg-accent/40 quiet-transition',
+        'w-full px-4 py-3.5 flex items-center justify-between gap-4 tap-target touch-feedback hover:bg-accent/40 quiet-transition',
         disabled && 'opacity-50'
       )}
     >
-        <div className="text-left">
-          <span className="font-semibold text-foreground">{label}</span>
+      <div className="text-left flex-1 min-w-0">
+        <span className="font-medium text-foreground">{label}</span>
         {description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
         )}
       </div>
       {toggle ? (

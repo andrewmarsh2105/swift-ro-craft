@@ -293,6 +293,7 @@ export function SettingsTab() {
               />
               <SettingsRow
                 label="Hide Hour Totals"
+                description="Shows — instead of totals in the RO list"
                 toggle
                 toggleValue={userSettings.hideTotals}
                 onToggle={(v) => updateUserSetting('hideTotals', v)}
@@ -303,19 +304,21 @@ export function SettingsTab() {
             <SettingsGroup title="General">
               <SettingsRow
                 label="Show Vehicle on Lines"
+                description="Year/make/model shown on each RO line"
                 toggle
                 toggleValue={userSettings.showVehicleChips}
                 onToggle={(v) => updateUserSetting('showVehicleChips', v)}
               />
               <SettingsRow
                 label="Keyword Auto-Fill Hours"
+                description="Matches job keywords to preset hours"
                 toggle
                 toggleValue={userSettings.keywordAutofill}
                 onToggle={(v) => updateUserSetting('keywordAutofill', v)}
               />
               <SettingsRow
                 label="Show Scan Confidence"
-                description={!isPro ? 'Pro only' : undefined}
+                description={isPro ? 'Displays match % on scanned ROs' : 'Pro only'}
                 toggle
                 toggleValue={userSettings.showScanConfidence}
                 onToggle={(v) => updateUserSetting('showScanConfidence', v)}
@@ -324,61 +327,68 @@ export function SettingsTab() {
             </SettingsGroup>
 
             {/* Goals & Earnings */}
-            <SettingsGroup title="Goals & Earnings">
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div>
-                  <span className="font-medium text-sm">Daily goal</span>
-                  <p className="text-xs text-muted-foreground">Hours per day target</p>
+            <SettingsGroup title="Goals & Earnings" description="Targets and earnings appear in the Summary tab">
+              <div className="p-4 space-y-5">
+                {/* Daily + Weekly side by side */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium block">Daily goal</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={24}
+                        step={0.5}
+                        value={localDailyGoal}
+                        onChange={e => setLocalDailyGoal(e.target.value)}
+                        onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
+                        placeholder="—"
+                        className="w-full h-11 px-3 pr-9 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">hr</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium block">Weekly goal</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={168}
+                        step={1}
+                        value={localWeeklyGoal}
+                        onChange={e => setLocalWeeklyGoal(e.target.value)}
+                        onBlur={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
+                        placeholder="—"
+                        className="w-full h-11 px-3 pr-9 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">hr</span>
+                    </div>
+                  </div>
                 </div>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  max={24}
-                  step={0.5}
-                  value={localDailyGoal}
-                  onChange={e => setLocalDailyGoal(e.target.value)}
-                  onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
-                  placeholder="Off"
-                  className="w-20 h-10 px-3 text-sm text-right bg-card rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-                />
-              </div>
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div>
-                  <span className="font-medium text-sm">Weekly goal</span>
-                  <p className="text-xs text-muted-foreground">Hours per week target</p>
-                </div>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  max={168}
-                  step={1}
-                  value={localWeeklyGoal}
-                  onChange={e => setLocalWeeklyGoal(e.target.value)}
-                  onBlur={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
-                  placeholder="Off"
-                  className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-                />
-              </div>
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div>
-                  <span className="font-medium text-sm">Flat rate</span>
-                  <p className="text-xs text-muted-foreground">$/hr — shows earnings in Summary</p>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    step={0.5}
-                    value={localHourlyRate}
-                    onChange={e => setLocalHourlyRate(e.target.value)}
-                    onBlur={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
-                    placeholder="Off"
-                    className="w-24 h-10 pl-7 pr-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-                  />
+                {/* Flat rate — full width */}
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline justify-between">
+                    <label className="text-sm font-medium">Flat rate</label>
+                    <span className="text-xs text-muted-foreground">Estimates earnings in Summary</span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step={0.5}
+                      value={localHourlyRate}
+                      onChange={e => setLocalHourlyRate(e.target.value)}
+                      onBlur={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
+                      placeholder="Not set"
+                      className="w-full h-11 pl-7 pr-14 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">/ hr</span>
+                  </div>
                 </div>
               </div>
             </SettingsGroup>
