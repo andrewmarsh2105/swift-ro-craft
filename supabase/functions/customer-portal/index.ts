@@ -2,15 +2,25 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-const ALLOWED_ORIGINS = [
+// Production origins + local dev. Add extra origins (e.g. a staging domain) via the
+// EXTRA_ALLOWED_ORIGINS Supabase secret — comma-separated, no trailing slashes.
+const BASE_ALLOWED_ORIGINS = [
   "https://ronavigator.com",
   "https://www.ronavigator.com",
   "https://app.ronavigator.com",
-  "https://swift-ro-craft.lovable.app",
-  "https://id-preview--8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovable.app",
-  "https://8ac751f9-d68d-4c8e-af8e-03a2567a030a.lovableproject.com",
+  // Local dev
+  "http://localhost:8080",
   "http://localhost:5173",
+  "http://127.0.0.1:8080",
   "http://127.0.0.1:5173",
+];
+
+const ALLOWED_ORIGINS = [
+  ...BASE_ALLOWED_ORIGINS,
+  ...(Deno.env.get("EXTRA_ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
 ];
 
 function getSafeOrigin(req: Request): string | null {

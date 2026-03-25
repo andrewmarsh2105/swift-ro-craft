@@ -261,73 +261,6 @@ export function useROStore() {
       const totalLines = allLineRows.length;
       pushDebug({ action: `fetchROs lines loaded: ${totalLines}` });
 
-      // Seed sample ROs for brand-new users with no data
-      if (hotMapped.length === 0 && userId && !localStorage.getItem(`sample.seeded.${userId}`)) {
-        localStorage.setItem(`sample.seeded.${userId}`, '1');
-        const today = new Date();
-        const daysAgo = (n: number) => {
-          const d = new Date(today);
-          d.setDate(d.getDate() - n);
-          return localDateStr(d);
-        };
-        const sampleInputs = [
-          {
-            ro: { roNumber: '100001', date: daysAgo(4), advisor: 'Mike Johnson', notes: 'Sample RO — delete when ready', vehicle: { year: 2021, make: 'Toyota', model: 'Camry' } },
-            lines: [
-              { description: 'Oil & filter change — 5W-30 synthetic', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
-              { description: 'Tire rotation', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
-              { description: 'Multi-point inspection', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
-            ],
-          },
-          {
-            ro: { roNumber: '100002', date: daysAgo(3), advisor: 'Sarah Lee', vehicle: { year: 2022, make: 'Ford', model: 'F-150' } },
-            lines: [
-              { description: 'Warranty: transmission output shaft seal replacement', hoursPaid: 2.4, laborType: 'warranty' as LaborType },
-              { description: 'Warranty: road test', hoursPaid: 0.5, laborType: 'warranty' as LaborType },
-            ],
-          },
-          {
-            ro: { roNumber: '100003', date: daysAgo(2), advisor: 'Mike Johnson', vehicle: { year: 2020, make: 'Honda', model: 'Accord' } },
-            lines: [
-              { description: 'Brake pad replacement — front axle', hoursPaid: 1.5, laborType: 'customer-pay' as LaborType },
-              { description: 'Brake rotor resurface — front', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
-              { description: 'Brake fluid flush', hoursPaid: 0.4, laborType: 'customer-pay' as LaborType },
-            ],
-          },
-          {
-            ro: { roNumber: '100004', date: daysAgo(1), advisor: 'Sarah Lee', vehicle: { year: 2019, make: 'Chevrolet', model: 'Silverado' } },
-            lines: [
-              { description: '60k service: plugs, air filter, cabin filter', hoursPaid: 2.0, laborType: 'internal' as LaborType },
-              { description: 'Engine air induction service', hoursPaid: 0.5, laborType: 'internal' as LaborType },
-            ],
-          },
-        ];
-
-        (async () => {
-          const seededROs: RepairOrder[] = [];
-          for (const { ro, lines } of sampleInputs) {
-            const { data: newRow, error: rErr } = await supabase
-              .from('ros')
-              .insert(toRosInsert(userId, ro))
-              .select()
-              .single();
-            if (rErr || !newRow) continue;
-            const lineInserts = toRoLineInserts({ userId, roId: newRow.id, lines, fallbackLaborType: 'customer-pay' });
-            const { data: insertedLines } = await supabase.from('ro_lines').insert(lineInserts).select();
-            seededROs.push(dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]));
-          }
-          if (seededROs.length > 0) {
-            // Merge into existing state rather than replace — avoids overwriting any RO
-            // the user added between fetchROs completing and the seeding IIFE finishing.
-            setROs(prev => {
-              const existingIds = new Set(prev.map(r => r.id));
-              const newOnes = seededROs.filter(r => !existingIds.has(r.id)).reverse();
-              return [...newOnes, ...prev];
-            });
-            toast('Sample ROs added — explore the app, then delete them when ready', { duration: 6000 });
-          }
-        })();
-      }
     } catch (err: unknown) {
       console.error('Failed to fetch ROs', err);
       pushDebug({ action: 'fetchROs FAIL', error: errorMessage(err) });
@@ -952,6 +885,78 @@ export function useROStore() {
     toast.success(`Cleared TBD from ${tbdLineIds.length} line(s)`);
   }, [user, userId]);
 
+  /**
+   * Opt-in sample data seeder. Called by the onboarding flow when the user
+   * explicitly requests demo ROs. No-ops if sample data was already seeded for
+   * this user, or if the user already has ROs.
+   */
+  const seedSampleData = useCallback(async () => {
+    if (!userId) return;
+    if (localStorage.getItem(`sample.seeded.${userId}`)) return;
+    localStorage.setItem(`sample.seeded.${userId}`, '1');
+
+    const today = new Date();
+    const daysAgo = (n: number) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - n);
+      return localDateStr(d);
+    };
+
+    const sampleInputs = [
+      {
+        ro: { roNumber: '100001', date: daysAgo(4), advisor: 'Mike Johnson', notes: 'Sample RO — delete when ready', vehicle: { year: 2021, make: 'Toyota', model: 'Camry' } },
+        lines: [
+          { description: 'Oil & filter change — 5W-30 synthetic', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
+          { description: 'Tire rotation', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
+          { description: 'Multi-point inspection', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
+        ],
+      },
+      {
+        ro: { roNumber: '100002', date: daysAgo(3), advisor: 'Sarah Lee', vehicle: { year: 2022, make: 'Ford', model: 'F-150' } },
+        lines: [
+          { description: 'Warranty: transmission output shaft seal replacement', hoursPaid: 2.4, laborType: 'warranty' as LaborType },
+          { description: 'Warranty: road test', hoursPaid: 0.5, laborType: 'warranty' as LaborType },
+        ],
+      },
+      {
+        ro: { roNumber: '100003', date: daysAgo(2), advisor: 'Mike Johnson', vehicle: { year: 2020, make: 'Honda', model: 'Accord' } },
+        lines: [
+          { description: 'Brake pad replacement — front axle', hoursPaid: 1.5, laborType: 'customer-pay' as LaborType },
+          { description: 'Brake rotor resurface — front', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
+          { description: 'Brake fluid flush', hoursPaid: 0.4, laborType: 'customer-pay' as LaborType },
+        ],
+      },
+      {
+        ro: { roNumber: '100004', date: daysAgo(1), advisor: 'Sarah Lee', vehicle: { year: 2019, make: 'Chevrolet', model: 'Silverado' } },
+        lines: [
+          { description: '60k service: plugs, air filter, cabin filter', hoursPaid: 2.0, laborType: 'internal' as LaborType },
+          { description: 'Engine air induction service', hoursPaid: 0.5, laborType: 'internal' as LaborType },
+        ],
+      },
+    ];
+
+    const seededROs: RepairOrder[] = [];
+    for (const { ro, lines } of sampleInputs) {
+      const { data: newRow, error: rErr } = await supabase
+        .from('ros')
+        .insert(toRosInsert(userId, ro))
+        .select()
+        .single();
+      if (rErr || !newRow) continue;
+      const lineInserts = toRoLineInserts({ userId, roId: newRow.id, lines, fallbackLaborType: 'customer-pay' });
+      const { data: insertedLines } = await supabase.from('ro_lines').insert(lineInserts).select();
+      seededROs.push(dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]));
+    }
+
+    if (seededROs.length > 0) {
+      setROs(prev => {
+        const existingIds = new Set(prev.map(r => r.id));
+        const newOnes = seededROs.filter(r => !existingIds.has(r.id)).reverse();
+        return [...newOnes, ...prev];
+      });
+    }
+  }, [userId]);
+
   return {
     ros,
     settings,
@@ -983,5 +988,6 @@ export function useROStore() {
     getDaySummaries,
     getAdvisorSummaries,
     getWeekTotal,
+    seedSampleData,
   };
 }

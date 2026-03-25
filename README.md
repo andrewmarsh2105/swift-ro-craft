@@ -39,7 +39,7 @@ A Progressive Web App for automotive technicians to track Repair Orders (ROs), m
 ```sh
 # 1. Clone
 git clone <repo-url>
-cd swift-ro-craft
+cd ro-navigator
 
 # 2. Install dependencies
 npm install

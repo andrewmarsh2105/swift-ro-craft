@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, BarChart2, Zap, ChevronRight } from 'lucide-react';
+import { ClipboardList, BarChart2, Zap, ChevronRight, Loader2 } from 'lucide-react';
+import { useROSafe } from '@/contexts/ROContext';
+import { toast } from 'sonner';
 
 const ONBOARDING_KEY = 'onboarding.v1.completed';
 
@@ -27,7 +29,9 @@ const steps = [
 export function OnboardingModal() {
   const [open, setOpen] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const [step, setStep] = useState(0);
+  const [seeding, setSeeding] = useState(false);
   const navigate = useNavigate();
+  const store = useROSafe();
 
   const dismiss = () => {
     localStorage.setItem(ONBOARDING_KEY, '1');
@@ -44,6 +48,18 @@ export function OnboardingModal() {
       navigate('/add-ro');
     } else {
       setStep((s) => s + 1);
+    }
+  };
+
+  const handleLoadSampleData = async () => {
+    if (!store?.seedSampleData) return;
+    setSeeding(true);
+    try {
+      await store.seedSampleData();
+      toast.success('Sample ROs loaded — explore the app, then delete them when ready', { duration: 6000 });
+    } finally {
+      setSeeding(false);
+      dismiss();
     }
   };
 
@@ -79,6 +95,22 @@ export function OnboardingModal() {
               {isLast ? 'Log My First RO' : 'Next'}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
+
+            {isLast && (
+              <Button
+                variant="outline"
+                className="w-full h-11"
+                onClick={handleLoadSampleData}
+                disabled={seeding}
+              >
+                {seeding ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Loading sample data…</>
+                ) : (
+                  'Load sample data first'
+                )}
+              </Button>
+            )}
+
             <button
               className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               onClick={dismiss}

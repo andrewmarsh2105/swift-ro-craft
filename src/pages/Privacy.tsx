@@ -33,7 +33,7 @@ export default function Privacy() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">3. Data Storage & Security</h2>
-            <p>Your data is stored securely using industry-standard encryption. We use Lovable Cloud for backend infrastructure, which provides row-level security to ensure users can only access their own data. Passwords are hashed and never stored in plain text.</p>
+            <p>Your data is stored securely using industry-standard encryption. We use Supabase for backend infrastructure, which provides row-level security to ensure users can only access their own data. Passwords are hashed and never stored in plain text.</p>
           </section>
 
           <section className="space-y-3">

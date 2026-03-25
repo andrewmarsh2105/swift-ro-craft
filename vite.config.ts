@@ -1,11 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   server: {
     host: "::",
     port: 8080,
@@ -15,7 +14,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: [
@@ -64,34 +62,14 @@ export default defineConfig(({ mode }) => ({
             purpose: "maskable",
           },
         ],
-        // screenshots are used by app stores and "Add to Home Screen" prompts.
-        // Create these image files (exact pixel dimensions required):
-        //   public/screenshots/screenshot-mobile-1.png  — 1290×2796 (iPhone 15 Pro Max)
-        //   public/screenshots/screenshot-mobile-2.png  — 1290×2796
-        //   public/screenshots/screenshot-desktop-1.png — 1920×1080
-        screenshots: [
-          {
-            src: "/screenshots/screenshot-mobile-1.png",
-            sizes: "1290x2796",
-            type: "image/png",
-            form_factor: "narrow",
-            label: "Log repair orders on mobile",
-          },
-          {
-            src: "/screenshots/screenshot-mobile-2.png",
-            sizes: "1290x2796",
-            type: "image/png",
-            form_factor: "narrow",
-            label: "Track hours in the Summary tab",
-          },
-          {
-            src: "/screenshots/screenshot-desktop-1.png",
-            sizes: "1920x1080",
-            type: "image/png",
-            form_factor: "wide",
-            label: "Desktop workspace",
-          },
-        ],
+        // screenshots enhance the PWA install prompt and app store listings.
+        // Uncomment and add the actual image files to public/screenshots/ before enabling.
+        // See public/screenshots/README.md for required dimensions and naming.
+        // screenshots: [
+        //   { src: "/screenshots/screenshot-mobile-1.png", sizes: "1290x2796", type: "image/png", form_factor: "narrow", label: "Log repair orders on mobile" },
+        //   { src: "/screenshots/screenshot-mobile-2.png", sizes: "1290x2796", type: "image/png", form_factor: "narrow", label: "Track hours in the Summary tab" },
+        //   { src: "/screenshots/screenshot-desktop-1.png", sizes: "1920x1080", type: "image/png", form_factor: "wide", label: "Desktop workspace" },
+        // ],
       },
       workbox: {
         // Cache all static assets
@@ -124,10 +102,10 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
       },
     }),
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+});
