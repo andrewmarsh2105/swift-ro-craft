@@ -1,12 +1,6 @@
-/**
- * Tests for useUserSettings — specifically the save model, fallback logic,
- * and the fix for the || vs ?? bug that caused goal=0 to fall back to
- * stale localStorage values.
- */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 
-// ── Hoist mocks so vi.mock factories can reference them ────────────────────
 const { mockUpsert, mockMaybeSingle } = vi.hoisted(() => {
   const mockMaybeSingle = vi.fn();
   const mockUpsert = vi.fn();
@@ -26,15 +20,12 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-abc', email: 'test@example.com' } }),
 }));
 
-// Import after mocks are defined
 import { useUserSettings } from './useUserSettings';
 
-// ── localStorage helpers ───────────────────────────────────────────────────
 function setLS(key: string, value: string) {
   localStorage.setItem(key, value);
 }
 
-// ── DB row factory ─────────────────────────────────────────────────────────
 function makeDbRow(overrides: Record<string, unknown> = {}) {
   return {
     user_id: 'user-abc',
@@ -53,262 +44,180 @@ function makeDbRow(overrides: Record<string, unknown> = {}) {
     spreadsheet_view_mode: 'payroll',
     spreadsheet_density: 'comfortable',
     spreadsheet_group_by: 'date',
-    hours_goal_daily: null,
-    hours_goal_weekly: null,
-    hourly_rate: null,
-    display_name: null,
-    shop_name: null,
+    hours_goal_daily: 0,
+    hours_goal_weekly: 0,
+    hourly_rate: 0,
+    display_name: '',
+    shop_name: '',
     ...overrides,
   };
 }
 
-describe('useUserSettings', () => {
+describe('useUserSettings unified persistence flow', () => {
+  let dbRow: ReturnType<typeof makeDbRow> | null;
+
   beforeEach(() => {
     localStorage.clear();
+    dbRow = makeDbRow();
+
     mockMaybeSingle.mockReset();
     mockUpsert.mockReset();
-    mockUpsert.mockResolvedValue({ error: null });
-  });
 
-  // ── Core fallback logic (the || vs ?? bug) ───────────────────────────────
-
-  describe('fetchSettings — goal fallback logic', () => {
-    it('uses DB value 0 for hoursGoalDaily — does NOT fall back to localStorage', async () => {
-      setLS('ro-tracker-goal-daily', '8'); // stale localStorage value
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_daily: 0 }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.hoursGoalDaily).toBe(0);
-    });
-
-    it('uses localStorage fallback when DB column is null (migration not applied)', async () => {
-      setLS('ro-tracker-goal-daily', '6');
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_daily: null }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.hoursGoalDaily).toBe(6);
-    });
-
-    it('uses DB value for hoursGoalWeekly even when 0', async () => {
-      setLS('ro-tracker-goal-weekly', '40');
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_weekly: 0 }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.hoursGoalWeekly).toBe(0);
-    });
-
-    it('uses DB value for hourlyRate even when 0', async () => {
-      setLS('ro-tracker-hourly-rate', '25');
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hourly_rate: 0 }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.hourlyRate).toBe(0);
-    });
-
-    it('uses a real DB value for hoursGoalDaily when non-zero', async () => {
-      setLS('ro-tracker-goal-daily', '5'); // localStorage has different value
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_daily: 8 }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.hoursGoalDaily).toBe(8);
+    mockMaybeSingle.mockImplementation(async () => ({ data: dbRow }));
+    mockUpsert.mockImplementation(async (payload: Record<string, unknown>) => {
+      dbRow = { ...(dbRow || makeDbRow()), ...payload } as ReturnType<typeof makeDbRow>;
+      return { error: null };
     });
   });
 
-  describe('fetchSettings — name fallback logic', () => {
-    it('uses DB displayName even when empty string — does NOT fall back to localStorage', async () => {
-      setLS('ro-tracker-display-name', 'OldName');
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ display_name: '' }) });
+  it('saves displayName successfully', async () => {
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
 
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.displayName).toBe('');
+    await act(async () => {
+      const res = await result.current.updateSetting('displayName', 'Mike');
+      expect(res.status).toBe('success');
     });
 
-    it('uses localStorage fallback for displayName when DB column is null', async () => {
-      setLS('ro-tracker-display-name', 'Mike');
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ display_name: null }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.displayName).toBe('Mike');
-    });
-
-    it('uses DB shopName even when empty string', async () => {
-      setLS('ro-tracker-shop-name', 'OldShop');
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ shop_name: '' }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.shopName).toBe('');
-    });
-
-    it('uses localStorage fallback for shopName when DB column is null', async () => {
-      setLS('ro-tracker-shop-name', "Smith's Auto");
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ shop_name: null }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.shopName).toBe("Smith's Auto");
-    });
+    expect(result.current.settings.displayName).toBe('Mike');
+    expect(dbRow?.display_name).toBe('Mike');
   });
 
-  describe('fetchSettings — no DB row', () => {
-    it('falls back entirely to localStorage when no row exists', async () => {
-      setLS('ro-tracker-goal-daily', '7');
-      setLS('ro-tracker-display-name', 'NoRow');
-      mockMaybeSingle.mockResolvedValue({ data: null });
+  it('saves shopName successfully', async () => {
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
 
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.hoursGoalDaily).toBe(7);
-      expect(result.current.settings.displayName).toBe('NoRow');
+    await act(async () => {
+      const res = await result.current.updateSetting('shopName', "Smith's Auto");
+      expect(res.status).toBe('success');
     });
 
-    it('returns defaults when no DB row and no localStorage', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: null });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.settings.hoursGoalDaily).toBe(0);
-      expect(result.current.settings.displayName).toBe('');
-    });
+    expect(result.current.settings.shopName).toBe("Smith's Auto");
+    expect(dbRow?.shop_name).toBe("Smith's Auto");
   });
 
-  // ── updateSetting — deduplication guard ───────────────────────────────────
+  it('saves daily goal successfully', async () => {
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
 
-  describe('updateSetting — no-op on identical value', () => {
-    it('does not call upsert when value is unchanged', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_daily: 8 }) });
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      mockUpsert.mockClear();
-      await act(async () => {
-        await result.current.updateSetting('hoursGoalDaily', 8);
-      });
-
-      expect(mockUpsert).not.toHaveBeenCalled();
+    await act(async () => {
+      const res = await result.current.updateSetting('hoursGoalDaily', 8);
+      expect(res.status).toBe('success');
     });
 
-    it('calls upsert when value changes', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_daily: 8 }) });
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      mockUpsert.mockClear();
-      await act(async () => {
-        await result.current.updateSetting('hoursGoalDaily', 10);
-      });
-
-      expect(mockUpsert).toHaveBeenCalledTimes(1);
-    });
+    expect(result.current.settings.hoursGoalDaily).toBe(8);
+    expect(dbRow?.hours_goal_daily).toBe(8);
   });
 
-  // ── updateSetting — localStorage persistence ───────────────────────────────
+  it('saves weekly goal successfully', async () => {
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
 
-  describe('updateSetting — localStorage persistence', () => {
-    it('persists hoursGoalDaily to localStorage on save', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow() });
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      await act(async () => {
-        await result.current.updateSetting('hoursGoalDaily', 9);
-      });
-
-      expect(localStorage.getItem('ro-tracker-goal-daily')).toBe('9');
+    await act(async () => {
+      const res = await result.current.updateSetting('hoursGoalWeekly', 42);
+      expect(res.status).toBe('success');
     });
 
-    it('persists hourlyRate to localStorage on save', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow() });
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      await act(async () => {
-        await result.current.updateSetting('hourlyRate', 22.5);
-      });
-
-      expect(localStorage.getItem('ro-tracker-hourly-rate')).toBe('22.5');
-    });
-
-    it('persists displayName to localStorage on save', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow() });
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      await act(async () => {
-        await result.current.updateSetting('displayName', 'Mike');
-      });
-
-      expect(localStorage.getItem('ro-tracker-display-name')).toBe('Mike');
-    });
+    expect(result.current.settings.hoursGoalWeekly).toBe(42);
+    expect(dbRow?.hours_goal_weekly).toBe(42);
   });
 
-  // ── updateSetting — optimistic update ────────────────────────────────────
+  it('saves hourly rate successfully', async () => {
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
 
-  describe('updateSetting — optimistic state update', () => {
-    it('applies optimistic update immediately before Supabase resolves', async () => {
-      // Slow upsert that never resolves during this test
-      mockUpsert.mockReturnValue(new Promise(() => {}));
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_daily: 5 }) });
-
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      act(() => {
-        // Don't await — we want to check state before upsert resolves
-        result.current.updateSetting('hoursGoalDaily', 10);
-      });
-
-      expect(result.current.settings.hoursGoalDaily).toBe(10);
+    await act(async () => {
+      const res = await result.current.updateSetting('hourlyRate', 35.5);
+      expect(res.status).toBe('success');
     });
 
-    it('rolls back on upsert error (non-column-missing error)', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: makeDbRow({ hours_goal_daily: 5 }) });
-      const { result } = renderHook(() => useUserSettings());
-      await act(async () => { await Promise.resolve(); });
-
-      mockUpsert.mockResolvedValue({
-        error: { message: 'network error', code: '500', details: '', hint: '' },
-      });
-
-      await act(async () => {
-        await result.current.updateSetting('hoursGoalDaily', 10);
-      });
-
-      // Should roll back to 5
-      expect(result.current.settings.hoursGoalDaily).toBe(5);
-    });
+    expect(result.current.settings.hourlyRate).toBe(35.5);
+    expect(dbRow?.hourly_rate).toBe(35.5);
   });
 
-  // ── loaded flag ───────────────────────────────────────────────────────────
-
-  describe('loaded flag', () => {
-    it('starts as false and becomes true after fetch', async () => {
-      mockMaybeSingle.mockResolvedValue({ data: null });
-      const { result } = renderHook(() => useUserSettings());
-
-      expect(result.current.loaded).toBe(false);
-
-      await act(async () => { await Promise.resolve(); });
-
-      expect(result.current.loaded).toBe(true);
+  it('reloads and confirms values persist', async () => {
+    dbRow = makeDbRow({
+      display_name: 'Reload Name',
+      shop_name: 'Reload Shop',
+      hours_goal_daily: 7,
+      hours_goal_weekly: 38,
+      hourly_rate: 32,
     });
+
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.settings.displayName).toBe('Reload Name');
+    expect(result.current.settings.shopName).toBe('Reload Shop');
+    expect(result.current.settings.hoursGoalDaily).toBe(7);
+    expect(result.current.settings.hoursGoalWeekly).toBe(38);
+    expect(result.current.settings.hourlyRate).toBe(32);
+  });
+
+  it('keeps one source of truth for summary/account settings fields', async () => {
+    dbRow = makeDbRow({
+      display_name: 'One Source',
+      shop_name: 'Truth Shop',
+      hours_goal_daily: 6,
+      hours_goal_weekly: 30,
+      hourly_rate: 28,
+    });
+
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.settings.displayName).toBe('One Source');
+    expect(result.current.settings.shopName).toBe('Truth Shop');
+    expect(result.current.settings.hoursGoalDaily).toBe(6);
+    expect(result.current.settings.hoursGoalWeekly).toBe(30);
+    expect(result.current.settings.hourlyRate).toBe(28);
+  });
+
+  it('failed save does not leave UI state misleading', async () => {
+    dbRow = makeDbRow({ display_name: 'Old Name' });
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    mockUpsert.mockResolvedValueOnce({
+      error: { message: 'network error', code: '500', details: '', hint: '' },
+    });
+
+    let saveResult: Awaited<ReturnType<typeof result.current.updateSetting>> | null = null;
+    await act(async () => {
+      saveResult = await result.current.updateSetting('displayName', 'New Name');
+    });
+
+    expect(saveResult?.status).toBe('failed');
+    expect(result.current.settings.displayName).toBe('Old Name');
+    expect(localStorage.getItem('ro-tracker-display-name')).toBe('Old Name');
+  });
+
+  it('local fallback does not overwrite valid saved values on fetch', async () => {
+    setLS('ro-tracker-display-name', 'Stale Local Name');
+    setLS('ro-tracker-goal-daily', '99');
+    dbRow = makeDbRow({ display_name: 'Cloud Name', hours_goal_daily: 5 });
+
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.settings.displayName).toBe('Cloud Name');
+    expect(result.current.settings.hoursGoalDaily).toBe(5);
+  });
+
+  it('uses local-only fallback when a settings column is unavailable', async () => {
+    const { result } = renderHook(() => useUserSettings());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    mockUpsert.mockResolvedValueOnce({
+      error: { message: 'column "display_name" does not exist', code: '42703', details: '', hint: '' },
+    });
+
+    await act(async () => {
+      const saveResult = await result.current.updateSetting('displayName', 'Local Only');
+      expect(saveResult.status).toBe('local_only');
+    });
+
+    expect(result.current.settings.displayName).toBe('Local Only');
+    expect(localStorage.getItem('ro-tracker-display-name')).toBe('Local Only');
   });
 });

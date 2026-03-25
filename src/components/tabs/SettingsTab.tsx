@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { Plus, Trash2, ChevronDown, ChevronUp, Crown, ChevronRight, Star, Mail } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -21,6 +21,7 @@ import { PresetEditorSheet } from '@/components/settings/PresetEditorSheet';
 import { AdvisorEditorSheet } from '@/components/settings/AdvisorEditorSheet';
 import { ClearAllROsDialog } from '@/components/settings/ClearAllROsDialog';
 import { AccountSheet } from '@/components/settings/AccountSheet';
+import type { SaveSettingResult } from '@/hooks/useUserSettings';
 
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
@@ -44,28 +45,18 @@ export function SettingsTab() {
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const [settingsView, setSettingsView] = useLocalStorageState<'settings' | 'manage'>('ui.settings.view.v1', 'settings');
-  const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
-  const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
-  const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  // Sync local draft state from DB exactly once per load cycle, when
-  // userSettingsLoaded transitions false→true. React 18 batches the setSettings +
-  // setLoaded calls inside fetchSettings, so syncedSettings already holds the
-  // fetched values by the time this effect runs. We intentionally omit the
-  // individual field deps: subsequent optimistic updates change syncedSettings but
-  // must NOT overwrite the user's in-progress typing in other fields.
-  const hasInitialSyncedRef = useRef(false);
+  const [localDailyGoal, setLocalDailyGoal] = useState('');
+  const [localWeeklyGoal, setLocalWeeklyGoal] = useState('');
+  const [localHourlyRate, setLocalHourlyRate] = useState('');
+  const [goalSaveError, setGoalSaveError] = useState<string | null>(null);
+  const [isSavingGoals, setIsSavingGoals] = useState(false);
+
   useEffect(() => {
-    if (!userSettingsLoaded) {
-      hasInitialSyncedRef.current = false;
-      return;
-    }
-    if (hasInitialSyncedRef.current) return;
-    hasInitialSyncedRef.current = true;
+    if (!userSettingsLoaded) return;
     setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
     setLocalWeeklyGoal(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
     setLocalHourlyRate(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userSettingsLoaded]);
+  }, [syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate, userSettingsLoaded]);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -222,6 +213,60 @@ export function SettingsTab() {
   // Derived display values for settings rows
   const avatarInitial = (syncedSettings.displayName || user?.email || '?').charAt(0).toUpperCase();
 
+
+  const parseNonNegative = (value: string) => {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  };
+
+  const dailyGoalValue = parseNonNegative(localDailyGoal);
+  const weeklyGoalValue = parseNonNegative(localWeeklyGoal);
+  const hourlyRateValue = parseNonNegative(localHourlyRate);
+  const goalsDirty =
+    dailyGoalValue !== syncedSettings.hoursGoalDaily
+    || weeklyGoalValue !== syncedSettings.hoursGoalWeekly
+    || hourlyRateValue !== syncedSettings.hourlyRate;
+
+  const applySaveResult = (result: SaveSettingResult) => {
+    if (result.status === 'failed') {
+      setGoalSaveError(result.message || 'Failed to save settings. Please try again.');
+      return false;
+    }
+    if (result.status === 'local_only' && result.message) {
+      toast.success(result.message);
+    }
+    return true;
+  };
+
+  const handleSaveGoals = async () => {
+    setGoalSaveError(null);
+    setIsSavingGoals(true);
+
+    const results = await Promise.all([
+      updateSetting('hoursGoalDaily', dailyGoalValue),
+      updateSetting('hoursGoalWeekly', weeklyGoalValue),
+      updateSetting('hourlyRate', hourlyRateValue),
+    ]);
+
+    const allSucceeded = results.every(applySaveResult);
+    if (allSucceeded) {
+      toast.success('Goals and earnings saved');
+    }
+
+    setIsSavingGoals(false);
+  };
+
+  const handleAccountSettingSave = async (key: 'displayName' | 'shopName', value: string) => {
+    const result = await updateSetting(key, value);
+    if (result.status === 'local_only' && result.message) {
+      toast.success(result.message);
+    }
+    if (result.status === 'failed' && result.message) {
+      toast.error(result.message);
+    }
+    return result;
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32 bg-accent/[0.14]">
       {/* Header */}
@@ -342,8 +387,7 @@ export function SettingsTab() {
                         step={0.5}
                         value={localDailyGoal}
                         onChange={e => setLocalDailyGoal(e.target.value)}
-                        onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
-                        placeholder="—"
+                                                placeholder="—"
                         className="w-full h-11 px-3 pr-9 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">hr</span>
@@ -360,8 +404,7 @@ export function SettingsTab() {
                         step={1}
                         value={localWeeklyGoal}
                         onChange={e => setLocalWeeklyGoal(e.target.value)}
-                        onBlur={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
-                        placeholder="—"
+                                                placeholder="—"
                         className="w-full h-11 px-3 pr-9 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">hr</span>
@@ -383,12 +426,21 @@ export function SettingsTab() {
                       step={0.5}
                       value={localHourlyRate}
                       onChange={e => setLocalHourlyRate(e.target.value)}
-                      onBlur={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
-                      placeholder="Not set"
+                                            placeholder="Not set"
                       className="w-full h-11 pl-7 pr-14 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">/ hr</span>
                   </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  {goalSaveError ? <p className="text-xs text-destructive">{goalSaveError}</p> : <div />}
+                  <Button
+                    size="sm"
+                    onClick={handleSaveGoals}
+                    disabled={!goalsDirty || isSavingGoals}
+                  >
+                    {isSavingGoals ? 'Saving…' : 'Save goals'}
+                  </Button>
                 </div>
               </div>
             </SettingsGroup>
@@ -588,7 +640,7 @@ export function SettingsTab() {
         isNearExpiry={isNearExpiry}
         hasBillingIssue={hasBillingIssue}
         isAdmin={isAdmin}
-        updateSetting={updateSetting}
+        updateSetting={handleAccountSettingSave}
         openPortal={openPortal}
         setShowUpgradeDialog={setShowUpgradeDialog}
         signOut={signOut}

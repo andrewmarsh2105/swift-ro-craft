@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Check, ChevronRight, LogOut, Shield, Star } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { cn } from '@/lib/utils';
+import type { SaveSettingResult } from '@/hooks/useUserSettings';
 
 interface AccountSheetProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ interface AccountSheetProps {
   isNearExpiry: boolean;
   hasBillingIssue: boolean;
   isAdmin: boolean;
-  updateSetting: (key: string, value: unknown) => void;
+  updateSetting: (key: 'displayName' | 'shopName', value: string) => Promise<SaveSettingResult>;
   openPortal: () => void;
   setShowUpgradeDialog: (v: boolean) => void;
   signOut: () => void;
@@ -44,22 +45,24 @@ export function AccountSheet({
   const navigate = useNavigate();
   const [localDisplayName, setLocalDisplayName] = useState(displayName);
   const [localShopName, setLocalShopName] = useState(shopName);
-  const initializedRef = useRef(false);
   const [savedField, setSavedField] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<string | null>(null);
+  const [isSavingField, setIsSavingField] = useState<string | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync local state when the sheet opens
   useEffect(() => {
     if (isOpen) {
-      if (!initializedRef.current) {
-        setLocalDisplayName(displayName);
-        setLocalShopName(shopName);
-        initializedRef.current = true;
-      }
-    } else {
-      initializedRef.current = false;
+      setLocalDisplayName(displayName);
+      setLocalShopName(shopName);
       setSavedField(null);
+      setErrorField(null);
+      setIsSavingField(null);
+      return;
     }
+
+    setSavedField(null);
+    setErrorField(null);
+    setIsSavingField(null);
   }, [isOpen, displayName, shopName]);
 
   useEffect(() => {
@@ -68,8 +71,17 @@ export function AccountSheet({
     };
   }, []);
 
-  const handleSave = (field: 'displayName' | 'shopName', value: string) => {
-    updateSetting(field, value);
+  const handleSave = async (field: 'displayName' | 'shopName', value: string) => {
+    setIsSavingField(field);
+    setErrorField(null);
+    const result = await updateSetting(field, value);
+    setIsSavingField(null);
+
+    if (result.status === 'failed') {
+      setErrorField(field);
+      return;
+    }
+
     setSavedField(field);
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSavedField(null), 2000);
@@ -114,9 +126,10 @@ export function AccountSheet({
                 ) : displayNameDirty ? (
                   <button
                     onClick={() => handleSave('displayName', localDisplayName.trim())}
-                    className="text-xs font-semibold text-primary"
+                    disabled={isSavingField === 'displayName'}
+                    className="text-xs font-semibold text-primary disabled:opacity-50"
                   >
-                    Save
+                    {isSavingField === 'displayName' ? 'Saving…' : 'Save'}
                   </button>
                 ) : null}
               </div>
@@ -124,10 +137,6 @@ export function AccountSheet({
                 type="text"
                 value={localDisplayName}
                 onChange={e => setLocalDisplayName(e.target.value)}
-                onBlur={() => {
-                  if (displayNameDirty) handleSave('displayName', localDisplayName.trim());
-                }}
-                onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                 placeholder="e.g. Mike"
                 className={cn(
                   'w-full h-11 px-3 text-sm bg-muted rounded-lg border focus:outline-none focus:ring-2 focus:ring-ring',
@@ -135,6 +144,7 @@ export function AccountSheet({
                 )}
               />
               <p className="text-xs text-muted-foreground">Shown in the app header</p>
+              {errorField === 'displayName' && <p className="text-xs text-destructive">Failed to save. Please try again.</p>}
             </div>
 
             {/* Shop name */}
@@ -148,9 +158,10 @@ export function AccountSheet({
                 ) : shopNameDirty ? (
                   <button
                     onClick={() => handleSave('shopName', localShopName.trim())}
-                    className="text-xs font-semibold text-primary"
+                    disabled={isSavingField === 'shopName'}
+                    className="text-xs font-semibold text-primary disabled:opacity-50"
                   >
-                    Save
+                    {isSavingField === 'shopName' ? 'Saving…' : 'Save'}
                   </button>
                 ) : null}
               </div>
@@ -158,10 +169,6 @@ export function AccountSheet({
                 type="text"
                 value={localShopName}
                 onChange={e => setLocalShopName(e.target.value)}
-                onBlur={() => {
-                  if (shopNameDirty) handleSave('shopName', localShopName.trim());
-                }}
-                onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                 placeholder="e.g. Smith's Auto"
                 className={cn(
                   'w-full h-11 px-3 text-sm bg-muted rounded-lg border focus:outline-none focus:ring-2 focus:ring-ring',
@@ -169,6 +176,7 @@ export function AccountSheet({
                 )}
               />
               <p className="text-xs text-muted-foreground">Replaces "Repair Orders" as the page title</p>
+              {errorField === 'shopName' && <p className="text-xs text-destructive">Failed to save. Please try again.</p>}
             </div>
 
           </div>
