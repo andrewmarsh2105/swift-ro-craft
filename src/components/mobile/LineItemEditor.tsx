@@ -120,7 +120,10 @@ export function LineItemEditor({
       {/* ── Presets section ── */}
       {presets.length > 0 && (
         <div className="space-y-2.5">
-          <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Quick Presets</span>
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-4 rounded-full bg-primary/40" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Quick Presets</span>
+          </div>
           <PresetSearchRail
             presets={presets}
             onSelect={handlePresetSelect}
@@ -155,19 +158,27 @@ export function LineItemEditor({
       {/* ── Add Line CTA ── */}
       <button
         onClick={handleAddLine}
-        className="w-full h-12 bg-card rounded-2xl border border-primary/25 flex items-center justify-center gap-2.5 text-primary font-semibold tap-target touch-feedback active:scale-[0.98] transition-all"
-        style={{ boxShadow: '0 1px 6px -1px hsl(214 100% 46% / 0.12), 0 0 0 1px hsl(214 100% 46% / 0.08)' }}
+        className="w-full h-13 rounded-2xl flex items-center justify-center gap-2.5 font-semibold tap-target touch-feedback active:scale-[0.98] transition-all text-primary-foreground"
+        style={{
+          background: 'linear-gradient(135deg, hsl(214 100% 50%) 0%, hsl(214 100% 42%) 100%)',
+          boxShadow: '0 4px 14px -3px hsl(214 100% 46% / 0.45), 0 2px 6px -2px hsl(214 100% 46% / 0.25)',
+          minHeight: '48px',
+        }}
       >
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-          <Plus className="h-4 w-4 text-primary-foreground" />
+        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+          <Plus className="h-4 w-4 text-white" />
         </div>
-        <span>Add Line</span>
+        <span className="text-white font-bold">Add Line</span>
       </button>
 
       {/* ── Lines section ── */}
       {lines.length > 0 && (
         <div className="space-y-2">
-          <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Lines</span>
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-4 rounded-full bg-primary/40" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Lines</span>
+            <span className="ml-auto text-[10px] font-bold text-primary/70 tabular-nums">{lines.reduce((s, l) => s + l.hoursPaid, 0).toFixed(1)}h total</span>
+          </div>
           <AnimatePresence initial={false}>
             {lines.map((line, index) => (
               <motion.div
@@ -183,13 +194,13 @@ export function LineItemEditor({
                   style={{ boxShadow: 'var(--shadow-card)' }}
                 >
                   {/* Line card header */}
-                  <div className="flex items-center px-4 py-2.5 bg-muted/25 border-b border-border/40">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground flex-1">
+                  <div className="flex items-center px-4 py-2.5 bg-primary/5 border-b border-primary/10">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/70 flex-1">
                       Line {line.lineNo}
                     </span>
                     <button
                       onClick={() => handleRemoveLine(index)}
-                      className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-destructive/60 hover:text-destructive tap-target touch-feedback rounded-lg transition-colors"
+                      className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-destructive/50 hover:text-destructive tap-target touch-feedback rounded-lg transition-colors"
                       aria-label="Remove line"
                     >
                       <Trash2 className="h-4 w-4" />
