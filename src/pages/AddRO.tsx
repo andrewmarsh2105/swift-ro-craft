@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, Plus, Loader2, User, FileText, Crown } from 'lucide-react';
+import { Camera, Plus, Loader2, User, FileText, Crown, ListChecks, Search } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -28,6 +28,7 @@ import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 
 // Desktop imports
 import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
+import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
 
 
 export default function AddRO() {
@@ -53,6 +54,10 @@ export default function AddRO() {
 
   // Long-press preset hours sheet
   const [longPressPreset, setLongPressPreset] = useState<Preset | null>(null);
+
+  // Preset search sheet
+  const [showPresetSearch, setShowPresetSearch] = useState(false);
+  const [presetSearchAnimatingId, setPresetSearchAnimatingId] = useState<string | null>(null);
 
   // Advisor sheet: toggle to show all advisors regardless of date range
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
@@ -221,7 +226,7 @@ export default function AddRO() {
   const quickPresets = useMemo(() => {
     const favorites = settings.presets.filter(p => p.isFavorite);
     const rest = settings.presets.filter(p => !p.isFavorite);
-    return [...favorites, ...rest].slice(0, 8);
+    return [...favorites, ...rest].slice(0, 12);
   }, [settings.presets]);
 
   const presetsVisible = lines.length > 1 || lines.some(l => l.description.trim() || l.hoursPaid > 0);
@@ -306,6 +311,15 @@ export default function AddRO() {
     haptics.success();
     toast.success(`Saved preset: ${name}`);
   }, [settings.presets, updatePresets]);
+
+  const handlePresetSearchSelect = useCallback((preset: Preset) => {
+    setPresetSearchAnimatingId(preset.id);
+    setTimeout(() => {
+      setPresetSearchAnimatingId(null);
+      addPresetLine(preset);
+      setShowPresetSearch(false);
+    }, 400);
+  }, [addPresetLine]);
 
   const allLinesTbd = lines.length > 0 && lines.every(l => l.isTbd);
 
@@ -517,92 +531,82 @@ export default function AddRO() {
       {/* Bottom action bar — 2 clean zones */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
 
-        {/* Zone 1: Quick actions — add line + paste + preset rail */}
-        <div className="px-3 pt-2.5 pb-2 border-b border-border/60">
-          {presetsVisible ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleAddLine}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-11 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
-              >
-                <Plus className="h-4 w-4" />
-                Line
-              </button>
+        {/* Zone 1: Quick actions — icon add-line + preset rail + search + tbd-all */}
+        <div className="px-3 pt-2 pb-2 border-b border-border/60">
+          <div className="flex items-center gap-1.5">
 
-              <button
-                type="button"
-                onClick={handleToggleAllTbd}
-                className={cn(
-                  'flex-shrink-0 h-11 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
-                  allLinesTbd
-                    ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
-                    : 'bg-secondary text-muted-foreground border-border'
-                )}
-                title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
-                aria-label={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
-                aria-pressed={allLinesTbd}
-              >
-                TBD All
-              </button>
+            {/* Add Line: icon-only square button */}
+            <button
+              type="button"
+              onClick={handleAddLine}
+              className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 active:scale-[0.93] transition-all"
+              aria-label="Add line"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
 
+            {/* Preset rail — flex-1, scrollable, scroll-protected */}
+            <div className="flex-1 overflow-hidden min-w-0">
               {quickPresets.length > 0 ? (
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                    {recentlyAddedPresets.length > 0 && (
-                      <>
-                        {recentlyAddedPresets.map(id => {
-                          const preset = settings.presets.find(p => p.id === id);
-                          return preset ? (
-                            <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/12 rounded-md text-xs text-primary font-medium border border-primary/20">
-                              ✓ {preset.name}
-                            </span>
-                          ) : null;
-                        })}
-                        <div className="w-px h-5 bg-border flex-shrink-0" />
-                      </>
-                    )}
-                    {quickPresets.map(preset => (
-                      <PresetButton
-                        key={preset.id}
-                        preset={preset}
-                        onTap={() => addPresetLine(preset)}
-                        onLongPress={() => setLongPressPreset(preset)}
-                      />
-                    ))}
-                  </div>
+                <div
+                  className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide"
+                  style={{ WebkitOverflowScrolling: 'touch' }}
+                >
+                  {recentlyAddedPresets.length > 0 && (
+                    <>
+                      {recentlyAddedPresets.map(id => {
+                        const p = settings.presets.find(pr => pr.id === id);
+                        return p ? (
+                          <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/10 rounded-md text-xs text-primary font-medium border border-primary/20 whitespace-nowrap">
+                            ✓ {p.name}
+                          </span>
+                        ) : null;
+                      })}
+                      <div className="w-px h-5 bg-border flex-shrink-0" />
+                    </>
+                  )}
+                  {quickPresets.map(preset => (
+                    <PresetButton
+                      key={preset.id}
+                      preset={preset}
+                      onTap={() => addPresetLine(preset)}
+                      onLongPress={() => setLongPressPreset(preset)}
+                    />
+                  ))}
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground">No presets yet — set them up in Settings.</span>
+                <span className="text-xs text-muted-foreground px-1">No presets — add in Settings</span>
               )}
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleAddLine}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                Add Line
-              </button>
-              <button
-                type="button"
-                onClick={handleToggleAllTbd}
-                className={cn(
-                  'flex-shrink-0 h-11 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
-                  allLinesTbd
-                    ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
-                    : 'bg-secondary text-muted-foreground border-border'
-                )}
-                title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
-                aria-label={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
-                aria-pressed={allLinesTbd}
-              >
-                TBD All
-              </button>
-            </div>
-          )}
+
+            {/* Search: opens all-presets sheet */}
+            <button
+              type="button"
+              onClick={() => setShowPresetSearch(true)}
+              className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-secondary border border-border active:scale-[0.93] transition-all"
+              aria-label="Browse all presets"
+            >
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </button>
+
+            {/* TBD All: icon-only, amber when active */}
+            <button
+              type="button"
+              onClick={handleToggleAllTbd}
+              className={cn(
+                'flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl border active:scale-[0.93] transition-all',
+                allLinesTbd
+                  ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
+                  : 'bg-secondary text-muted-foreground border-border'
+              )}
+              title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
+              aria-label={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
+              aria-pressed={allLinesTbd}
+            >
+              <ListChecks className="h-4 w-4" />
+            </button>
+
+          </div>
         </div>
 
         {/* Zone 2: Save bar — summary info + action buttons */}
@@ -643,6 +647,19 @@ export default function AddRO() {
           </button>
         </div>
       </footer>
+
+      {/* Preset search sheet */}
+      <BottomSheet isOpen={showPresetSearch} onClose={() => setShowPresetSearch(false)} title="Add Preset">
+        <div className="px-4 pt-3 pb-4">
+          <PresetSearchRail
+            presets={settings.presets}
+            onSelect={handlePresetSearchSelect}
+            animatingId={presetSearchAnimatingId}
+            layout="mobile"
+            mobileMode="grid"
+          />
+        </div>
+      </BottomSheet>
 
       {/* Long-press preset hours sheet */}
       <PresetHoursSheet
@@ -748,7 +765,7 @@ export default function AddRO() {
   );
 }
 
-// Preset button with long-press support
+// Preset button with long-press + horizontal-scroll protection
 function PresetButton({
   preset,
   onTap,
@@ -761,6 +778,8 @@ function PresetButton({
   const [isPressed, setIsPressed] = useState(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPressRef = useRef(false);
+  const pointerStartX = useRef<number | null>(null);
+  const cancelledByScrollRef = useRef(false);
 
   const clearLongPress = () => {
     if (longPressTimerRef.current) {
@@ -769,7 +788,9 @@ function PresetButton({
     }
   };
 
-  const handlePointerDown = () => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    pointerStartX.current = e.clientX;
+    cancelledByScrollRef.current = false;
     didLongPressRef.current = false;
     longPressTimerRef.current = setTimeout(() => {
       didLongPressRef.current = true;
@@ -778,17 +799,27 @@ function PresetButton({
     }, 450);
   };
 
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (pointerStartX.current !== null && Math.abs(e.clientX - pointerStartX.current) > 8) {
+      cancelledByScrollRef.current = true;
+      clearLongPress();
+    }
+  };
+
   const handlePointerUp = () => {
     clearLongPress();
-    if (!didLongPressRef.current) {
+    if (!didLongPressRef.current && !cancelledByScrollRef.current) {
       setIsPressed(true);
       onTap();
       setTimeout(() => setIsPressed(false), 600);
     }
+    pointerStartX.current = null;
   };
 
   const handlePointerCancel = () => {
     clearLongPress();
+    pointerStartX.current = null;
+    cancelledByScrollRef.current = false;
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -806,11 +837,12 @@ function PresetButton({
       type="button"
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onPointerLeave={handlePointerCancel}
       className={cn(
-        'flex-shrink-0 px-3 h-11 border rounded-full text-sm font-medium flex items-center gap-1.5 transition-all duration-150 min-h-[44px] select-none touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'flex-shrink-0 px-2.5 h-9 border rounded-full text-xs font-medium flex items-center gap-1 transition-all duration-150 select-none touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         isPressed
           ? 'bg-primary text-primary-foreground border-primary scale-95'
           : 'bg-card border-border hover:bg-primary/10 hover:border-primary/30 active:scale-95'
@@ -820,7 +852,7 @@ function PresetButton({
       {isPressed ? (
         <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex">✓</motion.span>
       ) : (
-        <Plus className="h-3.5 w-3.5" />
+        <Plus className="h-3 w-3" />
       )}
       {preset.name}
       {preset.defaultHours !== undefined && (
