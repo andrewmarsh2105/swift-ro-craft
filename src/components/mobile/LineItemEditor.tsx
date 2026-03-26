@@ -117,15 +117,18 @@ export function LineItemEditor({
 
   return (
     <div className="space-y-4">
-      {/* Preset Quick Add - At TOP */}
+      {/* ── Presets section ── */}
       {presets.length > 0 && (
-        <PresetSearchRail
-          presets={presets}
-          onSelect={handlePresetSelect}
-          animatingId={animatingPresetId}
-          layout="mobile"
-          mobileMode="grid"
-        />
+        <div className="space-y-2.5">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Quick Presets</span>
+          <PresetSearchRail
+            presets={presets}
+            onSelect={handlePresetSelect}
+            animatingId={animatingPresetId}
+            layout="mobile"
+            mobileMode="grid"
+          />
+        </div>
       )}
 
       {/* Recently Added Indicator */}
@@ -149,92 +152,104 @@ export function LineItemEditor({
         </div>
       )}
 
-      {/* Add Line Button - At TOP */}
+      {/* ── Add Line CTA ── */}
       <button
         onClick={handleAddLine}
-        className="w-full py-4 bg-primary/10 border-2 border-dashed border-primary/50 rounded-xl flex items-center justify-center gap-2 text-primary font-semibold tap-target touch-feedback"
+        className="w-full h-12 bg-card rounded-2xl border border-primary/25 flex items-center justify-center gap-2.5 text-primary font-semibold tap-target touch-feedback active:scale-[0.98] transition-all"
+        style={{ boxShadow: '0 1px 6px -1px hsl(214 100% 46% / 0.12), 0 0 0 1px hsl(214 100% 46% / 0.08)' }}
       >
-        <Plus className="h-5 w-5" />
-        Add Line
+        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+          <Plus className="h-4 w-4 text-primary-foreground" />
+        </div>
+        <span>Add Line</span>
       </button>
 
-      {/* Lines List - No reordering, standard layout */}
-      <div className="space-y-3">
-        <AnimatePresence initial={false}>
-          {lines.map((line, index) => (
-            <motion.div
-              key={line.id}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="bg-secondary rounded-xl p-4 space-y-3">
-                {/* Line Header */}
-                <div className="flex items-center gap-2 min-h-[44px]">
-                  <span className="text-sm font-semibold text-muted-foreground">
-                    Line {line.lineNo}
-                  </span>
-                  <div className="flex-1" />
-                  <button
-                    onClick={() => handleRemoveLine(index)}
-                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-destructive tap-target touch-feedback rounded-lg"
-                    aria-label="Remove line"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Description Input */}
-                <input
-                  type="text"
-                  value={line.description}
-                  onChange={(e) => handleLineChange(index, { description: e.target.value })}
-                  placeholder="Job description..."
-                  className="w-full h-12 px-4 bg-background rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-
-                {/* Hours and Labor Type Row */}
-                <div className="flex gap-3">
-                  {/* Hours Input - Primary */}
-                  <div className="flex-1">
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">
-                      Hours Paid
-                    </label>
-                    <DecimalHoursInput
-                      value={line.hoursPaid}
-                      onChange={(v) => handleHoursInput(index, v)}
-                      placeholder="0.0"
-                      className="w-full h-12 px-4 bg-background rounded-xl text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+      {/* ── Lines section ── */}
+      {lines.length > 0 && (
+        <div className="space-y-2">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Lines</span>
+          <AnimatePresence initial={false}>
+            {lines.map((line, index) => (
+              <motion.div
+                key={line.id}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mb-3 last:mb-0"
+              >
+                <div
+                  className="bg-card rounded-2xl overflow-hidden border border-border/60"
+                  style={{ boxShadow: 'var(--shadow-card)' }}
+                >
+                  {/* Line card header */}
+                  <div className="flex items-center px-4 py-2.5 bg-muted/25 border-b border-border/40">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground flex-1">
+                      Line {line.lineNo}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveLine(index)}
+                      className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-destructive/60 hover:text-destructive tap-target touch-feedback rounded-lg transition-colors"
+                      aria-label="Remove line"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
 
-                  {/* Labor Type (Optional) */}
-                  {showLaborType && (
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">
-                        Type
-                      </label>
-                      <select
-                        value={line.laborType || ''}
-                        onChange={(e) => handleLineChange(index, { 
-                          laborType: e.target.value as LaborType | undefined 
-                        })}
-                        className="w-full h-12 px-3 bg-background rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="">Default</option>
-                        <option value="warranty">Warranty</option>
-                        <option value="customer-pay">Customer Pay</option>
-                        <option value="internal">Internal</option>
-                      </select>
+                  {/* Line card body */}
+                  <div className="p-4 space-y-3">
+                    {/* Description Input */}
+                    <input
+                      type="text"
+                      value={line.description}
+                      onChange={(e) => handleLineChange(index, { description: e.target.value })}
+                      placeholder="Job description..."
+                      className="w-full h-11 px-3.5 bg-background rounded-xl border border-border/60 text-base focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-shadow"
+                    />
+
+                    {/* Hours and Labor Type Row */}
+                    <div className="flex gap-3">
+                      {/* Hours Input */}
+                      <div className="flex-1">
+                        <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                          Hours Paid
+                        </label>
+                        <DecimalHoursInput
+                          value={line.hoursPaid}
+                          onChange={(v) => handleHoursInput(index, v)}
+                          placeholder="0.0"
+                          className="w-full h-12 px-4 bg-background rounded-xl border border-border/60 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-shadow"
+                        />
+                      </div>
+
+                      {/* Labor Type (Optional) */}
+                      {showLaborType && (
+                        <div className="flex-1">
+                          <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                            Type
+                          </label>
+                          <select
+                            value={line.laborType || ''}
+                            onChange={(e) => handleLineChange(index, {
+                              laborType: e.target.value as LaborType | undefined,
+                            })}
+                            className="w-full h-12 px-3 bg-background rounded-xl border border-border/60 text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
+                          >
+                            <option value="">Default</option>
+                            <option value="warranty">Warranty</option>
+                            <option value="customer-pay">Customer Pay</option>
+                            <option value="internal">Internal</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Empty state */}
       {lines.length === 0 && (
