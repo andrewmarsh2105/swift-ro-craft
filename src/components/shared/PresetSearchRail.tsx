@@ -98,26 +98,30 @@ export function PresetSearchRail({
               key={preset.id}
               onClick={() => onSelect(preset)}
               className={cn(
-                'inline-flex items-center justify-between gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-150 min-h-[44px]',
+                'inline-flex items-center justify-between gap-2 px-3.5 py-3 rounded-xl border transition-all duration-150 min-h-[48px]',
                 animatingId === preset.id
-                  ? 'bg-primary text-primary-foreground border-primary scale-[0.98]'
+                  ? 'bg-primary text-primary-foreground border-primary scale-[0.97]'
                   : preset.isFavorite
-                    ? 'bg-primary/10 border-primary/30 text-foreground'
-                    : 'bg-card border-border text-foreground',
+                    ? 'bg-primary/10 border-primary/25 text-foreground'
+                    : 'bg-card border-border/70 text-foreground',
               )}
+              style={animatingId !== preset.id ? { boxShadow: 'var(--shadow-sm)' } : undefined}
             >
-              <span className="inline-flex items-center gap-1.5 min-w-0">
+              <span className="inline-flex items-center gap-2 min-w-0">
                 {animatingId === preset.id ? (
-                  <Check className="h-3 w-3 flex-shrink-0" />
+                  <Check className="h-3.5 w-3.5 flex-shrink-0" />
                 ) : preset.isFavorite ? (
-                  <Star className="h-3 w-3 fill-primary text-primary flex-shrink-0" />
+                  <Star className="h-3.5 w-3.5 fill-primary text-primary flex-shrink-0" />
                 ) : (
-                  <Plus className="h-3 w-3 flex-shrink-0" />
+                  <Plus className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                 )}
-                <span className="truncate">{preset.name}</span>
+                <span className="truncate text-sm font-semibold">{preset.name}</span>
               </span>
               {preset.defaultHours != null && (
-                <span className="opacity-70 flex-shrink-0">{preset.defaultHours}h</span>
+                <span className={cn(
+                  'flex-shrink-0 text-xs font-bold tabular-nums',
+                  animatingId === preset.id ? 'opacity-80' : 'text-primary'
+                )}>{preset.defaultHours}h</span>
               )}
             </button>
           ))}
@@ -130,7 +134,8 @@ export function PresetSearchRail({
         {filtered.length > 8 && (
           <button
             onClick={() => setShowAllMobile(v => !v)}
-            className="w-full h-9 rounded-lg border border-border bg-secondary text-sm font-medium"
+            className="w-full h-10 rounded-xl border border-border/60 bg-card text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            style={{ boxShadow: 'var(--shadow-sm)' }}
           >
             {showAllMobile ? 'Show fewer presets' : `Show ${filtered.length - 8} more presets`}
           </button>

@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Camera, X, UserPlus } from 'lucide-react';
+import { Camera, X, UserPlus, ChevronRight } from 'lucide-react';
 import { haptics } from '@/lib/haptics';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { Chip } from '@/components/mobile/Chip';
-import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
@@ -189,129 +187,166 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       fullScreen
     >
       <div className="flex flex-col h-full min-h-0">
-        <div className="p-4 space-y-5 pb-36">
-          {/* Scan RO Photo Button — Pro only */}
+        <div className="p-4 space-y-4 pb-36">
+          {/* Scan RO Photo — Hero intake action, Pro only */}
           {isPro && (
             <button
               onClick={onScanPhoto}
-              className="w-full py-4 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center gap-3 text-primary font-semibold tap-target touch-feedback sticky top-0 z-10"
+              className="w-full px-5 py-4 bg-primary rounded-2xl flex items-center gap-4 text-primary-foreground tap-target touch-feedback sticky top-0 z-10"
+              style={{ boxShadow: '0 6px 20px -6px hsl(214 100% 46% / 0.55), 0 2px 6px -2px hsl(214 100% 46% / 0.25)' }}
             >
-              <Camera className="h-6 w-6" />
-              Scan RO Photo
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                <Camera className="h-6 w-6" />
+              </div>
+              <div className="flex flex-col items-start text-left flex-1 min-w-0">
+                <span className="text-base font-bold leading-tight">Scan RO Photo</span>
+                <span className="text-xs opacity-70 leading-tight mt-0.5">Auto-fill from RO document</span>
+              </div>
+              <ChevronRight className="h-5 w-5 opacity-50 flex-shrink-0" />
             </button>
           )}
 
-          {/* Essentials */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">RO Number</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={roNumber}
-                onChange={(e) => setRoNumber(e.target.value.slice(0, 20))}
-                placeholder="Enter RO number"
-                maxLength={20}
-                className="w-full h-11 px-4 bg-secondary rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">RO Date</label>
-              <input
-                type="date"
-                value={roDate}
-                onChange={(e) => setRoDate(e.target.value)}
-                className="w-full h-11 px-2 bg-secondary rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-          </div>
-
-          {/* Advisor Selector */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Advisor
-            </label>
-
-            {/* Advisor chips from managed advisors */}
-            <div className="flex flex-wrap gap-2 mb-2">
-              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).map((adv) => (
-                <Chip
-                  key={adv.id}
-                  label={adv.name}
-                  selected={advisor === adv.name}
-                  onSelect={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
-                />
-              ))}
-              {settings.advisors.length > 8 && (
-                <Chip
-                  label="More..."
-                  onSelect={() => setShowAdvisorList(true)}
-                />
-              )}
-              <Chip
-                label="＋ New advisor"
-                selected={showAdvisorCreate}
-                onSelect={() => setShowAdvisorCreate((v) => !v)}
-                className={cn(
-                  'border-primary/60 text-primary bg-primary/10',
-                  showAdvisorCreate && 'border-primary bg-primary text-primary-foreground'
-                )}
-              />
+          {/* ── RO Details card: number · date · advisor grouped ── */}
+          <div className="bg-card rounded-2xl overflow-hidden border border-border/60" style={{ boxShadow: 'var(--shadow-card)' }}>
+            {/* Card header */}
+            <div className="px-4 pt-3 pb-2 border-b border-border/40 bg-muted/25">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">RO Details</span>
             </div>
 
-            {showAdvisorCreate && (
-              <div className="flex items-center gap-2 p-2 rounded-xl border border-border bg-secondary/60 mb-2">
+            {/* RO Number + Date */}
+            <div className="px-4 pt-3.5 pb-3.5 grid grid-cols-5 gap-3">
+              <div className="col-span-3">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">RO Number</label>
                 <input
                   type="text"
-                  value={advisorDraft}
-                  onChange={(e) => setAdvisorDraft(e.target.value)}
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      await saveAdvisorQuickly();
-                    }
-                  }}
-                  placeholder="Type advisor name"
-                  className="flex-1 h-10 px-3 rounded-lg bg-background border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  inputMode="numeric"
+                  value={roNumber}
+                  onChange={(e) => setRoNumber(e.target.value.slice(0, 20))}
+                  placeholder="Enter RO number"
+                  maxLength={20}
+                  className="w-full h-11 px-3.5 bg-background rounded-xl border border-border/70 text-base font-bold focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 placeholder:font-normal placeholder:text-muted-foreground/50 transition-shadow"
                 />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Date</label>
+                <input
+                  type="date"
+                  value={roDate}
+                  onChange={(e) => setRoDate(e.target.value)}
+                  className="w-full h-11 px-2 bg-background rounded-xl border border-border/70 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-shadow"
+                />
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-border/40 mx-4" />
+
+            {/* Advisor */}
+            <div className="px-4 pt-3.5 pb-4">
+              <label className="block text-xs font-semibold text-muted-foreground mb-2.5">Advisor</label>
+              <div className="flex flex-wrap gap-2">
+                {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).map((adv) => (
+                  <button
+                    key={adv.id}
+                    onClick={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
+                    className={cn(
+                      'h-9 px-4 rounded-full text-sm font-medium transition-all border tap-target',
+                      advisor === adv.name
+                        ? 'bg-primary text-primary-foreground font-semibold border-primary'
+                        : 'bg-background border-border/70 text-foreground'
+                    )}
+                    style={advisor === adv.name ? { boxShadow: '0 2px 8px -2px hsl(214 100% 46% / 0.35)' } : {}}
+                  >
+                    {adv.name}
+                  </button>
+                ))}
+                {settings.advisors.length > 8 && (
+                  <button
+                    onClick={() => setShowAdvisorList(true)}
+                    className="h-9 px-4 rounded-full text-sm font-medium border border-border/70 bg-background text-foreground tap-target"
+                  >
+                    More...
+                  </button>
+                )}
                 <button
-                  onClick={saveAdvisorQuickly}
-                  className="h-10 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium"
-                  aria-label="Add advisor"
+                  onClick={() => setShowAdvisorCreate((v) => !v)}
+                  className={cn(
+                    'h-9 px-4 rounded-full text-sm font-medium border transition-all inline-flex items-center gap-1.5 tap-target',
+                    showAdvisorCreate
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-primary/50 text-primary bg-primary/5'
+                  )}
+                  style={showAdvisorCreate ? { boxShadow: '0 2px 8px -2px hsl(214 100% 46% / 0.35)' } : {}}
                 >
-                  <UserPlus className="h-4 w-4" />
+                  + New advisor
                 </button>
               </div>
-            )}
 
-            {/* Show selected advisor if not in quick chips */}
-            {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).find(a => a.name === advisor) && (
-              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl">
-                <span className="font-medium">{advisor}</span>
-                <button onClick={() => setAdvisor('')} className="ml-auto">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+              {showAdvisorCreate && (
+                <div className="flex items-center gap-2 mt-2.5 p-2 rounded-xl border border-border bg-secondary/60">
+                  <input
+                    type="text"
+                    value={advisorDraft}
+                    onChange={(e) => setAdvisorDraft(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        await saveAdvisorQuickly();
+                      }
+                    }}
+                    placeholder="Type advisor name"
+                    className="flex-1 h-10 px-3 rounded-lg bg-background border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    onClick={saveAdvisorQuickly}
+                    className="h-10 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium"
+                    aria-label="Add advisor"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Show selected advisor if not in quick chips */}
+              {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).find(a => a.name === advisor) && (
+                <div className="flex items-center gap-2 mt-2.5 p-3 bg-primary/10 rounded-xl border border-primary/20">
+                  <span className="font-semibold text-sm">{advisor}</span>
+                  <button onClick={() => setAdvisor('')} className="ml-auto p-1 rounded-full hover:bg-primary/10">
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Labor Type */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Default Labor Type
-            </label>
-            <SegmentedControl
-              options={[
-                { value: 'warranty' as LaborType, label: 'Warranty' },
-                { value: 'customer-pay' as LaborType, label: 'Customer Pay' },
-                { value: 'internal' as LaborType, label: 'Internal' },
-              ]}
-              value={laborType}
-              onChange={(value) => setLaborType(value as LaborType)}
-            />
+          {/* ── Labor Type — color-coded 3-button grid ── */}
+          <div className="space-y-2">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Labor Type</span>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { value: 'warranty' as LaborType, label: 'Warranty', activeBg: 'hsl(var(--status-warranty-bg))', activeText: 'hsl(var(--status-warranty))', activeBorder: 'hsl(var(--status-warranty) / 0.5)' },
+                { value: 'customer-pay' as LaborType, label: 'Customer Pay', activeBg: 'hsl(var(--status-customer-pay-bg))', activeText: 'hsl(var(--status-customer-pay))', activeBorder: 'hsl(var(--status-customer-pay) / 0.5)' },
+                { value: 'internal' as LaborType, label: 'Internal', activeBg: 'hsl(var(--status-internal-bg))', activeText: 'hsl(var(--status-internal))', activeBorder: 'hsl(var(--status-internal) / 0.5)' },
+              ]).map(({ value, label, activeBg, activeText, activeBorder }) => {
+                const isActive = laborType === value;
+                return (
+                  <button
+                    key={value}
+                    onClick={() => setLaborType(value)}
+                    className={cn(
+                      'h-11 rounded-xl text-sm font-medium transition-all border tap-target',
+                      !isActive && 'bg-card border-border/60 text-muted-foreground'
+                    )}
+                    style={isActive ? { backgroundColor: activeBg, color: activeText, borderColor: activeBorder, fontWeight: 700 } : {}}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Lines Mode: Line Item Editor */}
+          {/* ── Presets + Lines ── */}
           <LineItemEditor
             lines={lines}
             onLinesChange={setLines}
