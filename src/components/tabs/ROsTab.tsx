@@ -92,6 +92,7 @@ interface ROCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onFlag: () => void;
+  onTbdAll: () => void;
   onViewDetails: () => void;
   flags: import('@/types/flags').ROFlag[];
   reviewIssues: ReviewIssue[];
@@ -101,7 +102,7 @@ interface ROCardProps {
 }
 
 const ROCard = memo(function ROCard({
-  ro, onEdit, onDelete, onFlag, onViewDetails,
+  ro, onEdit, onDelete, onFlag, onTbdAll, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
   compact = false,
 }: ROCardProps) {
@@ -197,6 +198,8 @@ const ROCard = memo(function ROCard({
             onEdit={onEdit}
             onDelete={onDelete}
             onFlag={onFlag}
+            onTbdAll={onTbdAll}
+            isAllTbd={!!(ro.lines?.length && ro.lines.every(l => l.isTbd))}
             existingRONumbers={existingRONumbers}
           />
         </div>
@@ -222,7 +225,7 @@ interface ROsTabProps {
 
 export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const navigate = useNavigate();
-  const { ros, deleteRO, loadingROs } = useRO();
+  const { ros, deleteRO, updateRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
   const { flags, userSettings, addFlag } = useFlagContext();
 
@@ -648,6 +651,12 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   onEdit={() => onEditRO(ro)}
                   onFlag={() => setFlaggingRO(ro)}
                   onDelete={() => deleteRO(ro.id)}
+                  onTbdAll={() => {
+                    const allTbd = !!(ro.lines?.length && ro.lines.every(l => l.isTbd));
+                    updateRO(ro.id, {
+                      lines: (ro.lines ?? []).map(l => ({ ...l, isTbd: !allTbd, updatedAt: new Date().toISOString() })),
+                    });
+                  }}
                   onViewDetails={() => {
                     setSelectedRO(ro);
                     setShowDetail(true);

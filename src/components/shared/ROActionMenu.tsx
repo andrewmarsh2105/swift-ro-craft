@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreVertical, Pencil, Trash2, Flag } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Flag, Clock } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import {
@@ -23,11 +23,13 @@ interface ROActionMenuProps {
   onEdit: () => void;
   onDelete: () => void;
   onFlag?: () => void;
+  onTbdAll?: () => void;
+  isAllTbd?: boolean;
   existingRONumbers?: string[];
   className?: string;
 }
 
-export function ROActionMenu({ roNumber, onEdit, onDelete, onFlag, existingRONumbers = [], className }: ROActionMenuProps) {
+export function ROActionMenu({ roNumber, onEdit, onDelete, onFlag, onTbdAll, isAllTbd = false, existingRONumbers = [], className }: ROActionMenuProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -83,6 +85,17 @@ export function ROActionMenu({ roNumber, onEdit, onDelete, onFlag, existingRONum
         >
           <Flag className="h-4 w-4 text-orange-500" />
           Flag
+        </button>
+      )}
+
+      {/* TBD All */}
+      {onTbdAll && (
+        <button
+          onClick={() => handleAction(onTbdAll)}
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors rounded-lg"
+        >
+          <Clock className={cn('h-4 w-4', isAllTbd ? 'text-amber-500' : 'text-muted-foreground')} />
+          {isAllTbd ? 'Clear TBD (all lines)' : 'TBD All Lines'}
         </button>
       )}
 

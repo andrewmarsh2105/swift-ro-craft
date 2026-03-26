@@ -206,7 +206,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4 pb-36">
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4 pb-[calc(env(safe-area-inset-bottom,0px)+9rem)]">
           {/* ── RO Details card: number · date · advisor grouped ── */}
           <div className="bg-card rounded-2xl overflow-hidden border border-border/60" style={{ boxShadow: 'var(--shadow-card)' }}>
             {/* Card header */}

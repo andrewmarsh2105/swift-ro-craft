@@ -164,7 +164,12 @@ export function BottomSheet({
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto min-h-0 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]">
+            <div className={cn(
+              'flex-1 min-h-0',
+              fullScreen
+                ? 'flex flex-col overflow-hidden'
+                : 'overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+5rem)]'
+            )}>
               {children}
             </div>
           </motion.div>
