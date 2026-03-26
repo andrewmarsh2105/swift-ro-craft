@@ -93,38 +93,51 @@ export function PresetSearchRail({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {mobileVisible.map((preset) => (
-            <button
-              key={preset.id}
-              onClick={() => onSelect(preset)}
-              className={cn(
-                'inline-flex items-center justify-between gap-2 px-3.5 py-3 rounded-xl border transition-all duration-150 min-h-[48px]',
-                animatingId === preset.id
-                  ? 'bg-primary text-primary-foreground border-primary scale-[0.97]'
-                  : preset.isFavorite
-                    ? 'bg-primary/10 border-primary/25 text-foreground'
-                    : 'bg-card border-border/70 text-foreground',
-              )}
-              style={animatingId !== preset.id ? { boxShadow: 'var(--shadow-sm)' } : undefined}
-            >
-              <span className="inline-flex items-center gap-2 min-w-0">
-                {animatingId === preset.id ? (
-                  <Check className="h-3.5 w-3.5 flex-shrink-0" />
-                ) : preset.isFavorite ? (
-                  <Star className="h-3.5 w-3.5 fill-primary text-primary flex-shrink-0" />
-                ) : (
-                  <Plus className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+          {mobileVisible.map((preset) => {
+            const laborColor = preset.laborType === 'warranty'
+              ? { dot: 'hsl(var(--status-warranty))', bg: 'hsl(148 68% 30% / 0.08)', border: 'hsl(148 68% 30% / 0.22)' }
+              : preset.laborType === 'internal'
+                ? { dot: 'hsl(var(--status-internal))', bg: 'hsl(26 85% 42% / 0.08)', border: 'hsl(26 85% 42% / 0.22)' }
+                : null; // customer-pay uses default card styling
+
+            return (
+              <button
+                key={preset.id}
+                onClick={() => onSelect(preset)}
+                className={cn(
+                  'inline-flex items-center justify-between gap-2 px-3.5 py-3 rounded-xl border transition-all duration-150 min-h-[48px]',
+                  animatingId === preset.id
+                    ? 'bg-primary text-primary-foreground border-primary scale-[0.97]'
+                    : preset.isFavorite
+                      ? 'bg-primary/10 border-primary/25 text-foreground'
+                      : 'bg-card border-border/70 text-foreground',
                 )}
-                <span className="truncate text-sm font-semibold">{preset.name}</span>
-              </span>
-              {preset.defaultHours != null && (
-                <span className={cn(
-                  'flex-shrink-0 text-xs font-bold tabular-nums',
-                  animatingId === preset.id ? 'opacity-80' : 'text-primary'
-                )}>{preset.defaultHours}h</span>
-              )}
-            </button>
-          ))}
+                style={animatingId !== preset.id ? {
+                  boxShadow: 'var(--shadow-sm)',
+                  ...(laborColor && !preset.isFavorite ? { backgroundColor: laborColor.bg, borderColor: laborColor.border } : {}),
+                } : undefined}
+              >
+                <span className="inline-flex items-center gap-2 min-w-0">
+                  {animatingId === preset.id ? (
+                    <Check className="h-3.5 w-3.5 flex-shrink-0" />
+                  ) : preset.isFavorite ? (
+                    <Star className="h-3.5 w-3.5 fill-primary text-primary flex-shrink-0" />
+                  ) : laborColor ? (
+                    <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: laborColor.dot }} />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="truncate text-sm font-semibold">{preset.name}</span>
+                </span>
+                {preset.defaultHours != null && (
+                  <span className={cn(
+                    'flex-shrink-0 text-xs font-bold tabular-nums',
+                    animatingId === preset.id ? 'opacity-80' : 'text-primary'
+                  )}>{preset.defaultHours}h</span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {filtered.length === 0 && (
@@ -134,10 +147,10 @@ export function PresetSearchRail({
         {filtered.length > 8 && (
           <button
             onClick={() => setShowAllMobile(v => !v)}
-            className="w-full h-10 rounded-xl border border-border/60 bg-card text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="w-full h-11 rounded-xl border border-primary/20 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
             style={{ boxShadow: 'var(--shadow-sm)' }}
           >
-            {showAllMobile ? 'Show fewer presets' : `Show ${filtered.length - 8} more presets`}
+            {showAllMobile ? '↑ Show fewer presets' : `↓ Show ${filtered.length - 8} more presets`}
           </button>
         )}
       </div>

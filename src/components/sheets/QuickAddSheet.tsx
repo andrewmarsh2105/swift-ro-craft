@@ -210,8 +210,9 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
           {/* ── RO Details card: number · date · advisor grouped ── */}
           <div className="bg-card rounded-2xl overflow-hidden border border-border/60" style={{ boxShadow: 'var(--shadow-card)' }}>
             {/* Card header */}
-            <div className="px-4 pt-3 pb-2 border-b border-border/40 bg-muted/25">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">RO Details</span>
+            <div className="px-4 pt-3 pb-2 border-b border-border/40 bg-primary/5 flex items-center gap-2">
+              <div className="w-1.5 h-4 rounded-full bg-primary opacity-70" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">RO Details</span>
             </div>
 
             {/* RO Number + Date */}
@@ -325,22 +326,53 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Labor Type</span>
             <div className="grid grid-cols-3 gap-2">
               {([
-                { value: 'warranty' as LaborType, label: 'Warranty', activeBg: 'hsl(var(--status-warranty-bg))', activeText: 'hsl(var(--status-warranty))', activeBorder: 'hsl(var(--status-warranty) / 0.5)' },
-                { value: 'customer-pay' as LaborType, label: 'Customer Pay', activeBg: 'hsl(var(--status-customer-pay-bg))', activeText: 'hsl(var(--status-customer-pay))', activeBorder: 'hsl(var(--status-customer-pay) / 0.5)' },
-                { value: 'internal' as LaborType, label: 'Internal', activeBg: 'hsl(var(--status-internal-bg))', activeText: 'hsl(var(--status-internal))', activeBorder: 'hsl(var(--status-internal) / 0.5)' },
-              ]).map(({ value, label, activeBg, activeText, activeBorder }) => {
+                {
+                  value: 'warranty' as LaborType,
+                  label: 'Warranty',
+                  activeBg: 'hsl(var(--status-warranty-bg))',
+                  activeText: 'hsl(var(--status-warranty))',
+                  activeBorder: 'hsl(var(--status-warranty) / 0.5)',
+                  inactiveBg: 'hsl(148 68% 30% / 0.06)',
+                  inactiveText: 'hsl(148 68% 25%)',
+                  inactiveBorder: 'hsl(148 68% 30% / 0.2)',
+                  dot: 'bg-[hsl(var(--status-warranty))]',
+                },
+                {
+                  value: 'customer-pay' as LaborType,
+                  label: 'Customer Pay',
+                  activeBg: 'hsl(var(--status-customer-pay-bg))',
+                  activeText: 'hsl(var(--status-customer-pay))',
+                  activeBorder: 'hsl(var(--status-customer-pay) / 0.5)',
+                  inactiveBg: 'hsl(200 84% 38% / 0.06)',
+                  inactiveText: 'hsl(200 84% 30%)',
+                  inactiveBorder: 'hsl(200 84% 38% / 0.2)',
+                  dot: 'bg-[hsl(var(--status-customer-pay))]',
+                },
+                {
+                  value: 'internal' as LaborType,
+                  label: 'Internal',
+                  activeBg: 'hsl(var(--status-internal-bg))',
+                  activeText: 'hsl(var(--status-internal))',
+                  activeBorder: 'hsl(var(--status-internal) / 0.5)',
+                  inactiveBg: 'hsl(26 85% 42% / 0.06)',
+                  inactiveText: 'hsl(26 85% 32%)',
+                  inactiveBorder: 'hsl(26 85% 42% / 0.2)',
+                  dot: 'bg-[hsl(var(--status-internal))]',
+                },
+              ]).map(({ value, label, activeBg, activeText, activeBorder, inactiveBg, inactiveText, inactiveBorder, dot }) => {
                 const isActive = laborType === value;
                 return (
                   <button
                     key={value}
                     onClick={() => setLaborType(value)}
-                    className={cn(
-                      'h-11 rounded-xl text-sm font-medium transition-all border tap-target',
-                      !isActive && 'bg-card border-border/60 text-muted-foreground'
-                    )}
-                    style={isActive ? { backgroundColor: activeBg, color: activeText, borderColor: activeBorder, fontWeight: 700 } : {}}
+                    className="h-11 rounded-xl text-sm transition-all border tap-target flex flex-col items-center justify-center gap-0.5"
+                    style={isActive
+                      ? { backgroundColor: activeBg, color: activeText, borderColor: activeBorder, fontWeight: 700 }
+                      : { backgroundColor: inactiveBg, color: inactiveText, borderColor: inactiveBorder }
+                    }
                   >
-                    {label}
+                    <span className={cn('w-1.5 h-1.5 rounded-full mb-0.5', dot, isActive ? 'opacity-100' : 'opacity-60')} />
+                    <span className="font-semibold leading-none">{label}</span>
                   </button>
                 );
               })}
