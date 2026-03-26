@@ -54,7 +54,14 @@ export function BottomSheet({
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     const firstFocusable = focusable[0];
-    if (firstFocusable) {
+    // On touch devices don't auto-focus inputs/textareas — it triggers the
+    // iOS keyboard and viewport zoom before the user has seen the sheet.
+    const isTouchDevice = 'ontouchstart' in window;
+    const autoFocusWouldZoom =
+      isTouchDevice &&
+      (firstFocusable instanceof HTMLInputElement ||
+        firstFocusable instanceof HTMLTextAreaElement);
+    if (firstFocusable && !autoFocusWouldZoom) {
       firstFocusable.focus();
     } else {
       sheet.focus();

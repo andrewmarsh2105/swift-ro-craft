@@ -78,6 +78,7 @@ export function PresetSearchRail({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search presets…"
+            style={{ fontSize: '16px' }}
             className="w-full h-10 pl-8 pr-7 bg-secondary border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
           />
           {search && (
@@ -149,6 +150,7 @@ export function PresetSearchRail({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search presets…"
+            style={isMobile ? { fontSize: '16px' } : undefined}
             className={cn(
               'w-full pl-8 pr-7 bg-secondary border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors',
               isMobile ? 'h-10' : 'h-8',
