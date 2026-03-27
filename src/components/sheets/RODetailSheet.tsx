@@ -5,6 +5,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  Clock,
   Flag,
   Copy,
   FileText,
@@ -32,6 +33,7 @@ import { EmptyState } from "@/components/states/EmptyState";
 
 import { useFlagContext } from "@/contexts/FlagContext";
 import { useRO } from "@/contexts/ROContext";
+import { ROActionMenu } from "@/components/shared/ROActionMenu";
 import { FlagBadge } from "@/components/flags/FlagBadge";
 import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
@@ -116,7 +118,7 @@ export function RODetailSheet({
   onSelectRO,
   existingRONumbers = [],
 }: RODetailSheetProps) {
-  const { ros } = useRO();
+  const { ros, updateRO } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -148,6 +150,15 @@ export function RODetailSheet({
   const openFlagDialog = () => {
     setConvertingIssue(null);
     setFlagDialogOpen(true);
+  };
+
+  const isAllTbd = !!(ro?.lines?.length && ro.lines.every(l => l.isTbd));
+
+  const handleTbdAll = () => {
+    if (!ro) return;
+    updateRO(ro.id, {
+      lines: (ro.lines ?? []).map(l => ({ ...l, isTbd: !isAllTbd, updatedAt: new Date().toISOString() })),
+    });
   };
 
   const openConvertDialog = (issue: ReviewIssue) => {
@@ -189,6 +200,15 @@ export function RODetailSheet({
                     <Pencil className="h-3 w-3 mr-1" />
                     Edit
                   </Button>
+                  <ROActionMenu
+                    roNumber={ro.roNumber}
+                    onEdit={onEdit}
+                    onDelete={() => setShowDeleteConfirm(true)}
+                    onFlag={openFlagDialog}
+                    onTbdAll={ro.lines?.length ? handleTbdAll : undefined}
+                    isAllTbd={isAllTbd}
+                    className="h-7 w-7 p-0"
+                  />
                   <button
                     onClick={onClose}
                     className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -211,9 +231,7 @@ export function RODetailSheet({
                   <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">Paid {formatDateShort(ro.paidDate!)}</span>
                 ) : ro.paidDate ? (
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))' }}>Paid</span>
-                ) : (
-                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">Unpaid</span>
-                )}
+                ) : null}
                 {flags.length > 0 && (
                   <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
                 )}
@@ -416,6 +434,16 @@ export function RODetailSheet({
                 <Flag className="h-4 w-4" />
                 Add Flag
               </Button>
+              {ro.lines?.length ? (
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 text-sm gap-1.5"
+                  onClick={handleTbdAll}
+                >
+                  <Clock className={cn('h-4 w-4', isAllTbd ? 'text-amber-500' : 'text-muted-foreground')} />
+                  {isAllTbd ? 'Clear TBD' : 'TBD All'}
+                </Button>
+              ) : null}
               <Button
                 variant="ghost"
                 className="h-11 px-3 text-sm gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"

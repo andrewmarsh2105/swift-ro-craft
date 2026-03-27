@@ -47,14 +47,10 @@ function InlineStatusChips({
   const status = getStatusSummary(ro, flagsCount, checksCount);
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
-      {/* Paid/Unpaid — bold visual signal */}
-      {status.paid === 'Paid' ? (
+      {/* Paid — only show when paid date is set */}
+      {status.paid === 'Paid' && (
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: 'hsl(var(--status-warranty))' }}>
           <CheckCircle2 className="h-3 w-3" />
-        </span>
-      ) : (
-        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
-          OPEN
         </span>
       )}
       {status.tbd > 0 && (
