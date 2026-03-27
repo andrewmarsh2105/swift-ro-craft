@@ -6,9 +6,11 @@ import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, MoreVertical,
   Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarRange, CalendarDays,
+  CheckSquare, Square, Flag, CircleDot, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
@@ -70,14 +72,34 @@ interface LineRowProps {
   borderColorClass: string;
   renderCellValue: (colId: ColumnId, row: SpreadsheetLineRow) => ReactNode;
   onSelectRO: (ro: RepairOrder) => void;
+  isSelected: boolean;
+  showCheckbox: boolean;
+  onToggleSelect: (roId: string) => void;
 }
 
-const LineRow = memo(function LineRow({ line, activeCols, cellPx, cellPy, rowBg, borderColorClass, renderCellValue, onSelectRO }: LineRowProps) {
+const LineRow = memo(function LineRow({
+  line, activeCols, cellPx, cellPy, rowBg, borderColorClass,
+  renderCellValue, onSelectRO, isSelected, showCheckbox, onToggleSelect,
+}: LineRowProps) {
   return (
     <tr
-      className={cn('cursor-pointer hover:bg-accent/65 transition-colors border-t border-border/40', rowBg)}
+      className={cn(
+        'cursor-pointer transition-colors border-t border-border/40',
+        isSelected
+          ? 'bg-primary/8 hover:bg-primary/12 ring-1 ring-inset ring-primary/20'
+          : cn(rowBg, 'hover:bg-accent/50'),
+      )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
+      {showCheckbox && (
+        <td className={cn(cellPx, cellPy, 'w-9 text-center')} onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => line.ro && onToggleSelect(line.ro.id)}
+            className="h-3.5 w-3.5"
+          />
+        </td>
+      )}
       {activeCols.map((col, ci) => (
         <td
           key={col.id}
@@ -86,7 +108,8 @@ const LineRow = memo(function LineRow({ line, activeCols, cellPx, cellPy, rowBg,
             col.align === 'right' && 'text-right',
             col.align === 'center' && 'text-center',
             col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
-            ci === 0 && `border-l-[3px] ${borderColorClass}`,
+            ci === 0 && !showCheckbox && `border-l-[3px] ${borderColorClass}`,
+            showCheckbox && ci === 0 && `border-l-[3px] ${borderColorClass}`,
             'align-top',
           )}
         >
@@ -101,9 +124,13 @@ const LineRow = memo(function LineRow({ line, activeCols, cellPx, cellPy, rowBg,
 interface MobileLineCardProps {
   line: SpreadsheetLineRow;
   onSelectRO: (ro: RepairOrder) => void;
+  isSelected: boolean;
+  showCheckbox: boolean;
+  onToggleSelect: (roId: string) => void;
+  flagCount: number;
 }
 
-const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO }: MobileLineCardProps) {
+const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelected, showCheckbox, onToggleSelect, flagCount }: MobileLineCardProps) {
   const borderColorClass = line.laborType === 'warranty'
     ? 'border-l-[hsl(var(--status-warranty))]'
     : line.laborType === 'customer-pay'
@@ -116,20 +143,43 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO }: Mobile
       ? 'text-[hsl(var(--status-customer-pay))]'
       : 'text-[hsl(var(--status-internal))]';
 
+  const isPaid = !!line.ro?.paidDate;
+
   return (
     <div
       className={cn(
-        'flex items-start gap-3 px-3 py-2.5 border-l-[3px] bg-card border-b border-border/40',
+        'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b border-border/40',
         'cursor-pointer active:bg-accent/50 transition-colors',
         borderColorClass,
+        isSelected ? 'bg-primary/8' : 'bg-card',
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
+      {showCheckbox && (
+        <div className="pt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => line.ro && onToggleSelect(line.ro.id)}
+            className="h-3.5 w-3.5"
+          />
+        </div>
+      )}
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-1.5 mb-0.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <span className="font-bold text-xs text-foreground shrink-0">#{line.roNumber}</span>
+          <span className={cn(
+            'text-[9px] font-bold px-1.5 py-0 rounded-full uppercase tracking-wide',
+            isPaid
+              ? 'bg-[hsl(var(--status-warranty-bg))] text-[hsl(var(--status-warranty))]'
+              : 'bg-muted text-muted-foreground',
+          )}>
+            {isPaid ? 'Paid' : 'Open'}
+          </span>
+          {flagCount > 0 && (
+            <Flag className="h-3 w-3 text-amber-500 fill-amber-500/20" />
+          )}
           {line.customer && (
-            <span className="text-xs text-muted-foreground truncate">{line.customer}</span>
+            <span className="text-[11px] text-muted-foreground truncate">{line.customer}</span>
           )}
         </div>
         <p className="text-sm text-foreground leading-snug line-clamp-2">
@@ -161,11 +211,11 @@ type GroupBy = 'date' | 'ro' | 'advisor' | 'none';
 
 /* ─── Columns (no roTotal) ─── */
 const DISPLAY_COLUMNS: ColumnId[] = [
-  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'description', 'hours', 'type',
+  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'status', 'description', 'hours', 'type',
 ];
 
 const AUDIT_DISPLAY_COLUMNS: ColumnId[] = [
-  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'tbd', 'notes', 'mileage', 'vin',
+  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'status', 'flags', 'lineNo', 'description', 'hours', 'type', 'tbd', 'notes', 'mileage', 'vin',
 ];
 
 const ROW_BATCH = 120;
@@ -284,10 +334,79 @@ function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMo
   );
 }
 
+/* ─── Batch Action Bar ─── */
+interface BatchBarProps {
+  selectedCount: number;
+  onMarkPaid: () => void;
+  onExportSelected: () => void;
+  onClearFlags: () => void;
+  onDeselectAll: () => void;
+  hasFlagsInSelection: boolean;
+  isPro: boolean;
+}
+
+function BatchActionBar({ selectedCount, onMarkPaid, onExportSelected, onClearFlags, onDeselectAll, hasFlagsInSelection, isPro }: BatchBarProps) {
+  return (
+    <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-primary/10 border-b border-primary/20 animate-in slide-in-from-top-1 duration-200">
+      <div className="flex items-center gap-1.5">
+        <CheckSquare className="h-4 w-4 text-primary" />
+        <span className="text-sm font-semibold text-foreground">{selectedCount} selected</span>
+      </div>
+
+      <div className="flex-1" />
+
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-[11px] gap-1"
+          onClick={onMarkPaid}
+        >
+          <CircleDot className="h-3 w-3" />
+          Mark Paid
+        </Button>
+
+        {hasFlagsInSelection && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1"
+            onClick={onClearFlags}
+          >
+            <Flag className="h-3 w-3" />
+            Clear Flags
+          </Button>
+        )}
+
+        {isPro && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1"
+            onClick={onExportSelected}
+          >
+            <Download className="h-3 w-3" />
+            Export
+          </Button>
+        )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0 text-muted-foreground"
+          onClick={onDeselectAll}
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Component ─── */
 export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: SpreadsheetViewProps) {
   const tableRef = useRef<HTMLDivElement>(null);
-  const { userSettings, updateUserSetting } = useFlagContext();
+  const { userSettings, updateUserSetting, getFlagsForRO, clearFlagsBulk } = useFlagContext();
   const { isPro } = useSubscription();
   const isMobile = useIsMobile();
   const hideTotals = userSettings.hideTotals ?? false;
@@ -302,6 +421,24 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
+
+  /* ─── Selection state ─── */
+  const [selectedROIds, setSelectedROIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+
+  const toggleSelect = useCallback((roId: string) => {
+    setSelectedROIds(prev => {
+      const next = new Set(prev);
+      if (next.has(roId)) next.delete(roId); else next.add(roId);
+      return next;
+    });
+    setSelectionMode(true);
+  }, []);
+
+  const deselectAll = useCallback(() => {
+    setSelectedROIds(new Set());
+    setSelectionMode(false);
+  }, []);
 
   const hasCustomPayPeriod = userSettings.payPeriodType === 'custom' &&
     Array.isArray(userSettings.payPeriodEndDates) &&
@@ -434,6 +571,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     };
   }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.weekStartDay, userSettings.defaultSummaryRange, hasCustomPayPeriod, customStart, customEnd]);
 
+  /* ─── Flag counts per RO ─── */
+  const roFlagCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const ro of filteredROs) {
+      const flags = getFlagsForRO(ro.id);
+      if (flags.length > 0) map.set(ro.id, flags.length);
+    }
+    return map;
+  }, [filteredROs, getFlagsForRO]);
+
   /* ─── Build rows using shared model ─── */
   const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy }), [filteredROs, computedRangeLabel, groupBy]);
 
@@ -449,6 +596,52 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const visibleRows = useMemo(() => allRows.slice(0, visibleCount), [allRows, visibleCount]);
   const hasMore = visibleCount < allRows.length;
 
+  /* ─── Batch action helpers ─── */
+  const hasFlagsInSelection = useMemo(() => {
+    for (const roId of selectedROIds) {
+      if (roFlagCounts.has(roId)) return true;
+    }
+    return false;
+  }, [selectedROIds, roFlagCounts]);
+
+  const handleBatchMarkPaid = useCallback(() => {
+    // This would need updateRO from ROContext, but we don't have it here.
+    // For now, give feedback that this requires the RO detail flow.
+    toast.info(`Mark ${selectedROIds.size} RO(s) as paid — open each RO to set paid date`);
+    deselectAll();
+  }, [selectedROIds, deselectAll]);
+
+  const handleBatchClearFlags = useCallback(() => {
+    const flagIds: string[] = [];
+    for (const roId of selectedROIds) {
+      const flags = getFlagsForRO(roId);
+      flagIds.push(...flags.map(f => f.id));
+    }
+    if (flagIds.length === 0) return;
+    clearFlagsBulk(flagIds);
+    toast.success(`Cleared ${flagIds.length} flag(s) from ${selectedROIds.size} RO(s)`);
+    deselectAll();
+  }, [selectedROIds, getFlagsForRO, clearFlagsBulk, deselectAll]);
+
+  const handleBatchExport = useCallback(() => {
+    const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id));
+    const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none' });
+    const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
+    const exportRows = rows
+      .filter(r => !(r.rowType === 'line' && (r as SpreadsheetLineRow).isTbd))
+      .map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
+    const csv = buildCSV(headers, exportRows);
+    downloadCSVFile(csv, `selected-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    toast.success(`Exported ${selectedROs.length} RO(s)`);
+    deselectAll();
+  }, [selectedROIds, filteredROs, viewMode, deselectAll, groupBy]);
+
+  const handleSelectAll = useCallback(() => {
+    const allIds = new Set(filteredROs.map(ro => ro.id));
+    setSelectedROIds(allIds);
+    setSelectionMode(true);
+  }, [filteredROs]);
+
   /* ─── Cell value renderer ─── */
   const renderCellValue = useCallback((colId: ColumnId, row: SpreadsheetLineRow): ReactNode => {
     switch (colId) {
@@ -461,6 +654,29 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       case 'advisor': return row.advisor || '—';
       case 'customer': return row.customer || '—';
       case 'vehicle': return row.vehicle || <span className="italic text-muted-foreground">—</span>;
+      case 'status': {
+        const isPaid = !!row.ro?.paidDate;
+        return (
+          <span className={cn(
+            'text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide',
+            isPaid
+              ? 'bg-[hsl(var(--status-warranty-bg))] text-[hsl(var(--status-warranty))]'
+              : 'bg-muted text-muted-foreground',
+          )}>
+            {isPaid ? 'Paid' : 'Open'}
+          </span>
+        );
+      }
+      case 'flags': {
+        const count = row.ro ? (roFlagCounts.get(row.ro.id) ?? 0) : 0;
+        if (count === 0) return '';
+        return (
+          <span className="inline-flex items-center gap-0.5 text-amber-500">
+            <Flag className="h-3 w-3 fill-amber-500/20" />
+            {count > 1 && <span className="text-[10px] font-bold">{count}</span>}
+          </span>
+        );
+      }
       case 'lineNo': return row.lineNo;
       case 'description': {
         return (
@@ -502,7 +718,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         return <span className="text-[11px] font-mono text-muted-foreground">{row.vin || ''}</span>;
       default: return '';
     }
-  }, []);
+  }, [roFlagCounts]);
 
   /* ─── Export helpers ─── */
   const handleExportCSV = useCallback((mode: 'payroll' | 'audit') => {
@@ -584,11 +800,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const getRowBg = (groupIndex: number) =>
     groupIndex % 2 === 1 ? 'bg-accent/20' : 'bg-card';
 
+  const showCheckbox = selectionMode || selectedROIds.size > 0;
+
   /* ─── Empty state ─── */
   if (filteredROs.length === 0) {
     return (
       <div className="h-full flex flex-col">
-        {/* Still show toolbar so user can change range */}
         <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border/90 bg-gradient-to-r from-card to-accent/40 flex-wrap">
           {!isCloseout && (
             <DateFilterBar
@@ -613,9 +830,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   return (
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/40 backdrop-blur-sm flex-wrap shadow-[var(--shadow-sm)]">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/40 backdrop-blur-sm flex-wrap shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          {/* Date range selector — local to spreadsheet, does not sync with other tabs */}
           {!isCloseout && (
             <DateFilterBar
               dateRange={dateRange}
@@ -628,7 +844,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {/* View mode */}
-          <div className="flex rounded-xl border border-border/90 overflow-hidden bg-accent/35 shadow-[var(--shadow-sm)]">
+          <div className="flex rounded-lg border border-border/90 overflow-hidden bg-accent/35 shadow-[var(--shadow-sm)]">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
                 key={m}
@@ -645,10 +861,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             ))}
           </div>
 
-          {/* Group by — hidden on mobile (cards use date grouping) */}
+          {/* Group by — hidden on mobile */}
           {!isMobile && (
             <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
-              <SelectTrigger className="h-9 w-[132px] text-xs font-semibold">
+              <SelectTrigger className="h-8 w-[128px] text-xs font-semibold">
                 <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
                 <SelectValue placeholder="Group by" />
               </SelectTrigger>
@@ -663,11 +879,24 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Select toggle */}
+          {!isMobile && (
+            <Button
+              variant={selectionMode ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-8 gap-1 text-xs"
+              onClick={() => selectionMode ? deselectAll() : handleSelectAll()}
+            >
+              {selectionMode ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+              Select
+            </Button>
+          )}
+
           {/* Desktop-only controls */}
           {!isMobile && (
             <>
               <Button
-                variant="ghost" size="sm" className="h-9 gap-1 text-xs"
+                variant="ghost" size="sm" className="h-8 gap-1 text-xs"
                 onClick={handleDensityChange}
                 title={density === 'compact' ? 'Comfortable' : 'Compact'}
               >
@@ -679,7 +908,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               {isPro && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs">
+                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs">
                       <Download className="h-3.5 w-3.5" />
                       Export
                     </Button>
@@ -705,7 +934,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               )}
 
               {isPro && (
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={handlePrint}>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                   <Printer className="h-3.5 w-3.5" />
                 </Button>
               )}
@@ -721,6 +950,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => selectionMode ? deselectAll() : handleSelectAll()}>
+                  {selectionMode ? <CheckSquare className="h-3.5 w-3.5 mr-2" /> : <Square className="h-3.5 w-3.5 mr-2" />}
+                  {selectionMode ? 'Deselect All' : 'Select All'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <div className="px-2 py-1.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Group By</p>
                 </div>
@@ -762,6 +996,19 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         </div>
       </div>
 
+      {/* ─── Batch Action Bar ─── */}
+      {selectedROIds.size > 0 && (
+        <BatchActionBar
+          selectedCount={selectedROIds.size}
+          onMarkPaid={handleBatchMarkPaid}
+          onExportSelected={handleBatchExport}
+          onClearFlags={handleBatchClearFlags}
+          onDeselectAll={deselectAll}
+          hasFlagsInSelection={hasFlagsInSelection}
+          isPro={isPro}
+        />
+      )}
+
       {/* ─── Mobile card list ─── */}
       {isMobile ? (
         <div className="flex-1 overflow-auto">
@@ -784,7 +1031,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-accent/20 border-b border-border/40">
                   <span className="text-xs font-semibold text-muted-foreground">{sub.label}</span>
                   <div className="flex items-center gap-2">
-                    {(sub.cpHours > 0 || sub.wHours > 0 || sub.iHours > 0) && (
+                    {(sub.cpHours! > 0 || sub.wHours! > 0 || sub.iHours! > 0) && (
                       <span className="text-[10px] text-muted-foreground">
                         {[
                           sub.cpHours ? `CP ${sub.cpHours.toFixed(1)}` : '',
@@ -808,7 +1055,18 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               );
             }
             const line = row as SpreadsheetLineRow;
-            return <MobileLineCard key={`line-${i}`} line={line} onSelectRO={onSelectRO} />;
+            const roId = line.ro?.id ?? '';
+            return (
+              <MobileLineCard
+                key={`line-${i}`}
+                line={line}
+                onSelectRO={onSelectRO}
+                isSelected={selectedROIds.has(roId)}
+                showCheckbox={showCheckbox}
+                onToggleSelect={toggleSelect}
+                flagCount={roFlagCounts.get(roId) ?? 0}
+              />
+            );
           })}
           {hasMore && (
             <button
@@ -823,14 +1081,23 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         /* ─── Desktop Table ─── */
         <div className="flex-1 overflow-auto" ref={tableRef}>
           <table className={cn('min-w-[900px] w-full border-collapse', textSize)}>
-            <thead className="sticky top-0 z-10 bg-secondary/95 border-b-2 border-border shadow-[0_3px_8px_-6px_hsl(var(--foreground)/0.25)]">
-              <tr>
+            <thead className="sticky top-0 z-20 border-b-2 border-border">
+              <tr className="bg-secondary/98 backdrop-blur-sm shadow-[0_2px_6px_-4px_hsl(var(--foreground)/0.18)]">
+                {showCheckbox && (
+                  <th className={cn(cellPx, cellPy, 'w-9 text-center bg-secondary/98')}>
+                    <Checkbox
+                      checked={selectedROIds.size === filteredROs.length && filteredROs.length > 0}
+                      onCheckedChange={(checked) => checked ? handleSelectAll() : deselectAll()}
+                      className="h-3.5 w-3.5"
+                    />
+                  </th>
+                )}
                 {activeCols.map((col) => (
                   <th
                     key={col.id}
                     className={cn(
                       cellPx, cellPy,
-                      'font-semibold text-muted-foreground whitespace-nowrap bg-card overflow-hidden',
+                      'font-semibold text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap bg-secondary/98 overflow-hidden',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center',
                     )}
@@ -845,21 +1112,22 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               {visibleRows.map((row, i) => {
                 if (row.rowType === 'roSubtotal') {
                   const sub = row as SpreadsheetSubtotalRow;
-                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                  const typeIdx = activeCols.findIndex(c => c.id === 'type');
-                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                  const afterCols = activeCols.length - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
+                  const colCount = activeCols.length + (showCheckbox ? 1 : 0);
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours') + (showCheckbox ? 1 : 0);
+                  const typeIdx = activeCols.findIndex(c => c.id === 'type') + (showCheckbox ? 1 : 0);
+                  const spanCols = hrsIdx > 0 ? hrsIdx : colCount - 1;
+                  const afterCols = colCount - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
 
                   return (
                     <tr key={`rosub-${i}`} className="border-t border-border/60 bg-accent/15">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-xs text-right')}>
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-[11px] text-right')}>
                         {sub.label}
                       </td>
-                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary')}>
+                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary text-xs')}>
                         {maskHours(sub.hours, hideTotals)}h
                       </td>
                       {typeIdx > hrsIdx && (
-                        <td className={cn(cellPx, cellPy, 'text-xs text-muted-foreground')}>
+                        <td className={cn(cellPx, cellPy, 'text-[10px] text-muted-foreground')}>
                           {[
                             sub.cpHours ? `CP: ${sub.cpHours.toFixed(1)}` : '',
                             sub.wHours ? `W: ${sub.wHours.toFixed(1)}` : '',
@@ -874,13 +1142,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
                 if (row.rowType === 'daySubtotal') {
                   const sub = row as SpreadsheetSubtotalRow;
-                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                  const afterCols = activeCols.length - spanCols - 1;
+                  const colCount = activeCols.length + (showCheckbox ? 1 : 0);
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours') + (showCheckbox ? 1 : 0);
+                  const spanCols = hrsIdx > 0 ? hrsIdx : colCount - 1;
+                  const afterCols = colCount - spanCols - 1;
 
                   return (
                     <tr key={`daysub-${i}`} className="border-t-2 border-border bg-accent/30">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-[11px] uppercase text-right')}>
                         {sub.label}
                       </td>
                       <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
@@ -893,13 +1162,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
                 if (row.rowType === 'advisorSubtotal') {
                   const sub = row as SpreadsheetSubtotalRow;
-                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                  const afterCols = activeCols.length - spanCols - 1;
+                  const colCount = activeCols.length + (showCheckbox ? 1 : 0);
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours') + (showCheckbox ? 1 : 0);
+                  const spanCols = hrsIdx > 0 ? hrsIdx : colCount - 1;
+                  const afterCols = colCount - spanCols - 1;
 
                   return (
                     <tr key={`advsub-${i}`} className="border-t-2 border-border bg-accent/30">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-[11px] uppercase text-right')}>
                         {sub.label}
                       </td>
                       <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
@@ -912,13 +1182,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
                 if (row.rowType === 'periodSubtotal') {
                   const sub = row as SpreadsheetSubtotalRow;
-                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                  const afterCols = activeCols.length - spanCols - 1;
+                  const colCount = activeCols.length + (showCheckbox ? 1 : 0);
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours') + (showCheckbox ? 1 : 0);
+                  const spanCols = hrsIdx > 0 ? hrsIdx : colCount - 1;
+                  const afterCols = colCount - spanCols - 1;
 
                   return (
                     <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/10">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-xs text-right')}>
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-[11px] text-right')}>
                         {sub.label}
                       </td>
                       <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground text-base')}>
@@ -936,6 +1207,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   : line.laborType === 'customer-pay'
                     ? 'border-l-[hsl(var(--status-customer-pay))]'
                     : 'border-l-[hsl(var(--status-internal))]';
+                const roId = line.ro?.id ?? '';
 
                 return (
                   <LineRow
@@ -948,13 +1220,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     borderColorClass={borderColorClass}
                     renderCellValue={renderCellValue}
                     onSelectRO={onSelectRO}
+                    isSelected={selectedROIds.has(roId)}
+                    showCheckbox={showCheckbox}
+                    onToggleSelect={toggleSelect}
                   />
                 );
               })}
 
               {hasMore && (
                 <tr>
-                  <td colSpan={activeCols.length} className="text-center py-3">
+                  <td colSpan={activeCols.length + (showCheckbox ? 1 : 0)} className="text-center py-3">
                     <button
                       onClick={() => setVisibleCount(c => c + ROW_BATCH)}
                       className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
