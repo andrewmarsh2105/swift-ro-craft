@@ -464,7 +464,6 @@ export type Database = {
       }
       user_settings: {
         Row: {
-          accent_color: string | null
           created_at: string
           default_summary_range: string
           default_template_id: string | null
@@ -496,7 +495,6 @@ export type Database = {
           week_start_day: number
         }
         Insert: {
-          accent_color?: string | null
           created_at?: string
           default_summary_range?: string
           default_template_id?: string | null
@@ -528,7 +526,6 @@ export type Database = {
           week_start_day?: number
         }
         Update: {
-          accent_color?: string | null
           created_at?: string
           default_summary_range?: string
           default_template_id?: string | null

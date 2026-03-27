@@ -109,10 +109,11 @@ export function useROStore() {
    */
   const [hasFullHistory, setHasFullHistory] = useState(false);
   /**
-   * Ref flag used to abort the background Phase 2 load when the component
-   * unmounts or the userId changes mid-flight.
+   * Generation counter used to abort the background Phase 2 load when a new
+   * fetchROs call starts, the component unmounts, or the userId changes.
+   * Each fetchROs call increments this; Phase 2 checks if it still matches.
    */
-  const phase2AbortRef = useRef(false);
+  const phase2Generation = useRef(0);
 
   // Cancel any in-flight delete timers when the store unmounts
   useEffect(() => {
@@ -150,9 +151,9 @@ export function useROStore() {
     if (!cacheHydrated.current) setLoadingROs(true);
 
     // Signal any in-flight Phase 2 from a previous fetch that it should abort.
-    phase2AbortRef.current = true;
-    // Immediately reset so the new Phase 2 we schedule below is allowed to run.
-    phase2AbortRef.current = false;
+    // We use a generation counter so each fetchROs call gets its own identity;
+    // the old Phase 2 checks whether the generation has changed since it started.
+    const myGeneration = ++phase2Generation.current;
 
     const hotCutoff = hotCutoffDateStr();
 
@@ -220,7 +221,7 @@ export function useROStore() {
       // lines, so old ROs still get their full line details (no search regression).
       void (async () => {
         await new Promise<void>((r) => setTimeout(r, 400));
-        if (phase2AbortRef.current) return; // Cancelled (userId changed / unmount)
+        if (phase2Generation.current !== myGeneration) return; // Cancelled (userId changed / unmount / new fetch)
 
         const { data: oldRows, error: oldErr } = await supabase
           .from('ros')
@@ -230,7 +231,7 @@ export function useROStore() {
           .order('date', { ascending: false })
           .limit(7000);
 
-        if (phase2AbortRef.current) return;
+        if (phase2Generation.current !== myGeneration) return;
 
         if (oldErr) {
           pushDebug({ action: 'fetchROs Phase2 FAIL', error: oldErr.message });
@@ -257,7 +258,7 @@ export function useROStore() {
         );
 
         setROs((prev) => {
-          if (phase2AbortRef.current) return prev;
+          if (phase2Generation.current !== myGeneration) return prev;
           const existingIds = new Set(prev.map((r) => r.id));
           const uniqueOld = oldMapped.filter((r) => !existingIds.has(r.id));
           if (uniqueOld.length === 0) {
@@ -381,9 +382,9 @@ export function useROStore() {
 
     return () => {
       cancelled = true;
-      // Signal any in-flight Phase 2 background load to abort cleanly so it
-      // doesn't write stale data into the new user's state.
-      phase2AbortRef.current = true;
+      // Increment generation so any in-flight Phase 2 background load aborts
+      // cleanly and doesn't write stale data into the new user's state.
+      phase2Generation.current++;
     };
   }, [userId, fetchROs]);
 
@@ -543,7 +544,7 @@ export function useROStore() {
       if (error) {
         const msg = error.message || '';
         console.error('updateRO DB error:', error);
-        pushDebug({ action: 'updateRO FAIL', roId: id, error: msg, code: error.code });
+        pushDebug({ action: 'updateRO FAIL', roId: id, error: msg });
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
           const queued = await queueAction('updateRO', { id, updates });
           if (queued) {

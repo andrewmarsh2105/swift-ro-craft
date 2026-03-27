@@ -504,7 +504,7 @@ export default function AddRO() {
           paidDate={paidDate}
           onPaidDateChange={setPaidDate}
           laborType={laborType}
-          onLaborTypeChange={setLaborType}
+          onLaborTypeChange={(type: string) => setLaborType(type as import('@/types/ro').LaborType)}
           notes={notes}
           onNotesChange={setNotes}
           open={showMoreFields}

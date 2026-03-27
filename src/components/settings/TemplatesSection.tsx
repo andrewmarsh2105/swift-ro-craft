@@ -52,8 +52,8 @@ export function TemplatesSection() {
     setTemplateName(t.name);
     setTemplateHints(
       t.fieldMapJson
-        ? (typeof t.fieldMapJson === 'object' && t.fieldMapJson.extractionHints
-          ? t.fieldMapJson.extractionHints
+        ? (typeof t.fieldMapJson === 'object' && t.fieldMapJson !== null && 'extractionHints' in t.fieldMapJson
+          ? String(t.fieldMapJson.extractionHints)
           : JSON.stringify(t.fieldMapJson, null, 2))
         : ''
     );

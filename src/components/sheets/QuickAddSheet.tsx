@@ -101,7 +101,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   }, [isOpen, editingRO]);
 
   // Calculate total hours from lines
-  const linesTotalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
+  const linesTotalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
 
   const resetForm = () => {
     setRoNumber('');
