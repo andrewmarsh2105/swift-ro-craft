@@ -414,9 +414,9 @@ export function SummaryTab() {
 
             <div className="px-4 space-y-3">
               {/* Hours by Day */}
-              <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
+              <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60">Hours by Day</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Day</span>
                   <span className="text-[10px] text-muted-foreground/40">{report.byDay.length} days</span>
                 </div>
                 <Table>
