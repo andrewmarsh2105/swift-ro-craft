@@ -28,8 +28,9 @@ const SpreadsheetView = lazy(() =>
 
 function PanelFallback() {
   return (
-    <div className="h-full flex items-center justify-center">
-      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    <div className="h-full flex flex-col items-center justify-center gap-3">
+      <div className="h-7 w-7 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+      <span className="text-xs font-medium text-muted-foreground">Loading…</span>
     </div>
   );
 }

@@ -226,10 +226,10 @@ export default function Landing() {
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
             {[
-              { value: '150,000+', label: 'ROs tracked' },
-              { value: 'Free', label: 'to get started' },
-              { value: 'Offline-first', label: 'no Wi-Fi needed' },
-              { value: '7-day trial', label: 'Pro — no card required' },
+              { value: 'Free Plan', label: 'no credit card needed' },
+              { value: 'Offline-first', label: 'works without Wi-Fi' },
+              { value: '< 10 sec', label: 'to log an RO' },
+              { value: '7-day trial', label: 'full Pro access free' },
             ].map((stat, i) => (
               <div key={i} className="text-center">
                 <div className="text-sm font-bold tabular-nums" style={{ color: NAVY }}>{stat.value}</div>
