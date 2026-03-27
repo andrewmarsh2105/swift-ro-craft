@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Plus, Trash2, ChevronDown, ChevronUp, Crown, ChevronRight, Star, Mail } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Crown, ChevronRight, Star, Mail, Check, Loader2 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useRO } from '@/contexts/ROContext';
@@ -23,10 +23,11 @@ import { ClearAllROsDialog } from '@/components/settings/ClearAllROsDialog';
 import { AccountSheet } from '@/components/settings/AccountSheet';
 import type { SaveSettingResult } from '@/hooks/useUserSettings';
 
+type GoalSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
-  // Single shared source of truth — all reads/writes go through FlagContext's one useUserSettings instance
   const { userSettings, updateUserSetting, userSettingsLoaded } = useFlagContext();
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
@@ -48,8 +49,8 @@ export function SettingsTab() {
   const [localDailyGoal, setLocalDailyGoal] = useState('');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState('');
   const [localHourlyRate, setLocalHourlyRate] = useState('');
-  const [goalSaveError, setGoalSaveError] = useState<string | null>(null);
-  const [isSavingGoals, setIsSavingGoals] = useState(false);
+  const [goalSaveStatus, setGoalSaveStatus] = useState<GoalSaveStatus>('idle');
+  const goalSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!userSettingsLoaded) return;
@@ -71,6 +72,12 @@ export function SettingsTab() {
     }
     if (user) checkAdmin();
   }, [user]);
+
+  useEffect(() => {
+    return () => {
+      if (goalSavedTimerRef.current) clearTimeout(goalSavedTimerRef.current);
+    };
+  }, []);
 
   // Preset form state
   const [presetName, setPresetName] = useState('');
@@ -132,9 +139,6 @@ export function SettingsTab() {
     updatePresets(settings.presets.filter(p => p.id !== id));
   };
 
-  // Reorder removed to prevent duplication bugs
-
-  // Advisor management
   const openAdvisorEditor = (advisor?: Advisor) => {
     if (advisor) {
       setEditingAdvisor(advisor);
@@ -176,8 +180,6 @@ export function SettingsTab() {
     updateAdvisors(settings.advisors.filter(a => a.id !== id));
   };
 
-  // Advisor reorder removed
-
   const toggleDarkMode = (enabled: boolean) => {
     setDarkMode(enabled);
     localStorage.setItem('ro-tracker-theme', enabled ? 'dark' : 'light');
@@ -210,9 +212,7 @@ export function SettingsTab() {
     toast.success('All ROs have been deleted');
   };
 
-  // Derived display values for settings rows
   const avatarInitial = (syncedSettings.displayName || user?.email || '?').charAt(0).toUpperCase();
-
 
   const parseNonNegative = (value: string) => {
     const parsed = parseFloat(value);
@@ -227,20 +227,8 @@ export function SettingsTab() {
     || weeklyGoalValue !== syncedSettings.hoursGoalWeekly
     || hourlyRateValue !== syncedSettings.hourlyRate;
 
-  const applySaveResult = (result: SaveSettingResult) => {
-    if (result.status === 'failed') {
-      setGoalSaveError(result.message || 'Failed to save settings. Please try again.');
-      return false;
-    }
-    if (result.status === 'local_only' && result.message) {
-      toast.success(result.message);
-    }
-    return true;
-  };
-
   const handleSaveGoals = async () => {
-    setGoalSaveError(null);
-    setIsSavingGoals(true);
+    setGoalSaveStatus('saving');
 
     const results = await Promise.all([
       updateSetting('hoursGoalDaily', dailyGoalValue),
@@ -248,30 +236,27 @@ export function SettingsTab() {
       updateSetting('hourlyRate', hourlyRateValue),
     ]);
 
-    const allSucceeded = results.every(applySaveResult);
+    const allSucceeded = results.every(r => r.status !== 'failed');
     if (allSucceeded) {
-      toast.success('Goals and earnings saved');
+      setGoalSaveStatus('saved');
+      if (goalSavedTimerRef.current) clearTimeout(goalSavedTimerRef.current);
+      goalSavedTimerRef.current = setTimeout(() => setGoalSaveStatus('idle'), 2500);
+    } else {
+      setGoalSaveStatus('error');
     }
-
-    setIsSavingGoals(false);
   };
 
   const handleAccountSettingSave = async (key: 'displayName' | 'shopName', value: string) => {
     const result = await updateSetting(key, value);
-    if (result.status === 'local_only' && result.message) {
-      toast.success(result.message);
-    }
-    if (result.status === 'failed' && result.message) {
-      toast.error(result.message);
-    }
+    // No toast here — AccountSheet handles its own inline feedback
     return result;
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto pb-32 bg-accent/[0.14]">
+    <div className="flex flex-col h-full overflow-y-auto pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border/90 space-y-3 shadow-[var(--shadow-sm)]">
-        <h1 className="text-2xl font-bold">Settings</h1>
+      <div className="sticky top-0 z-30 bg-background border-b border-border/60 px-4 pt-4 pb-3 space-y-3">
+        <h1 className="text-xl font-bold">Settings</h1>
         <SegmentedControl
           options={[
             { value: 'settings', label: 'Settings' },
@@ -282,47 +267,43 @@ export function SettingsTab() {
         />
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-5">
         {settingsView === 'settings' ? (
           <>
-            {/* Profile Card — tappable, opens Account sheet */}
+            {/* Profile Card */}
             <button
               onClick={() => setShowAccountSheet(true)}
-              className="card-mobile p-4 w-full text-left tap-target touch-feedback border border-border/90 bg-gradient-to-b from-card to-secondary/30"
+              className="rounded-xl border border-border/60 bg-card p-3.5 w-full text-left tap-target touch-feedback"
+              style={{ boxShadow: 'var(--shadow-sm)' }}
             >
               <div className="flex items-center gap-3">
-                <div
-                  className="h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xl font-bold select-none"
-                  style={{ backgroundColor: 'hsl(214 95% 53%)' }}
-                >
+                <div className="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-lg font-bold select-none bg-primary">
                   {avatarInitial}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-base leading-tight truncate">
-                    {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-sm italic">Set your name</span>}
+                  <div className="font-semibold text-sm leading-tight truncate">
+                    {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-xs italic">Set your name</span>}
                   </div>
                   {syncedSettings.shopName && (
-                    <div className="text-xs text-muted-foreground truncate">{syncedSettings.shopName}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{syncedSettings.shopName}</div>
                   )}
-                  <div className="text-sm text-muted-foreground truncate mt-0.5">{user?.email}</div>
+                  <div className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span
-                    className={cn(
-                      'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold',
-                      isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {isPro ? <><Crown className="h-3 w-3" /> Pro</> : 'Free'}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className={cn(
+                    'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold',
+                    isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                  )}>
+                    {isPro ? <><Crown className="h-2.5 w-2.5" /> Pro</> : 'Free'}
                   </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                 </div>
               </div>
               {isNearExpiry && daysUntilEnd !== null && (
-                <div className="mt-3 flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
-                  <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-snug">
-                    Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong> — add a payment method to keep Pro access.
+                <div className="mt-2.5 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-lg px-3 py-2">
+                  <Star className="h-3 w-3 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-amber-800 leading-snug">
+                    Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>
                   </p>
                 </div>
               )}
@@ -371,75 +352,59 @@ export function SettingsTab() {
               />
             </SettingsGroup>
 
-            {/* Goals & Earnings */}
-            <SettingsGroup title="Goals & Earnings" description="Targets and earnings appear in the Summary tab">
-              <div className="p-4 space-y-5">
-                {/* Daily + Weekly side by side */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium block">Daily goal</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        max={24}
-                        step={0.5}
-                        value={localDailyGoal}
-                        onChange={e => setLocalDailyGoal(e.target.value)}
-                                                placeholder="—"
-                        className="w-full h-11 px-3 pr-9 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">hr</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium block">Weekly goal</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        max={168}
-                        step={1}
-                        value={localWeeklyGoal}
-                        onChange={e => setLocalWeeklyGoal(e.target.value)}
-                                                placeholder="—"
-                        className="w-full h-11 px-3 pr-9 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">hr</span>
-                    </div>
-                  </div>
+            {/* Goals & Earnings — redesigned with inline save status */}
+            <SettingsGroup title="Goals & Earnings" description="Targets and earnings shown in Summary">
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <GoalInput
+                    label="Daily goal"
+                    value={localDailyGoal}
+                    onChange={setLocalDailyGoal}
+                    suffix="hr"
+                    placeholder="—"
+                    min={0}
+                    max={24}
+                    step={0.5}
+                  />
+                  <GoalInput
+                    label="Weekly goal"
+                    value={localWeeklyGoal}
+                    onChange={setLocalWeeklyGoal}
+                    suffix="hr"
+                    placeholder="—"
+                    min={0}
+                    max={168}
+                    step={1}
+                  />
                 </div>
-                {/* Flat rate — full width */}
-                <div className="space-y-1.5">
-                  <div className="flex items-baseline justify-between">
-                    <label className="text-sm font-medium">Flat rate</label>
-                    <span className="text-xs text-muted-foreground">Estimates earnings in Summary</span>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step={0.5}
-                      value={localHourlyRate}
-                      onChange={e => setLocalHourlyRate(e.target.value)}
-                                            placeholder="Not set"
-                      className="w-full h-11 pl-7 pr-14 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">/ hr</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  {goalSaveError ? <p className="text-xs text-destructive">{goalSaveError}</p> : <div />}
+                <GoalInput
+                  label="Flat rate"
+                  hint="Estimates earnings in Summary"
+                  value={localHourlyRate}
+                  onChange={setLocalHourlyRate}
+                  prefix="$"
+                  suffix="/ hr"
+                  placeholder="Not set"
+                  min={0}
+                  step={0.5}
+                />
+
+                {/* Save bar: status-aware */}
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <GoalSaveStatusDisplay status={goalSaveStatus} />
                   <Button
                     size="sm"
                     onClick={handleSaveGoals}
-                    disabled={!goalsDirty || isSavingGoals}
+                    disabled={!goalsDirty || goalSaveStatus === 'saving'}
+                    className={cn(
+                      'transition-all gap-1.5',
+                      goalsDirty && goalSaveStatus !== 'saving'
+                        ? 'bg-primary text-primary-foreground'
+                        : ''
+                    )}
                   >
-                    {isSavingGoals ? 'Saving…' : 'Save goals'}
+                    {goalSaveStatus === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {goalSaveStatus === 'saving' ? 'Saving…' : goalSaveStatus === 'saved' ? 'Saved' : 'Save goals'}
                   </Button>
                 </div>
               </div>
@@ -457,27 +422,27 @@ export function SettingsTab() {
                 onClick={() => {
                   window.open('mailto:support@ronavigator.com', '_blank');
                   navigator.clipboard.writeText('support@ronavigator.com');
-                  toast.success('Email copied to clipboard!');
+                  toast.success('Email copied');
                 }}
-                className="w-full p-4 flex items-center gap-3 tap-target touch-feedback"
+                className="w-full p-3.5 flex items-center gap-3 tap-target touch-feedback"
               >
-                <Mail className="h-5 w-5 text-muted-foreground" />
+                <Mail className="h-4.5 w-4.5 text-muted-foreground" />
                 <div className="flex-1 min-w-0 text-left">
-                  <span className="font-medium">Contact Support</span>
-                  <p className="text-xs text-muted-foreground">support@ronavigator.com</p>
+                  <span className="font-medium text-sm">Contact Support</span>
+                  <p className="text-[11px] text-muted-foreground">support@ronavigator.com</p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
               </button>
             </SettingsGroup>
           </>
         ) : (
           <>
             {/* Quick Presets */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-4">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick Presets</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-0.5">
+                <h3 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.14em]">Quick Presets</h3>
                 <button onClick={() => openPresetEditor()} className="p-2 tap-target touch-feedback text-primary">
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-4.5 w-4.5" />
                 </button>
               </div>
               <div className="space-y-1">
@@ -497,22 +462,22 @@ export function SettingsTab() {
                 {settings.presets.length > 6 && (
                   <button
                     onClick={() => setShowAllPresets(v => !v)}
-                    className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
                   >
                     {showAllPresets
-                      ? <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
-                      : <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.presets.length - 6})</>}
+                      ? <><ChevronUp className="h-3 w-3" /> Show Less</>
+                      : <><ChevronDown className="h-3 w-3" /> Show More ({settings.presets.length - 6})</>}
                   </button>
                 )}
               </div>
             </div>
 
             {/* Advisors */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-4">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Advisors</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-0.5">
+                <h3 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.14em]">Advisors</h3>
                 <button onClick={() => openAdvisorEditor()} className="p-2 tap-target touch-feedback text-primary">
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-4.5 w-4.5" />
                 </button>
               </div>
               <div className="space-y-1">
@@ -527,11 +492,11 @@ export function SettingsTab() {
                 {settings.advisors.length > 6 && (
                   <button
                     onClick={() => setShowAllAdvisors(v => !v)}
-                    className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
                   >
                     {showAllAdvisors
-                      ? <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
-                      : <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.advisors.length - 6})</>}
+                      ? <><ChevronUp className="h-3 w-3" /> Show Less</>
+                      : <><ChevronDown className="h-3 w-3" /> Show More ({settings.advisors.length - 6})</>}
                   </button>
                 )}
               </div>
@@ -566,10 +531,10 @@ export function SettingsTab() {
                   toast.success(`Exported ${ros.length} ROs`);
                 }}
               />
-              <div className="w-full p-4 flex items-center justify-between tap-target touch-feedback">
+              <div className="w-full p-3.5 flex items-center justify-between tap-target touch-feedback">
                 <div>
-                  <span className="font-medium text-destructive">Clear All ROs</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="font-medium text-sm text-destructive">Clear All ROs</span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
                   </p>
                 </div>
@@ -580,7 +545,7 @@ export function SettingsTab() {
                   disabled={ros.length === 0}
                   className="tap-target"
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Clear
                 </Button>
               </div>
@@ -647,4 +612,75 @@ export function SettingsTab() {
       />
     </div>
   );
+}
+
+// ── Goal Input ──
+function GoalInput({
+  label,
+  hint,
+  value,
+  onChange,
+  prefix,
+  suffix,
+  placeholder,
+  min,
+  max,
+  step,
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  onChange: (v: string) => void;
+  prefix?: string;
+  suffix?: string;
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between">
+        <label className="text-xs font-semibold text-foreground">{label}</label>
+        {hint && <span className="text-[10px] text-muted-foreground/60">{hint}</span>}
+      </div>
+      <div className="relative">
+        {prefix && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground/60 pointer-events-none">{prefix}</span>
+        )}
+        <input
+          type="number"
+          inputMode="decimal"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={cn(
+            'w-full h-10 text-sm bg-muted/50 rounded-lg border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 tabular-nums transition-all',
+            prefix ? 'pl-7 pr-10' : 'px-3 pr-10',
+          )}
+        />
+        {suffix && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground/50 pointer-events-none">{suffix}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Goal save status display ──
+function GoalSaveStatusDisplay({ status }: { status: GoalSaveStatus }) {
+  if (status === 'saved') {
+    return (
+      <span className="text-[11px] text-green-600 flex items-center gap-1 font-medium">
+        <Check className="h-3 w-3" /> Goals saved
+      </span>
+    );
+  }
+  if (status === 'error') {
+    return <span className="text-[11px] text-destructive font-medium">Save failed — try again</span>;
+  }
+  return <div />;
 }
