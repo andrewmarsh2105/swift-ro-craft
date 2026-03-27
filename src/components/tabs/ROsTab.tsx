@@ -505,7 +505,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="flex items-center gap-2 px-3 py-1.5">
           {/* Hours + RO count pill */}
           <div className="stat-badge flex-shrink-0">
-            <span className="text-[15px] font-extrabold tabular-nums text-primary leading-none tracking-tight">
+            <span className="text-[15px] font-bold tabular-nums text-primary leading-none tracking-tight font-mono">
               {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </span>
             <span className="text-[10px] text-muted-foreground font-medium leading-none">
