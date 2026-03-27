@@ -196,7 +196,7 @@
 
   /* RO row — left accent bar, no rounding, divider-separated */
   .ro-row-card {
-    @apply bg-card border-l-[3px] relative;
+    @apply bg-card border-l-[4px] relative;
     border-color: hsl(var(--border) / 0.4);
     border-top: none;
     border-right: none;
