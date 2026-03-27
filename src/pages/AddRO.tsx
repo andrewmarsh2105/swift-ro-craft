@@ -433,7 +433,7 @@ export default function AddRO() {
         ) : undefined}
       />
 
-      {/* Monthly cap banner — shown when free user is at the 150 RO limit */}
+      {/* Monthly cap banner — shown when free user hits the RO_MONTHLY_CAP limit */}
       {isAtCap && (
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-amber-50 border-b border-amber-200 dark:bg-amber-950/40 dark:border-amber-800">
           <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
