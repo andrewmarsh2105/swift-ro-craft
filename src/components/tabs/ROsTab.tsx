@@ -332,6 +332,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const filteredROs = useMemo(() => filterROsByDateRange(preFilteredROs, rangeBounds), [preFilteredROs, rangeBounds]);
 
+  // Stable set of RO numbers — only recomputed when the list of RO numbers
+  // actually changes (not on every ros reference change).
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
 
   const flagsByROId = useMemo(() => {
@@ -345,18 +347,16 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return map;
   }, [flags]);
 
-  const reviewIssuesByROId = useMemo(() => {
-    const roNumberCounts = new Map<string, number>();
+  // Only compute review issues for VISIBLE ROs, not the entire dataset.
+  // The duplicate-RO-number counts still scan all ros (cheap Map build),
+  // but the expensive getReviewIssues() call only runs for visible rows.
+  const roNumberCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const ro of ros) {
       if (!ro.roNumber) continue;
-      roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
+      counts.set(ro.roNumber, (counts.get(ro.roNumber) ?? 0) + 1);
     }
-    const issuesMap = new Map<string, ReviewIssue[]>();
-    for (const ro of ros) {
-      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
-      issuesMap.set(ro.id, count > 1 ? getReviewIssues(ro, ros) : []);
-    }
-    return issuesMap;
+    return counts;
   }, [ros]);
 
   useEffect(() => {
@@ -365,6 +365,15 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
   const hasMore = visibleCount < filteredROs.length;
+
+  const reviewIssuesByROId = useMemo(() => {
+    const issuesMap = new Map<string, ReviewIssue[]>();
+    for (const ro of visibleROs) {
+      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
+      issuesMap.set(ro.id, count > 1 ? getReviewIssues(ro, ros) : []);
+    }
+    return issuesMap;
+  }, [visibleROs, roNumberCounts, ros]);
 
   const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
 

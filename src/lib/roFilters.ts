@@ -13,21 +13,25 @@ export function normalizeAdvisorName(name?: string | null): string {
 export function matchesSearchQuery(ro: RepairOrder, q: string): boolean {
   if (!q) return true;
   const lq = q.toLowerCase();
+  // Check cheapest fields first, bail early
   if (ro.roNumber.toLowerCase().includes(lq)) return true;
   if (ro.advisor.toLowerCase().includes(lq)) return true;
-  if ((ro.customerName || '').toLowerCase().includes(lq)) return true;
+  if (ro.customerName && ro.customerName.toLowerCase().includes(lq)) return true;
   const v = ro.vehicle;
   if (v) {
-    const vehicleStr = [v.year?.toString(), v.make, v.model].filter(Boolean).join(' ').toLowerCase();
-    if (vehicleStr.includes(lq)) return true;
-    if ((v.vin || '').toLowerCase().includes(lq)) return true;
+    if (v.year && String(v.year).includes(lq)) return true;
+    if (v.make && v.make.toLowerCase().includes(lq)) return true;
+    if (v.model && v.model.toLowerCase().includes(lq)) return true;
+    if (v.vin && v.vin.toLowerCase().includes(lq)) return true;
   }
-  if ((ro.workPerformed || '').toLowerCase().includes(lq)) return true;
-  if ((ro.notes || '').toLowerCase().includes(lq)) return true;
-  if ((ro.mileage || '').toLowerCase().includes(lq)) return true;
+  if (ro.workPerformed && ro.workPerformed.toLowerCase().includes(lq)) return true;
+  if (ro.notes && ro.notes.toLowerCase().includes(lq)) return true;
+  if (ro.mileage && ro.mileage.toLowerCase().includes(lq)) return true;
+  // Search line descriptions individually — avoids join() allocation
   if (ro.lines?.length) {
-    const lineText = ro.lines.map((l) => l.description).filter(Boolean).join(' ').toLowerCase();
-    if (lineText.includes(lq)) return true;
+    for (const line of ro.lines) {
+      if (line.description && line.description.toLowerCase().includes(lq)) return true;
+    }
   }
   return false;
 }
