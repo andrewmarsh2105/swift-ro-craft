@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, StickyNote, Rows3, Rows4 } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, Rows3, Rows4 } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -10,7 +10,6 @@ import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type Da
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import { maskHours } from '@/lib/maskHours';
-import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Chip } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
@@ -46,23 +45,22 @@ function InlineStatusChips({
   ro, flagsCount, checksCount,
 }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
-  const hasNotes = !!(ro.notes && ro.notes.trim());
   return (
-    <div className="flex items-center gap-1">
-      {/* Paid status — only show if clearly notable */}
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {/* Paid/Unpaid — bold visual signal */}
       {status.paid === 'Paid' ? (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[hsl(var(--status-warranty))] leading-none">
-          <CheckCircle2 className="h-2.5 w-2.5" />
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: 'hsl(var(--status-warranty))' }}>
+          <CheckCircle2 className="h-3 w-3" />
         </span>
       ) : (
-        <span className="text-[9px] font-semibold text-muted-foreground leading-none px-1 rounded bg-muted/60">
-          {status.paid}
+        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+          OPEN
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
           <Clock className="h-2.5 w-2.5" />
-          <span>{status.allTbd ? 'All' : status.tbd}</span>
+          <span>{status.allTbd ? 'ALL' : status.tbd}</span>
         </span>
       )}
       {status.flags > 0 && (
@@ -75,11 +73,6 @@ function InlineStatusChips({
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           <span>{status.checks}</span>
-        </span>
-      )}
-      {hasNotes && (
-        <span className="inline-flex items-center text-[9px] font-bold text-muted-foreground/60 leading-none" title="Has notes">
-          <StickyNote className="h-2.5 w-2.5" />
         </span>
       )}
     </div>
@@ -110,10 +103,11 @@ const ROCard = memo(function ROCard({
   const hours = calcHours(ro);
   const roDate = formatDateShort(effectiveDate(ro));
   const accentColor = laborTypeBarColor(ro.laborType);
+  const ltLabel = ro.laborType === 'warranty' ? 'W' : ro.laborType === 'customer-pay' ? 'CP' : 'INT';
 
   const workSummary = ro.lines?.length
     ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(' · ')
-    : ro.workPerformed || '—';
+    : ro.workPerformed || '';
 
   const vehicle = vehicleLabel(ro);
 
@@ -128,23 +122,24 @@ const ROCard = memo(function ROCard({
         onClick={onViewDetails}
       >
         {/* Main content */}
-        <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[5px]' : 'py-2')}>
-          {/* Top row: RO# + hours + type + customer name + date + status */}
+        <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[6px]' : 'py-2')}>
+          {/* Row 1: RO# · Date · Customer — left | Hours + Type — right */}
           <div className="flex items-center gap-1.5 min-w-0">
+            {/* RO number — primary identifier */}
             <span className={cn(
               'font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0',
               compact ? 'text-[12px]' : 'text-[13px]',
             )}>
               #{ro.roNumber || '—'}
             </span>
-            <span className={cn('hours-pill flex-shrink-0', compact ? 'text-[10px] px-1.5 py-px' : 'text-[11px]')}>
-              {maskHours(hours, hideTotals)}h
+            {/* Date */}
+            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
+              {roDate}
             </span>
-            <StatusPill type={ro.laborType} size="sm" className="flex-shrink-0" />
-            {/* Customer name — primary differentiator, fills available space */}
+            {/* Customer name — fills remaining space */}
             {ro.customerName ? (
               <span className={cn(
-                'font-semibold text-foreground/90 truncate min-w-0 flex-1',
+                'font-medium text-foreground/80 truncate min-w-0 flex-1',
                 compact ? 'text-[10px]' : 'text-[11px]',
               )}>
                 {ro.customerName}
@@ -152,46 +147,58 @@ const ROCard = memo(function ROCard({
             ) : (
               <span className="flex-1" />
             )}
-            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
-              {roDate}
+            {/* Hours — the #1 number a tech looks for */}
+            <span className={cn(
+              'flex-shrink-0 font-extrabold tabular-nums leading-none rounded px-1.5 py-0.5',
+              compact ? 'text-[12px]' : 'text-[13px]',
+              hours === 0 ? 'text-muted-foreground bg-muted/60' : 'text-foreground',
+            )} style={hours > 0 ? { backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)` } : undefined}>
+              {maskHours(hours, hideTotals)}h
             </span>
-            <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
+            {/* Labor type badge */}
+            <span
+              className="text-[8px] font-bold leading-none px-1 py-0.5 rounded flex-shrink-0 text-white"
+              style={{ backgroundColor: accentColor }}
+            >
+              {ltLabel}
+            </span>
           </div>
 
-          {/* Bottom row: Advisor · vehicle · work — hidden in compact when no room */}
-          <div className={cn('flex items-baseline gap-1 min-w-0', compact ? 'mt-px' : 'mt-0.5')}>
+          {/* Row 2: Advisor · Vehicle · Work summary — left | Status — right */}
+          <div className={cn('flex items-center gap-1 min-w-0', compact ? 'mt-[2px]' : 'mt-1')}>
+            {/* Advisor */}
             {ro.advisor && (
-              <span className="text-[10px] font-medium text-foreground/60 truncate flex-shrink-0 max-w-[110px]">
+              <span className="text-[10px] font-semibold text-foreground/55 truncate flex-shrink-0 max-w-[100px]">
                 {ro.advisor}
               </span>
             )}
+            {/* Vehicle */}
             {vehicle !== '—' && (
               <>
                 <span className="text-muted-foreground/30 text-[9px] flex-shrink-0">·</span>
-                <span className="text-[10px] text-muted-foreground/70 truncate flex-shrink-0 max-w-[90px]">
+                <span className="text-[10px] text-muted-foreground/60 truncate flex-shrink-0 max-w-[90px]">
                   {vehicle}
                 </span>
               </>
             )}
-            {!compact && workSummary && workSummary !== '—' && (
+            {/* Work summary — fills remaining space, hidden in compact */}
+            {workSummary && !compact && (
               <>
-                <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">—</span>
-                <span className="text-[10px] text-muted-foreground/55 truncate min-w-0">
+                <span className="text-muted-foreground/25 text-[8px] flex-shrink-0">—</span>
+                <span className="text-[10px] text-muted-foreground/50 truncate min-w-0 flex-1">
                   {workSummary}
                 </span>
               </>
             )}
-            {compact && workSummary && workSummary !== '—' && !ro.advisor && !vehicle && (
-              <span className="text-[10px] text-muted-foreground/50 truncate min-w-0">
-                {workSummary}
-              </span>
-            )}
+            {/* Push status chips right */}
+            <span className="flex-1 min-w-[4px]" />
+            <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
           </div>
         </div>
 
         {/* Action menu — flush right, vertically centered */}
         <div
-          className="flex-shrink-0 flex items-center pr-1.5 pl-1"
+          className="flex-shrink-0 flex items-center pr-1.5 pl-0.5"
           onClick={(e) => e.stopPropagation()}
         >
           <ROActionMenu

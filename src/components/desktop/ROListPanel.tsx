@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2, StickyNote, Rows3, Rows4 } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2, Rows3, Rows4 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,6 @@ function RowStatusChips({
   ro, flagsCount, checksCount,
 }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
-  const hasNotes = !!(ro.notes && ro.notes.trim());
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -86,14 +85,14 @@ function RowStatusChips({
           <span>Paid</span>
         </span>
       ) : (
-        <span className="text-[9px] font-semibold text-muted-foreground leading-none bg-muted/50 px-1.5 py-0.5 rounded">
-          {status.paid}
+        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+          OPEN
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
           <Clock className="h-2.5 w-2.5" />
-          {status.allTbd ? 'All' : status.tbd}
+          {status.allTbd ? 'ALL' : status.tbd}
         </span>
       )}
       {status.flags > 0 && (
@@ -106,11 +105,6 @@ function RowStatusChips({
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
-        </span>
-      )}
-      {hasNotes && (
-        <span className="inline-flex items-center text-[9px] text-muted-foreground/50 leading-none" title="Has notes">
-          <StickyNote className="h-2.5 w-2.5" />
         </span>
       )}
     </div>
