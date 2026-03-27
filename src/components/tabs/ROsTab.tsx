@@ -10,7 +10,6 @@ import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type Da
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import { maskHours } from '@/lib/maskHours';
-import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Chip } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
