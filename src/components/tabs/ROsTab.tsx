@@ -431,7 +431,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* ── Sticky header ───────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/60" style={{ boxShadow: '0 1px 8px -4px hsl(220 30% 12% / 0.12)' }}>
+      <div className="sticky top-0 z-30 bg-card border-b border-border/60">
 
         {/* Top bar: shop name + controls */}
         <div className="flex items-center h-10 px-3 gap-2 border-b border-border/30">
