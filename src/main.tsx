@@ -4,13 +4,35 @@ import "./index.css";
 import { ErrorBoundary } from "@/components/states/ErrorBoundary";
 
 // ---------------------------------------------------------------------------
-// Service-worker reload guard
+// Preview / iframe detection — disable service workers entirely in Lovable
+// ---------------------------------------------------------------------------
+// Service workers inside the preview iframe cache old chunk hashes and serve
+// stale index.html after Lovable regenerates code, causing "failed to load"
+// errors.  Detect preview/iframe context and unregister any existing SWs.
+const isInIframe = (() => {
+  try { return window.self !== window.top; } catch { return true; }
+})();
+const isPreviewHost =
+  window.location.hostname.includes('id-preview--') ||
+  window.location.hostname.includes('lovableproject.com');
+const isPreviewContext = isInIframe || isPreviewHost;
+
+if (isPreviewContext && 'serviceWorker' in navigator) {
+  // Nuke any existing service workers so stale caches can't interfere
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((r) => r.unregister());
+  });
+  if ('caches' in window) {
+    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Service-worker reload guard (production only)
 // ---------------------------------------------------------------------------
 // When a new SW takes control after a deploy, reload so lazy chunks resolve
-// against new asset hashes instead of stale ones.  Limit to one auto-reload
-// per SW activation cycle using sessionStorage (persists across reloads but
-// not across new tabs).
-if ('serviceWorker' in navigator) {
+// against new asset hashes instead of stale ones.
+if (!isPreviewContext && 'serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (sessionStorage.getItem('sw-reload-pending')) return;
     sessionStorage.setItem('sw-reload-pending', '1');

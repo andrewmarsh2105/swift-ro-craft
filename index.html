@@ -70,7 +70,16 @@
     <script>
       (function () {
         'use strict';
-        var BOOT_TIMEOUT = 12000; // ms before showing the fallback error UI
+
+        // Preview iframes in Lovable take longer to boot (cold start, HMR
+        // negotiation).  Give them more headroom before showing the error UI.
+        var isPreview =
+          window.location.hostname.indexOf('lovableproject.com') !== -1 ||
+          window.location.hostname.indexOf('id-preview--') !== -1;
+        var isIframe = false;
+        try { isIframe = window.self !== window.top; } catch (_) { isIframe = true; }
+
+        var BOOT_TIMEOUT = (isPreview || isIframe) ? 20000 : 12000;
 
         // Flag set by main.tsx right before createRoot().render()
         window.__bootOk = false;
@@ -137,12 +146,17 @@
         }
 
         // ── Resource-load error capture (capture phase catches script/link errors) ──
-        // Fires when a <script type="module"> or a CSS chunk 404s — which happens
-        // when a stale service worker serves an old index.html whose chunk hashes
-        // no longer exist after a new deploy.
+        var resourceErrorCount = 0;
         window.addEventListener('error', function (e) {
           var t = e.target;
           if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && !window.__bootOk) {
+            resourceErrorCount++;
+            // In preview, auto-clear caches and retry once on first resource error
+            // instead of immediately showing the error screen.
+            if ((isPreview || isIframe) && resourceErrorCount === 1) {
+              clearCachesAndReload();
+              return;
+            }
             showBootFailure(
               'A required file could not be loaded (the app cache may be out of date). ' +
               'Clearing the cache and retrying usually fixes this.'
@@ -151,7 +165,6 @@
         }, true /* capture phase */);
 
         // ── Watchdog timeout ──
-        // Falls back to the error UI if React never signals a successful mount.
         setTimeout(function () {
           if (!window.__bootOk) {
             showBootFailure(null);

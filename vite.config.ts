@@ -16,6 +16,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      devOptions: {
+        enabled: false,
+      },
       includeAssets: [
         "favicon-16.png",
         "favicon-32.png",
@@ -114,6 +117,7 @@ export default defineConfig({
         // Serve the app shell for all SPA routes (including /auth and /reset-password)
         // so the app loads correctly when navigated directly or when offline.
         navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
         // clientsClaim: immediately take control of all open tabs when the new
         // SW activates.  Combined with the controllerchange reload in main.tsx,
         // this ensures pages refresh against the new asset hashes right away
