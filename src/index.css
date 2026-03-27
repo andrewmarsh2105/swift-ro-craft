@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&family=JetBrains+Mono:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Cool-neutral base — lets the blue primary pop */
-    --background: 210 30% 97%;
+    --background: 210 20% 97%;
     --foreground: 222 42% 10%;
 
     --card: 0 0% 100%;
@@ -20,10 +20,10 @@
     --primary: 214 100% 46%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 94%;
+    --secondary: 210 25% 94%;
     --secondary-foreground: 222 30% 16%;
 
-    --muted: 214 30% 93%;
+    --muted: 214 18% 93%;
     --muted-foreground: 218 16% 42%;
 
     --accent: 186 47% 89%;
@@ -33,25 +33,25 @@
     --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 216 28% 84%;
-    --input: 216 28% 84%;
+    --border: 216 20% 87%;
+    --input: 216 20% 87%;
     --ring: 214 95% 53%;
 
-    /* Notably rounder */
-    --radius: 0.875rem;
+    /* Tighter, more intentional radius */
+    --radius: 0.5rem;
 
     /* Status colors */
     --status-warranty: 148 68% 30%;
     --status-warranty-foreground: 0 0% 100%;
-    --status-warranty-bg: 142 50% 90%;
+    --status-warranty-bg: 142 50% 92%;
 
     --status-customer-pay: 200 84% 38%;
     --status-customer-pay-foreground: 0 0% 100%;
-    --status-customer-pay-bg: 199 72% 88%;
+    --status-customer-pay-bg: 199 72% 90%;
 
     --status-internal: 26 85% 42%;
     --status-internal-foreground: 0 0% 100%;
-    --status-internal-bg: 28 82% 90%;
+    --status-internal-bg: 28 82% 92%;
 
     /* Chart colors */
     --chart-period-b: 188 58% 45%;
@@ -61,16 +61,16 @@
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
 
-    /* Refined shadow system */
-    --shadow-sm: 0 1px 4px 0 hsl(220 35% 12% / 0.07), 0 0 0 1px hsl(220 20% 12% / 0.04);
-    --shadow-card: 0 2px 8px -2px hsl(218 45% 16% / 0.12), 0 1px 0 0 hsl(var(--border) / 0.7), 0 0 0 1px hsl(var(--border) / 0.55);
-    --shadow-raised: 0 8px 24px -8px hsl(218 50% 16% / 0.22), 0 2px 8px -4px hsl(218 40% 16% / 0.12), 0 0 0 1px hsl(var(--border) / 0.7);
-    --shadow-soft: 0 4px 12px -4px hsl(220 26% 10% / 0.1);
-    --shadow-fab: 0 12px 28px -8px hsl(var(--primary) / 0.55), 0 4px 12px -4px hsl(var(--primary) / 0.28);
-    --shadow-sheet: 0 -8px 28px -8px hsl(220 20% 10% / 0.14), 0 -1px 0 0 hsl(var(--border) / 0.55);
+    /* Minimal shadow system — prefer borders */
+    --shadow-sm: 0 1px 2px 0 hsl(220 20% 12% / 0.04);
+    --shadow-card: 0 1px 3px -1px hsl(218 30% 16% / 0.06), 0 0 0 1px hsl(var(--border) / 0.6);
+    --shadow-raised: 0 4px 12px -4px hsl(218 40% 16% / 0.1), 0 0 0 1px hsl(var(--border) / 0.6);
+    --shadow-soft: 0 2px 6px -2px hsl(220 26% 10% / 0.06);
+    --shadow-fab: 0 8px 20px -6px hsl(var(--primary) / 0.45), 0 2px 8px -2px hsl(var(--primary) / 0.2);
+    --shadow-sheet: 0 -4px 16px -4px hsl(220 20% 10% / 0.1), 0 -1px 0 0 hsl(var(--border) / 0.5);
 
     /* Sidebar */
-    --sidebar-background: 210 30% 97%;
+    --sidebar-background: 210 20% 97%;
     --sidebar-foreground: 222 28% 10%;
     --sidebar-primary: 214 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -79,15 +79,11 @@
     --sidebar-border: 220 14% 88%;
     --sidebar-ring: 214 95% 53%;
 
-    /* ─── Brand identity tokens ─────────────────────────────────
-       These are logo/brand colors. They do NOT replace --primary.
-       Use them only in: Logo component, brand marks, Pro badges,
-       splash screen, document headers, and marketing surfaces.
-    ─────────────────────────────────────────────────────────── */
-    --brand-navy:        220 61% 10%;   /* #0C1829 — logo fill on light */
-    --brand-amber:       37  86% 44%;   /* #D4890A — logo indicator, light bg */
-    --brand-amber-light: 38  90% 54%;   /* #F5A623 — logo indicator, dark bg */
-    --brand-slate:       213 52% 24%;   /* #1E3A5F — secondary brand tone */
+    /* Brand identity tokens */
+    --brand-navy:        220 61% 10%;
+    --brand-amber:       37  86% 44%;
+    --brand-amber-light: 38  90% 54%;
+    --brand-slate:       213 52% 24%;
   }
 
   .dark {
@@ -96,22 +92,20 @@
     --background: 224 16% 9%;
     --foreground: 220 15% 95%;
 
-    /* Clearly lighter than bg — cards pop */
-    --card: 222 14% 14%;
+    --card: 222 14% 13%;
     --card-foreground: 220 15% 95%;
 
-    --popover: 222 14% 14%;
+    --popover: 222 14% 13%;
     --popover-foreground: 220 15% 95%;
 
-    /* Lighter blue so it pops on dark bg */
     --primary: 214 90% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 14% 21%;
+    --secondary: 222 14% 18%;
     --secondary-foreground: 220 15% 95%;
 
-    --muted: 222 12% 20%;
-    --muted-foreground: 220 8% 62%;
+    --muted: 222 12% 18%;
+    --muted-foreground: 220 8% 58%;
 
     --accent: 190 25% 25%;
     --accent-foreground: 220 15% 95%;
@@ -120,29 +114,29 @@
     --destructive: 0 70% 52%;
     --destructive-foreground: 220 15% 95%;
 
-    --border: 221 12% 26%;
-    --input: 221 12% 26%;
+    --border: 221 12% 22%;
+    --input: 221 12% 22%;
     --ring: 214 90% 65%;
 
     --status-warranty: 142 62% 52%;
     --status-warranty-foreground: 142 90% 10%;
-    --status-warranty-bg: 142 34% 15%;
+    --status-warranty-bg: 142 34% 14%;
 
     --status-customer-pay: 199 75% 55%;
     --status-customer-pay-foreground: 199 95% 10%;
-    --status-customer-pay-bg: 199 44% 18%;
+    --status-customer-pay-bg: 199 44% 16%;
 
     --status-internal: 28 88% 60%;
     --status-internal-foreground: 28 90% 10%;
-    --status-internal-bg: 28 44% 15%;
+    --status-internal-bg: 28 44% 14%;
 
     --chart-period-b: 263 65% 68%;
 
-    --shadow-card: 0 1px 4px -1px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--border) / 0.85);
-    --shadow-raised: 0 12px 36px -16px hsl(0 0% 0% / 0.6), 0 0 0 1px hsl(var(--border) / 0.8);
-    --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.28);
-    --shadow-fab: 0 10px 32px -8px hsl(var(--primary) / 0.5), 0 4px 10px -4px hsl(var(--primary) / 0.25);
-    --shadow-sheet: 0 -4px 24px -4px hsl(0 0% 0% / 0.45), 0 -1px 0 0 hsl(var(--border) / 0.6);
+    --shadow-card: 0 1px 3px -1px hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(var(--border) / 0.7);
+    --shadow-raised: 0 6px 20px -8px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(var(--border) / 0.6);
+    --shadow-soft: 0 2px 6px -2px hsl(0 0% 0% / 0.2);
+    --shadow-fab: 0 8px 24px -6px hsl(var(--primary) / 0.4), 0 2px 8px -2px hsl(var(--primary) / 0.2);
+    --shadow-sheet: 0 -4px 16px -4px hsl(0 0% 0% / 0.35), 0 -1px 0 0 hsl(var(--border) / 0.5);
 
     --sidebar-background: 224 16% 9%;
     --sidebar-foreground: 220 15% 95%;
@@ -168,8 +162,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-    line-height: 1.55;
+    line-height: 1.5;
     padding-top: var(--safe-area-inset-top);
+    letter-spacing: -0.01em;
   }
 
   html, body {
@@ -187,40 +182,43 @@
     @apply min-h-[44px] min-w-[44px];
   }
 
-  /* ── Cards ────────────────────────────────────────── */
+  /* ── Cards — flat borders, no gratuitous rounding ─── */
   .card-mobile {
-    @apply bg-card rounded-xl border;
-    border-color: hsl(var(--border) / 0.7);
-    box-shadow: var(--shadow-card);
+    @apply bg-card border border-border/70;
+    border-radius: var(--radius);
   }
 
   .card-raised {
-    @apply bg-card rounded-xl border;
-    border-color: hsl(var(--border) / 0.7);
+    @apply bg-card border border-border/70;
+    border-radius: var(--radius);
     box-shadow: var(--shadow-raised);
   }
 
-  /* RO row card — tighter, purpose-built for list density */
+  /* RO row — left accent bar, no rounding, divider-separated */
   .ro-row-card {
     @apply bg-card border-l-[3px] relative;
-    border-color: hsl(var(--border) / 0.55);
-    border-top-color: hsl(var(--border) / 0.35);
-    box-shadow: 0 1px 2px -1px hsl(218 40% 14% / 0.06);
+    border-color: hsl(var(--border) / 0.4);
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
   }
 
-  /* ── Hours pill ────────────────────────────────────── */
+  /* ── Hours pill — monospace, tight ──────────────────── */
   .hours-pill {
-    @apply inline-flex items-center px-1.5 py-px rounded-full font-bold tabular-nums leading-none;
+    @apply inline-flex items-center px-1.5 py-px font-bold tabular-nums leading-none;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
     font-size: 11px;
     color: hsl(var(--primary));
-    background: hsl(var(--primary) / 0.1);
-    border: 1px solid hsl(var(--primary) / 0.22);
-    letter-spacing: -0.01em;
+    background: hsl(var(--primary) / 0.08);
+    border: 1px solid hsl(var(--primary) / 0.18);
+    border-radius: 3px;
+    letter-spacing: -0.02em;
   }
 
-  /* ── Status pills ──────────────────────────────────── */
+  /* ── Status pills — squared, bold ─────────────────── */
   .status-pill {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider;
+    @apply inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider;
+    border-radius: 3px;
   }
 
   .status-pill-warranty {
@@ -245,53 +243,47 @@
   .labor-dot {
     @apply inline-block w-2 h-2 rounded-full flex-shrink-0;
   }
-
-  .labor-dot-warranty {
-    background: hsl(var(--status-warranty));
-  }
-
-  .labor-dot-customer-pay {
-    background: hsl(var(--status-customer-pay));
-  }
-
-  .labor-dot-internal {
-    background: hsl(var(--status-internal));
-  }
+  .labor-dot-warranty    { background: hsl(var(--status-warranty)); }
+  .labor-dot-customer-pay { background: hsl(var(--status-customer-pay)); }
+  .labor-dot-internal    { background: hsl(var(--status-internal)); }
 
   /* ── Bottom sheet ──────────────────────────────────── */
   .bottom-sheet {
-    @apply fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-[1.5rem] border-t border-border/40;
+    @apply fixed inset-x-0 bottom-0 z-50 bg-card border-t border-border/50;
+    border-radius: 0.75rem 0.75rem 0 0;
     box-shadow: var(--shadow-sheet);
     padding-bottom: calc(1.25rem + var(--safe-area-inset-bottom));
   }
 
   .bottom-sheet-handle {
-    @apply w-9 h-[4px] rounded-full mx-auto mt-3 mb-2;
-    background: hsl(var(--muted-foreground) / 0.18);
+    @apply w-8 h-[3px] rounded-full mx-auto mt-2.5 mb-1.5;
+    background: hsl(var(--muted-foreground) / 0.15);
   }
 
   /* ── FAB ───────────────────────────────────────────── */
   .fab {
-    @apply fixed z-40 flex items-center justify-center bg-primary text-primary-foreground rounded-full font-semibold;
+    @apply fixed z-40 flex items-center justify-center bg-primary text-primary-foreground font-semibold;
     box-shadow: var(--shadow-fab);
     bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom) + 0.75rem);
     right: 1rem;
-    height: 52px;
-    min-width: 52px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: var(--radius);
   }
 
   .fab-extended {
     @apply fab px-5 gap-2;
-    border-radius: 9999px;
   }
 
-  /* ── Segmented control ─────────────────────────────── */
+  /* ── Segmented control — flat, bordered ─────────── */
   .segmented-control {
-    @apply inline-flex p-1 bg-secondary border border-border/70 rounded-xl;
+    @apply inline-flex p-0.5 bg-muted/60 border border-border/60;
+    border-radius: var(--radius);
   }
 
   .segmented-control-item {
-    @apply px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all tap-target;
+    @apply px-3.5 py-1.5 text-sm font-medium transition-all tap-target;
+    border-radius: calc(var(--radius) - 2px);
   }
 
   .segmented-control-item-active {
@@ -303,23 +295,23 @@
     @apply text-muted-foreground hover:text-foreground/80 transition-colors;
   }
 
-  /* ── Chips ─────────────────────────────────────────── */
+  /* ── Chips — squared, compact ──────────────────────── */
   .chip {
-    @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-secondary border border-border/70 rounded-full text-sm font-medium tap-target transition-all duration-150;
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-border/60 text-sm font-medium tap-target transition-all duration-100;
+    border-radius: var(--radius);
   }
 
   .chip:active {
-    @apply scale-95;
+    @apply scale-[0.97];
   }
 
   .chip-selected {
     @apply bg-primary text-primary-foreground border-transparent;
-    box-shadow: 0 3px 10px -4px hsl(var(--primary) / 0.6);
   }
 
   /* ── Tab bar ───────────────────────────────────────── */
   .tab-bar-pwa {
-    @apply fixed inset-x-0 bottom-0 z-50 backdrop-blur-xl border-t border-border/40;
+    @apply fixed inset-x-0 bottom-0 z-50 backdrop-blur-xl border-t border-border/50;
     background-color: hsl(var(--card) / 0.97);
     min-height: calc(52px + env(safe-area-inset-bottom, 0px));
     padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
@@ -329,13 +321,8 @@
     @apply flex flex-col items-center justify-center flex-1 pt-2 pb-0.5 transition-colors;
   }
 
-  .tab-bar-item-active {
-    @apply text-primary;
-  }
-
-  .tab-bar-item-inactive {
-    @apply text-muted-foreground;
-  }
+  .tab-bar-item-active   { @apply text-primary; }
+  .tab-bar-item-inactive { @apply text-muted-foreground; }
 
   /* ── Swipe actions ─────────────────────────────────── */
   .swipe-action {
@@ -351,18 +338,21 @@
     background: hsl(var(--status-warranty));
   }
 
-  /* ── Form inputs ───────────────────────────────────── */
+  /* ── Form inputs — tighter, no extra rounding ───── */
   .numeric-input {
     @apply text-center text-3xl font-bold bg-transparent border-0 focus:outline-none focus:ring-0 w-full;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
   }
 
   .increment-btn {
-    @apply px-4 py-2 bg-secondary border border-border/60 rounded-full text-sm font-semibold tap-target active:scale-95 transition-all duration-100;
+    @apply px-4 py-2 bg-secondary border border-border/60 text-sm font-semibold tap-target active:scale-[0.97] transition-all duration-100;
+    border-radius: var(--radius);
   }
 
   .input-base {
-    @apply bg-card border border-input rounded-[var(--radius)] text-foreground placeholder:text-muted-foreground/60;
-    @apply focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-shadow;
+    @apply bg-card border border-input text-foreground placeholder:text-muted-foreground/50;
+    border-radius: var(--radius);
+    @apply focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-shadow;
   }
 
   /* ── Typography scale ──────────────────────────────── */
@@ -371,38 +361,46 @@
   .section-title { @apply text-[10px] font-semibold uppercase tracking-widest text-muted-foreground; }
   .meta-text     { @apply text-[11px] text-muted-foreground; }
 
-  /* ── Surfaces ──────────────────────────────────────── */
-  .inset-panel { @apply rounded-lg border bg-muted/30; border-color: hsl(var(--border) / 0.7); }
-  .row-hover   { @apply hover:bg-muted/50; }
+  /* ── Surfaces — distinct levels ─────────────────── */
+  .inset-panel {
+    @apply border bg-muted/30;
+    border-color: hsl(var(--border) / 0.6);
+    border-radius: var(--radius);
+  }
+  .row-hover   { @apply hover:bg-muted/40; }
 
   .metric-emphasis {
-    @apply inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2;
+    @apply inline-flex items-center gap-2 border border-border/60 bg-background px-3 py-2;
+    border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
   }
   .warning-surface {
-    @apply rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300;
+    @apply border border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300;
+    border-radius: var(--radius);
   }
   .surface-panel {
-    @apply rounded-xl border bg-card;
+    @apply border bg-card;
     border-color: hsl(var(--border) / 0.7);
+    border-radius: var(--radius);
     box-shadow: var(--shadow-card);
   }
   .surface-subtle {
-    @apply rounded-lg border bg-muted/20;
-    border-color: hsl(var(--border) / 0.6);
+    @apply border bg-muted/20;
+    border-color: hsl(var(--border) / 0.5);
+    border-radius: var(--radius);
   }
 
   /* ── Desktop list row ──────────────────────────────── */
   .list-row {
-    @apply border-b border-border/40 text-xs cursor-pointer transition-colors duration-100;
+    @apply border-b border-border/40 text-xs cursor-pointer transition-colors duration-75;
   }
 
   .list-row-selected {
-    @apply bg-primary/[0.08] border-l-2 border-l-primary;
+    @apply bg-primary/[0.06] border-l-2 border-l-primary;
   }
 
   .list-row-default {
-    @apply hover:bg-muted/40;
+    @apply hover:bg-muted/30;
   }
 
   /* ── Icon discipline ───────────────────────────────── */
@@ -411,20 +409,28 @@
   .icon-sheet   { @apply h-[18px] w-[18px]; }
 
   /* ── Motion ────────────────────────────────────────── */
-  .quiet-transition { @apply transition-all duration-150 ease-out; }
+  .quiet-transition { @apply transition-all duration-100 ease-out; }
 
   /* ── Desktop toolbar button ────────────────────────── */
   .toolbar-btn {
-    @apply h-8 w-8 flex items-center justify-center rounded-lg quiet-transition text-muted-foreground hover:text-foreground hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+    @apply h-8 w-8 flex items-center justify-center quiet-transition text-muted-foreground hover:text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+    border-radius: var(--radius);
   }
 
   .toolbar-btn-active {
     @apply bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary/90;
   }
 
-  /* ── Stats badge ───────────────────────────────────── */
+  /* ── Stats badge — monospace numbers ───────────────── */
   .stat-badge {
-    @apply inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/[0.08] px-2 py-1;
+    @apply inline-flex items-center gap-1 border border-primary/20 bg-primary/[0.06] px-2 py-1;
+    border-radius: var(--radius);
+  }
+
+  /* ── Data mono — monospace for hours/numbers ──────── */
+  .data-mono {
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -451,7 +457,7 @@
   }
 
   .touch-feedback {
-    @apply active:opacity-75 active:scale-[0.97] transition-all duration-100;
+    @apply active:opacity-80 active:scale-[0.98] transition-all duration-75;
   }
 
   .tabular-nums {
