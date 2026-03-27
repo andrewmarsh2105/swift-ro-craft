@@ -221,7 +221,7 @@ export function useROStore() {
       // lines, so old ROs still get their full line details (no search regression).
       void (async () => {
         await new Promise<void>((r) => setTimeout(r, 400));
-        if (phase2AbortRef.current) return; // Cancelled (userId changed / unmount)
+        if (phase2Generation.current !== myGeneration) return; // Cancelled (userId changed / unmount / new fetch)
 
         const { data: oldRows, error: oldErr } = await supabase
           .from('ros')
