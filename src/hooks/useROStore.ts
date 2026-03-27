@@ -109,10 +109,11 @@ export function useROStore() {
    */
   const [hasFullHistory, setHasFullHistory] = useState(false);
   /**
-   * Ref flag used to abort the background Phase 2 load when the component
-   * unmounts or the userId changes mid-flight.
+   * Generation counter used to abort the background Phase 2 load when a new
+   * fetchROs call starts, the component unmounts, or the userId changes.
+   * Each fetchROs call increments this; Phase 2 checks if it still matches.
    */
-  const phase2AbortRef = useRef(false);
+  const phase2Generation = useRef(0);
 
   // Cancel any in-flight delete timers when the store unmounts
   useEffect(() => {
