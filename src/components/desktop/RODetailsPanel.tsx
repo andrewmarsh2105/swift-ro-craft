@@ -90,7 +90,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
       {/* ═══ Header — hero identification band ═══ */}
       <div
-        className="flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border/60"
+        className="panel-header"
         style={{ borderLeft: `3px solid ${accentColor}` }}
       >
         {/* Primary row: RO# + hours hero + actions */}
