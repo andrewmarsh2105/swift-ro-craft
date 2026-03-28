@@ -441,7 +441,7 @@ export function SettingsTab() {
                   style={{ borderRadius: 'var(--radius)' }}
                 >
                   {/* Identity row */}
-                  <div className="px-5 pt-4 pb-3 flex items-center gap-4">
+                  <div className="px-4 pt-3 pb-2.5 flex items-center gap-3.5">
                     <div className="h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
                       {avatarInitial}
                     </div>
