@@ -95,7 +95,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
         : "hsl(var(--status-internal))";
 
   return (
-    <div className="h-full overflow-y-auto flex flex-col">
+    <div className="h-full overflow-y-auto flex flex-col bg-card">
       {/* ── Header ────────────────────────────────── */}
       <div
         className="flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border/60 border-l-[3px]"
