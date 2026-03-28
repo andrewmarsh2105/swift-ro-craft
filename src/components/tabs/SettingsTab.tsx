@@ -481,7 +481,7 @@ export function SettingsTab() {
                   )}
 
                   {/* Inline profile fields */}
-                  <div className="border-t border-border/40 px-5 py-3.5">
+                  <div className="border-t border-border/30 px-4 py-3">
                     <div className="grid grid-cols-2 gap-4">
                       <DesktopInlineField
                         icon={<User className="h-3.5 w-3.5" />}
