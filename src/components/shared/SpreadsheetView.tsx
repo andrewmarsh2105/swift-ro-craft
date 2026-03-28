@@ -815,7 +815,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   return (
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-card flex-wrap">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1 border-b border-border/50 bg-card/80 backdrop-blur-sm flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {!isCloseout && (
             <DateFilterBar
