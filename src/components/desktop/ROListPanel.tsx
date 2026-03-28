@@ -600,7 +600,7 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex-shrink-0 px-3 py-1.5 border-t border-border/40 bg-background">
+        <div className="flex-shrink-0 px-3 py-1.5 border-t bg-background" style={{ borderColor: 'hsl(var(--border) / 0.4)' }}>
           <span className="text-[10px] text-muted-foreground tabular-nums">
             {filteredROs.length > visibleCount
               ? `Showing ${visible.length} of ${filteredROs.length} ROs`

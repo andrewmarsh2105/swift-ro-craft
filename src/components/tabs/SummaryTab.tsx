@@ -689,7 +689,7 @@ export function SummaryTab() {
   return (
     <div className="flex flex-col h-full">
       {/* ══ Sticky Header: Tabs + Range ══ */}
-      <div className="sticky top-0 z-30 bg-background border-b border-border/60">
+      <div className="panel-header">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full rounded-none bg-transparent h-10 gap-0 p-0">
             <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Summary</TabsTrigger>

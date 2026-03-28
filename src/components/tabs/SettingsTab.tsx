@@ -266,7 +266,7 @@ export function SettingsTab() {
         />
       </div>
 
-      <div className="p-4 space-y-4 max-w-xl mx-auto w-full">
+      <div className="p-4 desktop-sections max-w-xl mx-auto w-full">
         {settingsView === 'settings' ? (
           <>
             {/* Profile Card — compact identity row */}
