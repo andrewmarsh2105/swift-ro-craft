@@ -47,26 +47,34 @@ function InlineStatusChips({
   const status = getStatusSummary(ro, flagsCount, checksCount);
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
-      {/* Paid — only show when paid date is set */}
+      {/* Paid — labeled pill for instant scanning */}
       {status.paid === 'Paid' && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: 'hsl(var(--status-warranty))' }}>
-          <CheckCircle2 className="h-3 w-3" />
+        <span
+          className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none px-1 py-[3px] flex-shrink-0"
+          style={{
+            backgroundColor: 'hsl(var(--status-warranty-bg))',
+            color: 'hsl(var(--status-warranty))',
+            borderRadius: '2px',
+          }}
+        >
+          <CheckCircle2 className="h-2.5 w-2.5" />
+          <span>PAID</span>
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
+        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold text-amber-600 dark:text-amber-400 leading-none">
           <Clock className="h-2.5 w-2.5" />
-          <span>{status.allTbd ? 'ALL' : status.tbd}</span>
+          <span>{status.allTbd ? 'TBD' : status.tbd}</span>
         </span>
       )}
       {status.flags > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: 'hsl(var(--status-internal))' }}>
+        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none" style={{ color: 'hsl(var(--status-internal))' }}>
           <Flag className="h-2.5 w-2.5" />
           <span>{status.flags}</span>
         </span>
       )}
       {status.checks > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
+        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           <span>{status.checks}</span>
         </span>
@@ -106,6 +114,8 @@ const ROCard = memo(function ROCard({
     : ro.workPerformed || '';
 
   const vehicle = vehicleLabel(ro);
+  const hasWork = !!workSummary;
+  const hoursZero = hours === 0;
 
   return (
     <div
@@ -113,24 +123,25 @@ const ROCard = memo(function ROCard({
       style={{ borderLeftColor: accentColor }}
     >
       <div
-        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/25 transition-colors duration-75 active:bg-muted/40"
+        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/20 transition-colors duration-75 active:bg-muted/35"
         onClick={onViewDetails}
       >
-        <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[5px]' : 'py-2')}>
-          {/* Row 1: RO# · Date · Customer — left | Hours + Type — right */}
-          <div className="flex items-center gap-1.5 min-w-0">
+        <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[6px]' : 'py-[9px]')}>
+
+          {/* Row 1: RO# · Date · Customer name  ·  Hours (primary metric, right) */}
+          <div className="flex items-baseline gap-1.5 min-w-0">
             <span className={cn(
               'font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0 font-mono',
               compact ? 'text-[12px]' : 'text-[13px]',
             )}>
               #{ro.roNumber || '—'}
             </span>
-            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
+            <span className="text-[10px] text-muted-foreground/70 tabular-nums flex-shrink-0 leading-none">
               {roDate}
             </span>
             {ro.customerName ? (
               <span className={cn(
-                'font-medium text-foreground/70 truncate min-w-0 flex-1',
+                'font-medium text-muted-foreground/55 truncate min-w-0 flex-1 leading-none',
                 compact ? 'text-[10px]' : 'text-[11px]',
               )}>
                 {ro.customerName}
@@ -138,52 +149,54 @@ const ROCard = memo(function ROCard({
             ) : (
               <span className="flex-1" />
             )}
-            {/* Hours — monospace, the #1 number a tech looks for */}
-            <span className={cn(
-              'flex-shrink-0 font-bold tabular-nums leading-none px-1.5 py-0.5 font-mono',
-              compact ? 'text-[12px]' : 'text-[13px]',
-              hours === 0 ? 'text-muted-foreground bg-muted/50' : 'text-foreground',
-            )} style={{
-              borderRadius: '3px',
-              ...(hours > 0 ? { backgroundColor: `color-mix(in srgb, ${accentColor} 10%, transparent)` } : {}),
-            }}>
+            {/* Hours — the primary number a tech scans for; accent-colored, no box */}
+            <span
+              className={cn(
+                'flex-shrink-0 font-bold tabular-nums leading-none font-mono',
+                compact ? 'text-[13px]' : 'text-[15px]',
+                hoursZero ? 'text-muted-foreground/35' : '',
+              )}
+              style={!hoursZero ? { color: accentColor } : undefined}
+            >
               {maskHours(hours, hideTotals)}h
             </span>
-            {/* Labor type tag */}
+          </div>
+
+          {/* Row 2: [LT badge] Advisor · Vehicle  |  Status indicators */}
+          <div className={cn('flex items-center gap-1 min-w-0', compact ? 'mt-[4px]' : 'mt-[5px]')}>
+            {/* Labor type badge — left anchor, strong color signal */}
             <span
-              className="text-[8px] font-bold leading-none px-1 py-0.5 flex-shrink-0 text-white"
+              className="text-[8px] font-bold leading-none px-[5px] py-[3px] flex-shrink-0 text-white"
               style={{ backgroundColor: accentColor, borderRadius: '2px' }}
             >
               {ltLabel}
             </span>
-          </div>
-
-          {/* Row 2: Advisor · Vehicle · Work summary — left | Status — right */}
-          <div className={cn('flex items-center gap-1 min-w-0', compact ? 'mt-[2px]' : 'mt-0.5')}>
             {ro.advisor && (
-              <span className="text-[10px] font-semibold text-foreground/50 truncate flex-shrink-0 max-w-[100px]">
+              <span className="text-[10px] font-semibold text-foreground/55 truncate flex-shrink-0 max-w-[90px]">
                 {ro.advisor}
               </span>
             )}
             {vehicle !== '—' && (
               <>
                 <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">·</span>
-                <span className="text-[10px] text-muted-foreground/50 truncate flex-shrink-0 max-w-[90px]">
+                <span className={cn(
+                  'text-[10px] text-muted-foreground/45 truncate min-w-0',
+                  compact ? 'flex-1' : 'flex-shrink-0 max-w-[110px]',
+                )}>
                   {vehicle}
-                </span>
-              </>
-            )}
-            {workSummary && !compact && (
-              <>
-                <span className="text-muted-foreground/20 text-[8px] flex-shrink-0">—</span>
-                <span className="text-[10px] text-muted-foreground/40 truncate min-w-0 flex-1">
-                  {workSummary}
                 </span>
               </>
             )}
             <span className="flex-1 min-w-[4px]" />
             <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
           </div>
+
+          {/* Row 3: Work summary — normal mode only, gives context at a glance */}
+          {!compact && hasWork && (
+            <p className="mt-[4px] text-[10px] text-muted-foreground/38 leading-tight truncate">
+              {workSummary}
+            </p>
+          )}
         </div>
 
         <div
@@ -427,32 +440,45 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* ── Sticky header ───────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-card border-b border-border/60">
+      <div className="sticky top-0 z-30 bg-background border-b border-border/50">
 
-        {/* Top bar: shop name + controls */}
-        <div className="flex items-center h-10 px-3 gap-2 border-b border-border/30">
-          <h2 className="text-[15px] font-bold tracking-tight text-foreground flex-1 truncate">
-            {goalSettings.shopName || 'Repair Orders'}
-          </h2>
+        {/* Top bar: shop name · hours readout · controls */}
+        <div className="flex items-center h-11 px-3 gap-2">
+          {/* Left: shop name + live hours readout */}
+          <div className="flex-1 min-w-0 flex items-baseline gap-2">
+            <h2 className="text-[12px] font-semibold text-muted-foreground/65 truncate flex-shrink-0 leading-none">
+              {goalSettings.shopName || 'Repair Orders'}
+            </h2>
+            {viewMode !== 'spreadsheet' && (
+              <div className="flex items-baseline gap-1 flex-shrink-0">
+                <span className="text-[17px] font-black tabular-nums text-primary leading-none tracking-tight font-mono">
+                  {maskHours(totalHours, userSettings.hideTotals ?? false)}h
+                </span>
+                <span className="text-[10px] text-muted-foreground/45 font-medium leading-none">
+                  {filteredROs.length}
+                </span>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Daily goal indicator */}
-            {hoursGoalDaily > 0 && (
+            {hoursGoalDaily > 0 && viewMode !== 'spreadsheet' && (
               <div className={cn(
-                'h-6 px-2 rounded-full text-[10px] font-bold tabular-nums flex items-center gap-1 border',
+                'h-6 px-2 rounded text-[10px] font-bold tabular-nums flex items-center gap-1 border',
                 todayHours >= hoursGoalDaily
                   ? 'bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400'
                   : 'bg-primary/10 text-primary border-primary/20'
               )}>
                 <span>{todayHours.toFixed(1)}</span>
-                <span className="opacity-60">/</span>
+                <span className="opacity-50">/</span>
                 <span>{hoursGoalDaily}h</span>
               </div>
             )}
 
             {/* Avatar */}
             {goalSettings.displayName && (
-              <div className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 select-none">
+              <div className="h-6 w-6 rounded bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 select-none">
                 {goalSettings.displayName.charAt(0).toUpperCase()}
               </div>
             )}
@@ -462,7 +488,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               <button
                 onClick={() => setDensity(d => d === 'normal' ? 'compact' : 'normal')}
                 className={cn(
-                  'h-6 w-6 flex items-center justify-center rounded-md quiet-transition border',
+                  'h-6 w-6 flex items-center justify-center rounded quiet-transition border',
                   density === 'compact'
                     ? 'bg-primary/10 text-primary border-primary/25'
                     : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
@@ -477,7 +503,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <button
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
               className={cn(
-                'h-6 w-6 flex items-center justify-center rounded-md quiet-transition relative border',
+                'h-6 w-6 flex items-center justify-center rounded quiet-transition relative border',
                 isPro && viewMode === 'spreadsheet'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
@@ -497,24 +523,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        {/* Search + stats bar */}
+        {/* Search bar */}
         <div className="flex items-center gap-2 px-3 py-1.5">
-          {/* Hours + RO count pill */}
-          <div className="stat-badge flex-shrink-0">
-            <span className="text-[15px] font-bold tabular-nums text-primary leading-none tracking-tight font-mono">
-              {maskHours(totalHours, userSettings.hideTotals ?? false)}h
-            </span>
-            <span className="text-[10px] text-muted-foreground font-medium leading-none">
-              {filteredROs.length} RO{filteredROs.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {/* Monthly cap indicator for free users */}
+          {/* Monthly cap indicator — compact, left of search */}
           {!isPro && !loadingROs && (
             <button
               onClick={() => setShowUpgrade(true)}
               className={cn(
-                'flex-shrink-0 h-6 px-2 rounded-full border text-[10px] font-semibold flex items-center gap-1 quiet-transition',
+                'flex-shrink-0 h-7 px-2 rounded border text-[9px] font-semibold flex items-center gap-1 quiet-transition',
                 monthlyROCount >= RO_MONTHLY_CAP
                   ? 'bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400'
                   : monthlyROCount >= RO_MONTHLY_CAP - 5
@@ -534,12 +550,12 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search name, RO#, VIN, work, notes…"
-              className="w-full h-9 pl-3 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Search RO#, name, VIN, work…"
+              className="w-full h-9 pl-3 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
-          {/* Filter button — standalone for easy tap target */}
+          {/* Filter button */}
           <button
             onClick={() => setShowFilters(true)}
             className={cn(
@@ -558,59 +574,66 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </button>
         </div>
 
-        {/* Date filter chips + quick labor type chips */}
+        {/* Date filter chips + labor type chips + stats (pinned right) */}
         {viewMode !== 'spreadsheet' && (
-          <div className="flex items-center gap-1 px-3 pb-1.5 overflow-x-auto scrollbar-hide">
-            {dateFilterOptions.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
-                className={cn(
-                  'h-6 px-2.5 text-[10px] font-semibold rounded-full border flex-shrink-0 quiet-transition',
-                  dateFilter === value
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-transparent text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-            {/* Divider */}
-            <span className="w-px h-3.5 bg-border/60 flex-shrink-0 mx-0.5" />
-            {/* Quick labor type chips */}
-            {([
-              { type: 'warranty' as LaborType, label: 'W', color: 'hsl(var(--status-warranty))' },
-              { type: 'customer-pay' as LaborType, label: 'CP', color: 'hsl(var(--status-customer-pay))' },
-              { type: 'internal' as LaborType, label: 'INT', color: 'hsl(var(--status-internal))' },
-            ]).map(({ type, label, color }) => {
-              const active = filters.laborTypes.includes(type);
-              return (
+          <div className="flex items-center gap-0 px-3 pb-1.5">
+            {/* Scrollable chip section */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 min-w-0 pr-2">
+              {dateFilterOptions.map(({ value, label }) => (
                 <button
-                  key={type}
-                  onClick={() => toggleLaborTypeFilter(type)}
+                  key={value}
+                  onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
                   className={cn(
-                    'h-6 px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border',
-                    active ? 'text-white' : 'bg-transparent border-border/60 hover:border-border',
+                    'h-[22px] px-2.5 text-[10px] font-semibold rounded-full border flex-shrink-0 quiet-transition',
+                    dateFilter === value
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-transparent text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground'
                   )}
-                  style={active
-                    ? { backgroundColor: color, borderColor: color }
-                    : { color }}
-                  title={type === 'warranty' ? 'Warranty' : type === 'customer-pay' ? 'Customer Pay' : 'Internal'}
                 >
                   {label}
                 </button>
-              );
-            })}
-            <span
-              className={cn(
-                'ml-auto flex items-center gap-1 text-[10px] font-medium text-muted-foreground flex-shrink-0',
-                dateFilter === 'custom' && 'cursor-pointer hover:text-foreground'
-              )}
-              onClick={() => { if (dateFilter === 'custom') requestCustomDialog(); }}
-            >
-              <CalendarRange className="h-3 w-3" />
-              {rangeChipLabel}
-            </span>
+              ))}
+              {/* Divider */}
+              <span className="w-px h-3 bg-border/50 flex-shrink-0 mx-0.5" />
+              {/* Quick labor type toggles */}
+              {([
+                { type: 'warranty' as LaborType, label: 'W', color: 'hsl(var(--status-warranty))' },
+                { type: 'customer-pay' as LaborType, label: 'CP', color: 'hsl(var(--status-customer-pay))' },
+                { type: 'internal' as LaborType, label: 'INT', color: 'hsl(var(--status-internal))' },
+              ]).map(({ type, label, color }) => {
+                const active = filters.laborTypes.includes(type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => toggleLaborTypeFilter(type)}
+                    className={cn(
+                      'h-[22px] px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border',
+                      active ? 'text-white' : 'bg-transparent border-border/60 hover:border-border',
+                    )}
+                    style={active
+                      ? { backgroundColor: color, borderColor: color }
+                      : { color }}
+                    title={type === 'warranty' ? 'Warranty' : type === 'customer-pay' ? 'Customer Pay' : 'Internal'}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Pinned right: range label only — totals live in the header bar */}
+            <div className="flex-shrink-0 flex items-center gap-1 pl-2 border-l border-border/40">
+              <span
+                className={cn(
+                  'text-[9px] text-muted-foreground/50 flex items-center gap-0.5 flex-shrink-0',
+                  dateFilter === 'custom' && 'cursor-pointer hover:text-foreground'
+                )}
+                onClick={() => { if (dateFilter === 'custom') requestCustomDialog(); }}
+              >
+                <CalendarRange className="h-2.5 w-2.5" />
+                {rangeChipLabel}
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -626,7 +649,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </Suspense>
         </div>
       ) : (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/20">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {loadingROs ? (
             <div className="divide-y divide-border/40">
               {Array.from({ length: 8 }).map((_, i) => (

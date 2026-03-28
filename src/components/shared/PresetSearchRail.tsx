@@ -72,14 +72,14 @@ export function PresetSearchRail({
     return (
       <div className="space-y-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search presets…"
             style={{ fontSize: '16px' }}
-            className="w-full h-10 pl-8 pr-7 bg-secondary border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            className="w-full h-9 pl-8 pr-7 bg-muted/40 border border-border/30 rounded-xl text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:bg-background/60 transition-all"
           />
           {search && (
             <button
@@ -92,12 +92,12 @@ export function PresetSearchRail({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {mobileVisible.map((preset) => {
             const laborColor = preset.laborType === 'warranty'
-              ? { dot: 'hsl(var(--status-warranty))', bg: 'hsl(148 68% 30% / 0.08)', border: 'hsl(148 68% 30% / 0.22)' }
+              ? { dot: 'hsl(var(--status-warranty))', bg: 'hsl(148 68% 30% / 0.07)', border: 'hsl(148 68% 30% / 0.18)' }
               : preset.laborType === 'internal'
-                ? { dot: 'hsl(var(--status-internal))', bg: 'hsl(26 85% 42% / 0.08)', border: 'hsl(26 85% 42% / 0.22)' }
+                ? { dot: 'hsl(var(--status-internal))', bg: 'hsl(26 85% 42% / 0.07)', border: 'hsl(26 85% 42% / 0.18)' }
                 : null; // customer-pay uses default card styling
 
             return (
@@ -105,34 +105,34 @@ export function PresetSearchRail({
                 key={preset.id}
                 onClick={() => onSelect(preset)}
                 className={cn(
-                  'inline-flex items-center justify-between gap-2 px-3.5 py-3 rounded-xl border transition-all duration-150 min-h-[48px]',
+                  'flex items-center gap-2 px-3 h-10 rounded-xl border text-left transition-all duration-150 active:scale-[0.97]',
                   animatingId === preset.id
-                    ? 'bg-primary text-primary-foreground border-primary scale-[0.97]'
+                    ? 'bg-primary text-primary-foreground border-primary'
                     : preset.isFavorite
-                      ? 'bg-primary/10 border-primary/25 text-foreground'
-                      : 'bg-card border-border/70 text-foreground',
+                      ? 'bg-primary/8 border-primary/20 text-foreground'
+                      : 'bg-card border-border/50 text-foreground',
                 )}
                 style={animatingId !== preset.id ? {
                   boxShadow: 'var(--shadow-sm)',
                   ...(laborColor && !preset.isFavorite ? { backgroundColor: laborColor.bg, borderColor: laborColor.border } : {}),
                 } : undefined}
               >
-                <span className="inline-flex items-center gap-2 min-w-0">
+                <span className="flex-shrink-0 w-4 flex items-center justify-center">
                   {animatingId === preset.id ? (
-                    <Check className="h-3.5 w-3.5 flex-shrink-0" />
+                    <Check className="h-3 w-3" />
                   ) : preset.isFavorite ? (
-                    <Star className="h-3.5 w-3.5 fill-primary text-primary flex-shrink-0" />
+                    <Star className="h-3 w-3 fill-primary text-primary" />
                   ) : laborColor ? (
-                    <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: laborColor.dot }} />
+                    <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: laborColor.dot }} />
                   ) : (
-                    <Plus className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                    <Plus className="h-3 w-3 text-muted-foreground/50" />
                   )}
-                  <span className="truncate text-sm font-semibold">{preset.name}</span>
                 </span>
+                <span className="flex-1 truncate text-[13px] font-semibold">{preset.name}</span>
                 {preset.defaultHours != null && (
                   <span className={cn(
-                    'flex-shrink-0 text-xs font-bold tabular-nums',
-                    animatingId === preset.id ? 'opacity-80' : 'text-primary'
+                    'flex-shrink-0 text-[11px] font-bold tabular-nums',
+                    animatingId === preset.id ? 'opacity-80' : 'text-primary/70'
                   )}>{preset.defaultHours}h</span>
                 )}
               </button>

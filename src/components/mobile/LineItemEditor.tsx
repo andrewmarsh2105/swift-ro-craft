@@ -113,20 +113,17 @@ export function LineItemEditor({
     <div className="space-y-3">
       {/* ── Presets ── */}
       {presets.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-3.5 rounded-full bg-primary/50" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                Quick Presets
-              </span>
-            </div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">
+              Presets
+            </span>
             {recentlyAddedPresets.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                {recentlyAddedPresets.map(id => {
+              <div className="flex items-center gap-1">
+                {recentlyAddedPresets.slice(0, 2).map(id => {
                   const preset = presets.find(p => p.id === id);
                   return preset ? (
-                    <span key={id} className="px-2 py-0.5 bg-primary/8 border border-primary/15 rounded text-[10px] font-medium text-primary tabular-nums">
+                    <span key={id} className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                       ✓ {preset.name}
                     </span>
                   ) : null;
@@ -154,10 +151,7 @@ export function LineItemEditor({
       {/* ── Add Line ── */}
       <button
         onClick={handleAddLine}
-        className="w-full h-12 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm tap-target touch-feedback active:scale-[0.98] transition-all bg-primary text-primary-foreground"
-        style={{
-          boxShadow: '0 4px 14px -3px hsl(var(--primary) / 0.4)',
-        }}
+        className="w-full h-11 rounded-xl flex items-center justify-center gap-2 font-medium text-sm tap-target transition-all active:scale-[0.98] border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary"
       >
         <Plus className="h-4 w-4" />
         <span>Add Line</span>
@@ -168,11 +162,12 @@ export function LineItemEditor({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between px-0.5">
             <div className="flex items-center gap-2">
-              <div className="w-1 h-3.5 rounded-full bg-primary/50" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">
                 Lines
               </span>
-              <span className="text-[10px] text-muted-foreground/60">({lines.length})</span>
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-muted rounded-full text-muted-foreground tabular-nums">
+                {lines.length}
+              </span>
             </div>
             <span className="text-xs font-bold text-primary tabular-nums">
               {totalHours.toFixed(1)}h
@@ -180,22 +175,30 @@ export function LineItemEditor({
           </div>
 
           <AnimatePresence initial={false}>
-            {lines.map((line, index) => (
-              <motion.div
-                key={line.id}
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <div className="bg-card rounded-xl border border-border/60 overflow-hidden"
-                  style={{ boxShadow: 'var(--shadow-sm)' }}
+            {lines.map((line, index) => {
+              const accentColor = line.laborType === 'warranty'
+                ? 'hsl(var(--status-warranty))'
+                : line.laborType === 'internal'
+                  ? 'hsl(var(--status-internal))'
+                  : 'hsl(var(--status-customer-pay))';
+              return (
+                <motion.div
+                  key={line.id}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  {/* Compact single-row: line number + description + hours + delete */}
-                  <div className="flex items-center gap-0 px-1">
-                    {/* Line number indicator */}
-                    <div className="flex-shrink-0 w-7 flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-muted-foreground/50 tabular-nums">
+                  <div
+                    className="flex bg-card rounded-xl border border-border/50 overflow-hidden"
+                    style={{ boxShadow: 'var(--shadow-sm)' }}
+                  >
+                    {/* Left accent bar — color-coded by labor type */}
+                    <div className="w-[3px] flex-shrink-0" style={{ backgroundColor: accentColor }} />
+
+                    {/* Line number */}
+                    <div className="flex-shrink-0 w-7 flex items-center justify-center border-r border-border/25">
+                      <span className="text-[10px] font-bold text-muted-foreground/40 tabular-nums">
                         {line.lineNo}
                       </span>
                     </div>
@@ -207,12 +210,12 @@ export function LineItemEditor({
                         value={line.description}
                         onChange={(e) => handleLineChange(index, { description: e.target.value })}
                         placeholder="Job description..."
-                        className="w-full h-11 px-2 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/40"
+                        className="w-full h-11 px-2.5 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/35"
                       />
                     </div>
 
                     {/* Divider */}
-                    <div className="w-px h-6 bg-border/50 flex-shrink-0" />
+                    <div className="w-px h-6 self-center bg-border/40 flex-shrink-0" />
 
                     {/* Hours */}
                     <div className="flex-shrink-0 w-[72px]">
@@ -227,7 +230,7 @@ export function LineItemEditor({
                     {/* Delete */}
                     <button
                       onClick={() => handleRemoveLine(index)}
-                      className="flex-shrink-0 w-9 h-11 flex items-center justify-center text-muted-foreground/40 hover:text-destructive active:text-destructive transition-colors"
+                      className="flex-shrink-0 w-9 h-11 flex items-center justify-center text-muted-foreground/30 hover:text-destructive active:text-destructive transition-colors"
                       aria-label="Remove line"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -236,7 +239,7 @@ export function LineItemEditor({
 
                   {/* Labor type row (optional) */}
                   {showLaborType && (
-                    <div className="px-8 pb-2">
+                    <div className="px-4 pb-2 pt-1">
                       <select
                         value={line.laborType || ''}
                         onChange={(e) => handleLineChange(index, {
@@ -251,9 +254,9 @@ export function LineItemEditor({
                       </select>
                     </div>
                   )}
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       )}
