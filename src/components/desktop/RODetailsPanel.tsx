@@ -172,11 +172,11 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
           </div>
         )}
 
-        {/* ── Lines — table-style, no individual cards ──── */}
-        <div className="px-4 pt-3 pb-2">
-          <div className="flex items-baseline justify-between mb-1.5">
-            <p className="section-title">Work Lines</p>
-            <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">
+        {/* ── Lines — integrated table ──────────────── */}
+        <div className="px-4 pt-2.5 pb-2">
+          <div className="flex items-baseline justify-between mb-1">
+            <p className="data-header">Work Lines</p>
+            <span className="text-[9px] font-medium text-muted-foreground/40 tabular-nums">
               {ro.lines?.length || 0} line{(ro.lines?.length || 0) !== 1 ? 's' : ''}
             </span>
           </div>
