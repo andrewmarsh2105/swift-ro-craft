@@ -70,9 +70,9 @@ function GoalBar({ label, current, goal, hide }: { label: string; current: numbe
 function StatCell({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">{label}</span>
-      <span className={cn('text-lg font-bold tabular-nums font-mono leading-tight', accent && 'text-green-600')}>{value}</span>
-      {sub && <span className="text-[10px] text-muted-foreground/50">{sub}</span>}
+      <span className="data-header">{label}</span>
+      <span className={cn('text-base font-bold tabular-nums font-mono leading-tight', accent && 'text-green-600')}>{value}</span>
+      {sub && <span className="text-[9px] text-muted-foreground/40">{sub}</span>}
     </div>
   );
 }
