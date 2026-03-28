@@ -415,7 +415,9 @@
 
   /* ── Unified panel action bar (bottom sticky) ─────── */
   .panel-action-bar {
-    @apply flex-shrink-0 border-t bg-card/95 backdrop-blur-sm px-4 py-2;
+    @apply flex-shrink-0 border-t px-4 py-2;
+    background: hsl(var(--card) / 0.95);
+    backdrop-filter: blur(8px);
     border-color: hsl(var(--border) / 0.5);
   }
 
