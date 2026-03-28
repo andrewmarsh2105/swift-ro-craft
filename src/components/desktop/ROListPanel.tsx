@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2, Rows3, Rows4 } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, CalendarRange, CheckCircle2, LockOpen, Rows3, Rows4 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { ROActionMenu } from "@/components/shared/ROActionMenu";
 import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
 import { maskHours } from "@/lib/maskHours";
-import { cn } from "@/lib/utils";
+import { cn, localDateStr } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers, matchesSearchQuery } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
@@ -96,14 +96,9 @@ function RowStatusChips({
           PAID
         </span>
       ) : (
-        <span className="text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+          <LockOpen className="h-2.5 w-2.5" />
           OPEN
-        </span>
-      )}
-      {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm bg-muted text-muted-foreground">
-          <Clock className="h-2.5 w-2.5" />
-          {status.allTbd ? 'TBD' : status.tbd}
         </span>
       )}
       {status.flags > 0 && (
@@ -150,7 +145,7 @@ export const ROListPanel = memo(function ROListPanel({
   onFilteredROsChange,
   compact = false,
 }: ROListPanelProps) {
-  const { ros, deleteRO, loadingROs } = useRO();
+  const { ros, deleteRO, updateRO, loadingROs } = useRO();
   const { flags, userSettings, addFlag } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -282,7 +277,7 @@ export const ROListPanel = memo(function ROListPanel({
   const rangeChipLabel = useMemo(() => boundsRangeLabel(listBounds), [listBounds]);
 
   const totals = useMemo(() => {
-    const totalHours = filteredROs.reduce((sum, ro) => sum + calcHours(ro), 0);
+    const totalHours = filteredROs.filter(ro => !!ro.paidDate).reduce((sum, ro) => sum + calcHours(ro), 0);
     return { totalHours, totalAll: filteredROs.length };
   }, [filteredROs]);
 
@@ -571,9 +566,11 @@ export const ROListPanel = memo(function ROListPanel({
                       <div onClick={(e) => e.stopPropagation()} role="cell">
                         <ROActionMenu
                           roNumber={ro.roNumber}
+                          isPaid={!!ro.paidDate}
                           onEdit={() => onSelectRO(ro)}
                           onDelete={() => deleteRO(ro.id)}
                           onFlag={() => setFlaggingRO(ro)}
+                          onTogglePaid={() => updateRO(ro.id, { paidDate: ro.paidDate ? '' : localDateStr() })}
                           existingRONumbers={existingRONumbers}
                           className="-mr-1 opacity-0 group-hover:opacity-100 quiet-transition"
                         />

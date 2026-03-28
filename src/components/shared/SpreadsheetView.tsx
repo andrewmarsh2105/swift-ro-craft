@@ -185,13 +185,12 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
         </p>
       </div>
       <div className="flex flex-col items-end gap-0.5 shrink-0 ml-1">
-        <span className={cn('text-base font-bold tabular-nums leading-none', line.isTbd && 'line-through text-amber-500')}>
+        <span className="text-base font-bold tabular-nums leading-none">
           {line.hours.toFixed(1)}h
         </span>
         <span className={cn('text-[10px] font-semibold uppercase tracking-wide', typeColor)}>
           {line.type}
         </span>
-        {line.isTbd && <span className="text-[9px] font-bold text-amber-500">TBD</span>}
       </div>
     </div>
   );
@@ -213,7 +212,7 @@ const DISPLAY_COLUMNS: ColumnId[] = [
 ];
 
 const AUDIT_DISPLAY_COLUMNS: ColumnId[] = [
-  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'status', 'flags', 'lineNo', 'description', 'hours', 'type', 'tbd', 'notes', 'mileage', 'vin',
+  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'status', 'flags', 'lineNo', 'description', 'hours', 'type', 'notes', 'mileage', 'vin',
 ];
 
 const ROW_BATCH = 120;
@@ -605,9 +604,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id));
     const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none' });
     const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-    const exportRows = rows
-      .filter(r => !(r.rowType === 'line' && (r as SpreadsheetLineRow).isTbd))
-      .map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
+    const exportRows = rows.map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
     const csv = buildCSV(headers, exportRows);
     downloadCSVFile(csv, `selected-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     toast.success(`Exported ${selectedROs.length} RO(s)`);
@@ -672,12 +669,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       }
       case 'hours': {
         return (
-          <span className={cn(
-            'inline-block tabular-nums font-bold',
-            row.isTbd ? 'line-through text-amber-500/70' : 'text-foreground',
-          )}>
+          <span className="inline-block tabular-nums font-bold text-foreground">
             {row.hours.toFixed(1)}
-            {row.isTbd && <span className="ml-1 text-[9px] font-semibold no-underline text-amber-500">TBD</span>}
           </span>
         );
       }
@@ -693,8 +686,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           </span>
         );
       }
-      case 'tbd':
-        return row.isTbd ? <span className="text-amber-500 text-[10px] font-bold">TBD</span> : '';
       case 'notes':
         return <span className="text-xs text-muted-foreground truncate">{row.notes || ''}</span>;
       case 'mileage':
@@ -708,9 +699,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   /* ─── Export helpers ─── */
   const handleExportCSV = useCallback((mode: 'payroll' | 'audit') => {
     const headers = mode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-    const exportRows = allRows
-      .filter(r => !(r.rowType === 'line' && (r as SpreadsheetLineRow).isTbd))
-      .map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
+    const exportRows = allRows.map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
     const csv = buildCSV(headers, exportRows);
     downloadCSVFile(csv, `${mode}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} CSV downloaded`);
@@ -720,9 +709,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     try {
       const XLSX = await import('xlsx');
       const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-      const exportRows = allRows
-        .filter(r => !(r.rowType === 'line' && (r as SpreadsheetLineRow).isTbd))
-        .map(r => rowToExportCells(r, headers));
+      const exportRows = allRows.map(r => rowToExportCells(r, headers));
       const data = [headers, ...exportRows];
 
       const ws = XLSX.utils.aoa_to_sheet(data);

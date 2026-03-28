@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, Plus, Loader2, User, FileText, Crown, ListChecks, Search } from 'lucide-react';
+import { Camera, Plus, Loader2, User, FileText, Crown, Search } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -221,7 +221,6 @@ export default function AddRO() {
   }, [focusLineId]);
 
   const totalHours = calcLineHours(lines);
-  const tbdCount = lines.filter(l => l.isTbd).length;
 
   const quickPresets = useMemo(() => {
     const favorites = settings.presets.filter(p => p.isFavorite);
@@ -321,15 +320,6 @@ export default function AddRO() {
     }, 400);
   }, [addPresetLine]);
 
-  const allLinesTbd = lines.length > 0 && lines.every(l => l.isTbd);
-
-  const handleToggleAllTbd = () => {
-    haptics.light();
-    const markTbd = !allLinesTbd;
-    setLines(prev => prev.map(l => ({ ...l, isTbd: markTbd, updatedAt: new Date().toISOString() })));
-    toast.success(markTbd ? 'All lines marked TBD' : 'TBD cleared from all lines');
-  };
-
   const handleSave = async (addAnother: boolean = false) => {
     if (!roNumber.trim()) { toast.error('RO number is required'); return; }
     if (!advisor.trim()) { toast.error('Advisor is required'); return; }
@@ -340,7 +330,8 @@ export default function AddRO() {
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      paidDate: paidDate.trim() || (editingRO ? '' : undefined),
+      // New ROs are automatically marked as paid (today's date); editing preserves existing paidDate
+      paidDate: editingRO ? (paidDate.trim() || '') : (paidDate.trim() || date || localDateStr()),
       paidHours: totalHours, laborType,
       workPerformed: computedWorkPerformed, notes, date,
       photos: editingRO?.photos, lines, isSimpleMode: false,
@@ -419,7 +410,7 @@ export default function AddRO() {
       {/* Header */}
       <PageHeader
         title={editingRO ? `Edit RO #${editingRO.roNumber}` : (userSettings.shopName || 'New Repair Order')}
-        subtitle={`${totalHours.toFixed(1)}h${tbdCount > 0 ? ` · ${tbdCount} TBD` : ''} · ${lines.length} lines`}
+        subtitle={`${totalHours.toFixed(1)}h · ${lines.length} lines`}
         onBack={() => navigate(-1)}
         rightActions={isPro ? (
           <button
@@ -589,22 +580,6 @@ export default function AddRO() {
               <Search className="h-4 w-4 text-muted-foreground" />
             </button>
 
-            {/* TBD All: icon-only, amber when active */}
-            <button
-              type="button"
-              onClick={handleToggleAllTbd}
-              className={cn(
-                'flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl border active:scale-[0.93] transition-all',
-                allLinesTbd
-                  ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
-                  : 'bg-secondary text-muted-foreground border-border'
-              )}
-              title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
-              aria-label={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines as TBD'}
-              aria-pressed={allLinesTbd}
-            >
-              <ListChecks className="h-4 w-4" />
-            </button>
 
           </div>
         </div>
@@ -617,7 +592,6 @@ export default function AddRO() {
             </span>
             <span className="text-xs text-muted-foreground leading-none" aria-live="polite">
               {lines.length} {lines.length === 1 ? 'line' : 'lines'}
-              {tbdCount > 0 && <span className="ml-1 text-destructive font-medium">· {tbdCount} TBD</span>}
             </span>
           </div>
           {!editingRO && (

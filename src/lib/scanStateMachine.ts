@@ -23,8 +23,6 @@ export interface ExtractedLine {
   hours: number;
   laborType: 'warranty' | 'customer-pay' | 'internal';
   confidence: number;
-  /** Whether this line is marked as TBD */
-  isTbd?: boolean;
   /** Which page this line came from (1-indexed) */
   sourcePage?: number;
 }

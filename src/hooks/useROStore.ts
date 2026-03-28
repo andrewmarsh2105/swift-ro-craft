@@ -64,7 +64,7 @@ function hotCutoffDateStr(): string {
 }
 
 function paidLinesOf(ro: RepairOrder): ROLine[] {
-  return (ro.lines || []).filter(l => !l.isTbd);
+  return ro.lines || [];
 }
 
 const defaultSettings: Settings = {
@@ -875,39 +875,6 @@ export function useROStore() {
     };
   }, [ros]);
 
-  const clearAllTbdLines = useCallback(async () => {
-    if (!user) return;
-
-    // Read from ref so we always see the current state without adding `ros` to
-    // deps (which would recreate the callback on every RO change).
-    const tbdLineIds = rosRef.current.flatMap((ro) =>
-      ro.lines.filter((l) => l.isTbd).map((l) => l.id)
-    );
-    if (tbdLineIds.length === 0) return;
-
-    const { error } = await supabase
-      .from('ro_lines')
-      .update({ is_tbd: false })
-      .in('id', tbdLineIds);
-
-    if (error) {
-      toast.error('Failed to clear TBD status');
-      return;
-    }
-
-    // Apply the change in-memory — no need to re-fetch the entire dataset just
-    // to flip a boolean field we already know changed.
-    setROs((prev) => {
-      const updated = prev.map((ro) => ({
-        ...ro,
-        lines: ro.lines.map((l) => (l.isTbd ? { ...l, isTbd: false } : l)),
-      }));
-      if (userId) void saveROsToCache(userId, updated);
-      return updated;
-    });
-
-    toast.success(`Cleared TBD from ${tbdLineIds.length} line(s)`);
-  }, [user, userId]);
 
   /**
    * Opt-in sample data seeder. Called by the onboarding flow when the user
@@ -1005,7 +972,6 @@ export function useROStore() {
     deleteRO,
     duplicateRO,
     clearAllROs,
-    clearAllTbdLines,
     updateSettings,
     updatePresets,
     updateAdvisors,

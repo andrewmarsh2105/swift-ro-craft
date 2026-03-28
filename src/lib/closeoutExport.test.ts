@@ -15,7 +15,6 @@ const baseCloseout: CloseoutSnapshot = {
     internalHours: 0,
     flaggedCount: 0,
     needsReviewCount: 0,
-    tbdCount: 0,
     totalROs: 0,
     totalLines: 0,
   },

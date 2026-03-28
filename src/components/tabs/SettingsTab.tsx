@@ -377,7 +377,7 @@ export function SettingsTab() {
               notes: ro.notes, paidDate: ro.paidDate,
               lines: ro.lines.map(l => ({
                 lineNo: l.lineNo, description: l.description,
-                laborType: l.laborType, hoursPaid: l.hoursPaid, isTbd: l.isTbd,
+                laborType: l.laborType, hoursPaid: l.hoursPaid,
               })),
             }));
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });

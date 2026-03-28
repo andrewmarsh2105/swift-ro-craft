@@ -43,7 +43,6 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
       lineNo: l.lineNo,
       description: l.description,
       hoursPaid: l.hours,
-      isTbd: l.isTbd,
       laborType: asLaborType(l.laborType),
       matchedReferenceId: l.matchedReferenceId,
       vehicleOverride: false,
@@ -57,7 +56,6 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     updatedAt: snapshot.closedAt,
   }));
   const linesInRange = rosInRange.flatMap(ro => ro.lines.map(line => ({ ro, line })));
-  const tbdHours = linesInRange.filter(({ line }) => line.isTbd).reduce((sum, { line }) => sum + line.hoursPaid, 0);
 
   return {
     startDate: snapshot.periodStart,
@@ -65,8 +63,6 @@ function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
     totalHours: snapshot.totals.totalHours,
     totalROs: snapshot.totals.totalROs,
     totalLines: snapshot.totals.totalLines,
-    tbdLineCount: snapshot.totals.tbdCount,
-    tbdHours,
     byDay: (snapshot.breakdowns.byDay || []).map(d => ({
       date: d.date,
       totalHours: d.totalHours,
@@ -236,7 +232,7 @@ function ProofPackContent({ report }: { report: PayPeriodReport }) {
         {showROs && (
           <div className="space-y-1">
             {report.rosInRange.map(ro => {
-              const roLines = (ro.lines || []).filter(l => l.description.trim() !== '' && !l.isTbd);
+              const roLines = (ro.lines || []).filter(l => l.description.trim() !== '');
               const roTotal = roLines.reduce((s, l) => s + l.hoursPaid, 0);
               return (
                 <div key={ro.id} className="py-2 px-3 bg-card rounded-lg">

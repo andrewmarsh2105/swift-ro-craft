@@ -187,22 +187,14 @@ export function LinesGrid({
   };
 
   const totalHours = calcLineHours(lines);
-  const tbdCount = lines.filter((l) => l.isTbd).length;
-  const allLinesTbd = lines.length > 0 && tbdCount === lines.length;
-
-  const handleToggleAllTbd = () => {
-    const markTbd = !allLinesTbd;
-    onLinesChange(lines.map(l => ({ ...l, isTbd: markTbd, updatedAt: new Date().toISOString() })));
-  };
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card">
       {/* Table Header */}
-      <div className="grid grid-cols-[48px_1fr_120px_60px_100px_88px] bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="grid grid-cols-[48px_1fr_120px_100px_88px] bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
         <div className="px-3 py-2 text-center">#</div>
         <div className="px-3 py-2">Description</div>
         <div className="px-3 py-2">Type</div>
-        <div className="px-3 py-2 text-center">TBD</div>
         <div className="px-3 py-2 text-right">Hours</div>
         <div className="px-3 py-2 text-center">Actions</div>
       </div>
@@ -220,12 +212,11 @@ export function LinesGrid({
               className={cn(
                 'border-b border-border/50 transition-colors overflow-hidden',
                 index % 2 === 0 ? 'bg-background' : 'bg-muted/10',
-                line.isTbd && 'opacity-60',
                 isHighlighted && 'ring-2 ring-primary ring-inset bg-primary/10'
               )}
             >
               {/* Compact row — always visible */}
-              <div className="grid grid-cols-[48px_1fr_120px_60px_100px_88px] hover:bg-muted/30 transition-colors">
+              <div className="grid grid-cols-[48px_1fr_120px_100px_88px] hover:bg-muted/30 transition-colors">
                 {/* Line Number */}
                 <div className="px-3 py-2 text-center text-sm font-medium text-muted-foreground flex items-center justify-center">
                   <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-semibold">
@@ -297,39 +288,14 @@ export function LinesGrid({
                   </select>
                 </div>
 
-                {/* TBD Toggle */}
-                <div className="px-2 py-1 flex items-center justify-center">
-                  {!readOnly && (
-                    <button
-                      onClick={() => handleLineChange(index, { isTbd: !line.isTbd })}
-                      className={cn(
-                        'px-2 py-1 rounded text-[10px] font-bold transition-colors',
-                        line.isTbd
-                          ? 'bg-warning/20 text-warning border border-warning/40'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      )}
-                    >
-                      TBD
-                    </button>
-                  )}
-                  {readOnly && line.isTbd && (
-                    <span className="px-2 py-1 bg-warning/20 text-warning text-[10px] font-bold rounded">
-                      TBD
-                    </span>
-                  )}
-                </div>
-
                 {/* Hours */}
                 <div className="px-2 py-1">
                   <DecimalHoursInput
                     value={line.hoursPaid}
                     onChange={(v) => handleHoursChange(index, v)}
-                    placeholder={line.isTbd ? '—' : '0.0'}
+                    placeholder="0.0"
                     disabled={readOnly}
-                    className={cn(
-                      'w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded-[10px] text-sm text-right font-medium tabular-nums focus:outline-none transition-colors disabled:opacity-60',
-                      line.isTbd && 'line-through text-muted-foreground'
-                    )}
+                    className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded-[10px] text-sm text-right font-medium tabular-nums focus:outline-none transition-colors disabled:opacity-60"
                   />
                 </div>
 
@@ -390,33 +356,12 @@ export function LinesGrid({
       )}
 
       {/* Footer with Total */}
-      <div className="grid grid-cols-[48px_1fr_120px_60px_100px_88px] bg-muted/30 border-t border-border font-semibold">
+      <div className="grid grid-cols-[48px_1fr_120px_100px_88px] bg-muted/30 border-t border-border font-semibold">
         <div className="px-3 py-3" />
         <div className="px-3 py-3 text-sm text-muted-foreground">
           Total ({lines.length} lines)
-          {tbdCount > 0 && (
-            <span className="ml-2 text-warning text-xs font-medium">
-              • {allLinesTbd ? 'TBD All' : `${tbdCount} TBD`}
-            </span>
-          )}
         </div>
         <div className="px-3 py-3" />
-        <div className="px-2 py-3 flex items-center justify-center">
-          {!readOnly && lines.length > 0 && (
-            <button
-              onClick={handleToggleAllTbd}
-              className={cn(
-                'px-2 py-1 rounded text-[10px] font-bold transition-colors',
-                allLinesTbd
-                  ? 'bg-warning/20 text-warning border border-warning/40'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              )}
-              title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines TBD'}
-            >
-              All
-            </button>
-          )}
-        </div>
         <div className="px-3 py-3 text-right text-primary tabular-nums">{totalHours.toFixed(1)}h</div>
         <div className="px-3 py-3" />
       </div>

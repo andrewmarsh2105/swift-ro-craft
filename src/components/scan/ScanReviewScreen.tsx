@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2, Clock, X, ZoomIn } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2, X, ZoomIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -161,7 +161,6 @@ export function ScanReviewScreen({
       hours: 0,
       laborType: 'customer-pay',
       confidence: 1,
-      isTbd: false,
     };
     const updated = { ...data, lines: [newLine, ...data.lines] };
     setData(updated);
@@ -181,7 +180,6 @@ export function ScanReviewScreen({
       lineNo: i + 1,
       description: line.description,
       hoursPaid: line.hours,
-      isTbd: line.isTbd || false,
       laborType: line.laborType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -1019,19 +1017,6 @@ function LineRow({ line, idx, showConfidence, isNew, isDuplicate, showPageBadge,
                 <option key={lt.value} value={lt.value}>{lt.label}</option>
               ))}
             </select>
-            <button
-              onClick={() => onUpdate(line.id, 'isTbd', !line.isTbd)}
-              className={cn(
-                'h-8 px-2 rounded text-xs font-bold flex items-center gap-1 transition-colors',
-                line.isTbd
-                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              )}
-              title="Mark as TBD"
-            >
-              <Clock className="h-3 w-3" />
-              TBD
-            </button>
             {showConfidence && <ConfidenceBadge value={line.confidence} />}
           </div>
         </div>

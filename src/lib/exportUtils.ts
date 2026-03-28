@@ -15,7 +15,7 @@ export function generateLineCSV(report: PayPeriodReport): string {
   ];
 
   // Group lines by RO so we only print RO-level info on the first line
-  const filtered = report.linesInRange.filter(({ line }) => line.description.trim() !== '' && !line.isTbd);
+  const filtered = report.linesInRange.filter(({ line }) => line.description.trim() !== '');
   let lastRoId = '';
   const rows = filtered.map(({ ro, line }) => {
     const isFirstLine = ro.id !== lastRoId;
@@ -45,9 +45,6 @@ export function generateSummaryText(report: PayPeriodReport): string {
   const lines: string[] = [];
   lines.push(`PAY PERIOD REPORT: ${report.startDate} to ${report.endDate}`);
   lines.push(`Total Paid Hours: ${report.totalHours.toFixed(1)}h | ${report.totalROs} ROs | ${report.totalLines} lines`);
-  if (report.tbdLineCount > 0) {
-    lines.push(`TBD: ${report.tbdLineCount} lines (${report.tbdHours.toFixed(1)}h) — not counted in totals`);
-  }
   lines.push('');
 
   // By labor type
@@ -75,9 +72,8 @@ export function generateSummaryText(report: PayPeriodReport): string {
   lines.push('');
 
   // Warnings
-  if (report.flaggedCount > 0 || report.tbdLineCount > 0) {
+  if (report.flaggedCount > 0) {
     lines.push('WARNINGS:');
-    if (report.tbdLineCount > 0) lines.push(`  ⏳ ${report.tbdLineCount} TBD lines (${report.tbdHours.toFixed(1)}h not counted)`);
     if (report.flaggedCount > 0) lines.push(`  🚩 ${report.flaggedCount} flagged items`);
   }
 

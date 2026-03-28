@@ -76,7 +76,6 @@ export function exportPDFFromRows(
   for (const row of rows) {
     if (row.rowType === 'line') {
       const line = row as SpreadsheetLineRow;
-      if (line.isTbd) continue; // skip TBD
       body.push(rowToExportCells(row, headers));
     } else {
       const sub = row as SpreadsheetSubtotalRow;

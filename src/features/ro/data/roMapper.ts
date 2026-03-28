@@ -69,7 +69,6 @@ export function dbToRepairOrder(row: RoRow, lines: RoLineRow[]): RepairOrder {
     mileage: row.mileage ?? undefined,
     vehicle,
     paidHours: lines
-      .filter((l) => !l.is_tbd)
       .reduce((s, l) => s + Number(l.hours_paid), 0),
     laborType: deriveLaborType(lines),
     workPerformed: lines.map((l) => l.description).filter(Boolean).join("\n"),
@@ -79,7 +78,6 @@ export function dbToRepairOrder(row: RoRow, lines: RoLineRow[]): RepairOrder {
       lineNo: l.line_no,
       description: l.description,
       hoursPaid: Number(l.hours_paid),
-      isTbd: !!l.is_tbd,
       laborType: l.labor_type as unknown as LaborType,
       matchedReferenceId: l.matched_reference_id ?? undefined,
       vehicleOverride: !!l.vehicle_override,
@@ -175,7 +173,6 @@ export function toRoLineInserts(params: {
     description: string;
     laborType?: LaborType;
     hoursPaid: number;
-    isTbd?: boolean;
     matchedReferenceId?: string;
     vehicleOverride?: boolean;
     lineVehicle?: VehicleInfo;
@@ -191,7 +188,7 @@ export function toRoLineInserts(params: {
     description: l.description,
     labor_type: (l.laborType ?? fallbackLaborType) as unknown as LaborTypeDb,
     hours_paid: l.hoursPaid,
-    is_tbd: !!l.isTbd,
+    is_tbd: false,
     matched_reference_id: l.matchedReferenceId ?? null,
     vehicle_override: !!l.vehicleOverride,
     line_vehicle_year: l.lineVehicle?.year ?? null,

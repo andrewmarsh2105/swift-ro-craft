@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Flag, AlertCircle, Download, Copy, Share2, FileSpreadsheet, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, Flag, Download, Copy, Share2, FileSpreadsheet, FileText } from 'lucide-react';
 import { maskHours } from '@/lib/maskHours';
 import { downloadCSVFile } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -18,8 +18,6 @@ interface CloseoutDetailViewProps {
   closeout: CloseoutSnapshot;
 }
 
-type FilterMode = 'all' | 'tbd';
-
 const RANGE_LABELS: Record<string, string> = {
   day: 'Day',
   week: 'Week',
@@ -31,8 +29,6 @@ const RANGE_LABELS: Record<string, string> = {
 
 function ROItem({ ro, hide }: { ro: ROSnapshot; hide: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const paidLines = ro.lines.filter(l => !l.isTbd);
-  const tbdLines = ro.lines.filter(l => l.isTbd);
 
   return (
     <div className="bg-card rounded-lg border border-border overflow-hidden">
@@ -53,10 +49,7 @@ function ROItem({ ro, hide }: { ro: ROSnapshot; hide: boolean }) {
           {ro.lines.map((line, idx) => {
             const ltLabel = line.laborType === 'warranty' ? 'W' : line.laborType === 'internal' ? 'I' : 'CP';
             return (
-              <div key={line.lineId || idx} className={cn(
-                'flex items-center gap-2 px-3 py-2 text-sm border-b border-border last:border-0',
-                line.isTbd && 'opacity-50'
-              )}>
+              <div key={line.lineId || idx} className="flex items-center gap-2 px-3 py-2 text-sm border-b border-border last:border-0">
                 <span className="text-xs font-mono text-muted-foreground w-5">{line.lineNo}</span>
                 <span className="flex-1 min-w-0 truncate">{line.description || '(empty)'}</span>
                 <span className={cn(
@@ -66,20 +59,15 @@ function ROItem({ ro, hide }: { ro: ROSnapshot; hide: boolean }) {
                   'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                 )}>{ltLabel}</span>
                 <span className="text-sm font-semibold tabular-nums w-12 text-right">
-                  {line.isTbd ? 'TBD' : `${line.hours.toFixed(1)}h`}
+                  {line.hours.toFixed(1)}h
                 </span>
               </div>
             );
           })}
           <div className="flex justify-between items-center px-3 py-2 bg-muted/30 text-sm font-semibold">
-            <span>Total (excl TBD)</span>
+            <span>Total</span>
             <span>{maskHours(ro.totalPaidHours, hide)}h</span>
           </div>
-          {tbdLines.length > 0 && (
-            <div className="px-3 py-1.5 text-xs text-muted-foreground bg-muted/20">
-              {tbdLines.length} TBD line{tbdLines.length !== 1 ? 's' : ''} excluded
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -87,7 +75,6 @@ function ROItem({ ro, hide }: { ro: ROSnapshot; hide: boolean }) {
 }
 
 function CloseoutContent({ closeout }: { closeout: CloseoutSnapshot }) {
-  const [filter, setFilter] = useState<FilterMode>('all');
   const { userSettings } = useFlagContext();
   const hide = userSettings.hideTotals ?? false;
   const t = closeout.totals;
@@ -98,9 +85,7 @@ function CloseoutContent({ closeout }: { closeout: CloseoutSnapshot }) {
   const dateLabel = `${startD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${endD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
   const ros = closeout.roSnapshot || [];
-  const filteredROs = filter === 'tbd'
-    ? ros.filter(ro => ro.lines.some(l => l.isTbd))
-    : ros;
+  const filteredROs = ros;
 
   const handleCopyText = async () => {
     const lines = [
@@ -109,7 +94,7 @@ function CloseoutContent({ closeout }: { closeout: CloseoutSnapshot }) {
       `CP: ${t.customerPayHours.toFixed(1)}h | W: ${t.warrantyHours.toFixed(1)}h | I: ${t.internalHours.toFixed(1)}h`,
       '',
       ...ros.map(ro => {
-        const paidLines = ro.lines.filter(l => !l.isTbd);
+        const paidLines = ro.lines;
         return [
           `#${ro.roNumber} — ${ro.advisor} — ${ro.totalPaidHours.toFixed(1)}h`,
           ...paidLines.map(l => `  ${l.lineNo}. ${l.description} (${l.laborType === 'warranty' ? 'W' : l.laborType === 'internal' ? 'I' : 'CP'}) ${l.hours.toFixed(1)}h`),
@@ -164,38 +149,15 @@ function CloseoutContent({ closeout }: { closeout: CloseoutSnapshot }) {
       </div>
 
       {/* Warnings */}
-      {(t.flaggedCount > 0 || t.tbdCount > 0) && (
+      {t.flaggedCount > 0 && (
         <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
-          {t.flaggedCount > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
-              <span>{t.flaggedCount} flagged</span>
-            </div>
-          )}
-          {t.tbdCount > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <AlertCircle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-              <span>{t.tbdCount} TBD excluded</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm">
+            <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
+            <span>{t.flaggedCount} flagged</span>
+          </div>
         </div>
       )}
 
-      {/* Filter chips */}
-      <div className="flex gap-2">
-        {(['all', 'tbd'] as FilterMode[]).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-semibold transition-colors',
-              filter === f ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-            )}
-          >
-            {f === 'all' ? `All (${ros.length})` : `Has TBD`}
-          </button>
-        ))}
-      </div>
 
       {/* RO List */}
       <div className="space-y-2">
