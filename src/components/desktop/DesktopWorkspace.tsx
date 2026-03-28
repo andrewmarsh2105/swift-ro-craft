@@ -93,11 +93,12 @@ function SplitHandle({
   return (
     <div
       className={cn(
-        "w-1.5 flex-shrink-0 cursor-col-resize flex items-center justify-center group rounded-sm quiet-transition",
+        "w-[5px] flex-shrink-0 cursor-col-resize flex items-center justify-center group quiet-transition relative",
         isDragging
-          ? "bg-primary/30"
-          : "bg-border/30 hover:bg-primary/20",
+          ? "bg-primary/20"
+          : "hover:bg-primary/10",
       )}
+      style={{ background: isDragging ? undefined : 'hsl(var(--border) / 0.4)' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -105,17 +106,10 @@ function SplitHandle({
       role="separator"
       aria-orientation="vertical"
     >
-      <div className="flex flex-col gap-[3px] opacity-50 group-hover:opacity-100 quiet-transition">
-        {[0, 1, 2, 3].map(i => (
-          <div
-            key={i}
-            className={cn(
-              "w-[3px] h-[3px] rounded-full bg-muted-foreground quiet-transition",
-              isDragging && "bg-primary",
-            )}
-          />
-        ))}
-      </div>
+      <div className={cn(
+        "w-[3px] h-8 rounded-full quiet-transition",
+        isDragging ? "bg-primary/60" : "bg-muted-foreground/20 group-hover:bg-primary/40",
+      )} />
     </div>
   );
 }
