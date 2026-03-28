@@ -71,6 +71,17 @@ const laborBorderColor = (type: LaborType) =>
       ? "hsl(var(--status-customer-pay))"
       : "hsl(var(--status-internal))";
 
+/* ── Labor type abbreviation ────────────────────── */
+const laborAbbr = (type: LaborType) =>
+  type === "warranty" ? "W" : type === "customer-pay" ? "CP" : "INT";
+
+const laborPillClass = (type: LaborType) =>
+  type === "warranty"
+    ? "status-pill-warranty"
+    : type === "customer-pay"
+      ? "status-pill-customer-pay"
+      : "status-pill-internal";
+
 /* ── Compact status indicators ─────────────────── */
 function RowStatusChips({
   ro, flagsCount, checksCount,
@@ -78,31 +89,31 @@ function RowStatusChips({
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 flex-wrap">
       {status.paid === "Paid" ? (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-warranty))" }}>
-          <CheckCircle2 className="h-3 w-3" />
-          <span>Paid</span>
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-warranty))", background: "hsl(var(--status-warranty-bg))" }}>
+          <CheckCircle2 className="h-2.5 w-2.5" />
+          PAID
         </span>
       ) : (
-        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+        <span className="text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
           OPEN
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm bg-muted text-muted-foreground">
           <Clock className="h-2.5 w-2.5" />
-          {status.allTbd ? 'ALL' : status.tbd}
+          {status.allTbd ? 'TBD' : status.tbd}
         </span>
       )}
       {status.flags > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-internal))" }}>
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </span>
       )}
       {status.checks > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive bg-destructive/10 leading-none px-1 py-0.5 rounded-sm">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </span>
