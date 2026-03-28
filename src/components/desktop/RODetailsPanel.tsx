@@ -160,7 +160,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
       </div>
 
       {/* ═══ Scrollable body ═══ */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="panel-body">
 
         {/* ── Metadata strip — compact horizontal fields ── */}
         {hasMetadata && (
