@@ -504,8 +504,8 @@ export const ROListPanel = memo(function ROListPanel({
                         rowPy,
                         gridCols,
                         selected
-                          ? "bg-primary/[0.09] border-l-[3px] border-l-primary"
-                          : "hover:bg-muted/40",
+                          ? "list-row-selected bg-primary/[0.08]"
+                          : "hover:bg-muted/30",
                       )}
                       style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}
                       onClick={() => onSelectRO(ro)}
