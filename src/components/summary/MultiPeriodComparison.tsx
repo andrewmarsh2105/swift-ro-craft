@@ -130,17 +130,17 @@ export function MultiPeriodComparison({
   return (
     <div className="space-y-3">
       {/* Quick presets */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="grid grid-cols-3 gap-2">
         <button onClick={() => applyPreset('this-vs-last-week')}
-          className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground quiet-transition">
+          className="text-[11px] font-bold px-2 py-2 rounded-xl bg-secondary border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary text-foreground quiet-transition text-center leading-tight">
           This vs Last Week
         </button>
         <button onClick={() => applyPreset('this-vs-last-month')}
-          className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground quiet-transition">
+          className="text-[11px] font-bold px-2 py-2 rounded-xl bg-secondary border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary text-foreground quiet-transition text-center leading-tight">
           This vs Last Month
         </button>
         <button onClick={() => applyPreset('today-vs-yesterday')}
-          className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground quiet-transition">
+          className="text-[11px] font-bold px-2 py-2 rounded-xl bg-secondary border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary text-foreground quiet-transition text-center leading-tight">
           Today vs Yesterday
         </button>
       </div>
@@ -162,7 +162,7 @@ export function MultiPeriodComparison({
           {/* Summary hero row */}
           <div className="grid grid-cols-3 gap-2">
             <div className="card-mobile p-3 text-center space-y-0.5 border-l-4 border-primary bg-gradient-to-b from-primary/[0.1] to-card">
-              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period A</div>
+              <div className="text-[10px] font-bold text-primary uppercase tracking-wide">Period A</div>
               {start1 && end1 && (
                 <div className="text-[9px] text-muted-foreground/60">{format(start1, 'MMM d')}–{format(end1, 'MMM d')}</div>
               )}
@@ -182,8 +182,8 @@ export function MultiPeriodComparison({
                 </span>
               </div>
             </div>
-            <div className="card-mobile p-3 text-center space-y-0.5 border-l-4 bg-gradient-to-b from-accent/45 to-card" style={{ borderLeftColor: 'hsl(var(--chart-period-b))' }}>
-              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period B</div>
+            <div className="card-mobile p-3 text-center space-y-0.5 border-l-4 to-card" style={{ borderLeftColor: 'hsl(var(--chart-period-b))', background: 'linear-gradient(to bottom, hsl(var(--chart-period-b) / 0.12), hsl(var(--card)))' }}>
+              <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'hsl(var(--chart-period-b))' }}>Period B</div>
               {start2 && end2 && (
                 <div className="text-[9px] text-muted-foreground/60">{format(start2, 'MMM d')}–{format(end2, 'MMM d')}</div>
               )}
@@ -195,17 +195,40 @@ export function MultiPeriodComparison({
           </div>
 
           {/* Chart */}
-          <div className="card-mobile p-4 bg-gradient-to-b from-card to-secondary/25">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Daily Hours Comparison</h4>
-            <div className="h-56">
+          <div className="card-mobile p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">Daily Hours Comparison</h4>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-primary" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">Period A</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: 'hsl(var(--chart-period-b))' }} />
+                  <span className="text-[11px] font-semibold text-muted-foreground">Period B</span>
+                </div>
+              </div>
+            </div>
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyData} barGap={3} barCategoryGap="25%">
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis dataKey="dayLabel" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} width={26} />
+                <BarChart data={dailyData} barGap={4} barCategoryGap="30%" margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="hsl(var(--border))" opacity={0.6} />
+                  <XAxis
+                    dataKey="dayLabel"
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
+                    tickLine={false}
+                    axisLine={{ stroke: 'hsl(var(--border))', strokeOpacity: 0.6 }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={28}
+                    tickFormatter={(v) => `${v}h`}
+                  />
                   <Tooltip
-                    cursor={{ fill: 'hsl(var(--muted))', radius: 4 }}
-                    contentStyle={{ borderRadius: '0.75rem', fontSize: '0.8rem', border: '1px solid hsl(var(--border))', background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
+                    cursor={{ fill: 'hsl(var(--muted))', radius: 6, opacity: 0.6 }}
+                    contentStyle={{ borderRadius: '0.75rem', fontSize: '0.8rem', border: '1px solid hsl(var(--border))', background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', boxShadow: '0 4px 12px -4px hsl(220 20% 10% / 0.15)' }}
                     formatter={(value: number, name: string) => [hide ? '--.-h' : `${value.toFixed(1)}h`, name]}
                     labelFormatter={(_label, payload) => {
                       if (!payload || payload.length === 0) return _label;
@@ -214,9 +237,8 @@ export function MultiPeriodComparison({
                       return parts.join('  ·  ') || _label;
                     }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '0.7rem', paddingTop: '8px' }} />
-                  <Bar dataKey="periodA" name="Period A" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                  <Bar dataKey="periodB" name="Period B" fill="hsl(var(--chart-period-b))" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="periodA" name="Period A" fill="hsl(var(--primary))" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="periodB" name="Period B" fill="hsl(var(--chart-period-b))" radius={[5, 5, 0, 0]} maxBarSize={36} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
