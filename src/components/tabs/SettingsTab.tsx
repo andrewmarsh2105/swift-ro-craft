@@ -417,9 +417,9 @@ export function SettingsTab() {
     return (
       <div className="flex flex-col h-full overflow-y-auto">
         {/* Header */}
-        <div className="panel-header px-5 pt-4 pb-3">
+        <div className="panel-header px-4 pt-3 pb-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold tracking-tight">Settings</h1>
+            <h1 className="text-[15px] font-bold tracking-tight">Settings</h1>
             <SegmentedControl
               options={[
                 { value: 'settings', label: 'Settings' },
@@ -432,17 +432,17 @@ export function SettingsTab() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-5 max-w-2xl mx-auto w-full">
+          <div className="p-4 max-w-2xl mx-auto w-full">
             {settingsView === 'settings' ? (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* ═══ Account & Identity — top hero section ═══ */}
                 <div
-                  className="bg-card border border-border/60 overflow-hidden"
+                  className="bg-card border border-border/40 overflow-hidden"
                   style={{ borderRadius: 'var(--radius)' }}
                 >
                   {/* Identity row */}
-                  <div className="px-5 pt-4 pb-3 flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
+                  <div className="px-4 pt-3 pb-2.5 flex items-center gap-3.5">
+                    <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
                       {avatarInitial}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -481,7 +481,7 @@ export function SettingsTab() {
                   )}
 
                   {/* Inline profile fields */}
-                  <div className="border-t border-border/40 px-5 py-3.5">
+                  <div className="border-t border-border/30 px-4 py-3">
                     <div className="grid grid-cols-2 gap-4">
                       <DesktopInlineField
                         icon={<User className="h-3.5 w-3.5" />}
@@ -509,7 +509,7 @@ export function SettingsTab() {
                   </div>
 
                   {/* Quick actions row */}
-                  <div className="border-t border-border/40 px-5 py-2.5 flex items-center gap-3">
+                  <div className="border-t border-border/30 px-4 py-2 flex items-center gap-3">
                     {isAdmin && (
                       <button
                         onClick={() => navigate('/admin')}
@@ -528,7 +528,7 @@ export function SettingsTab() {
                 </div>
 
                 {/* ═══ Two-column grid for settings ═══ */}
-                <div className="grid grid-cols-2 gap-4 items-start">
+                <div className="grid grid-cols-2 gap-3 items-start">
                   {/* Left column: Display + Behavior */}
                   <div className="space-y-4">
                     <SettingsGroup title="Display">
@@ -581,7 +581,7 @@ export function SettingsTab() {
                         <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Goals & Earnings</h3>
                       </div>
                       <div
-                        className="bg-card border border-border/60 overflow-hidden"
+                        className="bg-card border border-border/40 overflow-hidden"
                         style={{ borderRadius: 'var(--radius)' }}
                       >
                         <div className="px-4 py-3.5 space-y-3">

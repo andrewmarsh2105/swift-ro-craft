@@ -319,18 +319,18 @@ export const ROListPanel = memo(function ROListPanel({
       <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
-        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.6)' }}>
+        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.4)' }}>
 
           {/* Top: title + stats + Add button */}
-          <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
+          <div className="flex items-center gap-2 px-3 pt-1.5 pb-1">
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-1.5">
-                <h2 className="text-[14px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'Repair Orders'}</h2>
-                <span className="text-[12px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
+                <h2 className="text-[13px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'RO Queue'}</h2>
+                <span className="text-[11px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
-                <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0">
-                  · {totals.totalAll} RO{totals.totalAll !== 1 ? 's' : ''}
+                <span className="text-[9px] text-muted-foreground/60 font-medium flex-shrink-0">
+                  · {totals.totalAll}
                 </span>
               </div>
             </div>
@@ -338,10 +338,10 @@ export const ROListPanel = memo(function ROListPanel({
             <button
               onClick={() => setDensity(d => d === "normal" ? "compact" : d === "compact" ? "dense" : "normal")}
               className={cn(
-                "h-6 w-6 flex items-center justify-center rounded border quiet-transition flex-shrink-0",
+                "h-5 w-5 flex items-center justify-center rounded quiet-transition flex-shrink-0",
                 density !== "normal"
-                  ? "bg-primary/10 text-primary border-primary/25"
-                  : "text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground",
+                  ? "text-primary"
+                  : "text-muted-foreground/40 hover:text-muted-foreground",
               )}
               title={density === "normal" ? "Switch to compact" : density === "compact" ? "Switch to dense" : "Switch to normal"}
             >
@@ -350,30 +350,28 @@ export const ROListPanel = memo(function ROListPanel({
             <Button
               size="sm"
               onClick={onAddNew}
-              className="h-7 text-[10px] gap-1 rounded-lg px-2.5 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
-              style={{ boxShadow: 'var(--shadow-soft)' }}
+              className="h-6 text-[10px] gap-1 rounded px-2 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
             >
               <Plus className="h-3 w-3" />
-              Add RO
+              Add
             </Button>
           </div>
 
           {/* Search bar */}
-          <div className="px-3 pb-1.5">
+          <div className="px-3 pb-1">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, RO#, VIN, lines, notes…"
-                className="w-full h-7 pl-8 pr-3 rounded-lg border border-input bg-background text-[11px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
-                style={{ boxShadow: 'var(--shadow-sm)' }}
+                placeholder="Search RO#, name, VIN, lines…"
+                className="w-full h-6 pl-7 pr-3 rounded border border-border/40 bg-background/60 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring/50 focus:bg-background"
               />
             </div>
           </div>
 
           {/* Date + advisor + labor type filters */}
-          <div className="px-3 pb-2 flex items-center gap-1.5 min-w-0 overflow-x-auto scrollbar-hide">
+          <div className="px-3 pb-1.5 flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-hide">
             {/* Date chips */}
             {dateOptions.map(({ value, label }) => (
               <DateChip
@@ -600,10 +598,10 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex-shrink-0 px-3 py-1.5 border-t bg-background" style={{ borderColor: 'hsl(var(--border) / 0.4)' }}>
-          <span className="text-[10px] text-muted-foreground tabular-nums">
+        <div className="flex-shrink-0 px-3 py-1 border-t bg-background/80" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+          <span className="text-[9px] text-muted-foreground/50 tabular-nums">
             {filteredROs.length > visibleCount
-              ? `Showing ${visible.length} of ${filteredROs.length} ROs`
+              ? `${visible.length} of ${filteredROs.length}`
               : `${filteredROs.length} RO${filteredROs.length !== 1 ? 's' : ''}`}
             {(laborTypeFilter.length > 0 || advisorFilter !== "all") && ' · filtered'}
           </span>

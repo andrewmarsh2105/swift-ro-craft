@@ -21,7 +21,7 @@ export function SettingsGroup({ title, description, children, flat }: SettingsGr
         children
       ) : (
         <div
-          className="bg-card border border-border/60 divide-y divide-border/40 overflow-hidden"
+          className="bg-card border border-border/40 divide-y divide-border/30 overflow-hidden"
           style={{ borderRadius: 'var(--radius)' }}
         >
           {children}

@@ -88,69 +88,65 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
   return (
     <div className="h-full flex flex-col bg-card">
 
-      {/* ═══ Header — hero identification band ═══ */}
+      {/* ═══ Header — identification strip ═══ */}
       <div
         className="panel-header"
         style={{ borderLeft: `3px solid ${accentColor}` }}
       >
-        {/* Primary row: RO# + hours hero + actions */}
-        <div className="px-4 pt-3 pb-2">
+        <div className="px-4 pt-2.5 pb-2">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <h2 className="text-[18px] font-extrabold tabular-nums text-foreground tracking-tight leading-none">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-[17px] font-extrabold tabular-nums text-foreground tracking-tight leading-none">
                 #{ro.roNumber}
               </h2>
               <button
-                className="text-muted-foreground/50 hover:text-muted-foreground quiet-transition flex-shrink-0"
+                className="text-muted-foreground/30 hover:text-muted-foreground quiet-transition flex-shrink-0"
                 onClick={() => copyText("RO #", ro.roNumber)}
                 title="Copy RO #"
               >
-                <Copy className="h-3 w-3" />
+                <Copy className="h-2.5 w-2.5" />
               </button>
               <StatusPill type={ro.laborType} size="sm" />
             </div>
 
-            {/* Hours — hero metric */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="hours-pill text-[13px] px-2.5 py-1">
-                {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
-              </span>
-            </div>
+            <span className="hours-pill text-[13px] px-2.5 py-0.5 flex-shrink-0">
+              {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+            </span>
           </div>
 
-          {/* Secondary: date, advisor, vehicle + status badges */}
-          <div className="flex items-center justify-between gap-2 mt-1.5">
-            <p className="text-[11px] text-muted-foreground truncate">
+          {/* Compact secondary line */}
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <p className="text-[10px] text-muted-foreground/60 truncate">
               {formatDateLong(ro.date)} · {ro.advisor}
               {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
             </p>
 
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-0.5 flex-shrink-0">
               {status.paid === "Paid" ? (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-warranty))", background: "hsl(var(--status-warranty-bg))" }}>
-                  <CheckCircle2 className="h-2.5 w-2.5" />
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-warranty))", background: "hsl(var(--status-warranty-bg))" }}>
+                  <CheckCircle2 className="h-2 w-2" />
                   PAID
                 </span>
               ) : (
-                <span className="text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+                <span className="text-[8px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
                   OPEN
                 </span>
               )}
               {status.tbd > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-sm leading-none">
-                  <Clock className="h-2.5 w-2.5" />
-                  {status.allTbd ? 'TBD' : `${status.tbd} TBD`}
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-muted/60 text-muted-foreground px-1 py-0.5 rounded-sm leading-none">
+                  <Clock className="h-2 w-2" />
+                  {status.allTbd ? 'TBD' : status.tbd}
                 </span>
               )}
               {status.flags > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-sm leading-none" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
-                  <Flag className="h-2.5 w-2.5" />
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.5 rounded-sm leading-none" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+                  <Flag className="h-2 w-2" />
                   {status.flags}
                 </span>
               )}
               {status.checks > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-sm leading-none">
-                  <AlertTriangle className="h-2.5 w-2.5" />
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-destructive bg-destructive/8 px-1 py-0.5 rounded-sm leading-none">
+                  <AlertTriangle className="h-2 w-2" />
                   {status.checks}
                 </span>
               )}
@@ -164,8 +160,8 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
         {/* ── Metadata strip — compact horizontal fields ── */}
         {hasMetadata && (
-          <div className="px-4 py-2.5 border-b border-border/40 bg-muted/15">
-            <div className="flex flex-wrap gap-x-5 gap-y-1">
+          <div className="px-4 py-2 border-b border-border/30 bg-muted/10">
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
               <MetaField label="Advisor" value={ro.advisor} />
               <MetaField label="Customer" value={ro.customerName} />
               <MetaField label="Vehicle" value={vehicleLabel(ro) !== "—" ? vehicleLabel(ro) : undefined} />
@@ -176,11 +172,11 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
           </div>
         )}
 
-        {/* ── Lines — table-style, no individual cards ──── */}
-        <div className="px-4 pt-3 pb-2">
-          <div className="flex items-baseline justify-between mb-1.5">
-            <p className="section-title">Work Lines</p>
-            <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">
+        {/* ── Lines — integrated table ──────────────── */}
+        <div className="px-4 pt-2.5 pb-2">
+          <div className="flex items-baseline justify-between mb-1">
+            <p className="data-header">Work Lines</p>
+            <span className="text-[9px] font-medium text-muted-foreground/40 tabular-nums">
               {ro.lines?.length || 0} line{(ro.lines?.length || 0) !== 1 ? 's' : ''}
             </span>
           </div>
@@ -251,9 +247,9 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
         {/* ── Notes ─────────────────────────────────── */}
         {ro.notes && (
-          <div className="px-4 pb-3">
-            <p className="section-title mb-1">Notes</p>
-            <p className="text-[11px] text-foreground/80 leading-relaxed bg-muted/15 border border-border/30 rounded-md px-3 py-2">
+          <div className="px-4 pb-2.5">
+            <p className="data-header mb-1">Notes</p>
+            <p className="text-[11px] text-foreground/70 leading-relaxed bg-muted/10 border border-border/20 rounded px-3 py-1.5">
               {ro.notes}
             </p>
           </div>
@@ -261,9 +257,9 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
         {/* ── Flags & Checks ───────────────────────── */}
         {(flags.length > 0 || issues.length > 0) && (
-          <div className="px-4 pb-3">
-            <p className="section-title mb-1.5">Flags & Checks</p>
-            <div className="border border-border/40 rounded-md p-3 space-y-2">
+          <div className="px-4 pb-2.5">
+            <p className="data-header mb-1">Flags & Checks</p>
+            <div className="border border-border/30 rounded p-2.5 space-y-2">
               <FlagBadge flags={flags} onClear={clearFlag} />
               {issues.length > 0 && (
                 <ReviewIndicator

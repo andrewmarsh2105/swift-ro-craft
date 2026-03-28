@@ -70,9 +70,9 @@ function GoalBar({ label, current, goal, hide }: { label: string; current: numbe
 function StatCell({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">{label}</span>
-      <span className={cn('text-lg font-bold tabular-nums font-mono leading-tight', accent && 'text-green-600')}>{value}</span>
-      {sub && <span className="text-[10px] text-muted-foreground/50">{sub}</span>}
+      <span className="data-header">{label}</span>
+      <span className={cn('text-base font-bold tabular-nums font-mono leading-tight', accent && 'text-green-600')}>{value}</span>
+      {sub && <span className="text-[9px] text-muted-foreground/40">{sub}</span>}
     </div>
   );
 }
@@ -313,50 +313,44 @@ export function SummaryTab() {
   };
 
   const HeroKPI = ({ compact }: { compact?: boolean }) => (
-    <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-card)' }}>
-      <div className={cn('px-4 pt-4', compact ? 'pb-2' : 'pb-3')}>
-        <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1">Total Hours</div>
-        <div className="flex items-baseline gap-2">
-          <span className={cn('font-bold tabular-nums tracking-tight text-primary leading-none font-mono', compact ? 'text-[36px]' : 'text-[42px]')}>
+    <div className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+      <div className={cn('px-4 pt-3', compact ? 'pb-1.5' : 'pb-2')}>
+        <div className="data-header mb-0.5">Total Hours</div>
+        <div className="flex items-baseline gap-1.5">
+          <span className={cn('font-bold tabular-nums tracking-tight text-primary leading-none font-mono', compact ? 'text-[34px]' : 'text-[38px]')}>
             {maskHours(report.totalHours, hideTotals)}
           </span>
-          <span className="text-lg font-bold text-primary/30 font-mono">h</span>
+          <span className="text-base font-bold text-primary/25 font-mono">h</span>
         </div>
       </div>
 
-      {/* Secondary metrics */}
-      <div className="px-4 pb-3 flex items-center gap-4">
-        <div className="flex items-center gap-1.5">
-          <TrendingUp className="h-3 w-3 text-muted-foreground/50" />
-          <span className="text-xs text-muted-foreground">{report.totalROs} ROs</span>
-          <span className="text-xs text-muted-foreground/40">·</span>
-          <span className="text-xs text-muted-foreground">{report.totalLines} lines</span>
-          <span className="text-xs text-muted-foreground/40">·</span>
-          <span className="text-xs font-semibold tabular-nums">{maskHours(avgPerRO, hideTotals)}h avg</span>
-        </div>
+      {/* Secondary metrics — more integrated */}
+      <div className="px-4 pb-2 flex items-center gap-3">
+        <span className="text-[11px] text-muted-foreground/50">{report.totalROs} ROs · {report.totalLines} lines</span>
+        <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">{maskHours(avgPerRO, hideTotals)}h avg</span>
       </div>
 
-      {/* Status indicators */}
-      <div className="border-t border-border/40 px-4 py-2.5 flex items-center gap-2.5 flex-wrap">
+      {/* Status strip */}
+      <div className="border-t border-border/30 px-4 py-2 flex items-center gap-2 flex-wrap">
         {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
           <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
         )) : (
-          <span className="text-[11px] text-muted-foreground">No type data</span>
+          <span className="text-[10px] text-muted-foreground/40">No type data</span>
         )}
 
         {(report.flaggedCount > 0 || report.tbdLineCount > 0) && (
-          <div className="ml-auto flex items-center gap-2.5 flex-shrink-0">
+          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
             {report.flaggedCount > 0 && (
-              <div className="flex items-center gap-1">
-                <Flag className="h-3 w-3 text-orange-500" />
-                <span className="text-[11px] font-bold tabular-nums text-orange-500">{report.flaggedCount}</span>
+              <div className="flex items-center gap-0.5">
+                <Flag className="h-2.5 w-2.5 text-orange-500" />
+                <span className="text-[10px] font-bold tabular-nums text-orange-500">{report.flaggedCount}</span>
               </div>
             )}
             {report.tbdLineCount > 0 && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-amber-500" />
-                <span className="text-[11px] font-bold tabular-nums text-amber-500">{report.tbdLineCount}</span>
-                {!hideTotals && <span className="text-[10px] text-muted-foreground">({report.tbdHours.toFixed(1)}h excl)</span>}
+              <div className="flex items-center gap-0.5">
+                <Clock className="h-2.5 w-2.5 text-amber-500" />
+                <span className="text-[10px] font-bold tabular-nums text-amber-500">{report.tbdLineCount}</span>
+                {!hideTotals && <span className="text-[9px] text-muted-foreground/40">({report.tbdHours.toFixed(1)}h)</span>}
               </div>
             )}
           </div>
@@ -391,10 +385,10 @@ export function SummaryTab() {
   };
 
   const HoursByDay = () => (
-    <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
-      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Day</span>
-        <span className="text-[10px] text-muted-foreground/40">{report.byDay.length} days</span>
+    <div className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+      <div className="px-4 pt-2.5 pb-1.5 flex items-center justify-between">
+        <span className="data-header">Hours by Day</span>
+        <span className="text-[9px] text-muted-foreground/30">{report.byDay.length}d</span>
       </div>
       <Table>
         <TableBody>
@@ -438,9 +432,9 @@ export function SummaryTab() {
   );
 
   const HoursByAdvisor = () => (
-    <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
-      <div className="px-4 pt-3 pb-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Advisor</span>
+    <div className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+      <div className="px-4 pt-2.5 pb-1.5">
+        <span className="data-header">Hours by Advisor</span>
       </div>
       {report.byAdvisor.length === 0 ? (
         <div className="px-4 pb-3 text-xs text-muted-foreground">No data for this range</div>
@@ -483,8 +477,8 @@ export function SummaryTab() {
 
   const MoreDetail = () => (
     <Accordion type="single" collapsible>
-      <AccordionItem value="more" className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-        <AccordionTrigger className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:no-underline">
+      <AccordionItem value="more" className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+        <AccordionTrigger className="px-4 py-2 text-xs font-semibold text-muted-foreground/60 hover:no-underline">
           More Detail
         </AccordionTrigger>
         <AccordionContent className="px-4 pb-4 space-y-4">
@@ -574,7 +568,7 @@ export function SummaryTab() {
 
   const renderDesktopSummary = () => (
     <HideTotalsContext.Provider value={hideTotals}>
-      <div className="desktop-sections p-5">
+      <div className="desktop-sections p-4">
         {/* Alerts */}
         <AlertsBlock />
 
@@ -583,7 +577,7 @@ export function SummaryTab() {
         <CustomDatePickers />
 
         {/* ── Two-column grid: KPI left, breakdowns right ── */}
-        <div className="grid grid-cols-[1fr_1fr] gap-4 items-start">
+        <div className="grid grid-cols-[1fr_1fr] gap-3 items-start">
 
           {/* LEFT COLUMN: KPI + Goals + Export */}
           <div className="space-y-3">

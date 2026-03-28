@@ -18,7 +18,7 @@ export function SectionCard({
   contentClassName,
 }: SectionCardProps) {
   return (
-    <div className={cn("bg-card border border-border/70 overflow-hidden", className)} style={{ borderRadius: 'var(--radius)' }}>
+    <div className={cn("bg-card border border-border/40 overflow-hidden", className)} style={{ borderRadius: 'var(--radius)' }}>
       {(title || rightSlot) && (
         <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-border/50">
           <div>

@@ -234,10 +234,10 @@ export function DesktopWorkspace() {
 
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
-        <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
+        <Logo variant="full" scheme="auto" size="xs" className="text-foreground" />
 
         {/* Right-side toolbar */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-px">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} />
 
           {isPro && (
@@ -255,8 +255,7 @@ export function DesktopWorkspace() {
             </ToolbarBtn>
           )}
 
-          {/* Thin separator */}
-          <div className="w-px h-5 bg-border/60 mx-1" />
+          <div className="w-px h-4 bg-border/40 mx-0.5" />
 
           <ToolbarBtn
             title="Summary & Reports"
@@ -277,10 +276,10 @@ export function DesktopWorkspace() {
           {!isPro && (
             <button
               onClick={() => setShowUpgradeDialog(true)}
-              className="ml-1.5 h-7 px-2.5 rounded-lg border border-primary/30 bg-primary/[0.08] text-[11px] font-bold text-primary hover:bg-primary/15 quiet-transition flex items-center gap-1.5"
+              className="ml-1 h-6 px-2 rounded border border-primary/25 bg-primary/[0.06] text-[10px] font-bold text-primary hover:bg-primary/12 quiet-transition flex items-center gap-1"
               title="Upgrade to Pro"
             >
-              <Crown className="h-3 w-3" />
+              <Crown className="h-2.5 w-2.5" />
               Pro
             </button>
           )}
