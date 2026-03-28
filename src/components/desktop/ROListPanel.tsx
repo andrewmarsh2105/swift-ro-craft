@@ -467,14 +467,11 @@ export const ROListPanel = memo(function ROListPanel({
               {/* Column headers */}
               <div
                 className={cn(
-                  "grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 border-b border-border/50 bg-muted/30 backdrop-blur-sm",
+                  "grid gap-x-2 items-center px-3 py-1.5 sticky top-0 z-10 border-b border-border/50 bg-background/95 backdrop-blur-sm",
                   gridCols,
                 )}
               >
-                {/* Type dot col — no header */}
-                <div />
-                <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
-                <SortHeader label="RO #" active={sortKey === "ro"} dir={sortDir} onClick={() => toggleSort("ro")} />
+                <SortHeader label="RO" active={sortKey === "ro" || sortKey === "date"} dir={sortDir} onClick={() => toggleSort(sortKey === "ro" ? "date" : "ro")} />
                 <button
                   onClick={() => toggleSort("advisor")}
                   className={cn(
