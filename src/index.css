@@ -439,7 +439,9 @@
 
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
-    @apply flex-shrink-0 h-10 flex items-center justify-between px-3 bg-card/98 backdrop-blur-sm;
+    @apply flex-shrink-0 h-10 flex items-center justify-between px-3;
+    background: hsl(var(--card) / 0.98);
+    backdrop-filter: blur(8px);
     border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
 
