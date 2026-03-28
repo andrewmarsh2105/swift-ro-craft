@@ -396,11 +396,21 @@
   }
 
   .list-row-selected {
-    @apply bg-primary/[0.06] border-l-2 border-l-primary;
+    @apply bg-primary/[0.08] border-l-[3px] border-l-primary;
   }
 
   .list-row-default {
     @apply hover:bg-muted/30;
+  }
+
+  /* ── Desktop workspace surfaces ────────────────────── */
+  .workspace-queue {
+    @apply bg-background;
+  }
+
+  .workspace-active {
+    @apply bg-card;
+    border-left: 1px solid hsl(var(--border) / 0.6);
   }
 
   /* ── Icon discipline ───────────────────────────────── */

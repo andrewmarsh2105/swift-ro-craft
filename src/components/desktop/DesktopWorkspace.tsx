@@ -402,7 +402,7 @@ export function DesktopWorkspace() {
             </>
           )}
         </div>
-      )}
+      )
 
       <ProUpgradeDialog
         open={showUpgradeDialog}
