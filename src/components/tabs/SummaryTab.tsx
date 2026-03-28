@@ -568,7 +568,7 @@ export function SummaryTab() {
 
   const renderDesktopSummary = () => (
     <HideTotalsContext.Provider value={hideTotals}>
-      <div className="desktop-sections p-5">
+      <div className="desktop-sections p-4">
         {/* Alerts */}
         <AlertsBlock />
 
