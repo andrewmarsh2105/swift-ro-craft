@@ -305,7 +305,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   return (
     <>
-      <div className="flex flex-col h-full bg-card">
+      <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
         <div className="flex-shrink-0 border-b border-border/60">
