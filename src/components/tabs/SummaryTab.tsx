@@ -40,16 +40,6 @@ import { getDayRange, getWeekRange, getMonthRange, getTwoWeekRange, getLastWeekR
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// ── Section divider ───────────────────────────────────────
-function SectionDivider({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 px-4 pt-1">
-      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.14em] whitespace-nowrap">{children}</span>
-      <div className="flex-1 h-px bg-border/40" />
-    </div>
-  );
-}
-
 // ── Goal bar (inline, compact) ────────────────────────────
 function GoalBar({ label, current, goal, hide }: { label: string; current: number; goal: number; hide: boolean }) {
   const pct = Math.min((current / goal) * 100, 100);
@@ -72,6 +62,17 @@ function GoalBar({ label, current, goal, hide }: { label: string; current: numbe
           style={{ width: `${hide ? 0 : pct}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+// ── Stat cell for desktop KPI row ─────────────────────────
+function StatCell({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">{label}</span>
+      <span className={cn('text-lg font-bold tabular-nums font-mono leading-tight', accent && 'text-green-600')}>{value}</span>
+      {sub && <span className="text-[10px] text-muted-foreground/50">{sub}</span>}
     </div>
   );
 }
@@ -205,6 +206,486 @@ export function SummaryTab() {
 
   const avgPerRO = report.totalROs > 0 ? Math.round((report.totalHours / report.totalROs) * 10) / 10 : 0;
 
+  const isDesktop = !isMobile;
+
+  // ── Shared sub-components ──────────────────────────────
+
+  const AlertsBlock = () => (
+    <>
+      {isPro && isNearEnd && !periodAlreadyClosed && (
+        <div className="flex items-center gap-2.5 rounded-lg border border-amber-300 bg-amber-50/80 px-3 py-2.5">
+          <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+          <span className="text-xs font-medium text-amber-800 flex-1 leading-snug">
+            Pay period ends soon — close out to lock your hours.
+          </span>
+          <Button size="sm" variant="default" onClick={handleCloseOutClick} className="flex-shrink-0 h-7 text-xs">
+            Close Out
+          </Button>
+        </div>
+      )}
+
+      {periodAlreadyClosed && existingCloseout && Math.abs(report.totalHours - existingCloseout.totals.totalHours) > 0.1 && (
+        <div className="rounded-lg border border-yellow-300 bg-yellow-50/80 px-3 py-2.5">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-yellow-800 leading-snug">
+              <span className="font-semibold">Hours changed since closeout.</span>{' '}
+              Snapshot: {maskHours(existingCloseout.totals.totalHours, hideTotals)}h →
+              Current: {maskHours(report.totalHours, hideTotals)}h
+              ({hideTotals ? '±--.-' : `${(report.totalHours - existingCloseout.totals.totalHours) > 0 ? '+' : ''}${(report.totalHours - existingCloseout.totals.totalHours).toFixed(1)}`}h)
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  const RangeSelector = () => (
+    <div className="flex items-center gap-2">
+      <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
+        <SelectTrigger className="w-auto h-8 border border-border/60 bg-card shadow-none focus:ring-1 focus:ring-primary/30 px-3 gap-1 flex-shrink-0 text-xs font-semibold">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="day">Day</SelectItem>
+          <SelectItem value="week">Week</SelectItem>
+          <SelectItem value="last_week">Last Week</SelectItem>
+          <SelectItem value="two_weeks">2 Weeks</SelectItem>
+          {hasCustomPayPeriod && <SelectItem value="pay_period">Pay Period</SelectItem>}
+          <SelectItem value="month">Month</SelectItem>
+          <SelectItem value="custom">Custom</SelectItem>
+        </SelectContent>
+      </Select>
+      <span className="text-xs font-medium text-muted-foreground truncate flex-1">{viewModeLabel}</span>
+      {isPro && (
+        periodAlreadyClosed ? (
+          <button
+            onClick={() => existingCloseout && setDetailCloseout(existingCloseout)}
+            className="flex-shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/80 px-2 py-1 rounded border border-border/60 hover:text-foreground transition-colors"
+          >
+            <Lock className="h-3 w-3" />
+            Closed
+          </button>
+        ) : (
+          <Button
+            size="sm"
+            variant={isNearEnd ? 'default' : 'outline'}
+            onClick={handleCloseOutClick}
+            className="flex-shrink-0 h-7 px-2.5 text-xs cursor-pointer gap-1"
+          >
+            <Lock className="h-3 w-3" />
+            {closeoutLabel}
+          </Button>
+        )
+      )}
+    </div>
+  );
+
+  const CustomDatePickers = () => {
+    if (rangeMode !== 'custom') return null;
+    return (
+      <div className="flex gap-2 items-center">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customStart && 'text-muted-foreground')}>
+              <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+              {customStart ? format(customStart, 'MMM d, yyyy') : 'Start'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+        <span className="text-muted-foreground text-xs">–</span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customEnd && 'text-muted-foreground')}>
+              <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+              {customEnd ? format(customEnd, 'MMM d, yyyy') : 'End'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  };
+
+  const HeroKPI = ({ compact }: { compact?: boolean }) => (
+    <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-card)' }}>
+      <div className={cn('px-4 pt-4', compact ? 'pb-2' : 'pb-3')}>
+        <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1">Total Hours</div>
+        <div className="flex items-baseline gap-2">
+          <span className={cn('font-bold tabular-nums tracking-tight text-primary leading-none font-mono', compact ? 'text-[36px]' : 'text-[42px]')}>
+            {maskHours(report.totalHours, hideTotals)}
+          </span>
+          <span className="text-lg font-bold text-primary/30 font-mono">h</span>
+        </div>
+      </div>
+
+      {/* Secondary metrics */}
+      <div className="px-4 pb-3 flex items-center gap-4">
+        <div className="flex items-center gap-1.5">
+          <TrendingUp className="h-3 w-3 text-muted-foreground/50" />
+          <span className="text-xs text-muted-foreground">{report.totalROs} ROs</span>
+          <span className="text-xs text-muted-foreground/40">·</span>
+          <span className="text-xs text-muted-foreground">{report.totalLines} lines</span>
+          <span className="text-xs text-muted-foreground/40">·</span>
+          <span className="text-xs font-semibold tabular-nums">{maskHours(avgPerRO, hideTotals)}h avg</span>
+        </div>
+      </div>
+
+      {/* Status indicators */}
+      <div className="border-t border-border/40 px-4 py-2.5 flex items-center gap-2.5 flex-wrap">
+        {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
+          <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
+        )) : (
+          <span className="text-[11px] text-muted-foreground">No type data</span>
+        )}
+
+        {(report.flaggedCount > 0 || report.tbdLineCount > 0) && (
+          <div className="ml-auto flex items-center gap-2.5 flex-shrink-0">
+            {report.flaggedCount > 0 && (
+              <div className="flex items-center gap-1">
+                <Flag className="h-3 w-3 text-orange-500" />
+                <span className="text-[11px] font-bold tabular-nums text-orange-500">{report.flaggedCount}</span>
+              </div>
+            )}
+            {report.tbdLineCount > 0 && (
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-amber-500" />
+                <span className="text-[11px] font-bold tabular-nums text-amber-500">{report.tbdLineCount}</span>
+                {!hideTotals && <span className="text-[10px] text-muted-foreground">({report.tbdHours.toFixed(1)}h excl)</span>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const GoalsAndEarnings = () => {
+    const hasGoals = hoursGoalDaily > 0 || hoursGoalWeekly > 0;
+    const hasEarnings = hourlyRate > 0 && !hideTotals;
+    if (!hasGoals && !hasEarnings) return null;
+    return (
+      <div className="border border-border/60 bg-card overflow-hidden px-4 py-3 space-y-2.5" style={{ borderRadius: 'var(--radius)' }}>
+        {hoursGoalDaily > 0 && rangeMode === 'day' && (
+          <GoalBar label="Daily Goal" current={report.totalHours} goal={hoursGoalDaily} hide={hideTotals} />
+        )}
+        {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
+          <GoalBar label="Weekly Goal" current={report.totalHours} goal={hoursGoalWeekly} hide={hideTotals} />
+        )}
+        {hasEarnings && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="h-3 w-3 text-green-600" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Est. Earnings</span>
+            </div>
+            <span className="text-sm font-bold tabular-nums text-green-600">${(report.totalHours * hourlyRate).toFixed(0)}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const HoursByDay = () => (
+    <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Day</span>
+        <span className="text-[10px] text-muted-foreground/40">{report.byDay.length} days</span>
+      </div>
+      <Table>
+        <TableBody>
+          {report.byDay.map((day) => {
+            const date = new Date(day.date + 'T12:00:00');
+            const isToday = day.date === todayStr;
+            const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
+            return (
+              <TableRow key={day.date} className={cn('border-border/30', isToday && 'bg-primary/[0.04]')}>
+                <TableCell className="py-1.5 pl-4 w-12">
+                  <div className="text-[10px] font-semibold text-muted-foreground/60 uppercase">{dayNames[date.getDay()]}</div>
+                  <div className={cn('text-sm font-bold tabular-nums', isToday && 'text-primary')}>{date.getDate()}</div>
+                </TableCell>
+                <TableCell className="py-1.5 pr-2">
+                  <div className="relative h-5 flex items-center">
+                    <div
+                      className={cn('absolute left-0 top-0 h-full rounded-r transition-all', isToday ? 'bg-primary/20' : 'bg-primary/10')}
+                      style={{ width: `${barWidth}%` }}
+                    />
+                    <span className="relative z-10 text-xs font-bold tabular-nums ml-1.5">
+                      {maskHours(day.totalHours, hideTotals)}h
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="py-1.5 pr-4 text-right">
+                  <span className="text-[10px] text-muted-foreground/60">{day.roCount} RO{day.roCount !== 1 ? 's' : ''}</span>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+        <TableFooter>
+          <TableRow className="border-border/40">
+            <TableCell className="font-bold text-xs py-1.5 pl-4 text-muted-foreground">Total</TableCell>
+            <TableCell className="font-bold text-xs tabular-nums py-1.5">{maskHours(report.totalHours, hideTotals)}h</TableCell>
+            <TableCell className="text-right text-[10px] text-muted-foreground py-1.5 pr-4">{report.totalROs} ROs</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </div>
+  );
+
+  const HoursByAdvisor = () => (
+    <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
+      <div className="px-4 pt-3 pb-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Advisor</span>
+      </div>
+      {report.byAdvisor.length === 0 ? (
+        <div className="px-4 pb-3 text-xs text-muted-foreground">No data for this range</div>
+      ) : (
+        <>
+          <Table>
+            <TableBody>
+              {visibleAdvisors.map((adv) => (
+                <TableRow key={adv.advisor} className="border-border/30">
+                  <TableCell className="py-2 pl-4">
+                    <div className="text-sm font-semibold">{adv.advisor}</div>
+                    <div className="flex gap-1.5 mt-0.5">
+                      {!hideTotals && adv.warrantyHours > 0 && <span className="text-[10px] text-muted-foreground/60">W:{adv.warrantyHours.toFixed(1)}</span>}
+                      {!hideTotals && adv.customerPayHours > 0 && <span className="text-[10px] text-muted-foreground/60">CP:{adv.customerPayHours.toFixed(1)}</span>}
+                      {!hideTotals && adv.internalHours > 0 && <span className="text-[10px] text-muted-foreground/60">I:{adv.internalHours.toFixed(1)}</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2 text-right">
+                    <span className="text-[10px] text-muted-foreground/60">{adv.roCount} ROs</span>
+                  </TableCell>
+                  <TableCell className="py-2 pr-4 text-right">
+                    <span className="text-sm font-bold tabular-nums">{maskHours(adv.totalHours, hideTotals)}h</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {hasMoreAdvisors && (
+            <button
+              onClick={() => setShowAllAdvisors(!showAllAdvisors)}
+              className="w-full py-2 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors border-t border-border/40"
+            >
+              {showAllAdvisors ? 'Show less' : `View all ${report.byAdvisor.length} advisors`}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  const MoreDetail = () => (
+    <Accordion type="single" collapsible>
+      <AccordionItem value="more" className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+        <AccordionTrigger className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:no-underline">
+          More Detail
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4 space-y-4">
+          <div className="space-y-1.5">
+            <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.12em]">Hours by Labor Type</h4>
+            {report.byLaborType.map(lt => (
+              <div key={lt.laborType} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
+                <span className="text-xs text-foreground font-medium">{lt.label}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-muted-foreground">{lt.lineCount} lines</span>
+                  <span className="text-xs font-bold tabular-nums">{maskHours(lt.totalHours, hideTotals)}h</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {report.byLaborRef.length > 0 && (
+            <div className="space-y-1.5">
+              <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.12em]">By Reference / Preset</h4>
+              {report.byLaborRef.map(r => (
+                <div key={r.referenceId} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
+                  <span className="text-xs text-foreground font-medium">{r.referenceName}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-muted-foreground">{r.lineCount} lines</span>
+                    <span className="text-xs font-bold tabular-nums">{maskHours(r.totalHours, hideTotals)}h</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {report.flaggedCount > 0 && (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-orange-200 bg-orange-50/80">
+              <Flag className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+              <span className="text-xs font-medium text-orange-800">{report.flaggedCount} flagged item{report.flaggedCount !== 1 ? 's' : ''} in this range</span>
+            </div>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+
+  const ExportBlock = () => (
+    <div className="space-y-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className={cn('h-10 cursor-pointer text-sm gap-2', isDesktop ? 'w-auto' : 'w-full')}>
+            <Download className="h-4 w-4" />
+            Export
+            <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-40" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          {isPro && (
+            <>
+              <DropdownMenuItem onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }}>
+                <FileText className="h-4 w-4 mr-2" />
+                Proof Pack
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuItem onClick={handleCopySummary}>
+            <Copy className="h-4 w-4 mr-2" />
+            Copy summary
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => {
+            if (!isPro) {
+              openUpgrade('export');
+              return;
+            }
+            handleExportCSV();
+          }}>
+            <Download className="h-4 w-4 mr-2" />
+            Lines CSV (paid only)
+            {!isPro && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <p className="text-[10px] text-muted-foreground/60 text-center">
+        Exports use the selected range · CSV excludes TBD lines
+      </p>
+    </div>
+  );
+
+  // ── Desktop two-column layout ──────────────────────────
+
+  const renderDesktopSummary = () => (
+    <HideTotalsContext.Provider value={hideTotals}>
+      <div className="space-y-4 p-5">
+        {/* Alerts */}
+        <AlertsBlock />
+
+        {/* Range selector */}
+        <RangeSelector />
+        <CustomDatePickers />
+
+        {/* ── Two-column grid: KPI left, breakdowns right ── */}
+        <div className="grid grid-cols-[1fr_1fr] gap-4 items-start">
+
+          {/* LEFT COLUMN: KPI + Goals + Export */}
+          <div className="space-y-3">
+            <HeroKPI />
+
+            <GoalsAndEarnings />
+
+            {/* Desktop: inline secondary stats row */}
+            {(hourlyRate > 0 || report.totalROs > 0) && (
+              <div className="flex items-center gap-4 px-1">
+                <StatCell label="ROs" value={String(report.totalROs)} sub={`${report.totalLines} lines`} />
+                <StatCell label="Avg / RO" value={`${maskHours(avgPerRO, hideTotals)}h`} />
+                {hourlyRate > 0 && !hideTotals && (
+                  <StatCell label="Est. Earnings" value={`$${(report.totalHours * hourlyRate).toFixed(0)}`} accent />
+                )}
+              </div>
+            )}
+
+            {/* Export + History grouped together on desktop */}
+            <div className="flex items-center gap-2 pt-1">
+              <ExportBlock />
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Breakdowns + Detail */}
+          <div className="space-y-3">
+            <HoursByDay />
+            <HoursByAdvisor />
+            <MoreDetail />
+          </div>
+        </div>
+
+        {/* Closed periods — full width below */}
+        {isPro && (
+          <ClosedPeriodsList
+            closeouts={closeouts}
+            hideTotals={hideTotals}
+            onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
+            onViewDetail={(c) => setDetailCloseout(c)}
+          />
+        )}
+      </div>
+    </HideTotalsContext.Provider>
+  );
+
+  // ── Mobile single-column layout (preserved) ────────────
+
+  const renderMobileSummary = () => (
+    <HideTotalsContext.Provider value={hideTotals}>
+      <div className="space-y-3">
+
+        <AlertsBlock />
+
+        {/* Range selector */}
+        <div className="px-4 pt-3">
+          <RangeSelector />
+        </div>
+
+        <div className="px-4">
+          <CustomDatePickers />
+        </div>
+
+        {/* Hero KPI with goals inside */}
+        <div className="px-4">
+          <HeroKPI />
+        </div>
+
+        {/* Goals (mobile: separate card) */}
+        <div className="px-4">
+          <GoalsAndEarnings />
+        </div>
+
+        {/* Breakdowns */}
+        <div className="px-4 space-y-3">
+          <HoursByDay />
+          <HoursByAdvisor />
+        </div>
+
+        {/* More detail */}
+        <div className="px-4">
+          <MoreDetail />
+        </div>
+
+        {/* Export & History */}
+        <div className="px-4 space-y-2">
+          <ExportBlock />
+        </div>
+
+        {isPro && (
+          <div className="pb-4">
+            <ClosedPeriodsList
+              closeouts={closeouts}
+              hideTotals={hideTotals}
+              onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
+              onViewDetail={(c) => setDetailCloseout(c)}
+            />
+          </div>
+        )}
+      </div>
+    </HideTotalsContext.Provider>
+  );
+
   return (
     <div className="flex flex-col h-full">
       {/* ══ Sticky Header: Tabs + Range ══ */}
@@ -232,382 +713,7 @@ export function SummaryTab() {
       {/* ══ Content ══ */}
       <div className={cn('flex-1 overflow-y-auto', isMobile && 'pb-32')}>
         {activeTab === 'summary' && (
-          <HideTotalsContext.Provider value={hideTotals}>
-          <div className="space-y-3">
-
-            {/* ── Alerts: Pay period reminder / Discrepancy ── */}
-            {isPro && isNearEnd && !periodAlreadyClosed && (
-              <div className="mx-4 mt-3 flex items-center gap-2.5 rounded-lg border border-amber-300 bg-amber-50/80 px-3 py-2.5">
-                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                <span className="text-xs font-medium text-amber-800 flex-1 leading-snug">
-                  Pay period ends soon — close out to lock your hours.
-                </span>
-                <Button size="sm" variant="default" onClick={handleCloseOutClick} className="flex-shrink-0 h-7 text-xs">
-                  Close Out
-                </Button>
-              </div>
-            )}
-
-            {periodAlreadyClosed && existingCloseout && Math.abs(report.totalHours - existingCloseout.totals.totalHours) > 0.1 && (
-              <div className="mx-4 mt-3 rounded-lg border border-yellow-300 bg-yellow-50/80 px-3 py-2.5">
-                <div className="flex items-start gap-2.5">
-                  <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-yellow-800 leading-snug">
-                    <span className="font-semibold">Hours changed since closeout.</span>{' '}
-                    Snapshot: {maskHours(existingCloseout.totals.totalHours, hideTotals)}h →
-                    Current: {maskHours(report.totalHours, hideTotals)}h
-                    ({hideTotals ? '±--.-' : `${(report.totalHours - existingCloseout.totals.totalHours) > 0 ? '+' : ''}${(report.totalHours - existingCloseout.totals.totalHours).toFixed(1)}`}h)
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Range selector strip ── */}
-            <div className="px-4 pt-3">
-              <div className="flex items-center gap-2">
-                <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
-                  <SelectTrigger className="w-auto h-8 border border-border/60 bg-card shadow-none focus:ring-1 focus:ring-primary/30 px-3 gap-1 flex-shrink-0 text-xs font-semibold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="day">Day</SelectItem>
-                    <SelectItem value="week">Week</SelectItem>
-                    <SelectItem value="last_week">Last Week</SelectItem>
-                    <SelectItem value="two_weeks">2 Weeks</SelectItem>
-                    {hasCustomPayPeriod && <SelectItem value="pay_period">Pay Period</SelectItem>}
-                    <SelectItem value="month">Month</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span className="text-xs font-medium text-muted-foreground truncate flex-1">{viewModeLabel}</span>
-                {isPro && (
-                  periodAlreadyClosed ? (
-                    <button
-                      onClick={() => existingCloseout && setDetailCloseout(existingCloseout)}
-                      className="flex-shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/80 px-2 py-1 rounded border border-border/60 hover:text-foreground transition-colors"
-                    >
-                      <Lock className="h-3 w-3" />
-                      Closed
-                    </button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant={isNearEnd ? 'default' : 'outline'}
-                      onClick={handleCloseOutClick}
-                      className="flex-shrink-0 h-7 px-2.5 text-xs cursor-pointer gap-1"
-                    >
-                      <Lock className="h-3 w-3" />
-                      {closeoutLabel}
-                    </Button>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Custom date pickers */}
-            {rangeMode === 'custom' && (
-              <div className="px-4 flex gap-2 items-center">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customStart && 'text-muted-foreground')}>
-                      <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
-                      {customStart ? format(customStart, 'MMM d, yyyy') : 'Start'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-muted-foreground text-xs">–</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customEnd && 'text-muted-foreground')}>
-                      <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
-                      {customEnd ? format(customEnd, 'MMM d, yyyy') : 'End'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )}
-
-            {/* ══════════ HERO KPI ══════════ */}
-            <div className="px-4">
-              <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-card)' }}>
-                {/* Primary: Total Hours — dominant */}
-                <div className="px-4 pt-4 pb-3">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1">Total Hours</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[42px] font-bold tabular-nums tracking-tight text-primary leading-none font-mono">
-                      {maskHours(report.totalHours, hideTotals)}
-                    </span>
-                    <span className="text-lg font-bold text-primary/30 font-mono">h</span>
-                  </div>
-                </div>
-
-                {/* Secondary metrics row */}
-                <div className="px-4 pb-3 flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3 text-muted-foreground/50" />
-                    <span className="text-xs text-muted-foreground">{report.totalROs} ROs</span>
-                    <span className="text-xs text-muted-foreground/40">·</span>
-                    <span className="text-xs text-muted-foreground">{report.totalLines} lines</span>
-                    <span className="text-xs text-muted-foreground/40">·</span>
-                    <span className="text-xs font-semibold tabular-nums">{maskHours(avgPerRO, hideTotals)}h avg</span>
-                  </div>
-                </div>
-
-                {/* Status indicators strip */}
-                <div className="border-t border-border/40 px-4 py-2.5 flex items-center gap-2.5 flex-wrap">
-                  {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
-                    <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
-                  )) : (
-                    <span className="text-[11px] text-muted-foreground">No type data</span>
-                  )}
-
-                  {(report.flaggedCount > 0 || report.tbdLineCount > 0) && (
-                    <div className="ml-auto flex items-center gap-2.5 flex-shrink-0">
-                      {report.flaggedCount > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Flag className="h-3 w-3 text-orange-500" />
-                          <span className="text-[11px] font-bold tabular-nums text-orange-500">{report.flaggedCount}</span>
-                        </div>
-                      )}
-                      {report.tbdLineCount > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-amber-500" />
-                          <span className="text-[11px] font-bold tabular-nums text-amber-500">{report.tbdLineCount}</span>
-                          {!hideTotals && <span className="text-[10px] text-muted-foreground">({report.tbdHours.toFixed(1)}h excl)</span>}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Goal bars (inside hero card for cohesion) */}
-                {(hoursGoalDaily > 0 || hoursGoalWeekly > 0 || hourlyRate > 0) && (
-                  <div className="border-t border-border/40 px-4 py-3 space-y-2.5">
-                    {hoursGoalDaily > 0 && rangeMode === 'day' && (
-                      <GoalBar label="Daily Goal" current={report.totalHours} goal={hoursGoalDaily} hide={hideTotals} />
-                    )}
-                    {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
-                      <GoalBar label="Weekly Goal" current={report.totalHours} goal={hoursGoalWeekly} hide={hideTotals} />
-                    )}
-                    {hourlyRate > 0 && !hideTotals && (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <DollarSign className="h-3 w-3 text-green-600" />
-                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Est. Earnings</span>
-                        </div>
-                        <span className="text-sm font-bold tabular-nums text-green-600">${(report.totalHours * hourlyRate).toFixed(0)}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ══════════ BREAKDOWN ══════════ */}
-            <SectionDivider>Breakdown</SectionDivider>
-
-            <div className="px-4 space-y-3">
-              {/* Hours by Day */}
-              <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
-                <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Day</span>
-                  <span className="text-[10px] text-muted-foreground/40">{report.byDay.length} days</span>
-                </div>
-                <Table>
-                  <TableBody>
-                    {report.byDay.map((day) => {
-                      const date = new Date(day.date + 'T12:00:00');
-                      const isToday = day.date === todayStr;
-                      const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
-                      return (
-                        <TableRow key={day.date} className={cn('border-border/30', isToday && 'bg-primary/[0.04]')}>
-                          <TableCell className="py-1.5 pl-4 w-12">
-                            <div className="text-[10px] font-semibold text-muted-foreground/60 uppercase">{dayNames[date.getDay()]}</div>
-                            <div className={cn('text-sm font-bold tabular-nums', isToday && 'text-primary')}>{date.getDate()}</div>
-                          </TableCell>
-                          <TableCell className="py-1.5 pr-2">
-                            <div className="relative h-5 flex items-center">
-                              <div
-                                className={cn('absolute left-0 top-0 h-full rounded-r transition-all', isToday ? 'bg-primary/20' : 'bg-primary/10')}
-                                style={{ width: `${barWidth}%` }}
-                              />
-                              <span className="relative z-10 text-xs font-bold tabular-nums ml-1.5">
-                                {maskHours(day.totalHours, hideTotals)}h
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-1.5 pr-4 text-right">
-                            <span className="text-[10px] text-muted-foreground/60">{day.roCount} RO{day.roCount !== 1 ? 's' : ''}</span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                  <TableFooter>
-                    <TableRow className="border-border/40">
-                      <TableCell className="font-bold text-xs py-1.5 pl-4 text-muted-foreground">Total</TableCell>
-                      <TableCell className="font-bold text-xs tabular-nums py-1.5">{maskHours(report.totalHours, hideTotals)}h</TableCell>
-                      <TableCell className="text-right text-[10px] text-muted-foreground py-1.5 pr-4">{report.totalROs} ROs</TableCell>
-                    </TableRow>
-                  </TableFooter>
-                </Table>
-              </div>
-
-              {/* Hours by Advisor */}
-              <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
-                <div className="px-4 pt-3 pb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Advisor</span>
-                </div>
-                {report.byAdvisor.length === 0 ? (
-                  <div className="px-4 pb-3 text-xs text-muted-foreground">No data for this range</div>
-                ) : (
-                  <>
-                    <Table>
-                      <TableBody>
-                        {visibleAdvisors.map((adv) => (
-                          <TableRow key={adv.advisor} className="border-border/30">
-                            <TableCell className="py-2 pl-4">
-                              <div className="text-sm font-semibold">{adv.advisor}</div>
-                              <div className="flex gap-1.5 mt-0.5">
-                                {!hideTotals && adv.warrantyHours > 0 && <span className="text-[10px] text-muted-foreground/60">W:{adv.warrantyHours.toFixed(1)}</span>}
-                                {!hideTotals && adv.customerPayHours > 0 && <span className="text-[10px] text-muted-foreground/60">CP:{adv.customerPayHours.toFixed(1)}</span>}
-                                {!hideTotals && adv.internalHours > 0 && <span className="text-[10px] text-muted-foreground/60">I:{adv.internalHours.toFixed(1)}</span>}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 text-right">
-                              <span className="text-[10px] text-muted-foreground/60">{adv.roCount} ROs</span>
-                            </TableCell>
-                            <TableCell className="py-2 pr-4 text-right">
-                              <span className="text-sm font-bold tabular-nums">{maskHours(adv.totalHours, hideTotals)}h</span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    {hasMoreAdvisors && (
-                      <button
-                        onClick={() => setShowAllAdvisors(!showAllAdvisors)}
-                        className="w-full py-2 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors border-t border-border/40"
-                      >
-                        {showAllAdvisors ? 'Show less' : `View all ${report.byAdvisor.length} advisors`}
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* ── More Detail (collapsed) ── */}
-            <div className="px-4">
-              <Accordion type="single" collapsible>
-                <AccordionItem value="more" className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-                  <AccordionTrigger className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:no-underline">
-                    More Detail
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4 space-y-4">
-                    {/* Labor Type Breakdown */}
-                    <div className="space-y-1.5">
-                      <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.12em]">Hours by Labor Type</h4>
-                      {report.byLaborType.map(lt => (
-                        <div key={lt.laborType} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                          <span className="text-xs text-foreground font-medium">{lt.label}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] text-muted-foreground">{lt.lineCount} lines</span>
-                            <span className="text-xs font-bold tabular-nums">{maskHours(lt.totalHours, hideTotals)}h</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Labor Reference Breakdown */}
-                    {report.byLaborRef.length > 0 && (
-                      <div className="space-y-1.5">
-                        <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.12em]">By Reference / Preset</h4>
-                        {report.byLaborRef.map(r => (
-                          <div key={r.referenceId} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                            <span className="text-xs text-foreground font-medium">{r.referenceName}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] text-muted-foreground">{r.lineCount} lines</span>
-                              <span className="text-xs font-bold tabular-nums">{maskHours(r.totalHours, hideTotals)}h</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {report.flaggedCount > 0 && (
-                      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-orange-200 bg-orange-50/80">
-                        <Flag className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
-                        <span className="text-xs font-medium text-orange-800">{report.flaggedCount} flagged item{report.flaggedCount !== 1 ? 's' : ''} in this range</span>
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-
-            {/* ══════════ EXPORT & HISTORY ══════════ */}
-            <SectionDivider>Export & History</SectionDivider>
-
-            <div className="px-4 space-y-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full h-10 cursor-pointer text-sm gap-2">
-                    <Download className="h-4 w-4" />
-                    Export
-                    <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-40" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {isPro && (
-                    <>
-                      <DropdownMenuItem onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Proof Pack
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  <DropdownMenuItem onClick={handleCopySummary}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy summary
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    if (!isPro) {
-                      openUpgrade('export');
-                      return;
-                    }
-                    handleExportCSV();
-                  }}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Lines CSV (paid only)
-                    {!isPro && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <p className="text-[10px] text-muted-foreground/60 text-center">
-                Exports use the selected range · CSV excludes TBD lines
-              </p>
-            </div>
-
-            {isPro && (
-              <div className="pb-4">
-                <ClosedPeriodsList
-                  closeouts={closeouts}
-                  hideTotals={hideTotals}
-                  onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
-                  onViewDetail={(c) => setDetailCloseout(c)}
-                />
-              </div>
-            )}
-          </div>
-          </HideTotalsContext.Provider>
+          isDesktop ? renderDesktopSummary() : renderMobileSummary()
         )}
 
         {activeTab === 'compare' && isPro && (
