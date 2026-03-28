@@ -319,18 +319,18 @@ export const ROListPanel = memo(function ROListPanel({
       <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
-        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.6)' }}>
+        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.4)' }}>
 
           {/* Top: title + stats + Add button */}
-          <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
+          <div className="flex items-center gap-2 px-3 pt-1.5 pb-1">
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-1.5">
-                <h2 className="text-[14px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'Repair Orders'}</h2>
-                <span className="text-[12px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
+                <h2 className="text-[13px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'RO Queue'}</h2>
+                <span className="text-[11px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
-                <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0">
-                  · {totals.totalAll} RO{totals.totalAll !== 1 ? 's' : ''}
+                <span className="text-[9px] text-muted-foreground/60 font-medium flex-shrink-0">
+                  · {totals.totalAll}
                 </span>
               </div>
             </div>
@@ -338,10 +338,10 @@ export const ROListPanel = memo(function ROListPanel({
             <button
               onClick={() => setDensity(d => d === "normal" ? "compact" : d === "compact" ? "dense" : "normal")}
               className={cn(
-                "h-6 w-6 flex items-center justify-center rounded border quiet-transition flex-shrink-0",
+                "h-5 w-5 flex items-center justify-center rounded quiet-transition flex-shrink-0",
                 density !== "normal"
-                  ? "bg-primary/10 text-primary border-primary/25"
-                  : "text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground",
+                  ? "text-primary"
+                  : "text-muted-foreground/40 hover:text-muted-foreground",
               )}
               title={density === "normal" ? "Switch to compact" : density === "compact" ? "Switch to dense" : "Switch to normal"}
             >
@@ -350,11 +350,10 @@ export const ROListPanel = memo(function ROListPanel({
             <Button
               size="sm"
               onClick={onAddNew}
-              className="h-7 text-[10px] gap-1 rounded-lg px-2.5 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
-              style={{ boxShadow: 'var(--shadow-soft)' }}
+              className="h-6 text-[10px] gap-1 rounded px-2 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
             >
               <Plus className="h-3 w-3" />
-              Add RO
+              Add
             </Button>
           </div>
 
