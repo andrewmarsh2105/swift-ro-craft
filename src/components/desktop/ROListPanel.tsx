@@ -71,6 +71,17 @@ const laborBorderColor = (type: LaborType) =>
       ? "hsl(var(--status-customer-pay))"
       : "hsl(var(--status-internal))";
 
+/* ── Labor type abbreviation ────────────────────── */
+const laborAbbr = (type: LaborType) =>
+  type === "warranty" ? "W" : type === "customer-pay" ? "CP" : "INT";
+
+const laborPillClass = (type: LaborType) =>
+  type === "warranty"
+    ? "status-pill-warranty"
+    : type === "customer-pay"
+      ? "status-pill-customer-pay"
+      : "status-pill-internal";
+
 /* ── Compact status indicators ─────────────────── */
 function RowStatusChips({
   ro, flagsCount, checksCount,
@@ -78,31 +89,31 @@ function RowStatusChips({
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 flex-wrap">
       {status.paid === "Paid" ? (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-warranty))" }}>
-          <CheckCircle2 className="h-3 w-3" />
-          <span>Paid</span>
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-warranty))", background: "hsl(var(--status-warranty-bg))" }}>
+          <CheckCircle2 className="h-2.5 w-2.5" />
+          PAID
         </span>
       ) : (
-        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+        <span className="text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
           OPEN
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm bg-muted text-muted-foreground">
           <Clock className="h-2.5 w-2.5" />
-          {status.allTbd ? 'ALL' : status.tbd}
+          {status.allTbd ? 'TBD' : status.tbd}
         </span>
       )}
       {status.flags > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-internal))" }}>
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </span>
       )}
       {status.checks > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive bg-destructive/10 leading-none px-1 py-0.5 rounded-sm">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </span>
@@ -296,10 +307,10 @@ export const ROListPanel = memo(function ROListPanel({
     { value: "custom" as const, label: "Custom" },
   ];
 
-  /* Grid columns: Type-dot | Date | RO# | Info | Hrs | Status | Actions */
+  /* Grid columns: RO#+Date(stacked) | Info | Hours | Status | Actions */
   const gridCols = (compact || density !== "normal")
-    ? "grid-cols-[3px_58px_72px_1fr_48px_100px_24px]"
-    : "grid-cols-[4px_66px_84px_1fr_60px_130px_28px]";
+    ? "grid-cols-[80px_1fr_52px_auto_24px]"
+    : "grid-cols-[90px_1fr_60px_auto_28px]";
 
   const rowPy = density === "dense" ? "py-1" : density === "compact" ? "py-1.5" : "py-2";
 
@@ -456,14 +467,11 @@ export const ROListPanel = memo(function ROListPanel({
               {/* Column headers */}
               <div
                 className={cn(
-                  "grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 border-b border-border/50 bg-muted/30 backdrop-blur-sm",
+                  "grid gap-x-2 items-center px-3 py-1.5 sticky top-0 z-10 border-b border-border/50 bg-background/95 backdrop-blur-sm",
                   gridCols,
                 )}
               >
-                {/* Type dot col — no header */}
-                <div />
-                <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
-                <SortHeader label="RO #" active={sortKey === "ro"} dir={sortDir} onClick={() => toggleSort("ro")} />
+                <SortHeader label="RO" active={sortKey === "ro" || sortKey === "date"} dir={sortDir} onClick={() => toggleSort(sortKey === "ro" ? "date" : "ro")} />
                 <button
                   onClick={() => toggleSort("advisor")}
                   className={cn(
@@ -500,7 +508,7 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 cursor-pointer text-xs quiet-transition group",
+                        "grid gap-x-2 items-center px-3 cursor-pointer text-xs quiet-transition group",
                         rowPy,
                         gridCols,
                         selected
@@ -511,25 +519,22 @@ export const ROListPanel = memo(function ROListPanel({
                       onClick={() => onSelectRO(ro)}
                       role="row"
                     >
-                      {/* Labor type accent strip */}
-                      <div
-                        className="self-stretch rounded-sm"
-                        style={{ background: accentColor, width: '3px', minHeight: '20px' }}
-                        role="cell"
-                        aria-hidden
-                      />
-
-                      {/* Date */}
-                      <div className="text-[11px] tabular-nums text-muted-foreground whitespace-nowrap leading-snug pt-0.5" role="cell">
-                        {formatDateShort(effectiveDate(ro))}
+                      {/* RO # + Date stacked */}
+                      <div className="min-w-0" role="cell">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold tabular-nums text-foreground text-[12px] leading-none">
+                            #{ro.roNumber}
+                          </span>
+                          <span className={laborPillClass(ro.laborType)} style={{ fontSize: '8px', padding: '1px 4px', lineHeight: 1 }}>
+                            {laborAbbr(ro.laborType)}
+                          </span>
+                        </div>
+                        <span className="text-[10px] tabular-nums text-muted-foreground leading-none mt-0.5 block">
+                          {formatDateShort(effectiveDate(ro))}
+                        </span>
                       </div>
 
-                      {/* RO # */}
-                      <div className="font-extrabold tabular-nums text-foreground leading-snug pt-0.5 text-[12px]" role="cell">
-                        #{ro.roNumber}
-                      </div>
-
-                      {/* Info: two-line — customer first when available */}
+                      {/* Info: advisor, vehicle, work summary */}
                       <div className="min-w-0" role="cell">
                         <p className="text-[11px] font-semibold truncate text-foreground leading-snug">
                           {ro.customerName ? (
@@ -544,16 +549,23 @@ export const ROListPanel = memo(function ROListPanel({
                             <span className="font-normal text-muted-foreground"> · {vehicleLabel(ro)}</span>
                           )}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/75 truncate leading-snug">{workSummary}</p>
+                        <p className="text-[10px] text-muted-foreground/70 truncate leading-snug">
+                          {workSummary}
+                          {ro.lines && ro.lines.length > 0 && (
+                            <span className="text-muted-foreground/50"> · {ro.lines.length}L</span>
+                          )}
+                        </p>
                       </div>
 
                       {/* Hours */}
-                      <div className="text-right font-extrabold tabular-nums text-foreground text-[12px] leading-snug pt-0.5 whitespace-nowrap" role="cell">
-                        {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                      <div className="text-right" role="cell">
+                        <span className="hours-pill text-[10px]">
+                          {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                        </span>
                       </div>
 
                       {/* Status */}
-                      <div className="pt-0.5" role="cell">
+                      <div role="cell">
                         <RowStatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
                       </div>
 
