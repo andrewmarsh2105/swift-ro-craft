@@ -233,7 +233,7 @@ export function DesktopWorkspace() {
       <OfflineStatusBar />
 
       {/* ── App Bar ──────────────────────────────────── */}
-      <div className="flex-shrink-0 h-11 flex items-center justify-between px-3 border-b border-border/60 bg-card">
+      <div className="app-bar">
         <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
 
         {/* Right-side toolbar */}
