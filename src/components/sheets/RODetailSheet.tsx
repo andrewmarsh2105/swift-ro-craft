@@ -10,7 +10,6 @@ import {
   Flag,
   Copy,
   FileText,
-  Pencil,
   Trash2,
   X,
 } from "lucide-react";
@@ -179,7 +178,7 @@ export function RODetailSheet({
           <div className="flex flex-col h-full">
             {/* ── Header ── */}
             <div className="flex-shrink-0 border-b border-border/60 bg-card px-4 py-3">
-              {/* Row 1: RO# + hours + close */}
+              {/* Row 1: RO# + hours + [spacer] + Mark Paid + 3-dot + X */}
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-[16px] font-extrabold tabular-nums text-foreground tracking-tight">
                   {ro.roNumber ? `#${ro.roNumber}` : '—'}
@@ -191,11 +190,22 @@ export function RODetailSheet({
                   <Copy className="h-3 w-3" />
                 </button>
                 <span className="hours-pill">{maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h</span>
-                <div className="flex items-center gap-1 ml-auto">
-                  <Button size="sm" className="h-7 px-2.5 text-[11px] bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
-                    <Pencil className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
+                <div className="flex items-center gap-1.5 ml-auto">
+                  {/* Mark Paid / Open — primary daily action, first-class button */}
+                  <button
+                    onClick={handleTogglePaid}
+                    className="inline-flex items-center gap-1 h-7 px-2.5 rounded font-bold text-[11px] transition-all active:scale-[0.97] border"
+                    style={isPaid
+                      ? { color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))', borderColor: 'hsl(var(--status-warranty) / 0.3)' }
+                      : { color: 'hsl(var(--status-internal))', background: 'hsl(var(--status-internal-bg))', borderColor: 'hsl(var(--status-internal) / 0.3)' }
+                    }
+                    title={isPaid ? 'Mark as Open' : 'Mark as Paid'}
+                  >
+                    {isPaid
+                      ? <><CheckCircle2 className="h-3 w-3" /><span>Paid</span></>
+                      : <><LockOpen className="h-3 w-3" /><span>Open</span></>
+                    }
+                  </button>
                   <ROActionMenu
                     roNumber={ro.roNumber}
                     isPaid={isPaid}
@@ -215,25 +225,14 @@ export function RODetailSheet({
                 </div>
               </div>
 
-              {/* Row 2: Labor type + date + advisor + status */}
+              {/* Row 2: Labor type + date + advisor + flags/issues */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <StatusPill type={ro.laborType} size="sm" />
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   <Calendar className="h-3 w-3" />
                   {formatDateShort(ro.date)}
                 </span>
-                <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>
-                {isPaid ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))' }}>
-                    <CheckCircle2 className="h-2.5 w-2.5" />
-                    Paid
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: 'hsl(var(--status-internal))', background: 'hsl(var(--status-internal-bg))' }}>
-                    <LockOpen className="h-2.5 w-2.5" />
-                    Open
-                  </span>
-                )}
+                {ro.advisor && <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>}
                 {flags.length > 0 && (
                   <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
                 )}

@@ -251,18 +251,16 @@ export const ROListPanel = memo(function ROListPanel({
     return map;
   }, [flags]);
 
-  const reviewIssueCountByRO = useMemo(() => {
-    const roNumberCounts = new Map<string, number>();
+  // Build RO# duplicate counts across ALL ros (cheap O(n)) so we know which
+  // RO numbers appear more than once. Used to skip the expensive getReviewIssues()
+  // call for non-duplicate ROs.
+  const roNumberCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const ro of ros) {
       if (!ro.roNumber) continue;
-      roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
+      counts.set(ro.roNumber, (counts.get(ro.roNumber) ?? 0) + 1);
     }
-    const map = new Map<string, number>();
-    for (const ro of ros) {
-      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
-      map.set(ro.id, count > 1 ? getReviewIssues(ro, ros).length : 0);
-    }
-    return map;
+    return counts;
   }, [ros]);
 
   useEffect(() => {
@@ -274,6 +272,17 @@ export const ROListPanel = memo(function ROListPanel({
   }, [deferredQuery, dateFilter, advisorFilter, laborTypeFilter, sortKey, sortDir]);
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
+
+  // Only run getReviewIssues() for VISIBLE rows with duplicate RO numbers.
+  // Mirrors the same optimization in ROsTab to avoid O(n²) work on large datasets.
+  const reviewIssueCountByRO = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const ro of visible) {
+      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
+      map.set(ro.id, count > 1 ? getReviewIssues(ro, ros).length : 0);
+    }
+    return map;
+  }, [visible, roNumberCounts, ros]);
   const rangeChipLabel = useMemo(() => boundsRangeLabel(listBounds), [listBounds]);
 
   const totals = useMemo(() => {

@@ -20,6 +20,69 @@ interface QuickAddSheetProps {
   onScanPhoto: () => void;
 }
 
+interface FormState {
+  roNumber: string;
+  advisor: string;
+  laborType: LaborType;
+  roDate: string;
+  notes: string;
+  lines: ROLine[];
+  paidDate: string;
+  customerName: string;
+  vehicle: VehicleInfo;
+  mileage: string;
+  showDetailsOpen: boolean;
+}
+
+function getInitialFormState(editingRO?: RepairOrder): FormState {
+  if (!editingRO) {
+    return {
+      roNumber: '',
+      advisor: '',
+      laborType: 'customer-pay',
+      roDate: localDateStr(),
+      notes: '',
+      lines: [createEmptyLine(1)],
+      paidDate: '',
+      customerName: '',
+      vehicle: {},
+      mileage: '',
+      showDetailsOpen: false,
+    };
+  }
+
+  let lines: ROLine[];
+  if (editingRO.lines?.length) {
+    lines = editingRO.lines;
+  } else if (editingRO.isSimpleMode && (editingRO.paidHours > 0 || editingRO.workPerformed)) {
+    lines = [{
+      id: Date.now().toString(),
+      lineNo: 1,
+      description: editingRO.workPerformed,
+      hoursPaid: editingRO.paidHours,
+      laborType: editingRO.laborType,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }];
+  } else {
+    lines = [createEmptyLine(1)];
+  }
+
+  return {
+    roNumber: editingRO.roNumber,
+    advisor: editingRO.advisor,
+    laborType: editingRO.laborType,
+    roDate: editingRO.date || localDateStr(),
+    notes: editingRO.notes || '',
+    lines,
+    paidDate: editingRO.paidDate || '',
+    customerName: editingRO.customerName || '',
+    vehicle: editingRO.vehicle || {},
+    mileage: editingRO.mileage || '',
+    showDetailsOpen: !!(editingRO.paidDate || editingRO.customerName || editingRO.mileage || editingRO.vehicle?.year || editingRO.vehicle?.make),
+  };
+}
+
 export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: QuickAddSheetProps) {
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { isPro } = useSubscription();
@@ -28,32 +91,19 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [advisorDraft, setAdvisorDraft] = useState('');
   const [showAdvisorCreate, setShowAdvisorCreate] = useState(false);
 
-  // Form state
-  const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
-  const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
-  const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
-  const [roDate, setRoDate] = useState(editingRO?.date || localDateStr());
-  const [notes, setNotes] = useState(editingRO?.notes || '');
-  const [lines, setLines] = useState<ROLine[]>(() => {
-    if (editingRO?.lines?.length) return editingRO.lines;
-    if (editingRO?.isSimpleMode && (editingRO.paidHours > 0 || editingRO.workPerformed)) {
-      return [{
-        id: Date.now().toString(),
-        lineNo: 1,
-        description: editingRO.workPerformed,
-        hoursPaid: editingRO.paidHours,
-        laborType: editingRO.laborType,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }];
-    }
-    return [createEmptyLine(1)];
-  });
-  const [paidDate, setPaidDate] = useState(editingRO?.paidDate || '');
-  const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
-  const [vehicle, setVehicle] = useState<VehicleInfo>(editingRO?.vehicle || {});
-  const [mileage, setMileage] = useState(editingRO?.mileage || '');
-  const [showDetailsOpen, setShowDetailsOpen] = useState(false);
+  // Form state — initialized via shared helper to avoid duplication
+  const initial = getInitialFormState(editingRO);
+  const [roNumber, setRoNumber] = useState(initial.roNumber);
+  const [advisor, setAdvisor] = useState(initial.advisor);
+  const [laborType, setLaborType] = useState<LaborType>(initial.laborType);
+  const [roDate, setRoDate] = useState(initial.roDate);
+  const [notes, setNotes] = useState(initial.notes);
+  const [lines, setLines] = useState<ROLine[]>(initial.lines);
+  const [paidDate, setPaidDate] = useState(initial.paidDate);
+  const [customerName, setCustomerName] = useState(initial.customerName);
+  const [vehicle, setVehicle] = useState<VehicleInfo>(initial.vehicle);
+  const [mileage, setMileage] = useState(initial.mileage);
+  const [showDetailsOpen, setShowDetailsOpen] = useState(initial.showDetailsOpen);
 
   const monthlyROCount = useMemo(() => {
     const now = new Date();
@@ -64,52 +114,36 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
 
   useEffect(() => {
     if (isOpen) {
-      if (editingRO) {
-        setRoNumber(editingRO.roNumber);
-        setAdvisor(editingRO.advisor);
-        setLaborType(editingRO.laborType);
-        setRoDate(editingRO.date || localDateStr());
-        setNotes(editingRO.notes || '');
-        if (editingRO.lines?.length) {
-          setLines(editingRO.lines);
-        } else if (editingRO.isSimpleMode && (editingRO.paidHours > 0 || editingRO.workPerformed)) {
-          setLines([{
-            id: Date.now().toString(),
-            lineNo: 1,
-            description: editingRO.workPerformed,
-            hoursPaid: editingRO.paidHours,
-            laborType: editingRO.laborType,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }]);
-        } else {
-          setLines([createEmptyLine(1)]);
-        }
-        setPaidDate(editingRO.paidDate || '');
-        setCustomerName(editingRO.customerName || '');
-        setVehicle(editingRO.vehicle || {});
-        setMileage(editingRO.mileage || '');
-        setShowDetailsOpen(!!(editingRO.paidDate || editingRO.customerName || editingRO.mileage || editingRO.vehicle?.year || editingRO.vehicle?.make));
-      } else {
-        resetForm();
-      }
+      const state = getInitialFormState(editingRO);
+      setRoNumber(state.roNumber);
+      setAdvisor(state.advisor);
+      setLaborType(state.laborType);
+      setRoDate(state.roDate);
+      setNotes(state.notes);
+      setLines(state.lines);
+      setPaidDate(state.paidDate);
+      setCustomerName(state.customerName);
+      setVehicle(state.vehicle);
+      setMileage(state.mileage);
+      setShowDetailsOpen(state.showDetailsOpen);
     }
   }, [isOpen, editingRO]);
 
   const linesTotalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
 
   const resetForm = () => {
-    setRoNumber('');
-    setAdvisor('');
-    setLaborType('customer-pay');
-    setRoDate(localDateStr());
-    setNotes('');
-    setLines([createEmptyLine(1)]);
-    setPaidDate('');
-    setCustomerName('');
-    setVehicle({});
-    setMileage('');
-    setShowDetailsOpen(false);
+    const state = getInitialFormState();
+    setRoNumber(state.roNumber);
+    setAdvisor(state.advisor);
+    setLaborType(state.laborType);
+    setRoDate(state.roDate);
+    setNotes(state.notes);
+    setLines(state.lines);
+    setPaidDate(state.paidDate);
+    setCustomerName(state.customerName);
+    setVehicle(state.vehicle);
+    setMileage(state.mileage);
+    setShowDetailsOpen(state.showDetailsOpen);
   };
 
   const handleSave = async (addAnother: boolean = false) => {
@@ -456,7 +490,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                     : 'border-muted text-muted-foreground'
                 )}
               >
-                + Add
+                Save + Add
               </button>
             )}
 

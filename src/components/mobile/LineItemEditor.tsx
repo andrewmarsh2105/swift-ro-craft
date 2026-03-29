@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -33,42 +33,39 @@ export function LineItemEditor({
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
 
-  const handleAddLine = () => {
+  const handleAddLine = useCallback(() => {
     triggerHaptic();
     const newLine = createEmptyLine(1);
-    const updatedLines = [newLine, ...lines].map((line, i) => ({
-      ...line,
-      lineNo: i + 1,
-    }));
+    const updatedLines = [newLine, ...lines].map((line, i) => ({ ...line, lineNo: i + 1 }));
     onLinesChange(updatedLines);
-  };
+  }, [lines, onLinesChange]);
 
-  const handleRemoveLine = (index: number) => {
+  const handleRemoveLine = useCallback((index: number) => {
     triggerHaptic();
-    const updatedLines = lines.filter((_, i) => i !== index).map((line, i) => ({
-      ...line,
-      lineNo: i + 1,
-    }));
+    const updatedLines = lines.filter((_, i) => i !== index).map((line, i) => ({ ...line, lineNo: i + 1 }));
     onLinesChange(updatedLines);
-  };
+  }, [lines, onLinesChange]);
 
-  const handleLineChange = (index: number, updates: Partial<ROLine>) => {
+  const handleLineChange = useCallback((index: number, updates: Partial<ROLine>) => {
     const updatedLines = lines.map((line, i) =>
       i === index ? { ...line, ...updates, updatedAt: new Date().toISOString() } : line
     );
     onLinesChange(updatedLines);
-  };
+  }, [lines, onLinesChange]);
 
-  const handleHoursInput = (index: number, value: number) => {
-    handleLineChange(index, { hoursPaid: Math.max(0, value) });
-  };
+  const handleHoursInput = useCallback((index: number, value: number) => {
+    const updatedLines = lines.map((line, i) =>
+      i === index ? { ...line, hoursPaid: Math.max(0, value), updatedAt: new Date().toISOString() } : line
+    );
+    onLinesChange(updatedLines);
+  }, [lines, onLinesChange]);
 
-  const handlePresetSelect = (preset: Preset) => {
+  const handlePresetSelect = useCallback((preset: Preset) => {
     triggerHaptic();
-    
+
     setAnimatingPresetId(preset.id);
     setTimeout(() => setAnimatingPresetId(null), 600);
-    
+
     setRecentlyAddedPresets(prev => {
       const updated = [preset.id, ...prev.filter(id => id !== preset.id)].slice(0, 3);
       return updated;
@@ -84,17 +81,14 @@ export function LineItemEditor({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
-    const updatedLines = [...lines, newLine].map((line, i) => ({
-      ...line,
-      lineNo: i + 1,
-    }));
+
+    const updatedLines = [...lines, newLine].map((line, i) => ({ ...line, lineNo: i + 1 }));
     onLinesChange(updatedLines);
-    
+
     const presetHours = Number(preset.defaultHours || 0).toFixed(1);
     toast.success(`Added ${preset.name} — ${presetHours}h`);
     onPresetApplied?.(preset);
-  };
+  }, [lines, onLinesChange, onPresetApplied]);
 
   const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
   const hasEmptyHours = lines.some(line => line.description && !line.hoursPaid);
@@ -141,7 +135,7 @@ export function LineItemEditor({
       {/* ── Add Line ── */}
       <button
         onClick={handleAddLine}
-        className="w-full h-11 rounded-xl flex items-center justify-center gap-2 font-medium text-sm tap-target transition-all active:scale-[0.98] border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary"
+        className="w-full h-12 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm tap-target transition-all active:scale-[0.98] border-2 border-dashed border-primary/30 text-primary/70 hover:border-primary/60 hover:text-primary hover:bg-primary/5"
       >
         <Plus className="h-4 w-4" />
         <span>Add Line</span>

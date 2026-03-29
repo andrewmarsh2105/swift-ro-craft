@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, LockOpen, Rows3, Rows4, X } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
@@ -50,11 +50,12 @@ function InlineStatusChips({
       {/* Paid — labeled pill for instant scanning */}
       {status.paid === 'Paid' ? (
         <span
-          className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none px-1 py-[3px] flex-shrink-0"
+          className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
           style={{
             backgroundColor: 'hsl(var(--status-warranty-bg))',
             color: 'hsl(var(--status-warranty))',
-            borderRadius: '2px',
+            borderRadius: '3px',
+            border: '1px solid hsl(var(--status-warranty) / 0.25)',
           }}
         >
           <CheckCircle2 className="h-2.5 w-2.5" />
@@ -62,11 +63,12 @@ function InlineStatusChips({
         </span>
       ) : (
         <span
-          className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none px-1 py-[3px] flex-shrink-0"
+          className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
           style={{
             backgroundColor: 'hsl(var(--status-internal-bg))',
             color: 'hsl(var(--status-internal))',
-            borderRadius: '2px',
+            borderRadius: '3px',
+            border: '1px solid hsl(var(--status-internal) / 0.25)',
           }}
         >
           <LockOpen className="h-2.5 w-2.5" />
@@ -93,11 +95,11 @@ function InlineStatusChips({
 
 interface ROCardProps {
   ro: RepairOrder;
-  onEdit: () => void;
-  onDelete: () => void;
-  onFlag: () => void;
-  onTogglePaid: () => void;
-  onViewDetails: () => void;
+  onEdit: (ro: RepairOrder) => void;
+  onDelete: (id: string) => void;
+  onFlag: (ro: RepairOrder) => void;
+  onTogglePaid: (ro: RepairOrder) => void;
+  onViewDetails: (ro: RepairOrder) => void;
   flags: import('@/types/flags').ROFlag[];
   reviewIssues: ReviewIssue[];
   existingRONumbers: string[];
@@ -130,7 +132,7 @@ const ROCard = memo(function ROCard({
     >
       <div
         className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/20 transition-colors duration-75 active:bg-muted/35"
-        onClick={onViewDetails}
+        onClick={() => onViewDetails(ro)}
       >
         <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[6px]' : 'py-[9px]')}>
 
@@ -160,11 +162,12 @@ const ROCard = memo(function ROCard({
               className={cn(
                 'flex-shrink-0 font-bold tabular-nums leading-none font-mono',
                 compact ? 'text-[13px]' : 'text-[15px]',
-                hoursZero ? 'text-muted-foreground/35' : '',
+                hoursZero ? 'text-amber-500/60' : '',
               )}
               style={!hoursZero ? { color: accentColor } : undefined}
+              title={hoursZero ? 'No hours recorded — possible data entry error' : undefined}
             >
-              {maskHours(hours, hideTotals)}h
+              {hoursZero ? '0.0h' : `${maskHours(hours, hideTotals)}h`}
             </span>
           </div>
 
@@ -212,10 +215,10 @@ const ROCard = memo(function ROCard({
           <ROActionMenu
             roNumber={ro.roNumber}
             isPaid={!!ro.paidDate}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onFlag={onFlag}
-            onTogglePaid={onTogglePaid}
+            onEdit={() => onEdit(ro)}
+            onDelete={() => onDelete(ro.id)}
+            onFlag={() => onFlag(ro)}
+            onTogglePaid={() => onTogglePaid(ro)}
             existingRONumbers={existingRONumbers}
           />
         </div>
@@ -431,6 +434,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     (dateFilter !== 'all' ? 1 : 0) +
     (filters.sortBy !== 'date' ? 1 : 0);
 
+  // Stable callbacks for ROCard — these must not recreate on every render or
+  // memo(ROCard) is bypassed entirely. Each handler receives the RO (or its id)
+  // as a parameter so we can pass the same function reference to all cards.
+  const handleCardEdit = useCallback((ro: RepairOrder) => onEditRO(ro), [onEditRO]);
+  const handleCardDelete = useCallback((id: string) => deleteRO(id), [deleteRO]);
+  const handleCardFlag = useCallback((ro: RepairOrder) => setFlaggingRO(ro), []);
+  const handleCardTogglePaid = useCallback((ro: RepairOrder) => {
+    updateRO(ro.id, { paidDate: ro.paidDate ? '' : localDateStr() });
+  }, [updateRO]);
+  const handleCardViewDetails = useCallback((ro: RepairOrder) => {
+    setSelectedRO(ro);
+    setShowDetail(true);
+  }, []);
+
   const toggleAdvisorFilter = (advisor: string) => {
     setFilters(prev => ({
       ...prev,
@@ -629,8 +646,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   {label}
                 </button>
               ))}
-              {/* Divider */}
-              <span className="w-px h-3 bg-border/50 flex-shrink-0 mx-0.5" />
+              {/* Divider — visually separates date range filters from labor type filters */}
+              <span className="w-px h-4 bg-border/60 flex-shrink-0 mx-1.5" />
               {/* Quick labor type toggles */}
               {([
                 { type: 'warranty' as LaborType, label: 'W', color: 'hsl(var(--status-warranty))' },
@@ -745,16 +762,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   reviewIssues={reviewIssuesByROId.get(ro.id) ?? []}
                   hideTotals={userSettings.hideTotals ?? false}
                   compact={density === 'compact'}
-                  onEdit={() => onEditRO(ro)}
-                  onFlag={() => setFlaggingRO(ro)}
-                  onDelete={() => deleteRO(ro.id)}
-                  onTogglePaid={() => {
-                    updateRO(ro.id, { paidDate: ro.paidDate ? '' : localDateStr() });
-                  }}
-                  onViewDetails={() => {
-                    setSelectedRO(ro);
-                    setShowDetail(true);
-                  }}
+                  onEdit={handleCardEdit}
+                  onFlag={handleCardFlag}
+                  onDelete={handleCardDelete}
+                  onTogglePaid={handleCardTogglePaid}
+                  onViewDetails={handleCardViewDetails}
                   existingRONumbers={existingRONumbers}
                 />
               ))}

@@ -28,6 +28,10 @@ import type { SaveSettingResult } from '@/hooks/useUserSettings';
 type GoalSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type FieldStatus = 'idle' | 'saving' | 'saved' | 'error';
 
+// Module-level cache: admin status only needs to be checked once per session.
+// Avoids a Supabase function invocation on every settings tab mount.
+let _cachedAdminStatus: boolean | null = null;
+
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
@@ -75,17 +79,28 @@ export function SettingsTab() {
   }, [syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate, syncedSettings.displayName, syncedSettings.shopName, userSettingsLoaded]);
 
   useEffect(() => {
+    if (!user) return;
+
+    // Use cached result if already determined this session
+    if (_cachedAdminStatus !== null) {
+      setIsAdmin(_cachedAdminStatus);
+      return;
+    }
+
     async function checkAdmin() {
       try {
         const { data } = await (await import('@/integrations/supabase/client')).supabase.functions.invoke('admin-manage-overrides', {
           body: { action: 'check-admin' },
         });
-        setIsAdmin(data?.isAdmin === true);
+        const result = data?.isAdmin === true;
+        _cachedAdminStatus = result;
+        setIsAdmin(result);
       } catch {
+        _cachedAdminStatus = false;
         setIsAdmin(false);
       }
     }
-    if (user) checkAdmin();
+    checkAdmin();
   }, [user]);
 
   useEffect(() => {
