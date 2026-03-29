@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, LockOpen, Rows3, Rows4 } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, LockOpen, Rows3, Rows4, X } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -261,6 +261,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const [visibleCount, setVisibleCount] = useState(50);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const SCROLL_KEY = 'ui.mobile.roTab.scrollY';
 
   useEffect(() => {
@@ -380,6 +381,22 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
   const hasMore = visibleCount < filteredROs.length;
+
+  // IntersectionObserver: load more ROs when sentinel scrolls into view
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(c => c + 50);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore]);
 
   const reviewIssuesByROId = useMemo(() => {
     const issuesMap = new Map<string, ReviewIssue[]>();
@@ -557,8 +574,21 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search RO#, name, VIN, work…"
-              className="w-full h-9 pl-3 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+              className={cn(
+                'w-full h-9 pl-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring',
+                searchQuery ? 'pr-7' : 'pr-3',
+              )}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Filter button */}
@@ -728,14 +758,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   existingRONumbers={existingRONumbers}
                 />
               ))}
-              {hasMore && (
-                <button
-                  onClick={() => setVisibleCount(c => c + 50)}
-                  className="w-full h-10 bg-card border-t border-border/40 text-[11px] font-semibold text-primary hover:bg-muted/40 quiet-transition"
-                >
-                  Show {Math.min(50, filteredROs.length - visibleCount)} more
-                </button>
-              )}
+              {/* Sentinel for IntersectionObserver-based infinite scroll */}
+              <div ref={sentinelRef} className="h-1" />
               {/* Bottom padding for FAB */}
               <div className="h-24" />
             </div>

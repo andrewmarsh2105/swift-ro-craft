@@ -365,7 +365,7 @@ export default function AddRO() {
     }
   };
 
-  const isValid = roNumber.trim() !== '';
+  const isValid = roNumber.trim() !== '' && advisor.trim() !== '';
 
   // Desktop: use workspace
   if (!isMobile) return <DesktopWorkspace />;
@@ -535,38 +535,13 @@ export default function AddRO() {
             </button>
 
             {/* Preset rail — flex-1, scrollable, scroll-protected */}
-            <div className="flex-1 overflow-hidden min-w-0">
-              {quickPresets.length > 0 ? (
-                <div
-                  className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide"
-                  style={{ WebkitOverflowScrolling: 'touch' }}
-                >
-                  {recentlyAddedPresets.length > 0 && (
-                    <>
-                      {recentlyAddedPresets.map(id => {
-                        const p = settings.presets.find(pr => pr.id === id);
-                        return p ? (
-                          <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/10 rounded-md text-xs text-primary font-medium border border-primary/20 whitespace-nowrap">
-                            ✓ {p.name}
-                          </span>
-                        ) : null;
-                      })}
-                      <div className="w-px h-5 bg-border flex-shrink-0" />
-                    </>
-                  )}
-                  {quickPresets.map(preset => (
-                    <PresetButton
-                      key={preset.id}
-                      preset={preset}
-                      onTap={() => addPresetLine(preset)}
-                      onLongPress={() => setLongPressPreset(preset)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <span className="text-xs text-muted-foreground px-1">No presets — add in Settings</span>
-              )}
-            </div>
+            <PresetRail
+              quickPresets={quickPresets}
+              recentlyAddedPresets={recentlyAddedPresets}
+              presets={settings.presets}
+              onAddPreset={addPresetLine}
+              onLongPress={setLongPressPreset}
+            />
 
             {/* Search: opens all-presets sheet */}
             <button
@@ -831,5 +806,92 @@ function PresetButton({
         <span className="opacity-60">({preset.defaultHours}h)</span>
       )}
     </button>
+  );
+}
+
+// Scrollable preset rail with fade hints and clickable "recently added" chips
+function PresetRail({
+  quickPresets,
+  recentlyAddedPresets,
+  presets,
+  onAddPreset,
+  onLongPress,
+}: {
+  quickPresets: Preset[];
+  recentlyAddedPresets: string[];
+  presets: Preset[];
+  onAddPreset: (preset: Preset) => void;
+  onLongPress: (preset: Preset) => void;
+}) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    const el = railRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    // Check once after mount so fade appears immediately if content overflows
+    const frame = requestAnimationFrame(checkScroll);
+    return () => cancelAnimationFrame(frame);
+  }, [quickPresets.length, recentlyAddedPresets.length]);
+
+  if (quickPresets.length === 0) {
+    return (
+      <div className="flex-1 overflow-hidden min-w-0">
+        <span className="text-xs text-muted-foreground px-1">No presets — add in Settings</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-hidden min-w-0 relative">
+      {/* Left fade */}
+      {canScrollLeft && (
+        <div className="absolute left-0 top-0 bottom-0 w-6 z-10 pointer-events-none bg-gradient-to-r from-card to-transparent" />
+      )}
+      {/* Right fade */}
+      {canScrollRight && (
+        <div className="absolute right-0 top-0 bottom-0 w-6 z-10 pointer-events-none bg-gradient-to-l from-card to-transparent" />
+      )}
+      <div
+        ref={railRef}
+        onScroll={checkScroll}
+        className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {recentlyAddedPresets.length > 0 && (
+          <>
+            {recentlyAddedPresets.map(id => {
+              const p = presets.find(pr => pr.id === id);
+              return p ? (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onAddPreset(p)}
+                  aria-label={`Re-add ${p.name}`}
+                  className="flex-shrink-0 px-2 py-1 bg-primary/10 rounded-md text-xs text-primary font-medium border border-primary/20 whitespace-nowrap active:scale-[0.93] transition-transform cursor-pointer"
+                >
+                  ✓ {p.name}
+                </button>
+              ) : null;
+            })}
+            <div className="w-px h-5 bg-border flex-shrink-0" />
+          </>
+        )}
+        {quickPresets.map(preset => (
+          <PresetButton
+            key={preset.id}
+            preset={preset}
+            onTap={() => onAddPreset(preset)}
+            onLongPress={() => onLongPress(preset)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

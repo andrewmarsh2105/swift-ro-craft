@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Trash2, Maximize2 } from 'lucide-react';
+import { haptics } from '@/lib/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -27,11 +28,6 @@ const LABOR_TYPES: { value: LaborType; label: string; short: string }[] = [
   { value: 'internal', label: 'Internal', short: 'Int' },
 ];
 
-function triggerHaptic() {
-  if ('vibrate' in navigator) {
-    navigator.vibrate(10);
-  }
-}
 
 export function CompactLinesGrid({
   lines,
@@ -47,7 +43,7 @@ export function CompactLinesGrid({
   const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string } | null>(null);
 
   const handleRemoveLine = (index: number) => {
-    triggerHaptic();
+    haptics.light();
     if (lines.length <= 1) {
       toast.error('Cannot remove the last line');
       return;
@@ -133,6 +129,7 @@ export function CompactLinesGrid({
                   {!readOnly && (
                     <button
                       onClick={() => handleRemoveLine(index)}
+                      aria-label={`Remove line ${line.lineNo}`}
                       className="h-11 w-11 text-destructive/60 hover:text-destructive rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
                     >
                       <Trash2 className="h-4 w-4" />
