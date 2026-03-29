@@ -7,6 +7,7 @@ import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 import { LineTextModal } from '@/components/shared/LineTextModal';
+import { createEmptyLine } from '@/lib/roLine';
 
 interface CompactLinesGridProps {
   lines: ROLine[];
@@ -19,17 +20,6 @@ interface CompactLinesGridProps {
   onSaveAsPreset?: (line: ROLine) => void;
 }
 
-function createEmptyLine(lineNo: number): ROLine {
-  return {
-    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-    lineNo,
-    description: '',
-    hoursPaid: 0,
-    laborType: 'customer-pay',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-}
 
 const LABOR_TYPES: { value: LaborType; label: string; short: string }[] = [
   { value: 'warranty', label: 'Warranty', short: 'Warr' },
@@ -229,4 +219,3 @@ export function CompactLinesGrid({
   );
 }
 
-export { createEmptyLine };

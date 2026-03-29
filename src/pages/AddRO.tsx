@@ -4,9 +4,8 @@ import { Camera, Plus, Loader2, User, FileText, Crown, Search } from 'lucide-rea
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
-import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { PresetHoursSheet } from '@/components/mobile/PresetHoursSheet';
+import { CompactLinesGrid, BottomSheet, PresetHoursSheet } from '@/components/mobile';
+import { createEmptyLine } from '@/lib/roLine';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/states/EmptyState';
@@ -22,13 +21,12 @@ import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
-import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
+import { DetailsCollapsible, PresetSearchRail } from '@/components/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 
 // Desktop imports
-import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
-import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
+import { DesktopWorkspace } from '@/components/desktop';
 
 
 export default function AddRO() {

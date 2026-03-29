@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
+import { createEmptyLine } from '@/lib/roLine';
 import { cn } from '@/lib/utils';
 
 interface LineItemEditorProps {
@@ -15,17 +16,6 @@ interface LineItemEditorProps {
   onPresetApplied?: (preset: Preset) => void;
 }
 
-function createEmptyLine(lineNo: number): ROLine {
-  return {
-    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-    lineNo,
-    description: '',
-    hoursPaid: 0,
-    laborType: 'customer-pay',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-}
 
 function triggerHaptic() {
   if ('vibrate' in navigator) {
@@ -271,4 +261,3 @@ export function LineItemEditor({
   );
 }
 
-export { createEmptyLine };

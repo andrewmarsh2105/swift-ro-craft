@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
+import { createEmptyLine } from '@/lib/roLine';
 
 interface LinesGridProps {
   lines: ROLine[];
@@ -19,17 +20,6 @@ interface LinesGridProps {
   onSaveAsPreset?: (line: ROLine) => void;
 }
 
-function createEmptyLine(lineNo: number, laborType: LaborType = 'customer-pay'): ROLine {
-  return {
-    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-    lineNo,
-    description: '',
-    hoursPaid: 0,
-    laborType,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-}
 
 const LABOR_TYPE_OPTIONS: { value: LaborType | ''; label: string }[] = [
   { value: '', label: 'Default' },
@@ -369,4 +359,3 @@ export function LinesGrid({
   );
 }
 
-export { createEmptyLine };
