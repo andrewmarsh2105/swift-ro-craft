@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Clock, Copy, Flag, Pencil, Trash2, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Copy, Flag, Pencil, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -142,12 +142,6 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
                   OPEN
                 </span>
               )}
-              {status.tbd > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-muted/60 text-muted-foreground px-1 py-0.5 rounded-sm leading-none">
-                  <Clock className="h-2 w-2" />
-                  {status.allTbd ? 'TBD' : status.tbd}
-                </span>
-              )}
               {status.flags > 0 && (
                 <span className="inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.5 rounded-sm leading-none" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
                   <Flag className="h-2 w-2" />
@@ -234,9 +228,6 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
                             <><ChevronDown className="h-2.5 w-2.5" />More</>
                           )}
                         </button>
-                      )}
-                      {l.isTbd && (
-                        <span className="inline-block mt-1 text-[9px] font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-sm">TBD</span>
                       )}
                     </div>
 

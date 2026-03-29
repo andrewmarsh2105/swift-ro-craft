@@ -13,7 +13,6 @@ export interface ROSnapshotLine {
   description: string;
   laborType: string;
   hours: number;
-  isTbd: boolean;
   matchedReferenceId?: string;
 }
 
@@ -45,7 +44,6 @@ export interface CloseoutSnapshot {
     internalHours: number;
     flaggedCount: number;
     needsReviewCount: number;
-    tbdCount: number;
     totalROs: number;
     totalLines: number;
   };
@@ -64,7 +62,7 @@ type CloseoutInsert = Database['public']['Tables']['pay_period_closeouts']['Inse
 
 export function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
   return report.rosInRange.map(ro => {
-    const paidLines = (ro.lines || []).filter(l => !l.isTbd && l.description.trim() !== '');
+    const paidLines = (ro.lines || []).filter(l => l.description.trim() !== '');
     const simpleModeHours = (ro.lines || []).length === 0 ? (ro.paidHours || 0) : 0;
     const effectiveSimpleLaborType = ro.laborType || 'customer-pay';
     const cpH = paidLines.filter(l => (l.laborType || 'customer-pay') === 'customer-pay').reduce((s, l) => s + l.hoursPaid, 0);
@@ -91,7 +89,6 @@ export function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
         description: l.description,
         laborType: l.laborType || 'customer-pay',
         hours: l.hoursPaid,
-        isTbd: l.isTbd || false,
         matchedReferenceId: l.matchedReferenceId,
       })),
     };
@@ -143,7 +140,6 @@ export function useCloseouts() {
       internalHours: iHours,
       flaggedCount: report.flaggedCount,
       needsReviewCount: report.needsReviewCount,
-      tbdCount: report.tbdLineCount,
       totalROs: report.totalROs,
       totalLines: report.totalLines,
     };

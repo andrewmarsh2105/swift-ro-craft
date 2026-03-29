@@ -21,7 +21,6 @@ export interface SpreadsheetLineRow {
   hours: number;
   type: string; // CP, W, I
   laborType: string; // full key
-  isTbd: boolean;
   notes: string;
   mileage: string;
   vin: string;
@@ -52,12 +51,14 @@ export interface BuildRowsOptions {
 }
 
 export function buildSpreadsheetRows({ ros, periodLabel, groupBy = 'date' }: BuildRowsOptions): SpreadsheetRow[] {
+  // Exclude open ROs (no paidDate) from spreadsheet
+  const paidROs = ros.filter(ro => !!ro.paidDate);
   switch (groupBy) {
-    case 'ro': return buildGroupedByRO(ros, periodLabel);
-    case 'advisor': return buildGroupedByAdvisor(ros, periodLabel);
-    case 'none': return buildFlat(ros, periodLabel);
+    case 'ro': return buildGroupedByRO(paidROs, periodLabel);
+    case 'advisor': return buildGroupedByAdvisor(paidROs, periodLabel);
+    case 'none': return buildFlat(paidROs, periodLabel);
     case 'date':
-    default: return buildGroupedByDate(ros, periodLabel);
+    default: return buildGroupedByDate(paidROs, periodLabel);
   }
 }
 
@@ -75,7 +76,7 @@ function emitROLines(
     for (let i = 0; i < ro.lines.length; i++) {
       const line = ro.lines[i];
       const lt = line.laborType ?? ro.laborType;
-      const hrs = line.isTbd ? 0 : line.hoursPaid;
+      const hrs = line.hoursPaid;
       roTotal += hrs;
       if (lt === 'warranty') roW += hrs;
       else if (lt === 'customer-pay') roCP += hrs;
@@ -88,7 +89,7 @@ function emitROLines(
         vehicle: formatVehicleChip(ro.vehicle) || '',
         lineNo: line.lineNo, description: line.description,
         hours: line.hoursPaid, type: typeCode(lt), laborType: lt,
-        isTbd: line.isTbd || false, notes: ro.notes || '',
+        notes: ro.notes || '',
         mileage: ro.mileage || '', vin: ro.vehicle?.vin || '',
         ro, lineIndex: i,
       });
@@ -107,7 +108,7 @@ function emitROLines(
       vehicle: formatVehicleChip(ro.vehicle) || '',
       lineNo: 1, description: ro.workPerformed || '',
       hours: ro.paidHours, type: typeCode(lt), laborType: lt,
-      isTbd: false, notes: ro.notes || '',
+      notes: ro.notes || '',
       mileage: ro.mileage || '', vin: ro.vehicle?.vin || '',
       ro, lineIndex: -1,
     });
@@ -270,7 +271,7 @@ export function buildSpreadsheetRowsFromSnapshot(
       let roCP = 0, roW = 0, roI = 0;
 
       for (const line of ro.lines) {
-        const hrs = line.isTbd ? 0 : line.hours;
+        const hrs = line.hours;
         const lt = line.laborType;
         if (lt === 'warranty') roW += hrs;
         else if (lt === 'customer-pay') roCP += hrs;
@@ -290,7 +291,6 @@ export function buildSpreadsheetRowsFromSnapshot(
           hours: line.hours,
           type: typeCode(lt),
           laborType: lt,
-          isTbd: line.isTbd,
           notes: '',
           mileage: ro.mileage || '',
           vin: '',
@@ -358,7 +358,7 @@ function fmtShortDate(dateStr: string): string {
 export const PAYROLL_EXPORT_HEADERS = ['RO #', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Work Performed', 'Hours', 'Type'];
 
 /** Column headers for audit export */
-export const AUDIT_EXPORT_HEADERS = ['RO #', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Line', 'Work Performed', 'Hours', 'Type', 'TBD', 'Notes', 'Mileage', 'VIN'];
+export const AUDIT_EXPORT_HEADERS = ['RO #', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Line', 'Work Performed', 'Hours', 'Type', 'Notes', 'Mileage', 'VIN'];
 
 /** Convert a SpreadsheetRow to an export cell array for the given headers */
 export function rowToExportCells(row: SpreadsheetRow, headers: string[]): string[] {
@@ -374,7 +374,6 @@ export function rowToExportCells(row: SpreadsheetRow, headers: string[]): string
         case 'Work Performed': return row.description;
         case 'Hours': return row.hours.toFixed(2);
         case 'Type': return row.type;
-        case 'TBD': return row.isTbd ? 'Y' : 'N';
         case 'Notes': return row.notes;
         case 'Mileage': return row.mileage;
         case 'VIN': return row.vin;

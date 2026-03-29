@@ -4,7 +4,8 @@ import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
-import { LinesGrid, createEmptyLine } from './LinesGrid';
+import { LinesGrid } from './LinesGrid';
+import { createEmptyLine } from '@/lib/roLine';
 import { AdvisorCombobox } from './AdvisorCombobox';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
@@ -181,7 +182,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   }, [focusLineId]);
 
   const totalHours = calcLineHours(lines);
-  const tbdCount = lines.filter(l => l.isTbd).length;
   const isValid = roNumber.trim() !== '';
 
   const handleScanApply = (data: ScanApplyData) => {
@@ -236,7 +236,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      paidDate: paidDate.trim() || (ro ? '' : undefined),
+      // New ROs are automatically marked as paid (use RO date); editing preserves existing paidDate
+      paidDate: ro ? (paidDate.trim() || '') : (paidDate.trim() || date || localDateStr()),
       paidHours: totalHours, laborType,
       workPerformed: computedWorkPerformed, notes, date,
       photos: ro?.photos, lines, isSimpleMode: false,
@@ -392,9 +393,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-xl font-bold text-primary tabular-nums">{totalHours.toFixed(1)}h</span>
-              {tbdCount > 0 && (
-                <span className="text-xs text-destructive font-medium">({tbdCount} TBD)</span>
-              )}
             </div>
           </div>
         </div>

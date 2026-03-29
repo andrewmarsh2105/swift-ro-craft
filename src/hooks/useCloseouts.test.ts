@@ -8,8 +8,6 @@ const baseReport: PayPeriodReport = {
   totalHours: 0,
   totalROs: 0,
   totalLines: 0,
-  tbdLineCount: 0,
-  tbdHours: 0,
   byDay: [],
   byAdvisor: [],
   byLaborType: [],
@@ -51,7 +49,7 @@ describe('buildROSnapshot', () => {
     expect(snap.iHours).toBe(0);
   });
 
-  it('excludes TBD and blank-description lines from paid totals while retaining full line snapshot', () => {
+  it('excludes blank-description lines from paid totals while retaining full line snapshot', () => {
     const report: PayPeriodReport = {
       ...baseReport,
       rosInRange: [
@@ -89,7 +87,6 @@ describe('buildROSnapshot', () => {
               description: 'Need parts',
               hoursPaid: 1.5,
               laborType: 'internal',
-              isTbd: true,
               createdAt: '2026-03-12T00:00:00Z',
               updatedAt: '2026-03-12T00:00:00Z',
             },
@@ -109,11 +106,10 @@ describe('buildROSnapshot', () => {
 
     expect(snap.roDate).toBe('2026-03-12');
     expect(snap.vehicle).toBe("'21 Subaru Outback");
-    expect(snap.totalPaidHours).toBe(2);
+    expect(snap.totalPaidHours).toBe(3.5); // l1(2h) + l3(1.5h); l2 excluded (empty description)
     expect(snap.cpHours).toBe(2);
-    expect(snap.wHours).toBe(0);
-    expect(snap.iHours).toBe(0);
+    expect(snap.wHours).toBe(0); // l2 excluded
+    expect(snap.iHours).toBe(1.5);
     expect(snap.lines).toHaveLength(3);
-    expect(snap.lines.find(l => l.lineId === 'l3')?.isTbd).toBe(true);
   });
 });

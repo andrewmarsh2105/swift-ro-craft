@@ -28,9 +28,9 @@ export function vehicleLabel(ro: RepairOrder): string {
   return parts.length ? parts.join(" ") : "—";
 }
 
-/** Sum paid hours across lines, excluding TBD lines. */
+/** Sum paid hours across all lines. */
 export function calcLineHours(lines: ROLine[]): number {
-  return lines.filter((l) => !l.isTbd).reduce((s, l) => s + (l.hoursPaid || 0), 0);
+  return lines.reduce((s, l) => s + (l.hoursPaid || 0), 0);
 }
 
 export function calcHours(ro: RepairOrder): number {

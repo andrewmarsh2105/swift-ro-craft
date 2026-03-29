@@ -26,7 +26,7 @@ function makeRO(partial: Partial<RepairOrder>): RepairOrder {
 }
 
 describe('exportUtils', () => {
-  it('generateLineCSV includes only paid non-TBD lines and uses paidDate for exported date', () => {
+  it('generateLineCSV includes non-empty lines and uses paidDate for exported date', () => {
     const ro = makeRO({
       id: 'ro-1',
       roNumber: '2001',
@@ -38,7 +38,6 @@ describe('exportUtils', () => {
       lines: [
         { id: 'a', lineNo: 1, description: 'Paid line\nwith newline', hoursPaid: 1.25, laborType: 'customer-pay', createdAt: '', updatedAt: '' },
         { id: 'b', lineNo: 2, description: '', hoursPaid: 2, laborType: 'warranty', createdAt: '', updatedAt: '' },
-        { id: 'c', lineNo: 3, description: 'TBD line', hoursPaid: 0.5, laborType: 'internal', isTbd: true, createdAt: '', updatedAt: '' },
       ],
     });
 
@@ -47,9 +46,7 @@ describe('exportUtils', () => {
       endDate: '2026-03-31',
       totalHours: 1.25,
       totalROs: 1,
-      totalLines: 3,
-      tbdLineCount: 1,
-      tbdHours: 0.5,
+      totalLines: 2,
       byDay: [],
       byAdvisor: [],
       byLaborType: [],
@@ -70,18 +67,15 @@ describe('exportUtils', () => {
     expect(rows[1]).toContain('"1.25"');
     expect(rows[1]).toContain("\"'24 Honda Civic\"");
     expect(rows[1]).toContain('"Paid line with newline"');
-    expect(rows[1]).not.toContain('TBD line');
   });
 
-  it('generateSummaryText includes TBD and warning sections when counts exist', () => {
+  it('generateSummaryText includes warnings section when flags exist', () => {
     const report = {
       startDate: '2026-03-01',
       endDate: '2026-03-15',
       totalHours: 10.5,
       totalROs: 4,
       totalLines: 7,
-      tbdLineCount: 2,
-      tbdHours: 1.2,
       byDay: [{ date: '2026-03-02', totalHours: 2.5, roCount: 1, warrantyHours: 0, customerPayHours: 2.5, internalHours: 0 }],
       byAdvisor: [{ advisor: 'Alex', totalHours: 10.5, roCount: 4, warrantyHours: 1, customerPayHours: 8, internalHours: 1.5 }],
       byLaborType: [{ laborType: 'customer-pay', label: 'Customer Pay', totalHours: 8, lineCount: 5 }],
@@ -95,7 +89,6 @@ describe('exportUtils', () => {
 
     const text = generateSummaryText(report);
 
-    expect(text).toContain('TBD: 2 lines (1.2h) — not counted in totals');
     expect(text).toContain('WARNINGS:');
     expect(text).toContain('🚩 3 flagged items');
   });
@@ -118,8 +111,6 @@ describe('exportUtils', () => {
       totalHours: 1.0,
       totalROs: 1,
       totalLines: 1,
-      tbdLineCount: 0,
-      tbdHours: 0,
       byDay: [],
       byAdvisor: [],
       byLaborType: [],

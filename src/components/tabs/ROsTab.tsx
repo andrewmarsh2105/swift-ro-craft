@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, Rows3, Rows4 } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, LockOpen, Rows3, Rows4 } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
 import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
-import { cn } from '@/lib/utils';
+import { cn, localDateStr } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
 import { compareAdvisorNames, normalizeAdvisorName, sortROs, matchesSearchQuery } from '@/lib/roFilters';
@@ -48,7 +48,7 @@ function InlineStatusChips({
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
       {/* Paid — labeled pill for instant scanning */}
-      {status.paid === 'Paid' && (
+      {status.paid === 'Paid' ? (
         <span
           className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none px-1 py-[3px] flex-shrink-0"
           style={{
@@ -60,11 +60,17 @@ function InlineStatusChips({
           <CheckCircle2 className="h-2.5 w-2.5" />
           <span>PAID</span>
         </span>
-      )}
-      {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold text-amber-600 dark:text-amber-400 leading-none">
-          <Clock className="h-2.5 w-2.5" />
-          <span>{status.allTbd ? 'TBD' : status.tbd}</span>
+      ) : (
+        <span
+          className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none px-1 py-[3px] flex-shrink-0"
+          style={{
+            backgroundColor: 'hsl(var(--status-internal-bg))',
+            color: 'hsl(var(--status-internal))',
+            borderRadius: '2px',
+          }}
+        >
+          <LockOpen className="h-2.5 w-2.5" />
+          <span>OPEN</span>
         </span>
       )}
       {status.flags > 0 && (
@@ -90,7 +96,7 @@ interface ROCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onFlag: () => void;
-  onTbdAll: () => void;
+  onTogglePaid: () => void;
   onViewDetails: () => void;
   flags: import('@/types/flags').ROFlag[];
   reviewIssues: ReviewIssue[];
@@ -100,7 +106,7 @@ interface ROCardProps {
 }
 
 const ROCard = memo(function ROCard({
-  ro, onEdit, onDelete, onFlag, onTbdAll, onViewDetails,
+  ro, onEdit, onDelete, onFlag, onTogglePaid, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
   compact = false,
 }: ROCardProps) {
@@ -205,11 +211,11 @@ const ROCard = memo(function ROCard({
         >
           <ROActionMenu
             roNumber={ro.roNumber}
+            isPaid={!!ro.paidDate}
             onEdit={onEdit}
             onDelete={onDelete}
             onFlag={onFlag}
-            onTbdAll={onTbdAll}
-            isAllTbd={!!(ro.lines?.length && ro.lines.every(l => l.isTbd))}
+            onTogglePaid={onTogglePaid}
             existingRONumbers={existingRONumbers}
           />
         </div>
@@ -384,7 +390,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return issuesMap;
   }, [visibleROs, roNumberCounts, ros]);
 
-  const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
+  const totalHours = useMemo(() => filteredROs.filter(ro => !!ro.paidDate).reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
 
   // Monthly RO usage for free-tier cap indicator
   const monthlyROCount = useMemo(() => {
@@ -399,7 +405,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const todayHours = useMemo(() => {
     if (hoursGoalDaily <= 0) return 0;
     const today = new Date().toISOString().slice(0, 10);
-    return ros.filter(ro => (ro.date || '').startsWith(today)).reduce((s, ro) => s + calcHours(ro), 0);
+    return ros.filter(ro => !!ro.paidDate && (ro.date || '').startsWith(today)).reduce((s, ro) => s + calcHours(ro), 0);
   }, [ros, hoursGoalDaily]);
 
   const activeFiltersCount =
@@ -712,11 +718,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   onEdit={() => onEditRO(ro)}
                   onFlag={() => setFlaggingRO(ro)}
                   onDelete={() => deleteRO(ro.id)}
-                  onTbdAll={() => {
-                    const allTbd = !!(ro.lines?.length && ro.lines.every(l => l.isTbd));
-                    updateRO(ro.id, {
-                      lines: (ro.lines ?? []).map(l => ({ ...l, isTbd: !allTbd, updatedAt: new Date().toISOString() })),
-                    });
+                  onTogglePaid={() => {
+                    updateRO(ro.id, { paidDate: ro.paidDate ? '' : localDateStr() });
                   }}
                   onViewDetails={() => {
                     setSelectedRO(ro);

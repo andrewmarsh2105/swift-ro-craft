@@ -1,7 +1,7 @@
 export type ColumnId =
   | 'roNumber' | 'date' | 'advisor' | 'customer' | 'vehicle'
   | 'lineNo' | 'description' | 'hours' | 'type' | 'roTotal'
-  | 'tbd' | 'notes' | 'mileage' | 'vin' | 'status' | 'flags';
+  | 'notes' | 'mileage' | 'vin' | 'status' | 'flags';
 
 export type ViewMode = 'payroll' | 'audit';
 export type Density = 'compact' | 'comfortable';
@@ -30,7 +30,6 @@ export const ALL_COLUMNS: ColumnDef[] = [
   { id: 'hours', label: 'Hours', minWidth: 62, align: 'right', isRoLevel: false },
   { id: 'type', label: 'Type', minWidth: 50, align: 'center', isRoLevel: false },
   { id: 'roTotal', label: 'RO Total', minWidth: 76, align: 'right', isRoLevel: true },
-  { id: 'tbd', label: 'TBD', minWidth: 44, align: 'center', isRoLevel: false },
   { id: 'notes', label: 'Notes', minWidth: 120, align: 'left', isRoLevel: true, wrap: true },
   { id: 'mileage', label: 'Mileage', minWidth: 68, align: 'right', isRoLevel: true },
   { id: 'vin', label: 'VIN', minWidth: 140, align: 'left', isRoLevel: true },
@@ -41,7 +40,7 @@ export const PAYROLL_COLUMNS: ColumnId[] = [
 ];
 
 export const AUDIT_COLUMNS: ColumnId[] = [
-  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'status', 'flags', 'lineNo', 'description', 'hours', 'type', 'roTotal', 'tbd', 'notes', 'mileage', 'vin',
+  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'status', 'flags', 'lineNo', 'description', 'hours', 'type', 'roTotal', 'notes', 'mileage', 'vin',
 ];
 
 export function getColumnDef(id: ColumnId): ColumnDef {

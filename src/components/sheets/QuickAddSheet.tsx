@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Camera, X, UserPlus, ChevronRight } from 'lucide-react';
 import { haptics } from '@/lib/haptics';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
+import { LineItemEditor } from '@/components/mobile/LineItemEditor';
+import { createEmptyLine } from '@/lib/roLine';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useRO } from '@/contexts/ROContext';
@@ -95,7 +96,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     }
   }, [isOpen, editingRO]);
 
-  const linesTotalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const linesTotalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
 
   const resetForm = () => {
     setRoNumber('');
@@ -124,7 +125,8 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      paidDate: paidDate.trim() || null,
+      // New ROs are automatically marked as paid (use RO date); editing preserves existing paidDate
+      paidDate: editingRO ? (paidDate.trim() || null) : (paidDate.trim() || roDate || localDateStr()),
       paidHours: linesTotalHours,
       laborType,
       workPerformed: computedWorkPerformed,

@@ -54,7 +54,7 @@
     --status-internal-bg: 28 82% 92%;
 
     /* Chart colors */
-    --chart-period-b: 188 58% 45%;
+    --chart-period-b: 30 90% 50%;
 
     /* Mobile-safe */
     --tab-bar-height: 4.75rem;
@@ -130,7 +130,7 @@
     --status-internal-foreground: 28 90% 10%;
     --status-internal-bg: 28 44% 14%;
 
-    --chart-period-b: 263 65% 68%;
+    --chart-period-b: 30 88% 62%;
 
     --shadow-card: 0 1px 3px -1px hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(var(--border) / 0.7);
     --shadow-raised: 0 6px 20px -8px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(var(--border) / 0.6);

@@ -338,21 +338,12 @@ export function SummaryTab() {
           <span className="text-[10px] text-muted-foreground/40">No type data</span>
         )}
 
-        {(report.flaggedCount > 0 || report.tbdLineCount > 0) && (
+        {report.flaggedCount > 0 && (
           <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-            {report.flaggedCount > 0 && (
-              <div className="flex items-center gap-0.5">
-                <Flag className="h-2.5 w-2.5 text-orange-500" />
-                <span className="text-[10px] font-bold tabular-nums text-orange-500">{report.flaggedCount}</span>
-              </div>
-            )}
-            {report.tbdLineCount > 0 && (
-              <div className="flex items-center gap-0.5">
-                <Clock className="h-2.5 w-2.5 text-amber-500" />
-                <span className="text-[10px] font-bold tabular-nums text-amber-500">{report.tbdLineCount}</span>
-                {!hideTotals && <span className="text-[9px] text-muted-foreground/40">({report.tbdHours.toFixed(1)}h)</span>}
-              </div>
-            )}
+            <div className="flex items-center gap-0.5">
+              <Flag className="h-2.5 w-2.5 text-orange-500" />
+              <span className="text-[10px] font-bold tabular-nums text-orange-500">{report.flaggedCount}</span>
+            </div>
           </div>
         )}
       </div>
@@ -559,7 +550,7 @@ export function SummaryTab() {
         </DropdownMenuContent>
       </DropdownMenu>
       <p className="text-[10px] text-muted-foreground/60 text-center">
-        Exports use the selected range · CSV excludes TBD lines
+        Exports use the selected range · Only paid ROs are included
       </p>
     </div>
   );
@@ -711,7 +702,7 @@ export function SummaryTab() {
         )}
 
         {activeTab === 'compare' && isPro && (
-          <div className="p-4">
+          <div className={isDesktop ? 'desktop-sections p-4' : 'p-4'}>
             <HideTotalsContext.Provider value={hideTotals}>
               <MultiPeriodComparison
                 weekStartDay={weekStartDay}
@@ -742,24 +733,14 @@ export function SummaryTab() {
             </DialogDescription>
           </DialogHeader>
 
-          {(report.tbdLineCount > 0 || report.flaggedCount > 0) && (
+          {report.flaggedCount > 0 && (
             <div className="space-y-2">
-              {report.tbdLineCount > 0 && (
-                <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-                  <Clock className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-800 leading-relaxed">
-                    <span className="font-semibold">{report.tbdLineCount} TBD {report.tbdLineCount === 1 ? 'line' : 'lines'}</span> will be excluded. Consider resolving them first.
-                  </p>
-                </div>
-              )}
-              {report.flaggedCount > 0 && (
-                <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-                  <Flag className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-800 leading-relaxed">
-                    <span className="font-semibold">{report.flaggedCount} active {report.flaggedCount === 1 ? 'flag' : 'flags'}</span> will be cleared on close out.
-                  </p>
-                </div>
-              )}
+              <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                <Flag className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-800 leading-relaxed">
+                  <span className="font-semibold">{report.flaggedCount} active {report.flaggedCount === 1 ? 'flag' : 'flags'}</span> will be cleared on close out.
+                </p>
+              </div>
             </div>
           )}
 

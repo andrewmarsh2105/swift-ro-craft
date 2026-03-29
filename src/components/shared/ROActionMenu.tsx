@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreVertical, Pencil, Trash2, Flag, Clock } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Flag, CheckCircle2, LockOpen } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import {
@@ -20,16 +20,16 @@ import { cn } from '@/lib/utils';
 
 interface ROActionMenuProps {
   roNumber: string;
+  isPaid: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onFlag?: () => void;
-  onTbdAll?: () => void;
-  isAllTbd?: boolean;
+  onTogglePaid?: () => void;
   existingRONumbers?: string[];
   className?: string;
 }
 
-export function ROActionMenu({ roNumber, onEdit, onDelete, onFlag, onTbdAll, isAllTbd = false, existingRONumbers = [], className }: ROActionMenuProps) {
+export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTogglePaid, existingRONumbers = [], className }: ROActionMenuProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -88,14 +88,23 @@ export function ROActionMenu({ roNumber, onEdit, onDelete, onFlag, onTbdAll, isA
         </button>
       )}
 
-      {/* TBD All */}
-      {onTbdAll && (
+      {/* Open / Paid toggle */}
+      {onTogglePaid && (
         <button
-          onClick={() => handleAction(onTbdAll)}
+          onClick={() => handleAction(onTogglePaid)}
           className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors rounded-lg"
         >
-          <Clock className={cn('h-4 w-4', isAllTbd ? 'text-amber-500' : 'text-muted-foreground')} />
-          {isAllTbd ? 'Clear TBD (all lines)' : 'TBD All Lines'}
+          {isPaid ? (
+            <>
+              <LockOpen className="h-4 w-4 text-amber-500" />
+              Mark as Open
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              Mark as Paid
+            </>
+          )}
         </button>
       )}
 

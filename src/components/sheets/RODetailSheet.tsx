@@ -5,7 +5,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  Clock,
+  CheckCircle2,
+  LockOpen,
   Flag,
   Copy,
   FileText,
@@ -19,7 +20,6 @@ import { toast } from "sonner";
 import { BottomSheet } from "@/components/mobile/BottomSheet";
 import { StatusPill } from "@/components/mobile/StatusPill";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +40,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 import { maskHours } from "@/lib/maskHours";
 import { getReviewIssues, type ReviewIssue } from "@/lib/reviewRules";
 import { calcHours, effectiveDate, formatDateLong, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
-import { cn } from "@/lib/utils";
+import { cn, localDateStr } from "@/lib/utils";
 
 import type { RepairOrder } from "@/types/ro";
 
@@ -139,8 +139,6 @@ export function RODetailSheet({
   const issues = useMemo(() => (ro ? getReviewIssues(ro, ros) : []), [ro, ros]);
   const hours = useMemo(() => (ro ? calcHours(ro) : 0), [ro]);
 
-  const showPaidDate = !!ro?.paidDate && ro?.paidDate !== ro?.date;
-
   const handleConfirmDelete = () => {
     onDelete();
     setShowDeleteConfirm(false);
@@ -152,13 +150,11 @@ export function RODetailSheet({
     setFlagDialogOpen(true);
   };
 
-  const isAllTbd = !!(ro?.lines?.length && ro.lines.every(l => l.isTbd));
+  const isPaid = !!ro?.paidDate;
 
-  const handleTbdAll = () => {
+  const handleTogglePaid = () => {
     if (!ro) return;
-    updateRO(ro.id, {
-      lines: (ro.lines ?? []).map(l => ({ ...l, isTbd: !isAllTbd, updatedAt: new Date().toISOString() })),
-    });
+    updateRO(ro.id, { paidDate: isPaid ? '' : localDateStr() });
   };
 
   const openConvertDialog = (issue: ReviewIssue) => {
@@ -202,11 +198,11 @@ export function RODetailSheet({
                   </Button>
                   <ROActionMenu
                     roNumber={ro.roNumber}
+                    isPaid={isPaid}
                     onEdit={onEdit}
                     onDelete={() => setShowDeleteConfirm(true)}
                     onFlag={openFlagDialog}
-                    onTbdAll={ro.lines?.length ? handleTbdAll : undefined}
-                    isAllTbd={isAllTbd}
+                    onTogglePaid={handleTogglePaid}
                     className="h-7 w-7 p-0"
                   />
                   <button
@@ -227,11 +223,17 @@ export function RODetailSheet({
                   {formatDateShort(ro.date)}
                 </span>
                 <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>
-                {showPaidDate ? (
-                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">Paid {formatDateShort(ro.paidDate!)}</span>
-                ) : ro.paidDate ? (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))' }}>Paid</span>
-                ) : null}
+                {isPaid ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))' }}>
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    Paid
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: 'hsl(var(--status-internal))', background: 'hsl(var(--status-internal-bg))' }}>
+                    <LockOpen className="h-2.5 w-2.5" />
+                    Open
+                  </span>
+                )}
                 {flags.length > 0 && (
                   <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
                 )}
@@ -379,7 +381,6 @@ export function RODetailSheet({
                             })()}
                             <div className="flex items-center gap-1 mt-0.5">
                               <StatusPill type={l.laborType} size="sm" />
-                              {l.isTbd ? <Badge variant="outline" className="text-[9px]">TBD</Badge> : null}
                             </div>
                           </div>
                           <span className="text-right font-bold text-primary tabular-nums">
@@ -434,16 +435,28 @@ export function RODetailSheet({
                 <Flag className="h-4 w-4" />
                 Add Flag
               </Button>
-              {ro.lines?.length ? (
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 text-sm gap-1.5"
-                  onClick={handleTbdAll}
-                >
-                  <Clock className={cn('h-4 w-4', isAllTbd ? 'text-amber-500' : 'text-muted-foreground')} />
-                  {isAllTbd ? 'Clear TBD' : 'TBD All'}
-                </Button>
-              ) : null}
+              <Button
+                variant={isPaid ? "outline" : "default"}
+                className={cn(
+                  "flex-1 h-11 text-sm gap-1.5",
+                  isPaid
+                    ? "border-amber-500/40 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                )}
+                onClick={handleTogglePaid}
+              >
+                {isPaid ? (
+                  <>
+                    <LockOpen className="h-4 w-4" />
+                    Mark Open
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Mark Paid
+                  </>
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 className="h-11 px-3 text-sm gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"

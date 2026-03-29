@@ -7,6 +7,7 @@ import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 import { LineTextModal } from '@/components/shared/LineTextModal';
+import { createEmptyLine } from '@/lib/roLine';
 
 interface CompactLinesGridProps {
   lines: ROLine[];
@@ -19,17 +20,6 @@ interface CompactLinesGridProps {
   onSaveAsPreset?: (line: ROLine) => void;
 }
 
-function createEmptyLine(lineNo: number): ROLine {
-  return {
-    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-    lineNo,
-    description: '',
-    hoursPaid: 0,
-    laborType: 'customer-pay',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-}
 
 const LABOR_TYPES: { value: LaborType; label: string; short: string }[] = [
   { value: 'warranty', label: 'Warranty', short: 'Warr' },
@@ -80,33 +70,8 @@ export function CompactLinesGrid({
     handleLineChange(index, { hoursPaid: Math.max(0, value) });
   };
 
-  const allLinesTbd = lines.length > 0 && lines.every(l => l.isTbd);
-
-  const handleToggleAllTbd = () => {
-    triggerHaptic();
-    const markTbd = !allLinesTbd;
-    onLinesChange(lines.map(l => ({ ...l, isTbd: markTbd, updatedAt: new Date().toISOString() })));
-  };
-
   return (
     <div className="space-y-1.5" ref={topRef}>
-      {/* TBD All toggle */}
-      {!readOnly && lines.length > 0 && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleToggleAllTbd}
-            className={cn(
-              'h-8 px-3 rounded-md text-xs font-bold transition-all flex-shrink-0 border',
-              allLinesTbd
-                ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
-                : 'bg-secondary border-border text-muted-foreground hover:border-amber-300 hover:text-amber-600'
-            )}
-            title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines TBD'}
-          >
-            TBD All
-          </button>
-        </div>
-      )}
       {/* Compact Lines List - No presets here, they're in parent */}
       <AnimatePresence initial={false}>
         {lines.map((line, index) => {
@@ -128,16 +93,9 @@ export function CompactLinesGrid({
             >
               <div className={cn(
                 'rounded-lg p-2.5 border transition-all duration-300',
-                // Highlight state controls background + border color
                 isHighlighted
-                  ? 'border-primary bg-primary/10 shadow-md'
+                  ? 'border-primary bg-primary/10 shadow-md border-l-[3px] border-l-primary'
                   : 'border-border bg-card shadow-sm',
-                // TBD amber left border always visible regardless of highlight; primary left border otherwise when highlighted
-                line.isTbd
-                  ? 'border-l-[3px] border-l-amber-400'
-                  : isHighlighted
-                    ? 'border-l-[3px] border-l-primary'
-                    : '',
               )}>
                 {/* Row 1: Line # + Description */}
                 <div className="flex items-center gap-2 mb-1.5">
@@ -182,7 +140,7 @@ export function CompactLinesGrid({
                   )}
                 </div>
 
-                {/* Row 2: Labor Type + TBD + Hours */}
+                {/* Row 2: Labor Type + Hours */}
                 <div className="flex items-center gap-2 pl-7">
                   <select
                     value={line.laborType || ''}
@@ -196,36 +154,17 @@ export function CompactLinesGrid({
                     ))}
                   </select>
                   
-                  {/* TBD Toggle */}
-                  {!readOnly && (
-                    <button
-                      onClick={() => handleLineChange(index, { isTbd: !line.isTbd })}
-                      className={cn(
-                        'h-11 px-3 rounded-md text-xs font-bold transition-all flex-shrink-0 border min-w-[44px]',
-                        line.isTbd
-                          ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
-                          : 'bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
-                      )}
-                    >
-                      TBD
-                    </button>
-                  )}
-                  {readOnly && line.isTbd && (
-                    <span className="h-11 px-3 bg-amber-50 text-amber-600 text-xs font-bold rounded-md border border-amber-300 flex-shrink-0 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700 flex items-center">TBD</span>
-                  )}
-
                   <div className="flex-1" />
-                  
+
                   <div className="flex items-center gap-1">
                     <DecimalHoursInput
                       value={line.hoursPaid}
                       onChange={(v) => handleHoursInput(index, v)}
-                      placeholder={line.isTbd ? '—' : '0.0'}
+                      placeholder="0.0"
                       disabled={readOnly}
                       className={cn(
                         'w-20 h-11 px-2 bg-secondary border border-border rounded-md text-base font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
                         isHighlighted && 'ring-2 ring-primary border-primary',
-                        line.isTbd && 'line-through text-muted-foreground'
                       )}
                     />
                     <span className="text-xs text-muted-foreground font-medium">hrs</span>
@@ -280,4 +219,3 @@ export function CompactLinesGrid({
   );
 }
 
-export { createEmptyLine };

@@ -43,8 +43,6 @@ export interface PayPeriodReport {
   totalHours: number;
   totalROs: number;
   totalLines: number;
-  tbdLineCount: number;
-  tbdHours: number;
   // Breakdowns
   byDay: DayBreakdown[];
   byAdvisor: AdvisorBreakdown[];
@@ -90,6 +88,8 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
     const endKey = toDayKey(endDate);
 
     const rosInRange = ros.filter(ro => {
+      // Exclude open ROs (no paidDate) from all reporting
+      if (!ro.paidDate) return false;
       const raw = effectiveDateOf(ro);
       const key = toDayKey(raw);
       return !isNaN(key) && key >= startKey && key <= endKey;
@@ -114,16 +114,14 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       });
     });
 
-    // Paid lines = lines with description (non-TBD/empty) and not TBD
-    const paidLines = linesInRange.filter(({ line }) => line.description.trim() !== '' && !line.isTbd);
-    const tbdLines = linesInRange.filter(({ line }) => line.isTbd);
+    // Count lines with descriptions
+    const paidLines = linesInRange.filter(({ line }) => line.description.trim() !== '');
 
     // Simple-mode ROs (no lines) — fall back to ro.paidHours
     const simpleROs = rosInRange.filter(ro => !ro.lines || ro.lines.length === 0);
     const simpleHours = simpleROs.reduce((s, ro) => s + (ro.paidHours || 0), 0);
 
     const totalHours = paidLines.reduce((s, { line }) => s + line.hoursPaid, 0) + simpleHours;
-    const tbdHours = tbdLines.reduce((s, { line }) => s + line.hoursPaid, 0);
 
     // By day
     const dayMap = new Map<string, DayBreakdown>();
@@ -300,8 +298,6 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       totalHours,
       totalROs: rosInRange.length,
       totalLines: paidLines.length + simpleROs.length,
-      tbdLineCount: tbdLines.length,
-      tbdHours,
       byDay,
       byAdvisor,
       byLaborType,

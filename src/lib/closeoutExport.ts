@@ -22,7 +22,6 @@ function syntheticSimpleLine(ro: ROSnapshot): ROSnapshotLine | null {
     description: 'Simple entry',
     laborType,
     hours: ro.totalPaidHours,
-    isTbd: false,
   };
 }
 
@@ -41,7 +40,7 @@ export function buildCloseoutCSV(closeout: CloseoutSnapshot, mode: CloseoutExpor
   let periodTotal = 0;
 
   for (const ro of sorted) {
-    const paidLines = ro.lines.filter(l => !l.isTbd);
+    const paidLines = ro.lines;
     const exportLines = paidLines.length > 0 ? paidLines : (syntheticSimpleLine(ro) ? [syntheticSimpleLine(ro)!] : []);
     if (exportLines.length === 0) continue;
 
