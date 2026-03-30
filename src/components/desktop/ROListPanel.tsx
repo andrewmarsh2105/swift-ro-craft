@@ -104,7 +104,7 @@ function RowStatusChips({
       {/* Carryover badge — distinct from flags, non-intrusive */}
       {isCarryover && (
         <span
-          className="inline-flex items-center text-[8px] font-semibold leading-none px-1.5 py-0.5 rounded-sm"
+          className="inline-flex items-center text-[8px] font-semibold leading-none px-1.5 py-0.5 rounded-sm uppercase tracking-wide"
           style={{
             color: "hsl(var(--muted-foreground))",
             background: "transparent",
@@ -535,7 +535,7 @@ export const ROListPanel = memo(function ROListPanel({
               </div>
 
               {/* Rows */}
-              <div className="divide-y divide-border/30">
+              <div className="space-y-1.5 py-1">
                 {visible.map((ro, index) => {
                   const hours = calcHours(ro);
                   const flagsCount = flagCountByRO.get(ro.id) ?? 0;
@@ -551,15 +551,15 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-center px-3 cursor-pointer text-xs quiet-transition group",
+                        "grid gap-x-2 items-center px-3 cursor-pointer text-xs quiet-transition group rounded-md border shadow-[0_1px_0_hsl(var(--foreground)/0.02)]",
                         rowPy,
                         gridCols,
                         selected
-                          ? "list-row-selected bg-primary/[0.09] shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.35)]"
+                          ? "list-row-selected bg-primary/[0.16] hover:bg-primary/[0.2] border-primary/45 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.5)]"
                           : cn(
                             index % 2 === 0
-                              ? "bg-background hover:bg-muted/30"
-                              : "bg-muted/[0.22] hover:bg-muted/40",
+                              ? "bg-card border-border/60 hover:bg-primary/[0.13] hover:border-primary/35"
+                              : "bg-primary/[0.12] border-primary/25 hover:bg-primary/[0.17] hover:border-primary/40",
                           ),
                       )}
                       style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}
@@ -584,19 +584,15 @@ export const ROListPanel = memo(function ROListPanel({
                       {/* Info: advisor, vehicle, work summary */}
                       <div className="min-w-0" role="cell">
                         <p className="text-[11px] font-semibold truncate text-foreground leading-snug">
-                          {ro.customerName ? (
-                            <>
-                              {ro.customerName}
-                              <span className="font-normal text-muted-foreground"> · {ro.advisor}</span>
-                            </>
-                          ) : (
-                            ro.advisor
-                          )}
+                          {ro.customerName || "—"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/80 truncate leading-snug">
+                          {ro.advisor || "No advisor"}
                           {vehicleLabel(ro) !== "—" && (
-                            <span className="font-normal text-muted-foreground"> · {vehicleLabel(ro)}</span>
+                            <span className="text-muted-foreground/60"> · {vehicleLabel(ro)}</span>
                           )}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/70 truncate leading-snug">
+                        <p className="text-[10px] text-muted-foreground/68 truncate leading-snug">
                           {workSummary}
                           {ro.lines && ro.lines.length > 0 && (
                             <span className="text-muted-foreground/50"> · {ro.lines.length}L</span>
@@ -605,14 +601,14 @@ export const ROListPanel = memo(function ROListPanel({
                       </div>
 
                       {/* Hours */}
-                      <div className="text-right" role="cell">
+                      <div className="text-right border-l border-border/45 pl-2" role="cell">
                         <span className="hours-pill text-[10px]">
                           {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
                         </span>
                       </div>
 
                       {/* Status */}
-                      <div role="cell">
+                      <div className="border-l border-border/45 pl-2" role="cell">
                         <RowStatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} isCarryover={carryoverROIds.has(ro.id)} />
                       </div>
 

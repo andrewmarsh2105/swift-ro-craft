@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Copy, Flag, Pencil, Trash2, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Copy, Flag, Pencil, Trash2, CheckCircle2, LockOpen } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -138,7 +138,8 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
                   PAID
                 </span>
               ) : (
-                <span className="text-[8px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+                  <LockOpen className="h-2 w-2" />
                   OPEN
                 </span>
               )}
