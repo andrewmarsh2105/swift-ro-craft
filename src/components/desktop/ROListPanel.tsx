@@ -19,6 +19,7 @@ import { getStatusSummary } from "@/lib/roStatus";
 import { computeDateRangeBounds, filterROsByDateRange, filterROsByDateRangeWithCarryover, isCarryoverRO, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
 import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
+import { getDateFilterLabel, getPeriodFilterLabels } from "@/lib/payPeriodRange";
 
 import type { RepairOrder, LaborType } from "@/types/ro";
 import type { FlagType } from "@/types/flags";
@@ -169,7 +170,7 @@ export const ROListPanel = memo(function ROListPanel({
     dateFilter, setFilter: setDateFilter,
     customStart, customEnd, applyCustom, cancelCustom,
     showCustomDialog, requestCustomDialog,
-  } = useSharedDateRange("week", "desktop-list");
+  } = useSharedDateRange("week", "desktop-list", userSettings);
 
   const [advisorFilter, setAdvisorFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -188,12 +189,12 @@ export const ROListPanel = memo(function ROListPanel({
   const listBounds = useMemo(() => computeDateRangeBounds({
     filter: dateFilter,
     weekStartDay: userSettings.weekStartDay ?? 0,
-    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodType: userSettings.payPeriodType,
     payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
     hasCustomPayPeriod,
     customStart,
     customEnd,
-  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+  }), [dateFilter, userSettings.weekStartDay, userSettings.payPeriodType, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
 
   const advisors = useMemo(() => {
     const rangeROs = filterROsByDateRange(ros, listBounds);
@@ -308,6 +309,7 @@ export const ROListPanel = memo(function ROListPanel({
     return map;
   }, [visible, roNumberCounts, ros]);
   const rangeChipLabel = useMemo(() => boundsRangeLabel(listBounds), [listBounds]);
+  const activeRangeLabel = useMemo(() => getDateFilterLabel(dateFilter, userSettings), [dateFilter, userSettings]);
 
   const totals = useMemo(() => {
     const totalHours = filteredROs.filter(ro => !!ro.paidDate).reduce((sum, ro) => sum + calcHours(ro), 0);
@@ -325,14 +327,22 @@ export const ROListPanel = memo(function ROListPanel({
     });
   }, []);
 
+  const periodLabels = getPeriodFilterLabels(userSettings);
+
   const dateOptions = [
-    { value: "all" as const, label: "All" },
-    { value: "today" as const, label: "Today" },
-    { value: "week" as const, label: userSettings.defaultSummaryRange === "two_weeks" ? "2 Wk" : "Week" },
-    { value: "last_week" as const, label: "Last Wk" },
-    { value: "month" as const, label: "Month" },
-    ...(hasCustomPayPeriod ? [{ value: "pay_period" as const, label: "Pay Period" }] : []),
-    { value: "custom" as const, label: "Custom" },
+    { value: "all" as const, label: getDateFilterLabel('all', userSettings, true) },
+    { value: "today" as const, label: getDateFilterLabel('today', userSettings, true) },
+    ...(hasCustomPayPeriod
+      ? [
+          { value: "pay_period" as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: "last_pay_period" as const, label: periodLabels.previousShort },
+        ]
+      : [
+          { value: "week" as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: "last_week" as const, label: periodLabels.previousShort },
+        ]),
+    { value: "month" as const, label: getDateFilterLabel('month', userSettings, true) },
+    { value: "custom" as const, label: getDateFilterLabel('custom', userSettings, true) },
   ];
 
   /* Grid columns: RO#+Date(stacked) | Info | Hours | Status | Actions */
@@ -434,7 +444,7 @@ export const ROListPanel = memo(function ROListPanel({
               onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
             >
               <CalendarRange className="h-2.5 w-2.5" />
-              {rangeChipLabel}
+              {`${activeRangeLabel} · ${rangeChipLabel}`}
             </span>
 
             {/* Divider */}
