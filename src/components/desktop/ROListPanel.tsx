@@ -16,7 +16,7 @@ import { cn, localDateStr } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers, matchesSearchQuery } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
-import { computeDateRangeBounds, filterROsByDateRangeWithCarryover, isCarryoverRO, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
+import { computeDateRangeBounds, filterROsByDateRange, filterROsByDateRangeWithCarryover, isCarryoverRO, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
 import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 
