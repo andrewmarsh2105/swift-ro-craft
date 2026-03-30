@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Camera, Image, Upload, Loader2, AlertCircle, RefreshCw, FileText, ChevronDown } from 'lucide-react';
+import { X, Camera, Image, Upload, Loader2, AlertCircle, RefreshCw, FileText, ChevronDown, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useScanFlow } from '@/hooks/useScanFlow';
@@ -33,6 +33,32 @@ export interface ScanApplyData {
 export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, existingLineDescriptions = [] }: ScanFlowProps) {
   const isMobile = useIsMobile();
 
+  // Detect landscape orientation so we can block scanning in that mode
+  const [isLandscape, setIsLandscape] = useState(() => {
+    try { return window.innerWidth > window.innerHeight; } catch { return false; }
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+
+    // orientationchange fires before dimensions update on some browsers — delay slightly
+    const handleOrientationChange = () => setTimeout(checkOrientation, 100);
+
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    checkOrientation();
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, [isOpen]);
+
   // Lock screen orientation while scan flow is active to prevent disruption
   useEffect(() => {
     if (!isOpen) return;
@@ -41,7 +67,7 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
         const orientation = screen.orientation as ScreenOrientation & { lock?: (type: string) => Promise<void> };
         await orientation?.lock?.('portrait');
       } catch {
-        // lock() unsupported or denied – silently ignore
+        // lock() unsupported or denied on iOS — landscape overlay handles it instead
       }
     };
     lock();
@@ -345,6 +371,15 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
               />
             </label>
           </div>
+        </div>
+      )}
+
+      {/* Landscape blocker — iOS doesn't support orientation lock API so we enforce portrait via overlay */}
+      {isMobile && isLandscape && (
+        <div className="fixed inset-0 z-[200] bg-background flex flex-col items-center justify-center gap-5 p-8 text-center">
+          <RotateCcw className="h-14 w-14 text-primary" />
+          <p className="text-lg font-semibold">Rotate to Portrait</p>
+          <p className="text-sm text-muted-foreground">Scanning only works in portrait mode. Please rotate your phone upright to continue.</p>
         </div>
       )}
 

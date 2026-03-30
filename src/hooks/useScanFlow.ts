@@ -20,6 +20,7 @@ const LOW_CONFIDENCE_THRESHOLD = 0.5;
 const MAX_HOURS_PER_LINE = 24;
 const MAX_LINE_DESCRIPTION_LENGTH = 500;
 const MAX_CANDIDATE_DATES = 8;
+const OCR_TIMEOUT_MS = 90_000; // 90 seconds
 const VALID_LABOR_TYPES: ExtractedLine['laborType'][] = ['warranty', 'customer-pay', 'internal'];
 
 /** Match extracted line descriptions against presets to fill missing hours */
@@ -129,14 +130,16 @@ export function useScanFlow() {
     updateDebug({ fileSelected: true, uploadStarted: true, lastError: null });
 
     let path: string | null = null;
+    let ocrAbortController: AbortController | null = null;
 
     try {
-      const ext = file.name.split('.').pop() || 'jpg';
-      path = `${user.id}/${roId || 'new'}/${Date.now()}.${ext}`;
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const safeExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext) ? ext : 'jpg';
+      path = `${user.id}/${roId || 'new'}/${Date.now()}.${safeExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('ro-photos')
-        .upload(path, file, { contentType: file.type });
+        .upload(path, file, { contentType: file.type || 'image/jpeg' });
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
@@ -149,6 +152,9 @@ export function useScanFlow() {
           ro_id: roId,
           user_id: user.id,
           storage_path: path,
+        }).then(({ error }) => {
+          // Non-critical — don't throw if insert fails
+          if (error) console.warn('ro_photos insert failed:', error.message);
         });
       }
 
@@ -158,29 +164,44 @@ export function useScanFlow() {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
 
-      const ocrResponse = await fetch(
-        `${SUPABASE_URL}/functions/v1/ocr-extract`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            storagePath: path,
-            templateFieldMap: templateFieldMap || null,
-          }),
-        }
-      );
+      if (!accessToken) throw new Error('Authentication expired. Please sign in again.');
+
+      ocrAbortController = new AbortController();
+      const ocrTimeoutId = setTimeout(() => ocrAbortController?.abort(), OCR_TIMEOUT_MS);
+
+      let ocrResponse: Response;
+      try {
+        ocrResponse = await fetch(
+          `${SUPABASE_URL}/functions/v1/ocr-extract`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              storagePath: path,
+              templateFieldMap: templateFieldMap || null,
+            }),
+            signal: ocrAbortController.signal,
+          }
+        );
+      } finally {
+        clearTimeout(ocrTimeoutId);
+      }
 
       if (scanIdRef.current !== currentScanId) return;
 
       if (!ocrResponse.ok) {
         const errBody = await ocrResponse.json().catch(() => ({}));
-        throw new Error(errBody.error || 'OCR extraction failed');
+        throw new Error(errBody?.error || `OCR extraction failed (${ocrResponse.status})`);
       }
 
-      const ocrResult = await ocrResponse.json();
+      const rawBody = await ocrResponse.json().catch(() => null);
+      if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) {
+        throw new Error('Invalid response from scan service. Please try again.');
+      }
+      const ocrResult = rawBody;
 
       const rawLines = Array.isArray(ocrResult?.lines) ? ocrResult.lines : [];
       let extractedLines: ExtractedLine[] = rawLines.map((line: any) => {
@@ -315,7 +336,10 @@ export function useScanFlow() {
       })();
     } catch (err: any) {
       if (scanIdRef.current !== currentScanId) return;
-      const errorMsg = err?.message || 'Unknown error';
+      const isTimeout = err?.name === 'AbortError';
+      const errorMsg = isTimeout
+        ? 'Scan timed out. Please check your connection and try again.'
+        : (err?.message || 'Unknown error');
       updateDebug({ lastError: errorMsg });
       setSession(prev => {
         if (prev.pages.length > 0) {
@@ -337,6 +361,7 @@ export function useScanFlow() {
       toast.error(errorMsg);
     } finally {
       busyRef.current = false;
+      ocrAbortController = null;
     }
   }, [user, updateState, updateDebug]);
 

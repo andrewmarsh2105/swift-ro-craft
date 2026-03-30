@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { computeDateRangeBounds, filterROsByDateRangeWithCarryover, boundsRangeLabel, isCarryoverRO, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import { maskHours } from '@/lib/maskHours';
@@ -42,8 +42,8 @@ const laborTypeBarColor = (type: LaborType) =>
 
 /* ── Compact inline status indicators ───────────── */
 function InlineStatusChips({
-  ro, flagsCount, checksCount,
-}: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
+  ro, flagsCount, checksCount, isCarryover,
+}: { ro: RepairOrder; flagsCount: number; checksCount: number; isCarryover?: boolean }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
@@ -73,6 +73,21 @@ function InlineStatusChips({
         >
           <LockOpen className="h-2.5 w-2.5" />
           <span>OPEN</span>
+        </span>
+      )}
+      {/* Carryover — shown when unpaid and from a prior period */}
+      {isCarryover && (
+        <span
+          className="inline-flex items-center gap-[3px] text-[8px] font-semibold leading-none px-1.5 py-[3px] flex-shrink-0"
+          style={{
+            backgroundColor: 'transparent',
+            color: 'hsl(var(--muted-foreground))',
+            borderRadius: '3px',
+            border: '1px dashed hsl(var(--border))',
+          }}
+          title="From a prior week — mark paid to include in current totals"
+        >
+          <span>Carryover</span>
         </span>
       )}
       {status.flags > 0 && (
@@ -105,12 +120,13 @@ interface ROCardProps {
   existingRONumbers: string[];
   hideTotals: boolean;
   compact?: boolean;
+  isCarryover?: boolean;
 }
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDelete, onFlag, onTogglePaid, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
-  compact = false,
+  compact = false, isCarryover = false,
 }: ROCardProps) {
   const hours = calcHours(ro);
   const roDate = formatDateShort(effectiveDate(ro));
@@ -197,7 +213,7 @@ const ROCard = memo(function ROCard({
               </>
             )}
             <span className="flex-1 min-w-[4px]" />
-            <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
+            <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} isCarryover={isCarryover} />
           </div>
 
           {/* Row 3: Work summary — normal mode only, gives context at a glance */}
@@ -349,7 +365,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return sortROs(result, filters.sortBy);
   }, [ros, deferredSearch, filters]);
 
-  const filteredROs = useMemo(() => filterROsByDateRange(preFilteredROs, rangeBounds), [preFilteredROs, rangeBounds]);
+  const filteredROs = useMemo(
+    () => filterROsByDateRangeWithCarryover(preFilteredROs, rangeBounds),
+    [preFilteredROs, rangeBounds],
+  );
+
+  // Per-RO carryover flag — unpaid and from a prior period
+  const carryoverROIds = useMemo(() => {
+    const viewStart = rangeBounds?.start ?? null;
+    const ids = new Set<string>();
+    for (const ro of filteredROs) {
+      if (isCarryoverRO(ro, viewStart)) ids.add(ro.id);
+    }
+    return ids;
+  }, [filteredROs, rangeBounds]);
 
   // Stable set of RO numbers — only recomputed when the list of RO numbers
   // actually changes (not on every ros reference change).
@@ -762,6 +791,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   reviewIssues={reviewIssuesByROId.get(ro.id) ?? []}
                   hideTotals={userSettings.hideTotals ?? false}
                   compact={density === 'compact'}
+                  isCarryover={carryoverROIds.has(ro.id)}
                   onEdit={handleCardEdit}
                   onFlag={handleCardFlag}
                   onDelete={handleCardDelete}

@@ -16,7 +16,7 @@ import { cn, localDateStr } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers, matchesSearchQuery } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
-import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
+import { computeDateRangeBounds, filterROsByDateRangeWithCarryover, isCarryoverRO, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
 import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 
@@ -84,8 +84,8 @@ const laborPillClass = (type: LaborType) =>
 
 /* ── Compact status indicators ─────────────────── */
 function RowStatusChips({
-  ro, flagsCount, checksCount,
-}: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
+  ro, flagsCount, checksCount, isCarryover,
+}: { ro: RepairOrder; flagsCount: number; checksCount: number; isCarryover?: boolean }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
@@ -99,6 +99,20 @@ function RowStatusChips({
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
           <LockOpen className="h-2.5 w-2.5" />
           OPEN
+        </span>
+      )}
+      {/* Carryover badge — distinct from flags, non-intrusive */}
+      {isCarryover && (
+        <span
+          className="inline-flex items-center text-[8px] font-semibold leading-none px-1.5 py-0.5 rounded-sm"
+          style={{
+            color: "hsl(var(--muted-foreground))",
+            background: "transparent",
+            border: "1px dashed hsl(var(--border))",
+          }}
+          title="From a prior week — mark paid to include in current totals"
+        >
+          Carryover
         </span>
       )}
       {status.flags > 0 && (
@@ -215,7 +229,7 @@ export const ROListPanel = memo(function ROListPanel({
       result = result.filter((ro) => matchesSearchQuery(ro, q));
     }
 
-    result = filterROsByDateRange(result, listBounds);
+    result = filterROsByDateRangeWithCarryover(result, listBounds);
 
     const dir = sortDir === "asc" ? 1 : -1;
 
@@ -241,6 +255,16 @@ export const ROListPanel = memo(function ROListPanel({
   }, [ros, advisorFilter, laborTypeFilter, deferredQuery, listBounds, sortKey, sortDir]);
 
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
+
+  // Per-RO carryover flag — unpaid and dated before the current viewed period
+  const carryoverROIds = useMemo(() => {
+    const viewStart = listBounds?.start ?? null;
+    const ids = new Set<string>();
+    for (const ro of filteredROs) {
+      if (isCarryoverRO(ro, viewStart)) ids.add(ro.id);
+    }
+    return ids;
+  }, [filteredROs, listBounds]);
 
   const flagCountByRO = useMemo(() => {
     const map = new Map<string, number>();
@@ -568,7 +592,7 @@ export const ROListPanel = memo(function ROListPanel({
 
                       {/* Status */}
                       <div role="cell">
-                        <RowStatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
+                        <RowStatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} isCarryover={carryoverROIds.has(ro.id)} />
                       </div>
 
                       {/* Action menu */}

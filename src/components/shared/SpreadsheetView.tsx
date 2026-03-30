@@ -30,7 +30,7 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
-import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { computeDateRangeBounds, filterROsByDateRangeWithCarryover, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import {
   buildSpreadsheetRows,
@@ -85,9 +85,14 @@ const LineRow = memo(function LineRow({
     <tr
       className={cn(
         'cursor-pointer transition-colors',
+        line.isCarryover && 'opacity-60',
         isSelected
           ? 'bg-primary/10 hover:bg-primary/14 border-l-[3px] border-l-primary'
-          : cn(rowBg, 'hover:bg-accent/40 border-l-[3px]', borderColorClass),
+          : cn(
+              line.isCarryover ? 'bg-muted/20 hover:bg-muted/30' : rowBg,
+              'hover:bg-accent/40 border-l-[3px]',
+              line.isCarryover ? 'border-l-border border-l-dashed' : borderColorClass,
+            ),
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
@@ -129,11 +134,13 @@ interface MobileLineCardProps {
 }
 
 const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelected, showCheckbox, onToggleSelect, flagCount }: MobileLineCardProps) {
-  const borderColorClass = line.laborType === 'warranty'
-    ? 'border-l-[hsl(var(--status-warranty))]'
-    : line.laborType === 'customer-pay'
-      ? 'border-l-[hsl(var(--status-customer-pay))]'
-      : 'border-l-[hsl(var(--status-internal))]';
+  const borderColorClass = line.isCarryover
+    ? 'border-l-border'
+    : line.laborType === 'warranty'
+      ? 'border-l-[hsl(var(--status-warranty))]'
+      : line.laborType === 'customer-pay'
+        ? 'border-l-[hsl(var(--status-customer-pay))]'
+        : 'border-l-[hsl(var(--status-internal))]';
 
   const typeColor = line.laborType === 'warranty'
     ? 'text-[hsl(var(--status-warranty))]'
@@ -149,7 +156,7 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
         'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b border-border/40',
         'cursor-pointer active:bg-accent/50 transition-colors',
         borderColorClass,
-        isSelected ? 'bg-primary/8' : 'bg-card',
+        line.isCarryover ? 'opacity-60 bg-muted/10' : (isSelected ? 'bg-primary/8' : 'bg-card'),
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
@@ -173,6 +180,11 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
           )}>
             {isPaid ? 'Paid' : 'Open'}
           </span>
+          {line.isCarryover && (
+            <span className="text-[8px] font-medium text-muted-foreground/60 border border-dashed border-muted-foreground/30 rounded px-1 py-px">
+              carryover
+            </span>
+          )}
           {flagCount > 0 && (
             <Flag className="h-3 w-3 text-amber-500 fill-amber-500/20" />
           )}
@@ -523,9 +535,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   );
 
   /* ─── Filter ROs by selected date range ─── */
-  const { filteredROs, computedRangeLabel } = useMemo(() => {
+  const { filteredROs, computedRangeLabel, viewStart } = useMemo(() => {
     if (isCloseout) {
-      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
+      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
     }
 
     const bounds = computeDateRangeBounds({
@@ -539,12 +551,13 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     });
 
     if (!bounds) {
-      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
+      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
     }
 
     return {
-      filteredROs: filterROsByDateRange(ros, bounds),
+      filteredROs: filterROsByDateRangeWithCarryover(ros, bounds),
       computedRangeLabel: bounds.label,
+      viewStart: bounds.start,
     };
   }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.weekStartDay, userSettings.defaultSummaryRange, hasCustomPayPeriod, customStart, customEnd]);
 
@@ -559,7 +572,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, [filteredROs, getFlagsForRO]);
 
   /* ─── Build rows using shared model ─── */
-  const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy }), [filteredROs, computedRangeLabel, groupBy]);
+  const allRows = useMemo(
+    () => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy, viewStart }),
+    [filteredROs, computedRangeLabel, groupBy, viewStart],
+  );
 
   /* ─── Compute totals from the period subtotal row ─── */
   const periodRow = allRows.find(r => r.rowType === 'periodSubtotal') as SpreadsheetSubtotalRow | undefined;
@@ -602,7 +618,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   const handleBatchExport = useCallback(() => {
     const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id));
-    const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none' });
+    const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none', viewStart });
     const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
     const exportRows = rows.map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
     const csv = buildCSV(headers, exportRows);
@@ -999,6 +1015,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             }
             if (row.rowType === 'roSubtotal') {
               const sub = row as SpreadsheetSubtotalRow;
+              if (sub.isCarryover) {
+                return (
+                  <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-muted/10 border-b border-dashed border-border/30 opacity-60">
+                    <span className="text-[10px] italic text-muted-foreground/70">{sub.label}</span>
+                    <span className="text-[10px] tabular-nums text-muted-foreground/50">{sub.hours.toFixed(1)}h unpaid</span>
+                  </div>
+                );
+              }
               return (
                 <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-accent/20 border-b border-border/40">
                   <span className="text-xs font-semibold text-muted-foreground">{sub.label}</span>
@@ -1094,6 +1118,22 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   const typeIdx = activeCols.findIndex(c => c.id === 'type') + (showCheckbox ? 1 : 0);
                   const spanCols = hrsIdx > 0 ? hrsIdx : colCount - 1;
                   const afterCols = colCount - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
+
+                  if (sub.isCarryover) {
+                    return (
+                      <tr key={`rosub-${i}`} className="bg-muted/10 border-b border-dashed border-border/30 opacity-60">
+                        <td colSpan={spanCols} className={cn(cellPx, 'py-[3px]', 'italic font-medium text-muted-foreground/70 text-[10px] text-right tracking-wide')}>
+                          {sub.label}
+                          <span className="ml-1.5 text-[8px] font-semibold border border-dashed border-muted-foreground/30 rounded px-1 py-px normal-case tracking-normal not-italic">unpaid</span>
+                        </td>
+                        <td className={cn(cellPx, 'py-[3px]', 'text-right tabular-nums font-medium text-muted-foreground/50 text-xs')}>
+                          {sub.hours.toFixed(1)}h
+                        </td>
+                        {typeIdx > hrsIdx && <td className={cn(cellPx, 'py-[3px]')} />}
+                        {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, 'py-[3px]')} />}
+                      </tr>
+                    );
+                  }
 
                   return (
                     <tr key={`rosub-${i}`} className="bg-accent/10 border-b border-border/30">
