@@ -162,3 +162,42 @@ export function filterROsByDateRange(ros: RepairOrder[], bounds: DateRangeBounds
     return !isNaN(dKey) && dKey >= startKey && dKey <= endKey;
   });
 }
+
+/**
+ * Returns true when an RO is a "carryover" — unpaid and originally dated
+ * before the start of the currently viewed period.
+ * Carryover is a computed display state, not a stored flag.
+ */
+export function isCarryoverRO(ro: RepairOrder, viewStart: string | null | undefined): boolean {
+  if (ro.paidDate) return false;
+  if (!viewStart) return false;
+  return ro.date < viewStart;
+}
+
+/**
+ * Like filterROsByDateRange but also includes unpaid ROs from prior periods
+ * (carryover) so they surface naturally in the current period's list view.
+ * Paid ROs still use effectiveDate (paidDate) for filtering.
+ */
+export function filterROsByDateRangeWithCarryover(
+  ros: RepairOrder[],
+  bounds: DateRangeBounds | null,
+): RepairOrder[] {
+  if (!bounds) return ros;
+  const { start, end } = bounds;
+  const startKey = toDayKey(start);
+  const endKey = toDayKey(end);
+  if (isNaN(startKey) || isNaN(endKey)) return ros;
+
+  return ros.filter((ro) => {
+    const effKey = toDayKey(effectiveDate(ro));
+    // Normal match: effective date falls within the viewed period
+    if (!isNaN(effKey) && effKey >= startKey && effKey <= endKey) return true;
+    // Carryover: unpaid RO whose original date is before the period start
+    if (!ro.paidDate) {
+      const roDateKey = toDayKey(ro.date);
+      return !isNaN(roDateKey) && roDateKey < startKey;
+    }
+    return false;
+  });
+}
