@@ -313,9 +313,18 @@ export function SummaryTab() {
   };
 
   const HeroKPI = ({ compact }: { compact?: boolean }) => (
-    <div className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+    <div
+      className="overflow-hidden"
+      style={{
+        borderRadius: 'var(--radius)',
+        border: '1px solid hsl(var(--primary) / 0.18)',
+        background: 'hsl(var(--card))',
+        boxShadow: 'var(--shadow-raised)',
+        borderLeft: '3px solid hsl(var(--primary) / 0.6)',
+      }}
+    >
       <div className={cn('px-4 pt-3', compact ? 'pb-1.5' : 'pb-2')}>
-        <div className="data-header mb-0.5">Total Hours</div>
+        <div className="data-header mb-0.5" style={{ color: 'hsl(var(--primary) / 0.6)' }}>Total Hours</div>
         <div className="flex items-baseline gap-1.5">
           <span className={cn('font-bold tabular-nums tracking-tight text-primary leading-none font-mono', compact ? 'text-[34px]' : 'text-[38px]')}>
             {maskHours(report.totalHours, hideTotals)}
@@ -324,14 +333,14 @@ export function SummaryTab() {
         </div>
       </div>
 
-      {/* Secondary metrics — more integrated */}
+      {/* Secondary metrics */}
       <div className="px-4 pb-2 flex items-center gap-3">
         <span className="text-[11px] text-muted-foreground/50">{report.totalROs} ROs · {report.totalLines} lines</span>
         <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">{maskHours(avgPerRO, hideTotals)}h avg</span>
       </div>
 
       {/* Status strip */}
-      <div className="border-t border-border/30 px-4 py-2 flex items-center gap-2 flex-wrap">
+      <div className="border-t px-4 py-2 flex items-center gap-2 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.1)', background: 'hsl(var(--primary) / 0.03)' }}>
         {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
           <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
         )) : (
@@ -514,43 +523,53 @@ export function SummaryTab() {
 
   const ExportBlock = () => (
     <div className="space-y-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className={cn('h-10 cursor-pointer text-sm gap-2', isDesktop ? 'w-auto' : 'w-full')}>
-            <Download className="h-4 w-4" />
-            Export
-            <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-40" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          {isPro && (
-            <>
-              <DropdownMenuItem onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }}>
-                <FileText className="h-4 w-4 mr-2" />
-                Proof Pack
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-            </>
-          )}
-          <DropdownMenuItem onClick={handleCopySummary}>
-            <Copy className="h-4 w-4 mr-2" />
-            Copy summary
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {
-            if (!isPro) {
-              openUpgrade('export');
-              return;
-            }
-            handleExportCSV();
-          }}>
-            <Download className="h-4 w-4 mr-2" />
-            Lines CSV (paid only)
-            {!isPro && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <p className="text-[10px] text-muted-foreground/60 text-center">
-        Exports use the selected range · Only paid ROs are included
+      <div className={cn('flex gap-2', isDesktop ? '' : 'w-full')}>
+        {/* Copy summary — first-class action for daily use */}
+        <Button
+          variant="outline"
+          className={cn('h-10 cursor-pointer text-sm gap-2 font-semibold', isDesktop ? '' : 'flex-1')}
+          onClick={handleCopySummary}
+          title="Copy summary to clipboard"
+        >
+          <Copy className="h-4 w-4" />
+          Copy
+        </Button>
+
+        {/* Export dropdown for less-frequent actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className={cn('h-10 cursor-pointer text-sm gap-1.5', isDesktop ? 'w-auto' : '')}>
+              <Download className="h-4 w-4" />
+              Export
+              <ChevronDown className="h-3 w-3 opacity-40" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            {isPro && (
+              <>
+                <DropdownMenuItem onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Proof Pack
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem onClick={() => {
+              if (!isPro) {
+                openUpgrade('export');
+                return;
+              }
+              handleExportCSV();
+            }}>
+              <Download className="h-4 w-4 mr-2" />
+              Lines CSV (paid only)
+              {!isPro && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <p className="text-[10px] text-muted-foreground/60">
+        Exports use the selected range · Only paid ROs included
       </p>
     </div>
   );
