@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, LockOpen, Rows3, Rows4, X } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, LockOpen, Rows3, Rows4, X, Search } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -46,60 +46,57 @@ function InlineStatusChips({
 }: { ro: RepairOrder; flagsCount: number; checksCount: number; isCarryover?: boolean }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
   return (
-    <div className="flex items-center gap-1 flex-shrink-0">
+    <div className="flex flex-col items-end gap-1 flex-shrink-0">
       {/* Paid — labeled pill for instant scanning */}
-      {status.paid === 'Paid' ? (
-        <span
-          className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
-          style={{
-            backgroundColor: 'hsl(var(--status-warranty-bg))',
-            color: 'hsl(var(--status-warranty))',
-            borderRadius: '3px',
-            border: '1px solid hsl(var(--status-warranty) / 0.25)',
-          }}
-        >
-          <CheckCircle2 className="h-2.5 w-2.5" />
-          <span>PAID</span>
-        </span>
-      ) : (
-        <span
-          className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
-          style={{
-            backgroundColor: 'hsl(var(--status-internal-bg))',
-            color: 'hsl(var(--status-internal))',
-            borderRadius: '3px',
-            border: '1px solid hsl(var(--status-internal) / 0.25)',
-          }}
-        >
-          <LockOpen className="h-2.5 w-2.5" />
-          <span>OPEN</span>
-        </span>
-      )}
-      {/* Carryover — shown when unpaid and from a prior period */}
+      <div className="flex items-center gap-1">
+        {status.paid === 'Paid' ? (
+          <span
+            className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
+            style={{
+              backgroundColor: 'hsl(var(--status-warranty-bg))',
+              color: 'hsl(var(--status-warranty))',
+              borderRadius: '3px',
+              border: '1px solid hsl(var(--status-warranty) / 0.25)',
+            }}
+          >
+            <CheckCircle2 className="h-2.5 w-2.5" />
+            <span>PAID</span>
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
+            style={{
+              backgroundColor: 'hsl(var(--status-internal-bg))',
+              color: 'hsl(var(--status-internal))',
+              borderRadius: '3px',
+              border: '1px solid hsl(var(--status-internal) / 0.25)',
+            }}
+          >
+            <LockOpen className="h-2.5 w-2.5" />
+            <span>OPEN</span>
+          </span>
+        )}
+        {status.flags > 0 && (
+          <span className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none" style={{ color: 'hsl(var(--status-internal))' }}>
+            <Flag className="h-2.5 w-2.5" />
+            <span>{status.flags}</span>
+          </span>
+        )}
+        {status.checks > 0 && (
+          <span className="inline-flex items-center gap-[3px] text-[8px] font-bold text-destructive leading-none">
+            <AlertTriangle className="h-2.5 w-2.5" />
+            <span>{status.checks}</span>
+          </span>
+        )}
+      </div>
+      {/* Carryover — subtle and visually separate from flags/checks */}
       {isCarryover && (
         <span
-          className="inline-flex items-center gap-[3px] text-[8px] font-semibold leading-none px-1.5 py-[3px] flex-shrink-0"
-          style={{
-            backgroundColor: 'transparent',
-            color: 'hsl(var(--muted-foreground))',
-            borderRadius: '3px',
-            border: '1px dashed hsl(var(--border))',
-          }}
+          className="inline-flex items-center gap-[3px] text-[8px] font-medium leading-none text-muted-foreground/80"
           title="From a prior week — mark paid to include in current totals"
         >
-          <span>Carryover</span>
-        </span>
-      )}
-      {status.flags > 0 && (
-        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none" style={{ color: 'hsl(var(--status-internal))' }}>
-          <Flag className="h-2.5 w-2.5" />
-          <span>{status.flags}</span>
-        </span>
-      )}
-      {status.checks > 0 && (
-        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold text-destructive leading-none">
-          <AlertTriangle className="h-2.5 w-2.5" />
-          <span>{status.checks}</span>
+          <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+          Carryover
         </span>
       )}
     </div>
@@ -121,12 +118,13 @@ interface ROCardProps {
   hideTotals: boolean;
   compact?: boolean;
   isCarryover?: boolean;
+  rowTone?: 'base' | 'alt';
 }
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDelete, onFlag, onTogglePaid, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
-  compact = false, isCarryover = false,
+  compact = false, isCarryover = false, rowTone = 'base',
 }: ROCardProps) {
   const hours = calcHours(ro);
   const roDate = formatDateShort(effectiveDate(ro));
@@ -143,8 +141,11 @@ const ROCard = memo(function ROCard({
 
   return (
     <div
-      className="ro-row-card bg-card relative overflow-hidden group"
-      style={{ borderLeftColor: accentColor }}
+      className={cn(
+        "ro-row-card relative overflow-hidden group rounded-lg border border-border/70",
+        rowTone === 'alt' ? 'bg-muted/[0.26]' : 'bg-card',
+      )}
+      style={{ borderLeftColor: accentColor, borderLeftWidth: '3px' }}
     >
       <div
         className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/20 transition-colors duration-75 active:bg-muted/35"
@@ -174,25 +175,28 @@ const ROCard = memo(function ROCard({
               <span className="flex-1" />
             )}
             {/* Hours — the primary number a tech scans for; accent-colored, no box */}
-            <span
-              className={cn(
-                'flex-shrink-0 font-bold tabular-nums leading-none font-mono',
-                compact ? 'text-[13px]' : 'text-[15px]',
-                hoursZero ? 'text-amber-500/60' : '',
-              )}
-              style={!hoursZero ? { color: accentColor } : undefined}
-              title={hoursZero ? 'No hours recorded — possible data entry error' : undefined}
-            >
-              {hoursZero ? '0.0h' : `${maskHours(hours, hideTotals)}h`}
-            </span>
+            <div className="flex-shrink-0 text-right">
+              <span
+                className={cn(
+                  'block font-bold tabular-nums leading-none font-mono',
+                  compact ? 'text-[13px]' : 'text-[15px]',
+                  hoursZero ? 'text-amber-500/60' : '',
+                )}
+                style={!hoursZero ? { color: accentColor } : undefined}
+                title={hoursZero ? 'No hours recorded — possible data entry error' : undefined}
+              >
+                {hoursZero ? '0.0h' : `${maskHours(hours, hideTotals)}h`}
+              </span>
+              <span className="block mt-[2px] text-[8px] tracking-[0.08em] uppercase text-muted-foreground/55 leading-none">HRS</span>
+            </div>
           </div>
 
           {/* Row 2: [LT badge] Advisor · Vehicle  |  Status indicators */}
           <div className={cn('flex items-center gap-1 min-w-0', compact ? 'mt-[4px]' : 'mt-[5px]')}>
             {/* Labor type badge — left anchor, strong color signal */}
             <span
-              className="text-[8px] font-bold leading-none px-[5px] py-[3px] flex-shrink-0 text-white"
-              style={{ backgroundColor: accentColor, borderRadius: '2px' }}
+              className="text-[9px] font-bold leading-none px-[6px] py-[3px] flex-shrink-0 text-white"
+              style={{ backgroundColor: accentColor, borderRadius: '999px' }}
             >
               {ltLabel}
             </span>
@@ -218,7 +222,7 @@ const ROCard = memo(function ROCard({
 
           {/* Row 3: Work summary — normal mode only, gives context at a glance */}
           {!compact && hasWork && (
-            <p className="mt-[4px] text-[10px] text-muted-foreground/38 leading-tight truncate">
+            <p className="mt-[4px] text-[10px] text-muted-foreground/48 leading-tight truncate">
               {workSummary}
             </p>
           )}
@@ -509,27 +513,34 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* ── Sticky header ───────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-background border-b border-border/50">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-b border-border/50">
 
-        {/* Top bar: shop name · hours readout · controls */}
-        <div className="flex items-center h-11 px-3 gap-2">
-          {/* Left: shop name + live hours readout */}
-          <div className="flex-1 min-w-0 flex items-baseline gap-2">
-            <h2 className="text-[12px] font-semibold text-muted-foreground/65 truncate flex-shrink-0 leading-none">
-              {goalSettings.shopName || 'Repair Orders'}
-            </h2>
+        {/* Top bar: title, period context, and totals */}
+        <div className="px-3 pt-2.5 pb-2 border-b border-border/40">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="text-[13px] font-semibold text-foreground/90 truncate leading-none">
+                {goalSettings.shopName || 'Repair Orders'}
+              </h2>
+              <div className="mt-1 text-[10px] text-muted-foreground/75 flex items-center gap-1">
+                <CalendarRange className="h-2.5 w-2.5" />
+                <span>{rangeChipLabel}</span>
+              </div>
+            </div>
             {viewMode !== 'spreadsheet' && (
-              <div className="flex items-baseline gap-1 flex-shrink-0">
-                <span className="text-[17px] font-black tabular-nums text-primary leading-none tracking-tight font-mono">
+              <div className="flex-shrink-0 text-right">
+                <div className="text-[18px] font-black tabular-nums text-primary leading-none tracking-tight font-mono">
                   {maskHours(totalHours, userSettings.hideTotals ?? false)}h
-                </span>
-                <span className="text-[10px] text-muted-foreground/45 font-medium leading-none">
-                  {filteredROs.length}
-                </span>
+                </div>
+                <div className="text-[10px] text-muted-foreground/65 font-medium mt-0.5">
+                  {filteredROs.length} ROs
+                </div>
               </div>
             )}
           </div>
+        </div>
 
+        <div className="flex items-center h-10 px-3 gap-2">
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Daily goal indicator */}
             {hoursGoalDaily > 0 && viewMode !== 'spreadsheet' && (
@@ -592,81 +603,80 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className="flex items-center gap-2 px-3 py-1.5">
+        {/* Search/filter/date controls */}
+        <div className="px-3 pb-2 space-y-1.5">
+          <div className="flex items-center gap-2">
           {/* Monthly cap indicator — compact, left of search */}
-          {!isPro && !loadingROs && (
-            <button
-              onClick={() => setShowUpgrade(true)}
-              className={cn(
-                'flex-shrink-0 h-7 px-2 rounded border text-[9px] font-semibold flex items-center gap-1 quiet-transition',
-                monthlyROCount >= RO_MONTHLY_CAP
-                  ? 'bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400'
-                  : monthlyROCount >= RO_MONTHLY_CAP - 5
-                  ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
-                  : 'bg-muted text-muted-foreground border-border/60'
-              )}
-              title="Monthly RO usage — upgrade for unlimited"
-            >
-              <Crown className="h-2.5 w-2.5" />
-              {monthlyROCount}/{RO_MONTHLY_CAP}
-            </button>
-          )}
-
-          {/* Search bar */}
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search RO#, name, VIN, work…"
-              className={cn(
-                'w-full h-9 pl-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring',
-                searchQuery ? 'pr-7' : 'pr-3',
-              )}
-            />
-            {searchQuery && (
+            {!isPro && !loadingROs && (
               <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                onClick={() => setShowUpgrade(true)}
+                className={cn(
+                  'flex-shrink-0 h-8 px-2 rounded-lg border text-[9px] font-semibold flex items-center gap-1 quiet-transition',
+                  monthlyROCount >= RO_MONTHLY_CAP
+                    ? 'bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400'
+                    : monthlyROCount >= RO_MONTHLY_CAP - 5
+                    ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
+                    : 'bg-muted text-muted-foreground border-border/60'
+                )}
+                title="Monthly RO usage — upgrade for unlimited"
               >
-                <X className="h-3.5 w-3.5" />
+                <Crown className="h-2.5 w-2.5" />
+                {monthlyROCount}/{RO_MONTHLY_CAP}
               </button>
             )}
+
+            {/* Search bar */}
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/45" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search RO#, advisor, VIN, work…"
+                className={cn(
+                  'w-full h-9 pl-8 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring',
+                  searchQuery ? 'pr-7' : 'pr-3',
+                )}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter button */}
+            <button
+              onClick={() => setShowFilters(true)}
+              className={cn(
+                'relative flex-shrink-0 flex items-center justify-center h-9 w-9 rounded-lg border quiet-transition',
+                activeFiltersCount > 0
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              )}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
           </div>
 
-          {/* Filter button */}
-          <button
-            onClick={() => setShowFilters(true)}
-            className={cn(
-              'relative flex-shrink-0 flex items-center justify-center h-9 w-9 rounded-lg border quiet-transition',
-              activeFiltersCount > 0
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            )}
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            {activeFiltersCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Date filter chips + labor type chips + stats (pinned right) */}
-        {viewMode !== 'spreadsheet' && (
-          <div className="flex items-center gap-0 px-3 pb-1.5">
-            {/* Scrollable chip section */}
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 min-w-0 pr-2">
+          {viewMode !== 'spreadsheet' && (
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide min-w-0">
               {dateFilterOptions.map(({ value, label }) => (
                 <button
                   key={value}
                   onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
                   className={cn(
-                    'h-[22px] px-2.5 text-[10px] font-semibold rounded-full border flex-shrink-0 quiet-transition',
+                    'h-[24px] px-2.5 text-[10px] font-semibold rounded-full border flex-shrink-0 quiet-transition',
                     dateFilter === value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-transparent text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground'
@@ -675,9 +685,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   {label}
                 </button>
               ))}
-              {/* Divider — visually separates date range filters from labor type filters */}
-              <span className="w-px h-4 bg-border/60 flex-shrink-0 mx-1.5" />
-              {/* Quick labor type toggles */}
+              <span className="w-px h-4 bg-border/60 flex-shrink-0 mx-1" />
               {([
                 { type: 'warranty' as LaborType, label: 'W', color: 'hsl(var(--status-warranty))' },
                 { type: 'customer-pay' as LaborType, label: 'CP', color: 'hsl(var(--status-customer-pay))' },
@@ -689,7 +697,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                     key={type}
                     onClick={() => toggleLaborTypeFilter(type)}
                     className={cn(
-                      'h-[22px] px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border',
+                      'h-[24px] px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border',
                       active ? 'text-white' : 'bg-transparent border-border/60 hover:border-border',
                     )}
                     style={active
@@ -702,22 +710,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 );
               })}
             </div>
-
-            {/* Pinned right: range label only — totals live in the header bar */}
-            <div className="flex-shrink-0 flex items-center gap-1 pl-2 border-l border-border/40">
-              <span
-                className={cn(
-                  'text-[9px] text-muted-foreground/50 flex items-center gap-0.5 flex-shrink-0',
-                  dateFilter === 'custom' && 'cursor-pointer hover:text-foreground'
-                )}
-                onClick={() => { if (dateFilter === 'custom') requestCustomDialog(); }}
-              >
-                <CalendarRange className="h-2.5 w-2.5" />
-                {rangeChipLabel}
-              </span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── List content ─────────────────────────────── */}
@@ -782,8 +776,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               }
             />
           ) : (
-            <div className="divide-y divide-border/40">
-              {visibleROs.map(ro => (
+            <div className="p-2.5 space-y-2">
+              {visibleROs.map((ro, idx) => (
                 <ROCard
                   key={ro.id}
                   ro={ro}
@@ -792,6 +786,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   hideTotals={userSettings.hideTotals ?? false}
                   compact={density === 'compact'}
                   isCarryover={carryoverROIds.has(ro.id)}
+                  rowTone={idx % 2 === 0 ? 'base' : 'alt'}
                   onEdit={handleCardEdit}
                   onFlag={handleCardFlag}
                   onDelete={handleCardDelete}
@@ -803,7 +798,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {/* Sentinel for IntersectionObserver-based infinite scroll */}
               <div ref={sentinelRef} className="h-1" />
               {/* Bottom padding for FAB */}
-              <div className="h-24" />
+              <div className="h-28" />
             </div>
           )}
         </div>

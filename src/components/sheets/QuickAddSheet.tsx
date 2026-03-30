@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Camera, X, UserPlus, ChevronRight } from 'lucide-react';
+import { Camera, X, UserPlus, ChevronRight, CalendarRange, UserRound, Wrench, ClipboardCheck } from 'lucide-react';
 import { haptics } from '@/lib/haptics';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { LineItemEditor } from '@/components/mobile/LineItemEditor';
@@ -273,129 +273,171 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         )}
 
         {/* ══════════════ Scrollable body ══════════════ */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+9rem)] space-y-3">
-
-          {/* ── Section 1: RO Basics — unified card ── */}
-          <div className="bg-card rounded-2xl border border-border/50 overflow-hidden" style={{ boxShadow: 'var(--shadow-card)' }}>
-
-            {/* RO# + Date */}
-            <div className="px-4 pt-4 pb-3.5 flex gap-3">
-              <div className="flex-[3] min-w-0">
-                <label className="block text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55 mb-1.5">
-                  RO Number
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={roNumber}
-                  onChange={(e) => setRoNumber(e.target.value.slice(0, 20))}
-                  placeholder="00000"
-                  maxLength={20}
-                  className="w-full h-11 px-3.5 bg-muted/40 rounded-xl border border-transparent text-xl font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/35 focus:bg-background/60 placeholder:font-normal placeholder:text-muted-foreground/30 transition-all"
-                />
-              </div>
-              <div className="flex-[2] min-w-0">
-                <label className="block text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55 mb-1.5">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={roDate}
-                  onChange={(e) => setRoDate(e.target.value)}
-                  className="w-full h-11 px-3 bg-muted/40 rounded-xl border border-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:bg-background/60 transition-all"
-                />
-              </div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+9.5rem)] space-y-4">
+          <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5 flex items-center gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70">
+                {editingRO ? 'Editing Workspace' : 'Intake Workspace'}
+              </p>
+              <p className="text-sm font-semibold text-foreground truncate">
+                {roNumber.trim() ? `RO #${roNumber}` : 'New Repair Order'}
+              </p>
             </div>
+            <div className="ml-auto flex items-center gap-2 text-[11px] tabular-nums">
+              <span className="px-2 py-1 rounded-md border border-border/60 bg-muted/30 font-semibold text-foreground">
+                {lines.length}L
+              </span>
+              <span className="px-2 py-1 rounded-md border border-primary/30 bg-primary/10 font-bold text-primary">
+                {linesTotalHours.toFixed(1)}h
+              </span>
+            </div>
+          </div>
 
-            <div className="h-px bg-border/20 mx-4" />
-
-            {/* Advisor */}
-            <div className="px-4 py-3.5">
-              <div className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55 mb-2.5">
-                Advisor
+          {/* Step 1 & 2 — Intake basics */}
+          <section className="space-y-2.5">
+            <div className="flex items-center justify-between px-0.5">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/12 text-primary text-[10px] font-bold">1</span>
+                <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-foreground/75">Basics</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).map((adv) => (
-                  <button
-                    key={adv.id}
-                    onClick={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
-                    className={cn(
-                      'h-8 px-3.5 rounded-full text-[13px] font-medium transition-all border tap-target active:scale-[0.97]',
-                      advisor === adv.name
-                        ? 'bg-foreground text-background border-foreground'
-                        : 'bg-transparent border-border/60 text-foreground/75 hover:border-foreground/30 hover:bg-muted/30'
-                    )}
-                  >
-                    {adv.name}
-                  </button>
-                ))}
-                {settings.advisors.length > 8 && (
-                  <button
-                    onClick={() => setShowAdvisorList(true)}
-                    className="h-8 px-3 rounded-full text-[13px] font-medium border border-border/50 bg-muted/20 text-muted-foreground tap-target"
-                  >
-                    More…
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowAdvisorCreate((v) => !v)}
-                  className={cn(
-                    'h-8 w-8 rounded-full border transition-all flex items-center justify-center tap-target active:scale-[0.97]',
-                    showAdvisorCreate
-                      ? 'bg-foreground text-background border-foreground'
-                      : 'border-dashed border-foreground/30 text-foreground/40 hover:border-foreground/50 hover:text-foreground/60'
+              <span className="text-[10px] text-muted-foreground/70">Intake</span>
+            </div>
+            <div className="bg-card rounded-xl border border-border/60 overflow-hidden">
+
+              {/* RO# + Date */}
+              <div className="px-4 pt-4 pb-3.5 flex gap-2.5">
+                <div className="flex-[3] min-w-0">
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55 mb-1.5">
+                    RO Number
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={roNumber}
+                      onChange={(e) => setRoNumber(e.target.value.slice(0, 20))}
+                      placeholder="00000"
+                      maxLength={20}
+                      className="w-full h-11 px-3.5 bg-background rounded-lg border border-border/70 text-[19px] font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:font-normal placeholder:text-muted-foreground/35 transition-all"
+                    />
+                  </div>
+                </div>
+                <div className="flex-[2] min-w-0">
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55 mb-1.5">
+                    Date
+                  </label>
+                  <div className="relative">
+                    <CalendarRange className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/45 pointer-events-none" />
+                    <input
+                      type="date"
+                      value={roDate}
+                      onChange={(e) => setRoDate(e.target.value)}
+                      className="w-full h-11 pl-8 pr-2 bg-background rounded-lg border border-border/70 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px bg-border/30 mx-4" />
+
+              {/* Advisor */}
+              <div className="px-4 py-3.5">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <UserRound className="h-3.5 w-3.5 text-muted-foreground/55" />
+                  <div className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">
+                    Advisor
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).map((adv) => (
+                    <button
+                      key={adv.id}
+                      onClick={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
+                      className={cn(
+                        'h-8 px-3.5 rounded-full text-[13px] font-medium transition-all border tap-target active:scale-[0.97]',
+                        advisor === adv.name
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'bg-background border-border/60 text-foreground/75 hover:border-foreground/30 hover:bg-muted/20'
+                      )}
+                    >
+                      {adv.name}
+                    </button>
+                  ))}
+                  {settings.advisors.length > 8 && (
+                    <button
+                      onClick={() => setShowAdvisorList(true)}
+                      className="h-8 px-3 rounded-full text-[13px] font-medium border border-border/50 bg-muted/10 text-muted-foreground tap-target"
+                    >
+                      More…
+                    </button>
                   )}
-                  aria-label="Add new advisor"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              {showAdvisorCreate && (
-                <div className="flex items-center gap-2 mt-3">
-                  <input
-                    type="text"
-                    value={advisorDraft}
-                    onChange={(e) => setAdvisorDraft(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        await saveAdvisorQuickly();
-                      }
-                    }}
-                    placeholder="Full name"
-                    autoFocus
-                    className="flex-1 h-9 px-3 rounded-lg bg-muted/50 border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
-                  />
                   <button
-                    onClick={saveAdvisorQuickly}
-                    className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium active:scale-[0.97] transition-transform flex items-center gap-1.5"
-                    aria-label="Add advisor"
+                    onClick={() => setShowAdvisorCreate((v) => !v)}
+                    className={cn(
+                      'h-8 w-8 rounded-full border transition-all flex items-center justify-center tap-target active:scale-[0.97]',
+                      showAdvisorCreate
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'border-dashed border-foreground/30 text-foreground/40 hover:border-foreground/50 hover:text-foreground/60'
+                    )}
+                    aria-label="Add new advisor"
                   >
                     <UserPlus className="h-3.5 w-3.5" />
-                    <span className="text-xs">Add</span>
                   </button>
                 </div>
-              )}
 
-              {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).find(a => a.name === advisor) && (
-                <div className="flex items-center gap-2 mt-2.5 px-3 py-2 bg-muted/40 rounded-xl border border-border/40">
-                  <span className="font-medium text-sm">{advisor}</span>
-                  <button onClick={() => setAdvisor('')} className="ml-auto p-1 rounded-full hover:bg-muted">
-                    <X className="h-3 w-3 text-muted-foreground" />
-                  </button>
-                </div>
-              )}
-            </div>
+                {showAdvisorCreate && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <input
+                      type="text"
+                      value={advisorDraft}
+                      onChange={(e) => setAdvisorDraft(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          await saveAdvisorQuickly();
+                        }
+                      }}
+                      placeholder="Full name"
+                      autoFocus
+                      className="flex-1 h-9 px-3 rounded-lg bg-background border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
+                    />
+                    <button
+                      onClick={saveAdvisorQuickly}
+                      className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium active:scale-[0.97] transition-transform flex items-center gap-1.5"
+                      aria-label="Add advisor"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                      <span className="text-xs">Add</span>
+                    </button>
+                  </div>
+                )}
 
-            <div className="h-px bg-border/20 mx-4" />
-
-            {/* Labor Type — iOS-style segmented control track */}
-            <div className="px-4 py-3.5">
-              <div className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55 mb-2.5">
-                Labor Type
+                {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 8).find(a => a.name === advisor) && (
+                  <div className="flex items-center gap-2 mt-2.5 px-3 py-2 bg-muted/20 rounded-xl border border-border/40">
+                    <span className="font-medium text-sm">{advisor}</span>
+                    <button onClick={() => setAdvisor('')} className="ml-auto p-1 rounded-full hover:bg-muted">
+                      <X className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-1 p-1 rounded-xl bg-muted/50 border border-border/25">
+            </div>
+          </section>
+
+          {/* Step 3 — Labor type */}
+          <section className="space-y-2.5">
+            <div className="flex items-center gap-2 px-0.5">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/12 text-primary text-[10px] font-bold">2</span>
+              <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-foreground/75">Labor Type</span>
+            </div>
+            <div className="bg-card rounded-xl border border-border/60 p-3">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <Wrench className="h-3.5 w-3.5 text-muted-foreground/55" />
+                <div className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">
+                  Apply to new line entries
+                </div>
+              </div>
+              <div className="flex gap-1 p-1 rounded-xl bg-muted/35 border border-border/30">
                 {LABOR_TYPES.map(({ value, fullLabel, dotColor }) => {
                   const isActive = laborType === value;
                   return (
@@ -425,15 +467,9 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                 })}
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── Section separator ── */}
-          <div className="flex items-center gap-3 px-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/40 flex-shrink-0">Work Lines</span>
-            <div className="flex-1 h-px bg-border/25" />
-          </div>
-
-          {/* ── Section 2: Presets + Lines ── */}
+          {/* Step 4 & 5 — Presets then line entry */}
           <LineItemEditor
             lines={lines}
             onLinesChange={setLines}
@@ -441,7 +477,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             showLaborType={false}
           />
 
-          {/* ── Section 4: Details ── */}
+          {/* Step 6 — Details and finish metadata */}
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2 px-0.5">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/12 text-primary text-[10px] font-bold">5</span>
+              <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-foreground/75">Finish Details</span>
+              <ClipboardCheck className="h-3.5 w-3.5 text-muted-foreground/45 ml-auto" />
+            </div>
           <DetailsCollapsible
             vehicle={vehicle}
             onVehicleChange={setVehicle}
@@ -457,17 +499,15 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             onOpenChange={setShowDetailsOpen}
             layout="mobile"
           />
+          </div>
         </div>
 
         {/* ══════════════ Bottom Save Bar ══════════════ */}
-        <div
-          className="fixed inset-x-0 bottom-0 z-30 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85"
-          style={{ borderTop: '1px solid hsl(var(--border) / 0.5)', boxShadow: '0 -4px 16px -4px hsl(220 20% 10% / 0.08)' }}
-        >
-          <div className="px-4 py-3 safe-bottom flex items-center gap-2.5">
+        <div className="fixed inset-x-0 bottom-0 z-30 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 border-t border-border/60">
+          <div className="px-4 py-2.5 safe-bottom space-y-2">
             {/* Live summary pill */}
-            <div className="flex-1 min-w-0">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/60 border border-border/40">
+            <div className="min-w-0 flex items-center justify-between">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border/40">
                 <span className="text-sm font-bold tabular-nums leading-none">
                   {linesTotalHours.toFixed(1)}h
                 </span>
@@ -476,38 +516,44 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                   {lines.length} {lines.length === 1 ? 'line' : 'lines'}
                 </span>
               </div>
+              <span className="text-[11px] text-muted-foreground">
+                {roNumber.trim() ? `RO #${roNumber}` : 'Enter RO # to save'}
+              </span>
             </div>
 
-            {/* Save + Add */}
-            {!editingRO && (
+            <div className="grid grid-cols-2 gap-2.5">
+              {/* Save + Add */}
+              {!editingRO && (
+                <button
+                  onClick={() => handleSave(true)}
+                  disabled={!isValid}
+                  className={cn(
+                    'h-11 px-4 rounded-md font-semibold text-sm border min-h-[44px] transition-all active:scale-[0.98]',
+                    isValid
+                      ? 'border-primary/35 text-primary hover:bg-primary/5'
+                      : 'border-muted text-muted-foreground'
+                  )}
+                >
+                  Save + Add
+                </button>
+              )}
+
+              {/* Save */}
               <button
-                onClick={() => handleSave(true)}
+                onClick={() => handleSave(false)}
                 disabled={!isValid}
                 className={cn(
-                  'h-11 px-4 rounded-full font-medium text-sm border min-h-[44px] transition-all active:scale-[0.98]',
+                  'h-11 px-7 rounded-md font-bold text-sm min-h-[44px] transition-all active:scale-[0.98] col-span-1',
+                  editingRO && 'col-span-2',
                   isValid
-                    ? 'border-primary/35 text-primary hover:bg-primary/5'
-                    : 'border-muted text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
                 )}
+                style={isValid ? { boxShadow: '0 2px 12px -3px hsl(var(--primary) / 0.45)' } : {}}
               >
-                Save + Add
+                {editingRO ? 'Update' : 'Save'}
               </button>
-            )}
-
-            {/* Save */}
-            <button
-              onClick={() => handleSave(false)}
-              disabled={!isValid}
-              className={cn(
-                'h-11 px-7 rounded-full font-bold text-sm min-h-[44px] transition-all active:scale-[0.98]',
-                isValid
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-              style={isValid ? { boxShadow: '0 2px 12px -3px hsl(var(--primary) / 0.45)' } : {}}
-            >
-              {editingRO ? 'Update' : 'Save'}
-            </button>
+            </div>
           </div>
         </div>
       </div>

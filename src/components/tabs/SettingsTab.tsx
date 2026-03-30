@@ -312,14 +312,18 @@ export function SettingsTab() {
   const ManageContent = () => (
     <>
       {/* Quick Presets */}
-      <div className="space-y-1">
+      <section className="space-y-1.5">
         <div className="flex items-center justify-between px-0.5">
-          <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Quick Presets</h3>
-          <button onClick={() => openPresetEditor()} className="p-1.5 tap-target text-primary active:opacity-70 transition-opacity">
-            <Plus className="h-4 w-4" />
+          <div>
+            <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Quick Presets</h3>
+            <p className="text-[10px] text-muted-foreground/50 mt-0.5">{settings.presets.length} saved</p>
+          </div>
+          <button onClick={() => openPresetEditor()} className="h-8 px-2.5 rounded-md border border-primary/25 text-primary text-[11px] font-semibold flex items-center gap-1 tap-target active:opacity-70 transition-opacity">
+            <Plus className="h-3.5 w-3.5" />
+            Add
           </button>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 bg-card border border-border/50 rounded-lg p-1.5">
           {(showAllPresets ? settings.presets : settings.presets.slice(0, 6)).map((preset) => (
             <PresetItem
               key={preset.id}
@@ -344,17 +348,21 @@ export function SettingsTab() {
             </button>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Advisors */}
-      <div className="space-y-1">
+      <section className="space-y-1.5">
         <div className="flex items-center justify-between px-0.5">
-          <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Advisors</h3>
-          <button onClick={() => openAdvisorEditor()} className="p-1.5 tap-target text-primary active:opacity-70 transition-opacity">
-            <Plus className="h-4 w-4" />
+          <div>
+            <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Advisors</h3>
+            <p className="text-[10px] text-muted-foreground/50 mt-0.5">{settings.advisors.length} active</p>
+          </div>
+          <button onClick={() => openAdvisorEditor()} className="h-8 px-2.5 rounded-md border border-primary/25 text-primary text-[11px] font-semibold flex items-center gap-1 tap-target active:opacity-70 transition-opacity">
+            <Plus className="h-3.5 w-3.5" />
+            Add
           </button>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 bg-card border border-border/50 rounded-lg p-1.5">
           {(showAllAdvisors ? settings.advisors : settings.advisors.slice(0, 6)).map((advisor) => (
             <AdvisorItem
               key={advisor.id}
@@ -374,7 +382,7 @@ export function SettingsTab() {
             </button>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Scan Templates - Pro only */}
       {isPro && <TemplatesSection />}
@@ -405,7 +413,7 @@ export function SettingsTab() {
             toast.success(`Exported ${ros.length} ROs`);
           }}
         />
-        <div className="w-full px-4 py-3 flex items-center justify-between">
+        <div className="w-full px-4 py-3 flex items-center justify-between bg-destructive/[0.03]">
           <div>
             <span className="text-[13px] font-medium text-destructive">Clear All ROs</span>
             <p className="text-[11px] text-muted-foreground/60 mt-0.5">
@@ -413,11 +421,11 @@ export function SettingsTab() {
             </p>
           </div>
           <Button
-            variant="destructive"
+            variant="outline"
             size="sm"
             onClick={handleClearAllClick}
             disabled={ros.length === 0}
-            className="h-8 text-[12px]"
+            className="h-8 text-[12px] border-destructive/30 text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-3.5 w-3.5 mr-1" />
             Clear
@@ -732,39 +740,53 @@ export function SettingsTab() {
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32">
       {/* Header */}
-      <div className="panel-header px-4 pt-4 pb-3 space-y-3">
-        <h1 className="text-lg font-bold tracking-tight">Settings</h1>
-        <SegmentedControl
-          options={[
-            { value: 'settings', label: 'Settings' },
-            { value: 'manage', label: 'Manage' },
-          ]}
-          value={settingsView}
-          onChange={(v) => setSettingsView(v as 'settings' | 'manage')}
-        />
+      <div className="panel-header px-4 pt-4 pb-3">
+        <div className="bg-card border border-border/60 rounded-xl p-2.5 space-y-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-[17px] font-bold tracking-tight">Settings</h1>
+            <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground/65">Mobile</span>
+          </div>
+          <SegmentedControl
+            options={[
+              { value: 'settings', label: 'Settings' },
+              { value: 'manage', label: 'Manage' },
+            ]}
+            value={settingsView}
+            onChange={(v) => setSettingsView(v as 'settings' | 'manage')}
+          />
+        </div>
       </div>
 
       <div className="p-4 desktop-sections max-w-xl mx-auto w-full">
         {settingsView === 'settings' ? (
           <>
             {/* Profile Card — compact identity row */}
-            <button
+            <div
               onClick={() => setShowAccountSheet(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowAccountSheet(true);
+                }
+              }}
               className={cn(
                 'w-full text-left tap-target active:bg-muted/40 transition-colors',
-                'bg-card border border-border/60 px-4 py-3',
+                'bg-card border border-border/60 px-4 py-3.5',
               )}
               style={{ borderRadius: 'var(--radius)' }}
             >
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
+                <div className="h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary shadow-[var(--shadow-sm)]">
                   {avatarInitial}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold leading-tight truncate">
+                  <div className="text-[14px] font-semibold leading-tight truncate">
                     {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-[12px] italic">Set your name</span>}
                   </div>
                   <div className="text-[11px] text-muted-foreground/60 truncate mt-0.5">{user?.email}</div>
+                  <div className="mt-1 text-[10px] text-muted-foreground/65">{syncedSettings.shopName || 'Set shop name'}</div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className={cn(
@@ -776,6 +798,20 @@ export function SettingsTab() {
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                 </div>
               </div>
+              <div className="mt-2.5 pt-2 border-t border-border/35 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isPro) openPortal();
+                    else setShowUpgradeDialog(true);
+                  }}
+                  className="text-[11px] font-semibold text-primary"
+                >
+                  {isPro ? 'Manage Subscription' : 'Upgrade to Pro'}
+                </button>
+                <span className="text-[11px] text-muted-foreground/55">Edit profile</span>
+              </div>
               {isNearExpiry && daysUntilEnd !== null && (
                 <div className="mt-2 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-md px-3 py-2">
                   <Star className="h-3 w-3 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -784,9 +820,9 @@ export function SettingsTab() {
                   </p>
                 </div>
               )}
-            </button>
+            </div>
 
-            {/* Display */}
+            {/* App Preferences */}
             <SettingsGroup title="Display">
               <SettingsRow
                 label="Dark Mode"
@@ -830,7 +866,12 @@ export function SettingsTab() {
             </SettingsGroup>
 
             {/* Goals & Earnings */}
-            <SettingsGroup title="Goals & Earnings">
+            <div className="space-y-1">
+              <div className="px-0.5 flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5 text-primary/80" />
+                <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Goals & Earnings</h3>
+              </div>
+              <div className="bg-card border border-primary/20 rounded-[var(--radius)] overflow-hidden">
               <div className="px-4 py-3 space-y-3">
                 <div className="grid grid-cols-2 gap-2.5">
                   <GoalField
@@ -879,7 +920,8 @@ export function SettingsTab() {
                   </Button>
                 </div>
               </div>
-            </SettingsGroup>
+              </div>
+            </div>
 
             {/* Pay Period */}
             <PayPeriodRangeSection

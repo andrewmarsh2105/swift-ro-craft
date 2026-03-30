@@ -177,35 +177,23 @@ export function RODetailSheet({
         ) : (
           <div className="flex flex-col h-full">
             {/* ── Header ── */}
-            <div className="flex-shrink-0 border-b border-border/60 bg-card px-4 py-3">
-              {/* Row 1: RO# + hours + [spacer] + Mark Paid + 3-dot + X */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[16px] font-extrabold tabular-nums text-foreground tracking-tight">
-                  {ro.roNumber ? `#${ro.roNumber}` : '—'}
-                </span>
+            <div className="flex-shrink-0 border-b border-border/60 bg-card px-4 py-2.5">
+              {/* Row 1: RO hierarchy + top actions */}
+              <div className="flex items-start gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground/70 font-semibold">Repair Order</p>
+                  <p className="text-[19px] font-extrabold tabular-nums text-foreground tracking-tight leading-none">
+                    {ro.roNumber ? `#${ro.roNumber}` : '—'}
+                  </p>
+                </div>
                 <button
-                  className="text-muted-foreground/50 hover:text-muted-foreground quiet-transition"
+                  className="mt-[14px] text-muted-foreground/50 hover:text-muted-foreground quiet-transition"
                   onClick={() => copyToClipboard("RO #", ro.roNumber)}
+                  title="Copy RO number"
                 >
                   <Copy className="h-3 w-3" />
                 </button>
-                <span className="hours-pill">{maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h</span>
-                <div className="flex items-center gap-1.5 ml-auto">
-                  {/* Mark Paid / Open — primary daily action, first-class button */}
-                  <button
-                    onClick={handleTogglePaid}
-                    className="inline-flex items-center gap-1 h-7 px-2.5 rounded font-bold text-[11px] transition-all active:scale-[0.97] border"
-                    style={isPaid
-                      ? { color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))', borderColor: 'hsl(var(--status-warranty) / 0.3)' }
-                      : { color: 'hsl(var(--status-internal))', background: 'hsl(var(--status-internal-bg))', borderColor: 'hsl(var(--status-internal) / 0.3)' }
-                    }
-                    title={isPaid ? 'Mark as Open' : 'Mark as Paid'}
-                  >
-                    {isPaid
-                      ? <><CheckCircle2 className="h-3 w-3" /><span>Paid</span></>
-                      : <><LockOpen className="h-3 w-3" /><span>Open</span></>
-                    }
-                  </button>
+                <div className="flex items-center gap-1.5 ml-auto mt-1">
                   <ROActionMenu
                     roNumber={ro.roNumber}
                     isPaid={isPaid}
@@ -213,16 +201,41 @@ export function RODetailSheet({
                     onDelete={() => setShowDeleteConfirm(true)}
                     onFlag={openFlagDialog}
                     onTogglePaid={handleTogglePaid}
-                    className="h-7 w-7 p-0"
+                    className="h-8 w-8 p-0 rounded-md"
                   />
                   <button
                     onClick={onClose}
-                    className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     aria-label="Close"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
+              </div>
+
+              {/* Row 2: status and hours */}
+              <div className="mt-2 flex items-center gap-1.5">
+                <div
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded font-bold text-[11px] border"
+                  style={isPaid
+                    ? { color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))', borderColor: 'hsl(var(--status-warranty) / 0.3)' }
+                    : { color: 'hsl(var(--status-internal))', background: 'hsl(var(--status-internal-bg))', borderColor: 'hsl(var(--status-internal) / 0.3)' }
+                  }
+                >
+                  {isPaid
+                    ? <><CheckCircle2 className="h-3 w-3" /><span>Paid</span></>
+                    : <><LockOpen className="h-3 w-3" /><span>Open</span></>
+                  }
+                </div>
+                <span className="hours-pill">{maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h</span>
+                <button
+                  onClick={handleTogglePaid}
+                  className="ml-auto inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold border border-border/70 bg-background hover:bg-muted/40 quiet-transition active:scale-[0.98]"
+                  title={isPaid ? 'Mark as Open' : 'Mark as Paid'}
+                >
+                  {isPaid ? <LockOpen className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                  {isPaid ? 'Mark Open' : 'Mark Paid'}
+                </button>
               </div>
 
               {/* Row 2: Labor type + date + advisor + flags/issues */}
@@ -246,9 +259,9 @@ export function RODetailSheet({
             </div>
 
             {/* ── Content ── */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            <div className="flex-1 overflow-y-auto px-4 py-2.5 space-y-2.5">
               <SectionCard title="Details">
-                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-sm">
                   <div>
                     <p className="text-[11px] text-muted-foreground">RO date</p>
                     <p className="font-medium">{formatDateLong(ro.date)}</p>
@@ -291,7 +304,7 @@ export function RODetailSheet({
                     ) : null
                   }
                 >
-                  <div className="grid grid-cols-3 gap-y-2 gap-x-4 text-sm">
+                  <div className="grid grid-cols-3 gap-y-1.5 gap-x-4 text-sm">
                     <div>
                       <p className="text-[11px] text-muted-foreground">Vehicle</p>
                       <p className="font-medium">{vehicleLabel(ro)}</p>
@@ -326,7 +339,7 @@ export function RODetailSheet({
               >
                 {ro.lines?.length ? (
                   <div className="space-y-0">
-                    <div className="grid grid-cols-[2.5rem_1fr_3.5rem] text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pb-1 border-b border-border">
+                    <div className="grid grid-cols-[2.3rem_1fr_3.8rem] text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pb-1 border-b border-border">
                       <span>Line</span>
                       <span>Description</span>
                       <span className="text-right">Hours</span>
@@ -334,7 +347,7 @@ export function RODetailSheet({
 
                     <div className="divide-y divide-border/50">
                       {ro.lines.map((l) => (
-                        <div key={l.id} className="grid grid-cols-[2.5rem_1fr_3.5rem] py-1.5 items-start text-sm">
+                        <div key={l.id} className="grid grid-cols-[2.3rem_1fr_3.8rem] py-1.5 items-start text-sm">
                           <span className="text-[11px] font-bold text-muted-foreground">L{l.lineNo}</span>
                           <div className="min-w-0">
                             {(() => {
@@ -389,7 +402,7 @@ export function RODetailSheet({
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-[2.5rem_1fr_3.5rem] pt-1.5 border-t border-border text-sm font-bold">
+                    <div className="grid grid-cols-[2.3rem_1fr_3.8rem] pt-1.5 border-t border-border text-sm font-bold">
                       <span />
                       <span>Total (paid)</span>
                       <span className="text-right text-primary tabular-nums">
@@ -425,10 +438,10 @@ export function RODetailSheet({
             </div>
 
             {/* ── Footer ── */}
-            <div className="flex-shrink-0 px-4 py-3 border-t border-border/60 bg-card flex items-center gap-2">
+            <div className="flex-shrink-0 px-4 py-2.5 border-t border-border/60 bg-card flex items-center gap-2">
               <Button
                 variant="outline"
-                className="flex-1 h-11 text-sm gap-1.5"
+                className="flex-1 h-10 text-sm gap-1.5"
                 onClick={openFlagDialog}
               >
                 <Flag className="h-4 w-4" />
@@ -437,7 +450,7 @@ export function RODetailSheet({
               <Button
                 variant={isPaid ? "outline" : "default"}
                 className={cn(
-                  "flex-1 h-11 text-sm gap-1.5",
+                  "flex-1 h-10 text-sm gap-1.5",
                   isPaid
                     ? "border-amber-500/40 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                     : "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -458,7 +471,7 @@ export function RODetailSheet({
               </Button>
               <Button
                 variant="ghost"
-                className="h-11 px-3 text-sm gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                className="h-10 px-2.5 text-sm gap-1.5 text-muted-foreground/70 hover:text-destructive hover:bg-destructive/10"
                 onClick={() => setShowDeleteConfirm(true)}
               >
                 <Trash2 className="h-4 w-4" />

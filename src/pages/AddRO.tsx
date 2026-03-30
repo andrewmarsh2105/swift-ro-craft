@@ -441,10 +441,10 @@ export default function AddRO() {
       )}
 
       {/* Core fields strip */}
-      <div className="flex-shrink-0 border-b border-border bg-card">
-        <div className="px-3 py-2 flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className="flex-shrink-0 border-b border-border/70 bg-card">
+        <div className="px-3 pt-2 pb-1.5 flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-shrink-0 min-w-[120px]">
+            <FileText className="h-3.5 w-3.5 text-muted-foreground/70" />
             <input
               type="text"
               inputMode="numeric"
@@ -454,7 +454,7 @@ export default function AddRO() {
               maxLength={20}
               aria-label="Repair order number"
               aria-required="true"
-              className="w-20 h-11 px-2 bg-muted rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-[92px] h-10 px-2.5 bg-background rounded-lg border border-input text-[15px] font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -464,7 +464,7 @@ export default function AddRO() {
               value={date}
               onChange={e => setDate(e.target.value)}
               aria-label="Repair order date"
-              className="w-[120px] h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-[122px] h-10 px-2.5 bg-background rounded-lg border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -472,14 +472,26 @@ export default function AddRO() {
             type="button"
             onClick={() => setShowAdvisorList(true)}
             className={cn(
-              'flex-1 min-w-[120px] h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
+              'flex-1 min-w-[132px] h-10 px-2.5 rounded-lg border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              advisor ? 'bg-background font-medium' : 'bg-muted/30 text-muted-foreground'
             )}
             aria-label={advisor ? `Selected advisor ${advisor}` : 'Select advisor'}
           >
             <User className="h-4 w-4 flex-shrink-0" />
             <span className="truncate">{advisor || 'Advisor'}</span>
           </button>
+        </div>
+
+        {/* Compact summary strip for edit context */}
+        <div className="px-3 pb-2">
+          <div className="h-8 rounded-lg border border-border/60 bg-muted/25 px-2.5 flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-semibold text-foreground/75 truncate">{laborType === 'customer-pay' ? 'Customer Pay' : laborType === 'warranty' ? 'Warranty' : 'Internal'}</span>
+              <span className="text-border">•</span>
+              <span className="text-muted-foreground truncate">{lines.length} {lines.length === 1 ? 'line' : 'lines'}</span>
+            </div>
+            <span className="font-bold tabular-nums text-primary">{totalHours.toFixed(1)}h</span>
+          </div>
         </div>
 
         {/* Details collapsible */}
@@ -504,7 +516,18 @@ export default function AddRO() {
 
       {/* Lines */}
       <main ref={linesContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="p-3 pb-56">
+        <div className="p-3 pt-2 pb-56 space-y-2">
+          <div className="flex items-center justify-between px-0.5">
+            <div className="text-[10px] uppercase tracking-[0.1em] font-semibold text-muted-foreground/70">Work Lines</div>
+            <button
+              type="button"
+              onClick={handleAddLine}
+              className="h-8 px-2.5 rounded-md border border-primary/30 bg-primary/5 text-primary text-[11px] font-semibold flex items-center gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Line
+            </button>
+          </div>
           <CompactLinesGrid
             lines={lines}
             onLinesChange={setLines}
@@ -517,7 +540,7 @@ export default function AddRO() {
         </div>
       </main>
 
-      {/* Bottom action bar — 2 clean zones */}
+      {/* Bottom action bar — compact quick tools + save actions */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
 
         {/* Zone 1: Quick actions — icon add-line + preset rail + search + tbd-all */}
@@ -528,10 +551,10 @@ export default function AddRO() {
             <button
               type="button"
               onClick={handleAddLine}
-              className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 active:scale-[0.93] transition-all"
+              className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary border border-primary/20 active:scale-[0.93] transition-all"
               aria-label="Add line"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
             </button>
 
             {/* Preset rail — flex-1, scrollable, scroll-protected */}
@@ -547,7 +570,7 @@ export default function AddRO() {
             <button
               type="button"
               onClick={() => setShowPresetSearch(true)}
-              className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-secondary border border-border active:scale-[0.93] transition-all"
+              className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-secondary border border-border active:scale-[0.93] transition-all"
               aria-label="Browse all presets"
             >
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -560,10 +583,10 @@ export default function AddRO() {
         {/* Zone 2: Save bar — summary info + action buttons */}
         <div className="px-3 py-2.5 flex items-center gap-2">
           <div className="flex-1 min-w-0 flex items-baseline gap-2">
-            <span className="text-[17px] font-bold text-primary tabular-nums leading-none">
+            <span className="text-[16px] font-bold text-primary tabular-nums leading-none">
               {totalHours.toFixed(1)}h
             </span>
-            <span className="text-xs text-muted-foreground leading-none" aria-live="polite">
+            <span className="text-[11px] text-muted-foreground leading-none" aria-live="polite">
               {lines.length} {lines.length === 1 ? 'line' : 'lines'}
             </span>
           </div>

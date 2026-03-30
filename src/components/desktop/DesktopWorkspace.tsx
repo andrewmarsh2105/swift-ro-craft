@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Settings, BarChart3, X, Table2, Crown } from "lucide-react";
+import { Settings, BarChart3, X, Table2, Crown, FolderOpen, ClipboardList } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
@@ -226,9 +226,22 @@ export function DesktopWorkspace() {
   const showDetails = rightPanel === "details" && selectedRO;
   const hasRightPanel = rightPanel !== "none" && (showEditor || showDetails || rightPanel === "settings" || rightPanel === "summary");
   const isWideList = !hasRightPanel;
+  const activeWorkspaceLabel = rightPanel === "settings"
+    ? "Settings"
+    : rightPanel === "summary"
+      ? "Summary & Reports"
+      : showEditor
+        ? isAddingNew
+          ? "New RO Intake"
+          : selectedRO
+            ? `Editing RO #${selectedRO.roNumber}`
+            : "Editing"
+        : showDetails && selectedRO
+          ? `RO #${selectedRO.roNumber} Details`
+          : "Workspace";
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-muted/20">
       <TrialCountdownBanner />
       <OfflineStatusBar />
 
@@ -301,13 +314,16 @@ export function DesktopWorkspace() {
       ) : (
         <div
           className={cn(
-            "flex-1 flex min-h-0",
+            "flex-1 flex min-h-0 p-2 gap-2",
             isDragging && "select-none",
           )}
         >
           {/* Left Panel — Queue */}
           <div
-            className="min-w-0 flex-shrink-0 overflow-hidden workspace-queue border-r border-border/50"
+            className={cn(
+              "min-w-0 flex-shrink-0 overflow-hidden workspace-queue border border-border/70 rounded-lg shadow-sm",
+              !isWideList && "bg-background",
+            )}
             style={{
               ...(isWideList ? { flex: "1 1 0%" } : { width: splitter.width }),
             }}
@@ -332,8 +348,30 @@ export function DesktopWorkspace() {
               />
 
               <div
-                className="flex-1 min-w-0 relative bg-card overflow-hidden"
+                className="flex-1 min-w-0 relative overflow-hidden workspace-active border border-border/70 rounded-lg shadow-sm"
               >
+                <div className="px-4 py-2 border-b border-border/60 bg-card/95 backdrop-blur-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground/70">
+                        Active Workspace
+                      </p>
+                      <p className="text-sm font-semibold text-foreground truncate">{activeWorkspaceLabel}</p>
+                    </div>
+                    {selectedRO && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-primary/30 bg-primary/[0.07] text-[11px] font-semibold text-primary">
+                        <FolderOpen className="h-3 w-3" />
+                        Open RO #{selectedRO.roNumber}
+                      </div>
+                    )}
+                    {!selectedRO && (rightPanel === "settings" || rightPanel === "summary") && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/70 bg-muted/30 text-[11px] font-medium text-muted-foreground">
+                        <ClipboardList className="h-3 w-3" />
+                        Queue remains available on the left
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
                     <motion.div
@@ -342,7 +380,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="h-full overflow-y-auto absolute inset-0"
+                      className="overflow-y-auto absolute inset-x-0 bottom-0 top-[57px]"
                     >
                       <Suspense fallback={<PanelFallback />}>
                         <SettingsTab />
@@ -355,7 +393,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="h-full overflow-y-auto absolute inset-0"
+                      className="overflow-y-auto absolute inset-x-0 bottom-0 top-[57px]"
                     >
                       <Suspense fallback={<PanelFallback />}>
                         <SummaryTab />
@@ -368,7 +406,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="h-full absolute inset-0"
+                      className="absolute inset-x-0 bottom-0 top-[57px]"
                     >
                       <ROEditor
                         ro={selectedRO}
@@ -386,7 +424,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="h-full absolute inset-0"
+                      className="absolute inset-x-0 bottom-0 top-[57px]"
                     >
                       <RODetailsPanel
                         ro={selectedRO}

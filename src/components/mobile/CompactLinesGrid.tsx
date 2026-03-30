@@ -8,7 +8,6 @@ import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 import { LineTextModal } from '@/components/shared/LineTextModal';
-import { createEmptyLine } from '@/lib/roLine';
 
 interface CompactLinesGridProps {
   lines: ROLine[];
@@ -88,13 +87,13 @@ export function CompactLinesGrid({
               transition={{ duration: 0.2 }}
             >
               <div className={cn(
-                'rounded-lg p-2.5 border transition-all duration-300',
+                'rounded-lg p-2 border transition-all duration-300',
                 isHighlighted
                   ? 'border-primary bg-primary/10 shadow-md border-l-[3px] border-l-primary'
                   : 'border-border bg-card shadow-sm',
               )}>
-                {/* Row 1: Line # + Description */}
-                <div className="flex items-center gap-2 mb-1.5">
+                {/* Row 1: Line # + Description + Hours + Actions */}
+                <div className="flex items-center gap-1.5">
                   <span className={cn(
                     'text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-colors tabular-nums',
                     isHighlighted 
@@ -115,80 +114,69 @@ export function CompactLinesGrid({
                         setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id });
                       }
                     }}
-                    className="flex-1 h-11 px-3 bg-card border border-input rounded-[10px] text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
+                    className="flex-1 h-9 px-2.5 bg-background border border-input rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
                   />
-                  {/* Expand button */}
-                  <button
-                    onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
-                    className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
-                    title="View full description"
-                    aria-label="View full description"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </button>
-                  {!readOnly && (
-                    <button
-                      onClick={() => handleRemoveLine(index)}
-                      aria-label={`Remove line ${line.lineNo}`}
-                      className="h-11 w-11 text-destructive/60 hover:text-destructive rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Row 2: Labor Type + Hours */}
-                <div className="flex items-center gap-2 pl-7">
-                  <select
-                    value={line.laborType || ''}
-                    onChange={(e) => handleLineChange(index, { laborType: e.target.value as LaborType || undefined })}
-                    disabled={readOnly}
-                    className="h-11 px-3 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[88px]"
-                  >
-                    <option value="">Default</option>
-                    {LABOR_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.short}</option>
-                    ))}
-                  </select>
-                  
-                  <div className="flex-1" />
-
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <DecimalHoursInput
                       value={line.hoursPaid}
                       onChange={(v) => handleHoursInput(index, v)}
                       placeholder="0.0"
                       disabled={readOnly}
                       className={cn(
-                        'w-20 h-11 px-2 bg-secondary border border-border rounded-md text-base font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
+                        'w-[68px] h-9 px-2 bg-secondary border border-border rounded-md text-sm font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
                         isHighlighted && 'ring-2 ring-primary border-primary',
                       )}
                     />
-                    <span className="text-xs text-muted-foreground font-medium">hrs</span>
+                    <button
+                      onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
+                      className="h-9 w-8 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+                      title="View full description"
+                      aria-label="View full description"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => handleRemoveLine(index)}
+                        aria-label={`Remove line ${line.lineNo}`}
+                        className="h-9 w-8 text-destructive/60 hover:text-destructive rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Reference chip if matched */}
-                {line.matchedReferenceId && (
-                  <div className="mt-1.5 pl-7">
-                    <span className="inline-flex items-center px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-medium rounded">
-                      {presets.find(p => p.id === line.matchedReferenceId)?.name || 'Preset'}
-                    </span>
-                  </div>
-                )}
-
-                {/* Vehicle chip */}
-                {showVehicleChips && (() => {
-                  const veh = line.vehicleOverride && line.lineVehicle ? line.lineVehicle : roVehicle;
-                  const chip = formatVehicleChip(veh);
-                  return chip ? (
-                    <div className="mt-1 pl-7">
-                      <span className="inline-flex items-center px-2 py-0.5 bg-accent text-accent-foreground text-[10px] font-medium rounded">
-                        🚗 {chip}
+                {/* Row 2: Labor Type + metadata chips */}
+                <div className="flex items-center gap-2 pl-7 pt-1.5">
+                  <select
+                    value={line.laborType || ''}
+                    onChange={(e) => handleLineChange(index, { laborType: e.target.value as LaborType || undefined })}
+                    disabled={readOnly}
+                    className="h-8 px-2.5 bg-secondary border border-border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[82px]"
+                  >
+                    <option value="">Default</option>
+                    {LABOR_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.short}</option>
+                    ))}
+                  </select>
+                  <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                    {line.matchedReferenceId && (
+                      <span className="inline-flex items-center px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-medium rounded">
+                        {presets.find(p => p.id === line.matchedReferenceId)?.name || 'Preset'}
                       </span>
-                    </div>
-                  ) : null;
-                })()}
+                    )}
+                    {showVehicleChips && (() => {
+                      const veh = line.vehicleOverride && line.lineVehicle ? line.lineVehicle : roVehicle;
+                      const chip = formatVehicleChip(veh);
+                      return chip ? (
+                        <span className="inline-flex items-center px-2 py-0.5 bg-accent text-accent-foreground text-[10px] font-medium rounded">
+                          🚗 {chip}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
               </div>
             </motion.div>
           );
@@ -215,4 +203,3 @@ export function CompactLinesGrid({
     </div>
   );
 }
-

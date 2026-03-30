@@ -405,12 +405,12 @@
 
   /* ── Desktop workspace surfaces ────────────────────── */
   .workspace-queue {
-    @apply bg-background;
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted) / 0.22) 100%);
   }
 
   .workspace-active {
-    @apply bg-card;
-    border-left: 1px solid hsl(var(--border) / 0.6);
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.96) 100%);
+    border-left: 1px solid hsl(var(--border) / 0.7);
   }
 
   /* ── Unified panel action bar (bottom sticky) ─────── */
@@ -442,7 +442,7 @@
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
     @apply flex-shrink-0 h-10 flex items-center justify-between px-3;
-    background: hsl(var(--card) / 0.98);
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.95) 100%);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
