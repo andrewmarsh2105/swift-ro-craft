@@ -55,16 +55,16 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const isAtCap = !isPro && isNew && monthlyROCount >= RO_MONTHLY_CAP;
 
   // Date range for filtering advisors to match the current list view filter
-  const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'desktop-list');
+  const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'desktop-list', userSettings);
   const advisorRangeBounds = useMemo(() => computeDateRangeBounds({
     filter: dateFilter,
     weekStartDay: userSettings.weekStartDay ?? 0,
-    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodType: userSettings.payPeriodType,
     payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
     hasCustomPayPeriod: !!(userSettings.payPeriodEndDates?.length),
     customStart,
     customEnd,
-  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, customStart, customEnd]);
+  }), [dateFilter, userSettings.weekStartDay, userSettings.payPeriodType, userSettings.payPeriodEndDates, customStart, customEnd]);
 
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');

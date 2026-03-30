@@ -31,6 +31,7 @@ import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
 import { computeDateRangeBounds, filterROsByDateRangeWithCarryover, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { getDateFilterLabel, getDefaultPeriodFilter, getPeriodFilterLabels, normalizeDateFilterForPayPeriod } from '@/lib/payPeriodRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import {
   buildSpreadsheetRows,
@@ -247,30 +248,40 @@ interface DateFilterBarProps {
   dateRange: DateFilterKey;
   computedRangeLabel: string;
   hasCustomPayPeriod: boolean;
+  currentLabel: string;
+  previousLabel: string;
+  currentLabelShort: string;
+  previousLabelShort: string;
   isMobile: boolean;
   onSelect: (f: DateFilterKey) => void;
   onCustomRequest: () => void;
 }
 
-function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMobile, onSelect, onCustomRequest }: DateFilterBarProps) {
+function DateFilterBar({
+  dateRange, computedRangeLabel, hasCustomPayPeriod, currentLabel, previousLabel, currentLabelShort, previousLabelShort, isMobile, onSelect, onCustomRequest,
+}: DateFilterBarProps) {
   const filterOpts: { value: DateFilterKey; label: string }[] = [
     { value: 'today', label: 'Today' },
-    { value: 'week', label: 'Week' },
-    { value: 'last_week', label: 'Last Wk' },
+    ...(hasCustomPayPeriod
+      ? [
+          { value: 'pay_period' as DateFilterKey, label: `${currentLabel} (Default)` },
+          { value: 'last_pay_period' as DateFilterKey, label: previousLabel },
+        ]
+      : [
+          { value: 'week' as DateFilterKey, label: `${currentLabel} (Default)` },
+          { value: 'last_week' as DateFilterKey, label: previousLabel },
+        ]),
     { value: 'month', label: 'Month' },
-    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
     { value: 'all', label: 'All' },
     { value: 'custom', label: isMobile ? 'Custom…' : 'Custom' },
   ];
 
   const activeLabelShort =
-    dateRange === 'all' ? 'All'
-    : dateRange === 'today' ? 'Today'
-    : dateRange === 'last_week' ? 'Last Wk'
-    : dateRange === 'week' ? 'Week'
-    : dateRange === 'month' ? 'Month'
-    : dateRange === 'pay_period' ? 'Pay Period'
-    : 'Custom';
+    dateRange === 'week' || dateRange === 'pay_period'
+      ? currentLabelShort
+      : dateRange === 'last_week' || dateRange === 'last_pay_period'
+        ? previousLabelShort
+        : getDateFilterLabel(dateRange, { payPeriodType: hasCustomPayPeriod ? 'custom' : 'week' }, true);
 
   if (isMobile) {
     return (
@@ -295,7 +306,7 @@ function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMo
                 className={cn(dateRange === opt.value && 'bg-primary/10 text-primary font-semibold')}
               >
                 {opt.label}
-                {opt.value === 'pay_period' && dateRange === 'pay_period' && computedRangeLabel && (
+                {(opt.value === 'pay_period' || opt.value === 'last_pay_period') && dateRange === opt.value && computedRangeLabel && (
                   <span className="ml-auto text-[10px] text-muted-foreground">{computedRangeLabel}</span>
                 )}
               </DropdownMenuItem>
@@ -459,15 +470,17 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const hasCustomPayPeriod = userSettings.payPeriodType === 'custom' &&
     Array.isArray(userSettings.payPeriodEndDates) &&
     (userSettings.payPeriodEndDates as number[]).length > 0;
+  const periodLabels = getPeriodFilterLabels(userSettings);
 
   /* ─── Local (spreadsheet-only) date range state ─── */
-  const ssDefaultFilter: DateFilterKey = hasCustomPayPeriod ? 'pay_period' : 'week';
+  const ssDefaultFilter = getDefaultPeriodFilter(userSettings);
   const ssSaved = readSSLS();
-  const [dateRange, setDateRangeRaw] = useState<DateFilterKey>(ssSaved?.dateFilter ?? ssDefaultFilter);
+  const initialFilter = normalizeDateFilterForPayPeriod(ssSaved?.dateFilter ?? ssDefaultFilter, userSettings);
+  const [dateRange, setDateRangeRaw] = useState<DateFilterKey>(initialFilter);
   const [customStart, setCustomStart] = useState<string | undefined>(ssSaved?.customStart);
   const [customEnd, setCustomEnd] = useState<string | undefined>(ssSaved?.customEnd);
   const [showCustomDialog, setShowCustomDialog] = useState(false);
-  const [prevFilter, setPrevFilter] = useState<DateFilterKey>(ssSaved?.dateFilter ?? ssDefaultFilter);
+  const [prevFilter, setPrevFilter] = useState<DateFilterKey>(initialFilter);
   const [stashedCustomStart, setStashedCustomStart] = useState<string | undefined>(ssSaved?.customStart);
   const [stashedCustomEnd, setStashedCustomEnd] = useState<string | undefined>(ssSaved?.customEnd);
 
@@ -475,15 +488,21 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     writeSSLS({ dateFilter: dateRange, customStart, customEnd });
   }, [dateRange, customStart, customEnd]);
 
+
+  useEffect(() => {
+    const normalized = normalizeDateFilterForPayPeriod(dateRange, userSettings);
+    if (normalized !== dateRange) setDateRangeRaw(normalized);
+  }, [dateRange, userSettings]);
+
   const setDateRange = useCallback((f: DateFilterKey) => {
     if (f === 'custom') {
       setPrevFilter(dateRange);
       setDateRangeRaw('custom');
       setShowCustomDialog(true);
     } else {
-      setDateRangeRaw(f);
+      setDateRangeRaw(normalizeDateFilterForPayPeriod(f, userSettings));
     }
-  }, [dateRange]);
+  }, [dateRange, userSettings]);
 
   const requestCustomDialog = useCallback(() => {
     if (dateRange === 'custom' && customStart && customEnd) {
@@ -514,10 +533,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       setCustomEnd(stashedCustomEnd);
       setDateRangeRaw('custom');
     } else {
-      setDateRangeRaw(prevFilter !== 'custom' ? prevFilter : 'week');
+      setDateRangeRaw(prevFilter !== 'custom' ? prevFilter : ssDefaultFilter);
     }
     setShowCustomDialog(false);
-  }, [stashedCustomStart, stashedCustomEnd, prevFilter]);
+  }, [stashedCustomStart, stashedCustomEnd, prevFilter, ssDefaultFilter]);
 
   useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
   useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
@@ -570,7 +589,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     const bounds = computeDateRangeBounds({
       filter: dateRange,
       weekStartDay: userSettings.weekStartDay ?? 0,
-      defaultSummaryRange: userSettings.defaultSummaryRange,
+      payPeriodType: userSettings.payPeriodType,
       payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
       hasCustomPayPeriod,
       customStart,
@@ -586,7 +605,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       computedRangeLabel: bounds.label,
       viewStart: bounds.start,
     };
-  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.weekStartDay, userSettings.defaultSummaryRange, hasCustomPayPeriod, customStart, customEnd]);
+  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodType, userSettings.payPeriodEndDates, userSettings.weekStartDay, hasCustomPayPeriod, customStart, customEnd]);
 
   /* ─── Flag counts per RO ─── */
   const roFlagCounts = useMemo(() => {
@@ -652,7 +671,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     downloadCSVFile(csv, `selected-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     toast.success(`Exported ${selectedROs.length} RO(s)`);
     deselectAll();
-  }, [selectedROIds, filteredROs, viewMode, deselectAll, groupBy]);
+  }, [selectedROIds, filteredROs, viewMode, deselectAll, viewStart]);
 
   const handleSelectAll = useCallback(() => {
     const allIds = new Set(filteredROs.map(ro => ro.id));
@@ -831,6 +850,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               dateRange={dateRange}
               computedRangeLabel={computedRangeLabel}
               hasCustomPayPeriod={hasCustomPayPeriod}
+              currentLabel={periodLabels.current}
+              previousLabel={periodLabels.previous}
+              currentLabelShort={periodLabels.currentShort}
+              previousLabelShort={periodLabels.previousShort}
               isMobile={isMobile}
               onSelect={setDateRange}
               onCustomRequest={requestCustomDialog}
@@ -856,6 +879,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               dateRange={dateRange}
               computedRangeLabel={computedRangeLabel}
               hasCustomPayPeriod={hasCustomPayPeriod}
+              currentLabel={periodLabels.current}
+              previousLabel={periodLabels.previous}
+              currentLabelShort={periodLabels.currentShort}
+              previousLabelShort={periodLabels.previousShort}
               isMobile={isMobile}
               onSelect={setDateRange}
               onCustomRequest={requestCustomDialog}

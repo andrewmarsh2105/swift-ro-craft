@@ -72,16 +72,16 @@ export default function AddRO() {
   const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
 
   // Date range for filtering advisors to match the current list view filter
-  const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'mobile-ro-tab');
+  const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'mobile-ro-tab', userSettings);
   const advisorRangeBounds = useMemo(() => computeDateRangeBounds({
     filter: dateFilter,
     weekStartDay: userSettings.weekStartDay ?? 0,
-    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodType: userSettings.payPeriodType,
     payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
     hasCustomPayPeriod: !!(userSettings.payPeriodEndDates?.length),
     customStart,
     customEnd,
-  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, customStart, customEnd]);
+  }), [dateFilter, userSettings.weekStartDay, userSettings.payPeriodType, userSettings.payPeriodEndDates, customStart, customEnd]);
 
   const advisorsInRange = useMemo(() => {
     const rosInRange = filterROsByDateRange(ros, advisorRangeBounds);

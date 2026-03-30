@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Download, Copy, FileText, Flag, CalendarIcon, AlertCircle, ChevronDown, Lock, Target, DollarSign, Crown, TrendingUp } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
@@ -25,8 +25,6 @@ import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { ClosedPeriodsList } from '@/components/reports/ClosedPeriodsList';
 import { CloseoutDetailView } from '@/components/reports/CloseoutDetailView';
 import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
-import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
-import type { SummaryRange } from '@/hooks/useUserSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +34,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { HideTotalsContext } from '@/contexts/HideTotalsContext';
 import { MultiPeriodComparison } from '@/components/summary/MultiPeriodComparison';
-import { getDayRange, getWeekRange, getMonthRange, getTwoWeekRange, getLastWeekRange } from '@/lib/summaryDateRanges';
+import { getDayRange } from '@/lib/summaryDateRanges';
+import { computeDateRangeBounds, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { getDateFilterLabel, getDefaultPeriodFilter, getPeriodFilterLabels, normalizeDateFilterForPayPeriod } from '@/lib/payPeriodRange';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -89,11 +89,11 @@ export function SummaryTab() {
   const payPeriodEndDates = userSettings.payPeriodEndDates;
   const hasCustomPayPeriod = payPeriodType === 'custom' && payPeriodEndDates && payPeriodEndDates.length > 0;
 
-  const [rangeMode, setRangeMode] = useState<string>(() => {
-    if (payPeriodType === 'two_weeks') return 'two_weeks';
-    if (hasCustomPayPeriod) return 'pay_period';
-    return 'week';
-  });
+  const defaultPeriodFilter = getDefaultPeriodFilter(userSettings);
+  const periodLabels = getPeriodFilterLabels(userSettings);
+
+  type SummaryRangeMode = DateFilterKey | 'day';
+  const [rangeMode, setRangeMode] = useState<SummaryRangeMode>(defaultPeriodFilter);
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [showProofPack, setShowProofPack] = useState(false);
@@ -126,23 +126,42 @@ export function SummaryTab() {
 
   const today = new Date();
   const todayStr = localDateStr(today);
-  const todayForRange = useMemo(() => new Date(`${todayStr}T12:00:00`), [todayStr]);
+  useEffect(() => {
+    setRangeMode((prev) => (prev === 'day' ? prev : normalizeDateFilterForPayPeriod(prev, userSettings)));
+  }, [userSettings]);
 
   const dateRange = useMemo(() => {
+    if (rangeMode === 'day') return getDayRange();
     if (rangeMode === 'custom' && customStart && customEnd) {
       return { start: localDateStr(customStart), end: localDateStr(customEnd) };
     }
-    if (rangeMode === 'pay_period' && hasCustomPayPeriod) {
-      return getCustomPayPeriodRange(payPeriodEndDates!, todayForRange);
-    }
-    if (rangeMode === 'day') return getDayRange();
-    if (rangeMode === 'last_week') return getLastWeekRange(weekStartDay);
-    if (rangeMode === 'month') return getMonthRange();
-    if (rangeMode === 'two_weeks') return getTwoWeekRange(weekStartDay);
-    return getWeekRange(weekStartDay);
-  }, [rangeMode, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates, weekStartDay, todayForRange]);
+
+    const bounds = computeDateRangeBounds({
+      filter: rangeMode,
+      weekStartDay,
+      payPeriodType,
+      payPeriodEndDates: (payPeriodEndDates || []) as number[],
+      hasCustomPayPeriod,
+      customStart: customStart ? localDateStr(customStart) : undefined,
+      customEnd: customEnd ? localDateStr(customEnd) : undefined,
+    });
+
+    if (bounds) return { start: bounds.start, end: bounds.end };
+    return computeDateRangeBounds({
+      filter: defaultPeriodFilter,
+      weekStartDay,
+      payPeriodType,
+      payPeriodEndDates: (payPeriodEndDates || []) as number[],
+      hasCustomPayPeriod,
+    }) || getDayRange();
+  }, [rangeMode, customStart, customEnd, weekStartDay, payPeriodType, payPeriodEndDates, hasCustomPayPeriod, defaultPeriodFilter]);
 
   const report = usePayPeriodReport(dateRange.start, dateRange.end);
+
+  const activeRangeLabel = useMemo(() => {
+    if (rangeMode === 'day') return 'Day';
+    return getDateFilterLabel(rangeMode, userSettings);
+  }, [rangeMode, userSettings]);
 
   const viewModeLabel = useMemo(() => {
     const s = new Date(dateRange.start + 'T12:00:00');
@@ -163,8 +182,7 @@ export function SummaryTab() {
     toast.success('CSV downloaded');
   };
 
-  const rangeTypeForCloseout: CloseoutRangeType = rangeMode === 'pay_period' ? 'pay_period'
-    : rangeMode === 'two_weeks' ? 'two_weeks'
+  const rangeTypeForCloseout: CloseoutRangeType = (rangeMode === 'pay_period' || rangeMode === 'last_pay_period') ? 'pay_period'
     : rangeMode === 'last_week' ? 'last_week'
     : rangeMode === 'month' ? 'month'
     : rangeMode === 'custom' ? 'custom'
@@ -177,7 +195,7 @@ export function SummaryTab() {
   const msUntilEnd = rangeEndDate.getTime() - today.getTime();
   const isNearEnd = msUntilEnd >= 0 && msUntilEnd <= 24 * 60 * 60 * 1000;
 
-  const closeoutLabel = rangeMode === 'pay_period' ? 'Close Out Pay Period' : 'Close Out';
+  const closeoutLabel = (rangeMode === 'pay_period' || rangeMode === 'last_pay_period') ? 'Close Out Pay Period' : 'Close Out';
 
   const handleCloseOutClick = () => {
     if (periodAlreadyClosed) {
@@ -248,15 +266,22 @@ export function SummaryTab() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="day">Day</SelectItem>
-          <SelectItem value="week">Week</SelectItem>
-          <SelectItem value="last_week">Last Week</SelectItem>
-          <SelectItem value="two_weeks">2 Weeks</SelectItem>
-          {hasCustomPayPeriod && <SelectItem value="pay_period">Pay Period</SelectItem>}
+          {hasCustomPayPeriod ? (
+            <>
+              <SelectItem value="pay_period">{`${periodLabels.current} (Default)`}</SelectItem>
+              <SelectItem value="last_pay_period">{periodLabels.previous}</SelectItem>
+            </>
+          ) : (
+            <>
+              <SelectItem value="week">{`${periodLabels.current} (Default)`}</SelectItem>
+              <SelectItem value="last_week">{periodLabels.previous}</SelectItem>
+            </>
+          )}
           <SelectItem value="month">Month</SelectItem>
           <SelectItem value="custom">Custom</SelectItem>
         </SelectContent>
       </Select>
-      <span className="text-xs font-medium text-muted-foreground truncate flex-1">{viewModeLabel}</span>
+      <span className="text-xs font-medium text-muted-foreground truncate flex-1">{`${activeRangeLabel} · ${viewModeLabel}`}</span>
       {isPro && (
         periodAlreadyClosed ? (
           <button

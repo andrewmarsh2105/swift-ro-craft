@@ -1,5 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
-import type { DateFilterKey } from "@/lib/dateRangeFilter";
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import type { DateFilterKey } from '@/lib/dateRangeFilter';
+import {
+  getDefaultPeriodFilter,
+  normalizeDateFilterForPayPeriod,
+  type PayPeriodSettingsLike,
+} from '@/lib/payPeriodRange';
 
 /**
  * Shared date range state used by ROListPanel, SpreadsheetView, and ROsTab.
@@ -7,7 +12,7 @@ import type { DateFilterKey } from "@/lib/dateRangeFilter";
  * `ownerId` gates which instance may open the custom dialog (prevents duplicates).
  */
 
-const LS_KEY = "ui.sharedDateRange.v1";
+const LS_KEY = 'ui.sharedDateRange.v1';
 
 interface PersistedState {
   dateFilter: DateFilterKey;
@@ -27,63 +32,81 @@ function readLS(): PersistedState | null {
 function writeLS(s: PersistedState) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(s));
-  } catch { /* ignore */ }
+  } catch {
+    // ignore
+  }
 }
 
-// Module-level variable to track which owner opened the custom dialog
 let activeCustomOwner: string | null = null;
 
-export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: string) {
+export function useSharedDateRange(initial: DateFilterKey = 'week', ownerId?: string, payPeriodSettings?: PayPeriodSettingsLike) {
+  const defaultFilter = useMemo(
+    () => (payPeriodSettings ? getDefaultPeriodFilter(payPeriodSettings) : initial),
+    [initial, payPeriodSettings],
+  );
+
   const saved = readLS();
-  const [dateFilter, setDateFilter] = useState<DateFilterKey>(saved?.dateFilter ?? initial);
+  const initialFilter = payPeriodSettings
+    ? normalizeDateFilterForPayPeriod(saved?.dateFilter ?? defaultFilter, payPeriodSettings)
+    : (saved?.dateFilter ?? defaultFilter);
+
+  const [dateFilter, setDateFilter] = useState<DateFilterKey>(initialFilter);
   const [customStart, setCustomStart] = useState<string | undefined>(saved?.customStart);
   const [customEnd, setCustomEnd] = useState<string | undefined>(saved?.customEnd);
-  const [prevFilter, setPrevFilter] = useState<DateFilterKey>(saved?.dateFilter ?? initial);
-  // Stash custom dates so we can restore them if the user cancels a re-edit
+  const [prevFilter, setPrevFilter] = useState<DateFilterKey>(initialFilter);
   const [stashedCustomStart, setStashedCustomStart] = useState<string | undefined>(saved?.customStart);
   const [stashedCustomEnd, setStashedCustomEnd] = useState<string | undefined>(saved?.customEnd);
 
-  // Persist changes
   useEffect(() => {
     writeLS({ dateFilter, customStart, customEnd });
   }, [dateFilter, customStart, customEnd]);
 
-  // Sync across instances via storage event
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key !== LS_KEY || !e.newValue) return;
       try {
         const next = JSON.parse(e.newValue) as PersistedState;
-        setDateFilter(next.dateFilter);
+        const nextFilter = payPeriodSettings
+          ? normalizeDateFilterForPayPeriod(next.dateFilter, payPeriodSettings)
+          : next.dateFilter;
+        setDateFilter(nextFilter);
         setCustomStart(next.customStart);
         setCustomEnd(next.customEnd);
-      } catch { /* ignore */ }
+      } catch {
+        // ignore
+      }
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, []);
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, [payPeriodSettings]);
+
+  useEffect(() => {
+    if (!payPeriodSettings) return;
+    const normalized = normalizeDateFilterForPayPeriod(dateFilter, payPeriodSettings);
+    if (normalized !== dateFilter) {
+      setDateFilter(normalized);
+    }
+  }, [dateFilter, payPeriodSettings]);
 
   const openCustom = useCallback(() => {
     if (ownerId) activeCustomOwner = ownerId;
     setPrevFilter(dateFilter);
-    setDateFilter("custom");
+    setDateFilter('custom');
   }, [dateFilter, ownerId]);
 
   const requestCustomDialog = useCallback(() => {
     if (ownerId) activeCustomOwner = ownerId;
-    if (dateFilter === "custom" && customStart && customEnd) {
-      // Re-editing: stash current values so cancel can restore them
+    if (dateFilter === 'custom' && customStart && customEnd) {
       setStashedCustomStart(customStart);
       setStashedCustomEnd(customEnd);
-      setPrevFilter("custom");
+      setPrevFilter('custom');
       setCustomStart(undefined);
       setCustomEnd(undefined);
     } else {
-      // Fresh custom selection should not restore a stale previous custom range on cancel.
       setStashedCustomStart(undefined);
       setStashedCustomEnd(undefined);
       setPrevFilter(dateFilter);
-      setDateFilter("custom");
+      setDateFilter('custom');
     }
   }, [dateFilter, ownerId, customStart, customEnd]);
 
@@ -92,34 +115,35 @@ export function useSharedDateRange(initial: DateFilterKey = "week", ownerId?: st
     setCustomEnd(end);
     setStashedCustomStart(start);
     setStashedCustomEnd(end);
-    setDateFilter("custom");
+    setDateFilter('custom');
     activeCustomOwner = null;
   }, []);
 
   const cancelCustom = useCallback(() => {
-    // If we were re-editing and have stashed values, restore them
     if (stashedCustomStart && stashedCustomEnd) {
       setCustomStart(stashedCustomStart);
       setCustomEnd(stashedCustomEnd);
-      setDateFilter("custom");
+      setDateFilter('custom');
     } else {
-      // No valid custom range exists — fall back to previous filter
-      setDateFilter(prevFilter !== "custom" ? prevFilter : "week");
+      const fallback = prevFilter !== 'custom' ? prevFilter : defaultFilter;
+      const normalized = payPeriodSettings
+        ? normalizeDateFilterForPayPeriod(fallback, payPeriodSettings)
+        : fallback;
+      setDateFilter(normalized);
     }
     activeCustomOwner = null;
-  }, [stashedCustomStart, stashedCustomEnd, prevFilter]);
+  }, [stashedCustomStart, stashedCustomEnd, prevFilter, defaultFilter, payPeriodSettings]);
 
   const setFilter = useCallback((f: DateFilterKey) => {
-    if (f === "custom") {
+    if (f === 'custom') {
       openCustom();
     } else {
       setDateFilter(f);
     }
   }, [openCustom]);
 
-  // Only show dialog if this instance is the owner (or no owner gating)
   const isDialogOwner = !ownerId || activeCustomOwner === ownerId || activeCustomOwner === null;
-  const showCustomDialog = dateFilter === "custom" && (!customStart || !customEnd) && isDialogOwner;
+  const showCustomDialog = dateFilter === 'custom' && (!customStart || !customEnd) && isDialogOwner;
 
   return {
     dateFilter,

@@ -27,6 +27,7 @@ import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/r
 import { compareAdvisorNames, normalizeAdvisorName, sortROs, matchesSearchQuery } from '@/lib/roFilters';
 import { getStatusSummary } from '@/lib/roStatus';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
+import { getDateFilterLabel, getPeriodFilterLabels } from '@/lib/payPeriodRange';
 
 const SpreadsheetView = lazy(() =>
   import('@/components/shared/SpreadsheetView').then((m) => ({ default: m.SpreadsheetView })),
@@ -314,19 +315,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   });
 
   const { dateFilter, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog, requestCustomDialog } =
-    useSharedDateRange('week', 'mobile-ro-tab');
+    useSharedDateRange('week', 'mobile-ro-tab', userSettings);
 
   const rangeBounds = useMemo(() => computeDateRangeBounds({
     filter: dateFilter,
     weekStartDay: userSettings.weekStartDay ?? 0,
-    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodType: userSettings.payPeriodType,
     payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
     hasCustomPayPeriod,
     customStart,
     customEnd,
-  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+  }), [dateFilter, userSettings.weekStartDay, userSettings.payPeriodType, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
 
   const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
+  const activeRangeLabel = useMemo(() => getDateFilterLabel(dateFilter, userSettings), [dateFilter, userSettings]);
 
   const advisorsInRange = useMemo(() => {
     const inRange = filterROsByDateRange(ros, rangeBounds);
@@ -499,14 +501,22 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     setDateRange('all');
   };
 
+  const periodLabels = getPeriodFilterLabels(userSettings);
+
   const dateFilterOptions = [
-    { value: 'all' as const, label: 'All' },
-    { value: 'today' as const, label: 'Today' },
-    { value: 'week' as const, label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : 'Week' },
-    { value: 'last_week' as const, label: 'Last Wk' },
-    { value: 'month' as const, label: 'Month' },
-    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as const, label: 'Pay Period' }] : []),
-    { value: 'custom' as const, label: 'Custom' },
+    { value: 'all' as const, label: getDateFilterLabel('all', userSettings, true) },
+    { value: 'today' as const, label: getDateFilterLabel('today', userSettings, true) },
+    ...(hasCustomPayPeriod
+      ? [
+          { value: 'pay_period' as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: 'last_pay_period' as const, label: periodLabels.previousShort },
+        ]
+      : [
+          { value: 'week' as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: 'last_week' as const, label: periodLabels.previousShort },
+        ]),
+    { value: 'month' as const, label: getDateFilterLabel('month', userSettings, true) },
+    { value: 'custom' as const, label: getDateFilterLabel('custom', userSettings, true) },
   ];
 
   return (
@@ -523,7 +533,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               </h2>
               <div className="mt-1 text-[10px] text-muted-foreground/75 flex items-center gap-1">
                 <CalendarRange className="h-2.5 w-2.5" />
-                <span>{rangeChipLabel}</span>
+                <span>{`${activeRangeLabel} · ${rangeChipLabel}`}</span>
               </div>
             </div>
             {viewMode !== 'spreadsheet' && (
