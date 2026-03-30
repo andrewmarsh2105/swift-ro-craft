@@ -223,8 +223,8 @@ export function RODetailSheet({
                   }
                 >
                   {isPaid
-                    ? <><CheckCircle2 className="h-3 w-3" /><span>Paid</span></>
-                    : <><LockOpen className="h-3 w-3" /><span>Open</span></>
+                    ? <><CheckCircle2 className="h-3 w-3" /><span>PAID</span></>
+                    : <><LockOpen className="h-3 w-3" /><span>OPEN</span></>
                   }
                 </div>
                 <span className="hours-pill">{maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h</span>
@@ -402,13 +402,6 @@ export function RODetailSheet({
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-[2.3rem_1fr_3.8rem] pt-1.5 border-t border-border text-sm font-bold">
-                      <span />
-                      <span>Total (paid)</span>
-                      <span className="text-right text-primary tabular-nums">
-                        {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
-                      </span>
-                    </div>
                   </div>
                 ) : ro.workPerformed ? (
                   <p className="text-sm whitespace-pre-wrap">{ro.workPerformed}</p>

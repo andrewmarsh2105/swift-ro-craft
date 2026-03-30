@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, BarChart3, X, Table2, Crown, FolderOpen, ClipboardList } from "lucide-react";
+import { Settings, BarChart3, X, Table2, Crown, ClipboardList } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
@@ -358,12 +358,6 @@ export function DesktopWorkspace() {
                       </p>
                       <p className="text-sm font-semibold text-foreground truncate">{activeWorkspaceLabel}</p>
                     </div>
-                    {selectedRO && (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-primary/30 bg-primary/[0.07] text-[11px] font-semibold text-primary">
-                        <FolderOpen className="h-3 w-3" />
-                        Open RO #{selectedRO.roNumber}
-                      </div>
-                    )}
                     {!selectedRO && (rightPanel === "settings" || rightPanel === "summary") && (
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/70 bg-muted/30 text-[11px] font-medium text-muted-foreground">
                         <ClipboardList className="h-3 w-3" />

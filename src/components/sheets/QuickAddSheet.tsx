@@ -287,9 +287,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               <span className="px-2 py-1 rounded-md border border-border/60 bg-muted/30 font-semibold text-foreground">
                 {lines.length}L
               </span>
-              <span className="px-2 py-1 rounded-md border border-primary/30 bg-primary/10 font-bold text-primary">
-                {linesTotalHours.toFixed(1)}h
-              </span>
             </div>
           </div>
 

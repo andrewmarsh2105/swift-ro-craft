@@ -94,10 +94,10 @@ const LineRow = memo(function LineRow({
         line.isCarryover && 'opacity-60',
         line.lineNo === 1 && 'border-t border-border/40',
         isSelected
-          ? 'bg-primary/10 hover:bg-primary/14 border-l-[3px] border-l-primary'
+          ? 'bg-primary/[0.13] hover:bg-primary/[0.18] border-l-[3px] border-l-primary'
           : cn(
               line.isCarryover ? 'bg-muted/20 hover:bg-muted/30' : rowBg,
-              'hover:bg-accent/40 border-l-[3px]',
+              'hover:bg-primary/[0.12] border-l-[3px]',
               line.isCarryover ? 'border-l-border border-l-dashed' : borderColorClass,
             ),
       )}
@@ -139,9 +139,10 @@ interface MobileLineCardProps {
   showCheckbox: boolean;
   onToggleSelect: (roId: string) => void;
   flagCount: number;
+  rowTone: 'base' | 'alt';
 }
 
-const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelected, showCheckbox, onToggleSelect, flagCount }: MobileLineCardProps) {
+const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelected, showCheckbox, onToggleSelect, flagCount, rowTone }: MobileLineCardProps) {
   const borderColorClass = line.isCarryover
     ? 'border-l-border'
     : line.laborType === 'warranty'
@@ -162,9 +163,13 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
     <div
       className={cn(
         'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b border-border/40',
-        'cursor-pointer active:bg-accent/50 transition-colors',
+        'cursor-pointer active:bg-primary/[0.14] transition-colors',
         borderColorClass,
-        line.isCarryover ? 'opacity-60 bg-muted/10' : (isSelected ? 'bg-primary/8' : 'bg-card'),
+        line.isCarryover
+          ? 'opacity-60 bg-muted/10'
+          : (isSelected
+            ? 'bg-primary/[0.13]'
+            : (rowTone === 'alt' ? 'bg-primary/[0.055]' : 'bg-card/95')),
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
@@ -184,13 +189,13 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
             'text-[9px] font-bold px-1.5 py-0 rounded-full uppercase tracking-wide',
             isPaid
               ? 'bg-[hsl(var(--status-warranty-bg))] text-[hsl(var(--status-warranty))]'
-              : 'bg-muted text-muted-foreground',
+              : 'bg-[hsl(var(--status-internal-bg))] text-[hsl(var(--status-internal))]',
           )}>
-            {isPaid ? 'Paid' : 'Open'}
+            {isPaid ? 'PAID' : 'OPEN'}
           </span>
           {line.isCarryover && (
-            <span className="text-[8px] font-medium text-muted-foreground/60 border border-dashed border-muted-foreground/30 rounded px-1 py-px">
-              carryover
+            <span className="text-[8px] font-semibold text-muted-foreground/75 border border-dashed border-muted-foreground/30 rounded px-1 py-px uppercase tracking-wide">
+              Carryover
             </span>
           )}
           {flagCount > 0 && (
@@ -678,9 +683,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             'inline-block text-[9px] font-bold px-1.5 py-px rounded uppercase tracking-wider',
             isPaid
               ? 'bg-[hsl(var(--status-warranty))]/15 text-[hsl(var(--status-warranty))]'
-              : 'bg-amber-500/12 text-amber-600 dark:text-amber-400',
+              : 'bg-[hsl(var(--status-internal))]/15 text-[hsl(var(--status-internal))]',
           )}>
-            {isPaid ? 'Paid' : 'Open'}
+            {isPaid ? 'PAID' : 'OPEN'}
           </span>
         );
       }
@@ -812,7 +817,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Helpers ─── */
   const getRowBg = (groupIndex: number) =>
-    groupIndex % 2 === 1 ? 'bg-accent/15' : 'bg-card';
+    groupIndex % 2 === 1 ? 'bg-primary/[0.055]' : 'bg-card/95';
 
   const showCheckbox = selectionMode || selectedROIds.size > 0;
 
@@ -1096,6 +1101,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 showCheckbox={showCheckbox}
                 onToggleSelect={toggleSelect}
                 flagCount={roFlagCounts.get(roId) ?? 0}
+                rowTone={i % 2 === 0 ? 'base' : 'alt'}
               />
             );
           })}

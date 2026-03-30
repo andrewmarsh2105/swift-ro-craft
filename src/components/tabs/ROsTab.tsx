@@ -92,10 +92,9 @@ function InlineStatusChips({
       {/* Carryover — subtle and visually separate from flags/checks */}
       {isCarryover && (
         <span
-          className="inline-flex items-center gap-[3px] text-[8px] font-medium leading-none text-muted-foreground/80"
+          className="inline-flex items-center gap-[3px] text-[8px] font-semibold leading-none px-1.5 py-[2px] rounded-sm border border-dashed border-border text-muted-foreground/85 uppercase tracking-wide"
           title="From a prior week — mark paid to include in current totals"
         >
-          <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
           Carryover
         </span>
       )}
@@ -142,13 +141,13 @@ const ROCard = memo(function ROCard({
   return (
     <div
       className={cn(
-        "ro-row-card relative overflow-hidden group rounded-lg border border-border/70",
-        rowTone === 'alt' ? 'bg-muted/[0.26]' : 'bg-card',
+        "ro-row-card relative overflow-hidden group rounded-lg border shadow-[0_1px_0_hsl(var(--foreground)/0.03)]",
+        rowTone === 'alt' ? 'bg-primary/[0.11] border-primary/25' : 'bg-card/95 border-border/70',
       )}
       style={{ borderLeftColor: accentColor, borderLeftWidth: '3px' }}
     >
       <div
-        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/20 transition-colors duration-75 active:bg-muted/35"
+        className="flex items-stretch gap-0 cursor-pointer hover:bg-primary/[0.14] transition-colors duration-75 active:bg-primary/[0.18]"
         onClick={() => onViewDetails(ro)}
       >
         <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[6px]' : 'py-[9px]')}>
@@ -166,7 +165,7 @@ const ROCard = memo(function ROCard({
             </span>
             {ro.customerName ? (
               <span className={cn(
-                'font-medium text-muted-foreground/55 truncate min-w-0 flex-1 leading-none',
+                'font-semibold text-muted-foreground/70 truncate min-w-0 flex-1 leading-none',
                 compact ? 'text-[10px]' : 'text-[11px]',
               )}>
                 {ro.customerName}
@@ -201,7 +200,7 @@ const ROCard = memo(function ROCard({
               {ltLabel}
             </span>
             {ro.advisor && (
-              <span className="text-[10px] font-semibold text-foreground/55 truncate flex-shrink-0 max-w-[90px]">
+              <span className="text-[10px] font-semibold text-foreground/65 truncate flex-shrink-0 max-w-[90px]">
                 {ro.advisor}
               </span>
             )}
@@ -209,7 +208,7 @@ const ROCard = memo(function ROCard({
               <>
                 <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">·</span>
                 <span className={cn(
-                  'text-[10px] text-muted-foreground/45 truncate min-w-0',
+                  'text-[10px] text-muted-foreground/58 truncate min-w-0',
                   compact ? 'flex-1' : 'flex-shrink-0 max-w-[110px]',
                 )}>
                   {vehicle}
@@ -222,7 +221,7 @@ const ROCard = memo(function ROCard({
 
           {/* Row 3: Work summary — normal mode only, gives context at a glance */}
           {!compact && hasWork && (
-            <p className="mt-[4px] text-[10px] text-muted-foreground/48 leading-tight truncate">
+            <p className="mt-[5px] pt-[4px] border-t border-border/35 text-[10px] text-muted-foreground/52 leading-tight truncate">
               {workSummary}
             </p>
           )}

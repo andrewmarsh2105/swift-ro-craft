@@ -481,14 +481,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           </div>
 
           <div className="rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3">
-            <div className="rounded-md border border-border/60 bg-muted/20 p-2.5">
-              <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2">Totals</p>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">Billable Hours</span>
-                <span className="text-[20px] font-extrabold tabular-nums text-primary">{totalHours.toFixed(1)}h</span>
-              </div>
-            </div>
-
             <div className="flex-1 flex flex-col min-h-0">
               <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2 inline-flex items-center gap-1.5">
                 <StickyNote className="h-3.5 w-3.5" />
