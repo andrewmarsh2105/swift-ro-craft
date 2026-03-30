@@ -21,7 +21,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex items-center justify-between px-3 h-11 border-b border-border/60 bg-card/97 backdrop-blur-sm",
+        "flex items-center justify-between px-3 h-12 border-b border-border/60 bg-card/97 backdrop-blur-sm",
         sticky && "sticky top-0 z-30",
         className,
       )}
@@ -30,7 +30,7 @@ export function PageHeader({
         {onBack && (
           <button
             onClick={onBack}
-            className="flex items-center justify-center h-11 w-11 -ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            className="flex items-center justify-center h-11 w-11 -ml-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -39,7 +39,7 @@ export function PageHeader({
         <div className="min-w-0">
           <h1 className="text-[14px] font-bold text-foreground truncate tracking-tight">{title}</h1>
           {subtitle && (
-            <p className="text-[10px] text-muted-foreground truncate leading-tight">{subtitle}</p>
+            <p className="text-[10px] text-muted-foreground/80 truncate leading-tight">{subtitle}</p>
           )}
         </div>
       </div>

@@ -118,12 +118,13 @@ interface ROCardProps {
   hideTotals: boolean;
   compact?: boolean;
   isCarryover?: boolean;
+  rowTone?: 'base' | 'alt';
 }
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDelete, onFlag, onTogglePaid, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
-  compact = false, isCarryover = false,
+  compact = false, isCarryover = false, rowTone = 'base',
 }: ROCardProps) {
   const hours = calcHours(ro);
   const roDate = formatDateShort(effectiveDate(ro));
@@ -140,8 +141,11 @@ const ROCard = memo(function ROCard({
 
   return (
     <div
-      className="ro-row-card bg-card relative overflow-hidden group rounded-lg border border-border/70 shadow-[var(--shadow-sm)]"
-      style={{ borderLeftColor: accentColor }}
+      className={cn(
+        "ro-row-card relative overflow-hidden group rounded-lg border border-border/70",
+        rowTone === 'alt' ? 'bg-muted/[0.26]' : 'bg-card',
+      )}
+      style={{ borderLeftColor: accentColor, borderLeftWidth: '3px' }}
     >
       <div
         className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/20 transition-colors duration-75 active:bg-muted/35"
@@ -773,7 +777,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             />
           ) : (
             <div className="p-2.5 space-y-2">
-              {visibleROs.map(ro => (
+              {visibleROs.map((ro, idx) => (
                 <ROCard
                   key={ro.id}
                   ro={ro}
@@ -782,6 +786,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   hideTotals={userSettings.hideTotals ?? false}
                   compact={density === 'compact'}
                   isCarryover={carryoverROIds.has(ro.id)}
+                  rowTone={idx % 2 === 0 ? 'base' : 'alt'}
                   onEdit={handleCardEdit}
                   onFlag={handleCardFlag}
                   onDelete={handleCardDelete}
