@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
@@ -94,35 +94,38 @@ export function LineItemEditor({
   const hasEmptyHours = lines.some(line => line.description && !line.hoursPaid);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3.5">
       {/* ── Presets ── */}
       {presets.length > 0 && (
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">
-              Presets
-            </span>
+        <section className="space-y-2.5">
+          <div className="flex items-center justify-between px-0.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/12 text-primary text-[10px] font-bold">3</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground/75">Fast Presets</span>
+            </div>
             {recentlyAddedPresets.length > 0 && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 {recentlyAddedPresets.slice(0, 2).map(id => {
                   const preset = presets.find(p => p.id === id);
                   return preset ? (
-                    <span key={id} className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                      ✓ {preset.name}
+                    <span key={id} className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/25 rounded-full text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                      Added: {preset.name}
                     </span>
                   ) : null;
                 })}
               </div>
             )}
           </div>
-          <PresetSearchRail
-            presets={presets}
-            onSelect={handlePresetSelect}
-            animatingId={animatingPresetId}
-            layout="mobile"
-            mobileMode="grid"
-          />
-        </div>
+          <div className="rounded-xl border border-border/60 bg-card p-2.5 shadow-[var(--shadow-sm)]">
+            <PresetSearchRail
+              presets={presets}
+              onSelect={handlePresetSelect}
+              animatingId={animatingPresetId}
+              layout="mobile"
+              mobileMode="grid"
+            />
+          </div>
+        </section>
       )}
 
       {hasEmptyHours && (
@@ -135,7 +138,7 @@ export function LineItemEditor({
       {/* ── Add Line ── */}
       <button
         onClick={handleAddLine}
-        className="w-full h-12 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm tap-target transition-all active:scale-[0.98] border-2 border-dashed border-primary/30 text-primary/70 hover:border-primary/60 hover:text-primary hover:bg-primary/5"
+        className="w-full h-12 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm tap-target transition-all active:scale-[0.98] border border-primary/25 bg-primary/[0.04] text-primary/80 hover:border-primary/45 hover:text-primary hover:bg-primary/[0.07]"
       >
         <Plus className="h-4 w-4" />
         <span>Add Line</span>
@@ -143,10 +146,11 @@ export function LineItemEditor({
 
       {/* ── Lines ── */}
       {lines.length > 0 && (
-        <div className="space-y-1.5">
+        <section className="space-y-2">
           <div className="flex items-center justify-between px-0.5">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/12 text-primary text-[10px] font-bold">4</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground/75">
                 Lines
               </span>
               <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-muted rounded-full text-muted-foreground tabular-nums">
@@ -174,7 +178,7 @@ export function LineItemEditor({
                   transition={{ duration: 0.15 }}
                 >
                   <div
-                    className="flex bg-card rounded-xl border border-border/50 overflow-hidden"
+                    className="flex bg-card rounded-xl border border-border/60 overflow-hidden shadow-[var(--shadow-sm)]"
                     style={{ boxShadow: 'var(--shadow-sm)' }}
                   >
                     {/* Left accent bar — color-coded by labor type */}
@@ -242,7 +246,7 @@ export function LineItemEditor({
               );
             })}
           </AnimatePresence>
-        </div>
+        </section>
       )}
 
       {/* Empty state */}
@@ -254,4 +258,3 @@ export function LineItemEditor({
     </div>
   );
 }
-

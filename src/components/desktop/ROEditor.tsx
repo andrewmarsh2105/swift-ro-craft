@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2, AlertCircle, Flag } from 'lucide-react';
+import { Camera, Save, Calendar, Clock, FileText, Loader2, AlertCircle, Flag, StickyNote, Layers } from 'lucide-react';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -182,6 +182,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   }, [focusLineId]);
 
   const totalHours = calcLineHours(lines);
+  const populatedLineCount = lines.filter((line) => line.description.trim() !== '' || line.hoursPaid > 0).length;
   const isValid = roNumber.trim() !== '';
 
   const handleScanApply = (data: ScanApplyData) => {
@@ -270,194 +271,239 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header Strip */}
-      <div className="panel-header px-4 py-2.5 space-y-2">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <input
-              type="text"
-              value={roNumber}
-              onChange={e => { setRoNumber(e.target.value); checkDuplicateRO(e.target.value); }}
-              onBlur={() => checkDuplicateRO(roNumber)}
-              placeholder="RO #"
-              className={cn("w-24 h-8 px-2 bg-muted rounded-md border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring", duplicateWarning ? "border-amber-500" : "border-input")}
-            />
-            {duplicateWarning && (
-              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                <AlertCircle className="h-3.5 w-3.5" />
-                Duplicate RO #
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-[11px] text-muted-foreground">RO Date</span>
-            <input
-              type="date" value={date} onChange={e => setDate(e.target.value)}
-              className="h-8 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <AdvisorCombobox
-            value={advisor} onChange={setAdvisor}
-            advisors={rangeFilteredAdvisors}
-            onCreateAdvisor={name => {
-              const newAdvisor = { id: Date.now().toString(), name };
-              updateAdvisors([...settings.advisors, newAdvisor]);
-            }}
-          />
-
-          <select
-            value={laborType}
-            onChange={e => {
-              const newType = e.target.value as LaborType;
-              setLaborType(newType);
-              setLines(prev => prev.map(l => ({ ...l, laborType: newType, updatedAt: new Date().toISOString() })));
-            }}
-            className="h-8 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-
-          {/* Flag button — only shown when editing an existing RO */}
-          {ro?.id && (
-            <div className="relative" ref={flagPickerRef}>
-              <button
-                onClick={() => {
-                  if (isFlagged) { setConfirmClearFlag(v => !v); setShowFlagPicker(false); }
-                  else { setShowFlagPicker(v => !v); setConfirmClearFlag(false); }
-                }}
-                title={isFlagged ? 'Flagged — click to remove' : 'Flag this RO'}
-                className={cn(
-                  'h-8 w-8 flex items-center justify-center rounded-md border transition-colors',
-                  isFlagged
-                    ? 'bg-orange-100 border-orange-300 text-orange-600 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-400'
-                    : 'bg-secondary border-border hover:bg-accent text-muted-foreground hover:text-foreground'
+    <div className="flex flex-col h-full bg-muted/20">
+      <div className="panel-header px-4 py-3 space-y-3 bg-card/95">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
+          <div className="space-y-3 min-w-0">
+            <div className="grid grid-cols-4 gap-2 p-2.5 rounded-lg border border-border/70 bg-background/90">
+              <div className="col-span-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">RO Number</p>
+                <div className="flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={roNumber}
+                    onChange={e => { setRoNumber(e.target.value); checkDuplicateRO(e.target.value); }}
+                    onBlur={() => checkDuplicateRO(roNumber)}
+                    placeholder="RO #"
+                    className={cn("w-full h-8 px-2 bg-muted/40 rounded-md border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring", duplicateWarning ? "border-amber-500" : "border-input")}
+                  />
+                </div>
+                {duplicateWarning && (
+                  <span className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Duplicate RO #
+                  </span>
                 )}
-              >
-                <Flag className={cn('h-4 w-4', isFlagged && 'fill-current')} />
-              </button>
+              </div>
 
-              {/* Flag type picker */}
-              {showFlagPicker && (
-                <div className="absolute top-9 left-0 z-50 bg-popover border border-border rounded-xl shadow-lg py-1 min-w-[175px]">
-                  {FLAG_OPTIONS.map(type => (
-                    <button
-                      key={type}
-                      onClick={() => { addFlag(ro.id, type); setShowFlagPicker(false); }}
-                      className={cn('w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted transition-colors text-left', FLAG_TYPE_COLORS[type])}
-                    >
-                      <Flag className="h-3.5 w-3.5 flex-shrink-0" />
-                      {FLAG_TYPE_LABELS[type]}
-                    </button>
-                  ))}
+              <div className="col-span-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">RO Date</p>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <input
+                    type="date" value={date} onChange={e => setDate(e.target.value)}
+                    className="h-8 w-full px-2 bg-muted/40 rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
                 </div>
-              )}
+              </div>
 
-              {/* Confirm clear */}
-              {confirmClearFlag && (
-                <div className="absolute top-9 left-0 z-50 bg-popover border border-border rounded-xl shadow-lg p-3 min-w-[175px]">
-                  <p className="text-xs font-medium mb-2 text-foreground">Remove flag from RO?</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { roFlags.forEach(f => clearFlag(f.id)); setConfirmClearFlag(false); }}
-                      className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground"
-                    >
-                      Remove
-                    </button>
-                    <button
-                      onClick={() => setConfirmClearFlag(false)}
-                      className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div className="col-span-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">Advisor</p>
+                <AdvisorCombobox
+                  value={advisor} onChange={setAdvisor}
+                  advisors={rangeFilteredAdvisors}
+                  onCreateAdvisor={name => {
+                    const newAdvisor = { id: Date.now().toString(), name };
+                    updateAdvisors([...settings.advisors, newAdvisor]);
+                  }}
+                />
+              </div>
+
+              <div className="col-span-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">Labor Type</p>
+                <select
+                  value={laborType}
+                  onChange={e => {
+                    const newType = e.target.value as LaborType;
+                    setLaborType(newType);
+                    setLines(prev => prev.map(l => ({ ...l, laborType: newType, updatedAt: new Date().toISOString() })));
+                  }}
+                  className="h-8 w-full px-2 bg-muted/40 rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
             </div>
-          )}
 
-          <div className="ml-auto flex items-center gap-3 flex-shrink-0">
-            {isPro && (
-              <button
-                onClick={() => setShowScanFlow(true)}
-                className="h-8 w-8 flex items-center justify-center bg-secondary rounded-md border border-border hover:bg-accent transition-colors"
-                title="Upload RO Photo"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-            )}
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xl font-bold text-primary tabular-nums">{totalHours.toFixed(1)}h</span>
+            <div className="p-2.5 rounded-lg border border-border/60 bg-background/80">
+              <DetailsCollapsible
+                vehicle={vehicle} onVehicleChange={setVehicle}
+                customerName={customerName} onCustomerNameChange={setCustomerName}
+                mileage={mileage} onMileageChange={setMileage}
+                paidDate={paidDate} onPaidDateChange={setPaidDate}
+                open={showDetails} onOpenChange={setShowDetails}
+                layout="desktop"
+              />
+            </div>
+          </div>
+
+          <div className="w-[230px] shrink-0 p-2.5 rounded-lg border border-primary/20 bg-gradient-to-b from-primary/[0.10] to-background">
+            <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/80 mb-2">Session</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-md border border-border/50 bg-background/80 px-2.5 py-2">
+                <span className="text-[11px] font-medium text-muted-foreground inline-flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5" />
+                  Lines
+                </span>
+                <span className="text-[13px] font-bold tabular-nums text-foreground">{populatedLineCount}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/[0.08] px-2.5 py-2">
+                <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Total
+                </span>
+                <span className="text-[18px] font-extrabold tabular-nums text-primary">{totalHours.toFixed(1)}h</span>
+              </div>
+            </div>
+            <div className="mt-2.5 flex items-center gap-1.5">
+              {isPro && (
+                <button
+                  onClick={() => setShowScanFlow(true)}
+                  className="h-8 w-8 flex items-center justify-center bg-secondary rounded-md border border-border hover:bg-accent transition-colors"
+                  title="Upload RO Photo"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+              )}
+              {ro?.id && (
+                <div className="relative" ref={flagPickerRef}>
+                  <button
+                    onClick={() => {
+                      if (isFlagged) { setConfirmClearFlag(v => !v); setShowFlagPicker(false); }
+                      else { setShowFlagPicker(v => !v); setConfirmClearFlag(false); }
+                    }}
+                    title={isFlagged ? 'Flagged — click to remove' : 'Flag this RO'}
+                    className={cn(
+                      'h-8 w-8 flex items-center justify-center rounded-md border transition-colors',
+                      isFlagged
+                        ? 'bg-orange-100 border-orange-300 text-orange-600 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-400'
+                        : 'bg-secondary border-border hover:bg-accent text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <Flag className={cn('h-4 w-4', isFlagged && 'fill-current')} />
+                  </button>
+                  {showFlagPicker && (
+                    <div className="absolute top-9 right-0 z-50 bg-popover border border-border rounded-xl shadow-lg py-1 min-w-[175px]">
+                      {FLAG_OPTIONS.map(type => (
+                        <button
+                          key={type}
+                          onClick={() => { addFlag(ro.id, type); setShowFlagPicker(false); }}
+                          className={cn('w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted transition-colors text-left', FLAG_TYPE_COLORS[type])}
+                        >
+                          <Flag className="h-3.5 w-3.5 flex-shrink-0" />
+                          {FLAG_TYPE_LABELS[type]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {confirmClearFlag && (
+                    <div className="absolute top-9 right-0 z-50 bg-popover border border-border rounded-xl shadow-lg p-3 min-w-[175px]">
+                      <p className="text-xs font-medium mb-2 text-foreground">Remove flag from RO?</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { roFlags.forEach(f => clearFlag(f.id)); setConfirmClearFlag(false); }}
+                          className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground"
+                        >
+                          Remove
+                        </button>
+                        <button
+                          onClick={() => setConfirmClearFlag(false)}
+                          className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <span className="text-[10px] text-muted-foreground ml-auto font-medium">
+                {ro ? 'Editing existing RO' : 'New RO intake'}
+              </span>
             </div>
           </div>
         </div>
-
-        <DetailsCollapsible
-          vehicle={vehicle} onVehicleChange={setVehicle}
-          customerName={customerName} onCustomerNameChange={setCustomerName}
-          mileage={mileage} onMileageChange={setMileage}
-          paidDate={paidDate} onPaidDateChange={setPaidDate}
-          open={showDetails} onOpenChange={setShowDetails}
-          layout="desktop"
-        />
       </div>
 
-      {/* Presets */}
-      {settings.presets.length > 0 && (
-        <div className="flex-shrink-0 border-b border-border/60 bg-muted/20 px-4 py-2">
-          <PresetSearchRail
-            presets={settings.presets}
-            animatingId={animatingPresetId}
-            layout="desktop"
-            onSelect={preset => {
-              setAnimatingPresetId(preset.id);
-              setTimeout(() => setAnimatingPresetId(null), 600);
-              const newLine: ROLine = {
-                id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-                lineNo: 1,
-                description: preset.workTemplate || preset.name,
-                hoursPaid: preset.defaultHours || 0,
-                laborType: preset.laborType,
-                matchedReferenceId: preset.id,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              };
-              const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
-              setLines(updatedLines);
-              setHighlightedLineIds([newLine.id]);
-              toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
-            }}
-          />
-        </div>
-      )}
+      <div className="flex-1 min-h-0 p-4">
+        <div className="h-full grid grid-cols-[minmax(0,1fr)_300px] gap-4">
+          <div className="min-h-0 rounded-xl border border-border/70 bg-background shadow-sm overflow-hidden flex flex-col">
+            {settings.presets.length > 0 && (
+              <div className="flex-shrink-0 border-b border-border/50 bg-muted/20 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-1">Quick Presets</p>
+                <PresetSearchRail
+                  presets={settings.presets}
+                  animatingId={animatingPresetId}
+                  layout="desktop"
+                  onSelect={preset => {
+                    setAnimatingPresetId(preset.id);
+                    setTimeout(() => setAnimatingPresetId(null), 600);
+                    const newLine: ROLine = {
+                      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+                      lineNo: 1,
+                      description: preset.workTemplate || preset.name,
+                      hoursPaid: preset.defaultHours || 0,
+                      laborType: preset.laborType,
+                      matchedReferenceId: preset.id,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                    };
+                    const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
+                    setLines(updatedLines);
+                    setHighlightedLineIds([newLine.id]);
+                    toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
+                  }}
+                />
+              </div>
+            )}
+            <div className="flex-1 min-h-0 overflow-y-auto p-3" ref={linesContainerRef}>
+              <LinesGrid
+                lines={lines} onLinesChange={setLines}
+                presets={settings.presets}
+                highlightedIds={highlightedLineIds}
+                roVehicle={vehicle}
+                showVehicleChips={false}
+                defaultLaborType={laborType}
+                onSaveAsPreset={handleSaveLineAsPreset}
+              />
+            </div>
+          </div>
 
-      {/* Lines */}
-      <div className="flex-1 overflow-y-auto p-4" ref={linesContainerRef}>
-        <LinesGrid
-          lines={lines} onLinesChange={setLines}
-          presets={settings.presets}
-          highlightedIds={highlightedLineIds}
-          roVehicle={vehicle}
-          showVehicleChips={false}
-          defaultLaborType={laborType}
-          onSaveAsPreset={handleSaveLineAsPreset}
-        />
-        <div className="mt-4">
-          <textarea
-            value={notes} onChange={e => setNotes(e.target.value)}
-            placeholder="Additional notes..."
-            rows={2}
-            className="w-full p-3 bg-muted rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+          <div className="rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3">
+            <div className="rounded-md border border-border/60 bg-muted/20 p-2.5">
+              <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2">Totals</p>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Billable Hours</span>
+                <span className="text-[20px] font-extrabold tabular-nums text-primary">{totalHours.toFixed(1)}h</span>
+              </div>
+            </div>
+
+            <div className="flex-1 flex flex-col min-h-0">
+              <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2 inline-flex items-center gap-1.5">
+                <StickyNote className="h-3.5 w-3.5" />
+                Notes
+              </p>
+              <textarea
+                value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder="Additional notes..."
+                className="flex-1 min-h-[180px] w-full p-3 bg-muted/20 rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Action Bar */}
       <div className="panel-action-bar">
         <div className="flex items-center justify-between gap-4">
           <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -469,7 +515,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
                 onClick={() => handleSave(true)}
                 disabled={!isValid || isSaving}
                 className={cn(
-                  'px-4 py-2 text-sm font-medium rounded-md border transition-colors',
+                  'px-4 py-2 text-sm font-semibold rounded-md border transition-colors',
                   isValid && !isSaving ? 'border-primary text-primary hover:bg-primary/10' : 'border-muted text-muted-foreground cursor-not-allowed'
                 )}
               >
@@ -480,7 +526,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
               onClick={() => handleSave(false)}
               disabled={!isValid || isSaving}
               className={cn(
-                'px-4 py-2 text-sm font-semibold rounded-md flex items-center gap-2 transition-colors',
+                'px-5 py-2.5 text-sm font-semibold rounded-md flex items-center gap-2 transition-colors shadow-sm',
                 isValid && !isSaving ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted text-muted-foreground cursor-not-allowed'
               )}
             >

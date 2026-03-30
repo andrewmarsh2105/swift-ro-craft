@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Download, Copy, FileText, Flag, CalendarIcon, Clock, AlertCircle, ChevronDown, Lock, Target, DollarSign, Crown, TrendingUp } from 'lucide-react';
+import { Download, Copy, FileText, Flag, CalendarIcon, AlertCircle, ChevronDown, Lock, Target, DollarSign, Crown, TrendingUp } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -316,33 +316,49 @@ export function SummaryTab() {
     <div
       className="overflow-hidden"
       style={{
-        borderRadius: 'var(--radius)',
-        border: '1px solid hsl(var(--primary) / 0.18)',
-        background: 'hsl(var(--card))',
+        borderRadius: 'calc(var(--radius) + 2px)',
+        border: '1px solid hsl(var(--primary) / 0.22)',
+        background: 'linear-gradient(180deg, hsl(var(--card)), hsl(var(--primary) / 0.03))',
         boxShadow: 'var(--shadow-raised)',
-        borderLeft: '3px solid hsl(var(--primary) / 0.6)',
       }}
     >
       <div className={cn('px-4 pt-3', compact ? 'pb-1.5' : 'pb-2')}>
-        <div className="data-header mb-0.5" style={{ color: 'hsl(var(--primary) / 0.6)' }}>Total Hours</div>
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-center justify-between">
+          <div className="data-header mb-0.5" style={{ color: 'hsl(var(--primary) / 0.68)' }}>Total Hours</div>
+          <span className="text-[10px] font-semibold text-muted-foreground/65">
+            {report.totalROs} ROs
+          </span>
+        </div>
+        <div className="flex items-end gap-1.5">
           <span className={cn('font-bold tabular-nums tracking-tight text-primary leading-none font-mono', compact ? 'text-[34px]' : 'text-[38px]')}>
             {maskHours(report.totalHours, hideTotals)}
           </span>
-          <span className="text-base font-bold text-primary/25 font-mono">h</span>
+          <span className="text-base font-bold text-primary/35 font-mono">h</span>
         </div>
       </div>
 
       {/* Secondary metrics */}
-      <div className="px-4 pb-2 flex items-center gap-3">
-        <span className="text-[11px] text-muted-foreground/50">{report.totalROs} ROs · {report.totalLines} lines</span>
-        <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">{maskHours(avgPerRO, hideTotals)}h avg</span>
+      <div className="px-4 pb-2 grid grid-cols-3 gap-1.5">
+        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
+          <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">ROs</div>
+          <div className="text-[12px] font-bold tabular-nums">{report.totalROs}</div>
+        </div>
+        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
+          <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">Lines</div>
+          <div className="text-[12px] font-bold tabular-nums">{report.totalLines}</div>
+        </div>
+        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
+          <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">Avg / RO</div>
+          <div className="text-[12px] font-bold tabular-nums">{maskHours(avgPerRO, hideTotals)}h</div>
+        </div>
       </div>
 
       {/* Status strip */}
-      <div className="border-t px-4 py-2 flex items-center gap-2 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.1)', background: 'hsl(var(--primary) / 0.03)' }}>
+      <div className="border-t px-4 py-2 flex items-center gap-1.5 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.12)', background: 'hsl(var(--primary) / 0.045)' }}>
         {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
-          <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
+          <div key={lt.laborType} className="rounded-full border border-border/50 bg-card/70 px-2 py-0.5">
+            <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" />
+          </div>
         )) : (
           <span className="text-[10px] text-muted-foreground/40">No type data</span>
         )}
@@ -364,7 +380,13 @@ export function SummaryTab() {
     const hasEarnings = hourlyRate > 0 && !hideTotals;
     if (!hasGoals && !hasEarnings) return null;
     return (
-      <div className="border border-border/60 bg-card overflow-hidden px-4 py-3 space-y-2.5" style={{ borderRadius: 'var(--radius)' }}>
+      <div className="border border-primary/20 bg-card overflow-hidden px-4 py-3 space-y-2.5" style={{ borderRadius: 'var(--radius)' }}>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/65">Goals & Earnings</span>
+          {hourlyRate > 0 && !hideTotals && (
+            <span className="text-[12px] font-bold tabular-nums text-green-600">${(report.totalHours * hourlyRate).toFixed(0)}</span>
+          )}
+        </div>
         {hoursGoalDaily > 0 && rangeMode === 'day' && (
           <GoalBar label="Daily Goal" current={report.totalHours} goal={hoursGoalDaily} hide={hideTotals} />
         )}
@@ -392,7 +414,7 @@ export function SummaryTab() {
       </div>
       <Table>
         <TableBody>
-          {report.byDay.map((day) => {
+          {report.byDay.filter((d) => d.totalHours > 0 || d.roCount > 0).map((day) => {
             const date = new Date(day.date + 'T12:00:00');
             const isToday = day.date === todayStr;
             const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
@@ -428,6 +450,11 @@ export function SummaryTab() {
           </TableRow>
         </TableFooter>
       </Table>
+      {report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0).length > 0 && (
+        <div className="px-4 pb-2 text-[10px] text-muted-foreground/60">
+          Hidden {report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0).length} zero-activity day{report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0).length === 1 ? '' : 's'}.
+        </div>
+      )}
     </div>
   );
 
@@ -446,6 +473,12 @@ export function SummaryTab() {
                 <TableRow key={adv.advisor} className="border-border/30">
                   <TableCell className="py-2 pl-4">
                     <div className="text-sm font-semibold">{adv.advisor}</div>
+                    <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary/60"
+                        style={{ width: `${Math.max(8, (adv.totalHours / Math.max(...report.byAdvisor.map(a => a.totalHours), 1)) * 100)}%` }}
+                      />
+                    </div>
                     <div className="flex gap-1.5 mt-0.5">
                       {!hideTotals && adv.warrantyHours > 0 && <span className="text-[10px] text-muted-foreground/60">W:{adv.warrantyHours.toFixed(1)}</span>}
                       {!hideTotals && adv.customerPayHours > 0 && <span className="text-[10px] text-muted-foreground/60">CP:{adv.customerPayHours.toFixed(1)}</span>}

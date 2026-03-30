@@ -75,7 +75,12 @@ function MobileApp() {
       </main>
 
       {activeTab === "ros" && roViewMode !== "spreadsheet" && (
-        <FloatingActionButton onClick={handleAddRO} icon={<Plus className="h-6 w-6" />} label="Quick Add" />
+        <FloatingActionButton
+          onClick={handleAddRO}
+          icon={<Plus className="h-6 w-6" />}
+          label="Quick Add"
+          className="right-3 bottom-[calc(var(--tab-bar-height)+var(--safe-area-inset-bottom)+1.25rem)]"
+        />
       )}
 
       <QuickAddSheet

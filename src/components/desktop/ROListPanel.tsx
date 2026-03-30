@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, CalendarRange, CheckCircle2, LockOpen, Rows3, Rows4 } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, CalendarRange, CheckCircle2, LockOpen, Rows3, Rows4, ListFilter, PanelLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -347,13 +347,19 @@ export const ROListPanel = memo(function ROListPanel({
       <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
-        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.4)' }}>
+        <div className="flex-shrink-0 bg-gradient-to-b from-muted/20 to-background" style={{ borderBottom: '1px solid hsl(var(--border) / 0.45)' }}>
 
-          {/* Top: title + stats + Add button */}
-          <div className="flex items-center gap-2 px-3 pt-1.5 pb-1">
+          {/* Top: queue identity + active record + Add button */}
+          <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
             <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-1.5">
-                <h2 className="text-[13px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'RO Queue'}</h2>
+              <div className="flex items-center gap-1.5">
+                <PanelLeft className="h-3.5 w-3.5 text-primary/80 flex-shrink-0" />
+                <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75">
+                  Work Queue
+                </p>
+              </div>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <h2 className="text-[13px] font-extrabold tracking-tight text-foreground truncate">{userSettings.shopName || 'RO Navigator'}</h2>
                 <span className="text-[11px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
@@ -361,6 +367,11 @@ export const ROListPanel = memo(function ROListPanel({
                   · {totals.totalAll}
                 </span>
               </div>
+              {selectedROId && (
+                <p className="text-[10px] text-primary/90 font-semibold truncate mt-0.5">
+                  Active RO: #{ros.find((ro) => ro.id === selectedROId)?.roNumber ?? "—"}
+                </p>
+              )}
             </div>
             {/* Density toggle */}
             <button
@@ -385,16 +396,22 @@ export const ROListPanel = memo(function ROListPanel({
             </Button>
           </div>
 
-          {/* Search bar */}
-          <div className="px-3 pb-1">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search RO#, name, VIN, lines…"
-                className="w-full h-6 pl-7 pr-3 rounded border border-border/40 bg-background/60 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring/50 focus:bg-background"
-              />
+          {/* Search + queue stats row */}
+          <div className="px-3 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search RO#, name, VIN, lines…"
+                  className="w-full h-6 pl-7 pr-3 rounded border border-border/50 bg-background text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring/50"
+                />
+              </div>
+              <div className="h-6 px-2 rounded border border-border/60 bg-muted/30 inline-flex items-center gap-1 text-[9px] font-semibold text-muted-foreground tabular-nums whitespace-nowrap">
+                <ListFilter className="h-2.5 w-2.5" />
+                {filteredROs.length} shown
+              </div>
             </div>
           </div>
 
@@ -519,7 +536,7 @@ export const ROListPanel = memo(function ROListPanel({
 
               {/* Rows */}
               <div className="divide-y divide-border/30">
-                {visible.map((ro) => {
+                {visible.map((ro, index) => {
                   const hours = calcHours(ro);
                   const flagsCount = flagCountByRO.get(ro.id) ?? 0;
                   const issuesCount = reviewIssueCountByRO.get(ro.id) ?? 0;
@@ -538,8 +555,12 @@ export const ROListPanel = memo(function ROListPanel({
                         rowPy,
                         gridCols,
                         selected
-                          ? "list-row-selected bg-primary/[0.08]"
-                          : "hover:bg-muted/30",
+                          ? "list-row-selected bg-primary/[0.09] shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.35)]"
+                          : cn(
+                            index % 2 === 0
+                              ? "bg-background hover:bg-muted/30"
+                              : "bg-muted/[0.22] hover:bg-muted/40",
+                          ),
                       )}
                       style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}
                       onClick={() => onSelectRO(ro)}

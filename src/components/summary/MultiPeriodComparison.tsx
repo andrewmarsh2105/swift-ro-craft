@@ -128,6 +128,14 @@ export function MultiPeriodComparison({
   const maxHours = useMemo(() => Math.max(...dailyData.map(r => Math.max(r.periodA, r.periodB)), 1), [dailyData]);
   const totalA = hasData ? report1.totalHours : 0;
   const totalB = hasData ? report2.totalHours : 0;
+  const nonZeroDailyData = useMemo(() => {
+    const filtered = dailyData.filter((r) => r.periodA > 0 || r.periodB > 0);
+    return filtered.length > 0 ? filtered : dailyData;
+  }, [dailyData]);
+  const hiddenZeroDays = Math.max(0, dailyData.length - nonZeroDailyData.length);
+  const winsA = nonZeroDailyData.filter((r) => r.delta < 0).length;
+  const winsB = nonZeroDailyData.filter((r) => r.delta > 0).length;
+  const ties = nonZeroDailyData.filter((r) => r.delta === 0).length;
   const tableColumns = isMobile
     ? '2.25rem 1fr 3rem 3rem 3.5rem'
     : '3rem 1fr 4.5rem 4.5rem 5rem';
@@ -185,7 +193,7 @@ export function MultiPeriodComparison({
                   {hide ? '--.-' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}h
                 </span>
                 <span className={cn('text-[10px] font-medium', deltaColor)}>
-                  {delta > 0 ? 'more' : delta < 0 ? 'less' : 'same'}
+                  {delta > 0 ? 'Period B leads' : delta < 0 ? 'Period A leads' : 'Even'}
                 </span>
               </div>
             </div>
@@ -200,6 +208,26 @@ export function MultiPeriodComparison({
               <div className="text-[10px] text-muted-foreground">{report2.totalROs} ROs · {report2.totalLines} lines</div>
             </div>
           </div>
+
+          <div className="card-mobile p-2.5 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-md bg-muted/50 py-1.5">
+              <div className="text-[10px] text-muted-foreground">A Wins</div>
+              <div className="text-sm font-bold tabular-nums">{winsA}</div>
+            </div>
+            <div className="rounded-md bg-muted/50 py-1.5">
+              <div className="text-[10px] text-muted-foreground">B Wins</div>
+              <div className="text-sm font-bold tabular-nums">{winsB}</div>
+            </div>
+            <div className="rounded-md bg-muted/50 py-1.5">
+              <div className="text-[10px] text-muted-foreground">Ties</div>
+              <div className="text-sm font-bold tabular-nums">{ties}</div>
+            </div>
+          </div>
+          {hiddenZeroDays > 0 && (
+            <div className="px-1 text-[10px] text-muted-foreground/65">
+              Showing active days only ({hiddenZeroDays} zero-value day{hiddenZeroDays === 1 ? '' : 's'} hidden).
+            </div>
+          )}
 
           {/* Chart */}
           <div className="card-mobile p-4">
@@ -218,7 +246,7 @@ export function MultiPeriodComparison({
             </div>
             <div className={isMobile ? 'h-64' : 'h-80'}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyData} barGap={4} barCategoryGap="30%" margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                <BarChart data={nonZeroDailyData} barGap={4} barCategoryGap="30%" margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
                   <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="hsl(var(--border))" opacity={0.6} />
                   <XAxis
                     dataKey="dayLabel"
@@ -264,7 +292,7 @@ export function MultiPeriodComparison({
             </div>
 
             <div className="divide-y divide-border/40">
-              {dailyData.map((row, idx) => {
+              {nonZeroDailyData.map((row, idx) => {
                 const dColor = row.delta > 0 ? 'text-green-600 dark:text-green-400' : row.delta < 0 ? 'text-red-500' : 'text-muted-foreground';
                 const dBg = row.delta > 0 ? 'bg-green-50 dark:bg-green-900/20' : row.delta < 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-muted/40';
                 const aWidth = maxHours > 0 ? (row.periodA / maxHours) * 100 : 0;
@@ -301,7 +329,8 @@ export function MultiPeriodComparison({
                       </span>
                     </div>
                     <div className="flex justify-end">
-                      <span className={cn('rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums whitespace-nowrap', dBg, dColor)}>
+                      <span className={cn('rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums whitespace-nowrap inline-flex items-center gap-1', dBg, dColor)}>
+                        {row.delta > 0 ? <TrendingUp className="h-3 w-3" /> : row.delta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                         {hide ? '--' : `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)}h`}
                       </span>
                     </div>
