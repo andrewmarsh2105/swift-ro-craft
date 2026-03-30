@@ -410,7 +410,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return issuesMap;
   }, [visibleROs, roNumberCounts, ros]);
 
-  const totalHours = useMemo(() => filteredROs.filter(ro => !!ro.paidDate).reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
+  const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
 
   // Monthly RO usage for free-tier cap indicator
   const monthlyROCount = useMemo(() => {
@@ -425,7 +425,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const todayHours = useMemo(() => {
     if (hoursGoalDaily <= 0) return 0;
     const today = new Date().toISOString().slice(0, 10);
-    return ros.filter(ro => !!ro.paidDate && (ro.date || '').startsWith(today)).reduce((s, ro) => s + calcHours(ro), 0);
+    return ros.filter(ro => (ro.date || '').startsWith(today)).reduce((s, ro) => s + calcHours(ro), 0);
   }, [ros, hoursGoalDaily]);
 
   const activeFiltersCount =
