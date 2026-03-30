@@ -142,12 +142,12 @@ const ROCard = memo(function ROCard({
     <div
       className={cn(
         "ro-row-card relative overflow-hidden group rounded-lg border shadow-[0_1px_0_hsl(var(--foreground)/0.03)]",
-        rowTone === 'alt' ? 'bg-primary/[0.11] border-primary/25' : 'bg-card/95 border-border/70',
+        rowTone === 'alt' ? 'bg-muted/[0.24] border-border/60' : 'bg-card/95 border-border/70',
       )}
       style={{ borderLeftColor: accentColor, borderLeftWidth: '3px' }}
     >
       <div
-        className="flex items-stretch gap-0 cursor-pointer hover:bg-primary/[0.14] transition-colors duration-75 active:bg-primary/[0.18]"
+        className="flex items-stretch gap-0 cursor-pointer hover:bg-primary/[0.1] transition-colors duration-75 active:bg-primary/[0.16]"
         onClick={() => onViewDetails(ro)}
       >
         <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[6px]' : 'py-[9px]')}>

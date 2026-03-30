@@ -396,11 +396,11 @@
   }
 
   .list-row-selected {
-    @apply bg-primary/[0.08] border-l-[3px] border-l-primary;
+    @apply bg-primary/[0.2] border-l-[3px] border-l-primary;
   }
 
   .list-row-default {
-    @apply hover:bg-muted/30;
+    @apply hover:bg-primary/[0.12];
   }
 
   /* ── Desktop workspace surfaces ────────────────────── */
