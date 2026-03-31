@@ -112,7 +112,7 @@ export default function Auth() {
 
         <div className="relative flex flex-col h-full p-10">
           {/* Logo */}
-          <Logo variant="full" scheme="dark" size="md" />
+          <Logo variant="full" scheme="dark" size="xl" />
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
