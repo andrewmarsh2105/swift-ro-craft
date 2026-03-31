@@ -156,6 +156,14 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
 
   const handleClose = () => {
     reset();
+    // iOS Safari can leave the viewport zoomed after camera/file-picker use.
+    // Briefly set maximum-scale=1 to snap zoom back to 1, then restore normal limits.
+    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (vp) {
+      const original = vp.content;
+      vp.content = `${original}, maximum-scale=1`;
+      requestAnimationFrame(() => { vp.content = original; });
+    }
     restoreViewportState();
     onClose();
   };
@@ -425,10 +433,16 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
             <X className="h-5 w-5" />
           </button>
           <RotateCcw className="h-14 w-14 text-primary" />
-          <p className="text-lg font-semibold">Rotate to Portrait</p>
-          <p className="text-sm text-muted-foreground">Scanning only works in portrait mode. Please rotate your phone upright to continue.</p>
-        </div>
-      )}
+            <p className="text-lg font-semibold">Rotate to Portrait</p>
+            <p className="text-sm text-muted-foreground">Scanning only works in portrait mode. Please rotate your phone upright to continue.</p>
+            <button
+              onClick={handleClose}
+              className="mt-2 py-3 px-8 bg-secondary text-secondary-foreground rounded-2xl font-medium text-sm tap-target touch-feedback"
+            >
+              Cancel Scan
+            </button>
+          </div>
+        )}
 
       {/* Dev Debug Panel */}
       {import.meta.env.DEV && (

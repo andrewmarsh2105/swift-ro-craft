@@ -57,6 +57,7 @@ function MobileApp() {
   };
 
   const handleScanPhoto = () => {
+    setShowQuickAdd(false);
     navigate('/add-ro', { state: { openScan: true } });
   };
 

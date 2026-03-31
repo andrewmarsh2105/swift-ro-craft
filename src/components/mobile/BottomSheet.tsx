@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useId, useRef } from 'react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence, PanInfo, useDragControls } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -158,8 +159,15 @@ export function BottomSheet({
 
             {/* Header */}
             {title && (
-              <div className="px-4 pb-3 border-b border-border flex-shrink-0">
+              <div className="px-4 pb-3 border-b border-border flex-shrink-0 relative flex items-center justify-center">
                 <h2 id={titleId} className="text-lg font-semibold text-center">{title}</h2>
+                <button
+                  onClick={onClose}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors tap-target touch-feedback"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
             )}
 
