@@ -31,7 +31,9 @@ import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
 import { computeDateRangeBounds, filterROsByDateRangeWithCarryover, type DateFilterKey } from '@/lib/dateRangeFilter';
-import { getDateFilterLabel, getDefaultPeriodFilter, getPeriodFilterLabels, normalizeDateFilterForPayPeriod } from '@/lib/payPeriodRange';
+import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { applySharedROFilters, useSharedROFilters } from '@/hooks/useSharedROFilters';
+import { getDateFilterLabel, getPeriodFilterLabels } from '@/lib/payPeriodRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import {
   buildSpreadsheetRows,
@@ -42,26 +44,6 @@ import {
   type SpreadsheetLineRow,
   type SpreadsheetSubtotalRow,
 } from '@/lib/buildSpreadsheetRows';
-
-/* ─── Spreadsheet-local date range (independent from global shared state) ─── */
-const SS_LS_KEY = "ui.spreadsheet.dateRange.v1";
-
-interface SSDateState {
-  dateFilter: DateFilterKey;
-  customStart?: string;
-  customEnd?: string;
-}
-
-function readSSLS(): SSDateState | null {
-  try {
-    const raw = localStorage.getItem(SS_LS_KEY);
-    return raw ? (JSON.parse(raw) as SSDateState) : null;
-  } catch { return null; }
-}
-
-function writeSSLS(s: SSDateState) {
-  try { localStorage.setItem(SS_LS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
-}
 
 /* ─── Memoized line row ─── */
 interface LineRowProps {
@@ -472,71 +454,18 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     (userSettings.payPeriodEndDates as number[]).length > 0;
   const periodLabels = getPeriodFilterLabels(userSettings);
 
-  /* ─── Local (spreadsheet-only) date range state ─── */
-  const ssDefaultFilter = getDefaultPeriodFilter(userSettings);
-  const ssSaved = readSSLS();
-  const initialFilter = normalizeDateFilterForPayPeriod(ssSaved?.dateFilter ?? ssDefaultFilter, userSettings);
-  const [dateRange, setDateRangeRaw] = useState<DateFilterKey>(initialFilter);
-  const [customStart, setCustomStart] = useState<string | undefined>(ssSaved?.customStart);
-  const [customEnd, setCustomEnd] = useState<string | undefined>(ssSaved?.customEnd);
-  const [showCustomDialog, setShowCustomDialog] = useState(false);
-  const [prevFilter, setPrevFilter] = useState<DateFilterKey>(initialFilter);
-  const [stashedCustomStart, setStashedCustomStart] = useState<string | undefined>(ssSaved?.customStart);
-  const [stashedCustomEnd, setStashedCustomEnd] = useState<string | undefined>(ssSaved?.customEnd);
-
-  useEffect(() => {
-    writeSSLS({ dateFilter: dateRange, customStart, customEnd });
-  }, [dateRange, customStart, customEnd]);
-
-
-  useEffect(() => {
-    const normalized = normalizeDateFilterForPayPeriod(dateRange, userSettings);
-    if (normalized !== dateRange) setDateRangeRaw(normalized);
-  }, [dateRange, userSettings]);
-
-  const setDateRange = useCallback((f: DateFilterKey) => {
-    if (f === 'custom') {
-      setPrevFilter(dateRange);
-      setDateRangeRaw('custom');
-      setShowCustomDialog(true);
-    } else {
-      setDateRangeRaw(normalizeDateFilterForPayPeriod(f, userSettings));
-    }
-  }, [dateRange, userSettings]);
-
-  const requestCustomDialog = useCallback(() => {
-    if (dateRange === 'custom' && customStart && customEnd) {
-      setStashedCustomStart(customStart);
-      setStashedCustomEnd(customEnd);
-      setPrevFilter('custom');
-      setCustomStart(undefined);
-      setCustomEnd(undefined);
-    } else {
-      setPrevFilter(dateRange);
-      setDateRangeRaw('custom');
-    }
-    setShowCustomDialog(true);
-  }, [dateRange, customStart, customEnd]);
-
-  const applyCustom = useCallback((start: string, end: string) => {
-    setCustomStart(start);
-    setCustomEnd(end);
-    setStashedCustomStart(start);
-    setStashedCustomEnd(end);
-    setDateRangeRaw('custom');
-    setShowCustomDialog(false);
-  }, []);
-
-  const cancelCustom = useCallback(() => {
-    if (stashedCustomStart && stashedCustomEnd) {
-      setCustomStart(stashedCustomStart);
-      setCustomEnd(stashedCustomEnd);
-      setDateRangeRaw('custom');
-    } else {
-      setDateRangeRaw(prevFilter !== 'custom' ? prevFilter : ssDefaultFilter);
-    }
-    setShowCustomDialog(false);
-  }, [stashedCustomStart, stashedCustomEnd, prevFilter, ssDefaultFilter]);
+  /* ─── Shared date range state ─── */
+  const { filters: sharedFilters } = useSharedROFilters();
+  const {
+    dateFilter: dateRange,
+    setFilter: setDateRange,
+    customStart,
+    customEnd,
+    applyCustom,
+    cancelCustom,
+    showCustomDialog,
+    requestCustomDialog,
+  } = useSharedDateRange('week', isMobile ? 'spreadsheet-mobile' : 'spreadsheet-desktop', userSettings);
 
   useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
   useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
@@ -583,7 +512,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   /* ─── Filter ROs by selected date range ─── */
   const { filteredROs, computedRangeLabel, viewStart } = useMemo(() => {
     if (isCloseout) {
-      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
+      return { filteredROs: applySharedROFilters(ros, sharedFilters), computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
     }
 
     const bounds = computeDateRangeBounds({
@@ -597,15 +526,15 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     });
 
     if (!bounds) {
-      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
+      return { filteredROs: applySharedROFilters(ros, sharedFilters), computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
     }
 
     return {
-      filteredROs: filterROsByDateRangeWithCarryover(ros, bounds),
+      filteredROs: filterROsByDateRangeWithCarryover(applySharedROFilters(ros, sharedFilters), bounds),
       computedRangeLabel: bounds.label,
       viewStart: bounds.start,
     };
-  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodType, userSettings.payPeriodEndDates, userSettings.weekStartDay, hasCustomPayPeriod, customStart, customEnd]);
+  }, [ros, sharedFilters, dateRange, isCloseout, rangeLabel, userSettings.payPeriodType, userSettings.payPeriodEndDates, userSettings.weekStartDay, hasCustomPayPeriod, customStart, customEnd]);
 
   /* ─── Flag counts per RO ─── */
   const roFlagCounts = useMemo(() => {

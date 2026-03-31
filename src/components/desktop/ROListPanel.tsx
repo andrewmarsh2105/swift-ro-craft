@@ -14,10 +14,11 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 import { maskHours } from "@/lib/maskHours";
 import { cn, localDateStr } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
-import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers, matchesSearchQuery } from "@/lib/roFilters";
+import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
 import { computeDateRangeBounds, filterROsByDateRange, filterROsByDateRangeWithCarryover, isCarryoverRO, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
+import { applySharedROFilters, useSharedROFilters } from "@/hooks/useSharedROFilters";
 import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 import { getDateFilterLabel, getPeriodFilterLabels } from "@/lib/payPeriodRange";
 
@@ -163,8 +164,8 @@ export const ROListPanel = memo(function ROListPanel({
   const { ros, deleteRO, updateRO, loadingROs } = useRO();
   const { flags, userSettings, addFlag } = useFlagContext();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const deferredQuery = useDeferredValue(searchQuery);
+  const { filters: sharedFilters, setSearchQuery, setSingleAdvisor, toggleLaborType } = useSharedROFilters();
+  const deferredQuery = useDeferredValue(sharedFilters.searchQuery);
 
   const {
     dateFilter, setFilter: setDateFilter,
@@ -172,14 +173,14 @@ export const ROListPanel = memo(function ROListPanel({
     showCustomDialog, requestCustomDialog,
   } = useSharedDateRange("week", "desktop-list", userSettings);
 
-  const [advisorFilter, setAdvisorFilter] = useState("all");
+  const advisorFilter = sharedFilters.advisors[0] ?? "all";
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [visibleCount, setVisibleCount] = useState(80);
 
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [density, setDensity] = useState<RowDensity>("normal");
-  const [laborTypeFilter, setLaborTypeFilter] = useState<string[]>([]);
+  const laborTypeFilter = sharedFilters.laborTypes;
 
   const hasCustomPayPeriod =
     userSettings.payPeriodType === "custom" &&
@@ -209,26 +210,16 @@ export const ROListPanel = memo(function ROListPanel({
 
   useEffect(() => {
     if (advisorFilter !== "all" && !advisors.includes(advisorFilter)) {
-      setAdvisorFilter("all");
+      setSingleAdvisor("all");
     }
-  }, [advisors, advisorFilter]);
+  }, [advisors, advisorFilter, setSingleAdvisor]);
 
   const filteredROs = useMemo(() => {
-    let result = ros;
-
-    if (advisorFilter !== "all") {
-      const selectedAdvisor = normalizeAdvisorName(advisorFilter);
-      result = result.filter((ro) => normalizeAdvisorName(ro.advisor) === selectedAdvisor);
-    }
-
-    if (laborTypeFilter.length > 0) {
-      result = result.filter((ro) => laborTypeFilter.includes(ro.laborType));
-    }
-
-    const q = deferredQuery.trim();
-    if (q) {
-      result = result.filter((ro) => matchesSearchQuery(ro, q));
-    }
+    let result = applySharedROFilters(ros, {
+      ...sharedFilters,
+      searchQuery: deferredQuery,
+      advisors: advisorFilter === "all" ? [] : [advisorFilter],
+    });
 
     result = filterROsByDateRangeWithCarryover(result, listBounds);
 
@@ -253,7 +244,7 @@ export const ROListPanel = memo(function ROListPanel({
       }
       return 0;
     });
-  }, [ros, advisorFilter, laborTypeFilter, deferredQuery, listBounds, sortKey, sortDir]);
+  }, [ros, sharedFilters, advisorFilter, deferredQuery, listBounds, sortKey, sortDir]);
 
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
 
@@ -412,7 +403,7 @@ export const ROListPanel = memo(function ROListPanel({
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
                 <input
-                  value={searchQuery}
+                  value={sharedFilters.searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search RO#, name, VIN, lines…"
                   className="w-full h-6 pl-7 pr-3 rounded border border-border/50 bg-background text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring/50"
@@ -460,9 +451,7 @@ export const ROListPanel = memo(function ROListPanel({
               return (
                 <button
                   key={type}
-                  onClick={() => setLaborTypeFilter(prev =>
-                    prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                  )}
+                  onClick={() => toggleLaborType(type)}
                   className={cn(
                     "h-6 px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border",
                     active ? "text-white" : "bg-transparent border-border/60 hover:border-border",
@@ -481,7 +470,7 @@ export const ROListPanel = memo(function ROListPanel({
             {advisors.length > 0 && (
               <select
                 value={advisorFilter}
-                onChange={(e) => setAdvisorFilter(e.target.value)}
+                onChange={(e) => setSingleAdvisor(e.target.value)}
                 className="h-6 flex-shrink-0 ml-auto rounded border border-border/60 bg-transparent text-[10px] text-muted-foreground px-1.5 pr-5 focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer max-w-[110px] truncate"
                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' stroke-width=\'2.5\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
               >
