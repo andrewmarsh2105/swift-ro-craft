@@ -34,6 +34,8 @@ export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTog
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [isConfirmingStatus, setIsConfirmingStatus] = useState(false);
 
   const handleAction = (action: () => void) => {
     setOpen(false);
@@ -43,6 +45,22 @@ export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTog
   const handleDeleteClick = () => {
     setOpen(false);
     setShowDeleteConfirm(true);
+  };
+
+  const handleStatusClick = () => {
+    setOpen(false);
+    setShowStatusConfirm(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!onTogglePaid || isTogglePaidPending || isConfirmingStatus) return;
+    setIsConfirmingStatus(true);
+    try {
+      await Promise.resolve(onTogglePaid());
+      setShowStatusConfirm(false);
+    } finally {
+      setIsConfirmingStatus(false);
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -92,7 +110,7 @@ export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTog
       {/* Open / Paid toggle */}
       {onTogglePaid && (
         <button
-          onClick={() => handleAction(onTogglePaid)}
+          onClick={handleStatusClick}
           disabled={isTogglePaidPending}
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
@@ -109,12 +127,12 @@ export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTog
           ) : isPaid ? (
             <>
               <LockOpen className="h-4 w-4 text-amber-500" />
-              Mark Open
+              Mark as Open…
             </>
           ) : (
             <>
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              Mark Paid
+              Mark as Paid…
             </>
           )}
         </button>
@@ -197,6 +215,79 @@ export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTog
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Paid/Open confirmation — mobile uses sheet, desktop uses dialog */}
+      {isMobile ? (
+        <BottomSheet isOpen={showStatusConfirm} onClose={() => !isConfirmingStatus && setShowStatusConfirm(false)} title={isPaid ? 'Mark RO Open?' : 'Mark RO Paid?'}>
+          <div className="px-4 pb-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {isPaid
+                ? 'This RO will move back to Open and show in open counts again.'
+                : 'This RO will be marked Paid and included in paid totals/exports.'}
+            </p>
+            <p className="text-xs text-muted-foreground/80">You can change this again anytime from RO actions.</p>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => setShowStatusConfirm(false)}
+                disabled={isConfirmingStatus}
+              >
+                Keep as {isPaid ? 'Paid' : 'Open'}
+              </Button>
+              <Button
+                onClick={handleConfirmStatusChange}
+                disabled={isTogglePaidPending || isConfirmingStatus}
+              >
+                {(isTogglePaidPending || isConfirmingStatus) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  isPaid ? 'Mark Open' : 'Mark Paid'
+                )}
+              </Button>
+            </div>
+          </div>
+        </BottomSheet>
+      ) : (
+        <Dialog open={showStatusConfirm} onOpenChange={(next) => !isConfirmingStatus && setShowStatusConfirm(next)}>
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>{isPaid ? 'Move RO back to Open?' : 'Mark RO as Paid?'}</DialogTitle>
+              <DialogDescription>
+                {isPaid
+                  ? 'This restores the RO to Open status so it appears in open totals and workflows.'
+                  : 'This marks the RO as Paid so it counts toward paid totals and exports.'}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-row gap-3 sm:gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowStatusConfirm(false)}
+                disabled={isConfirmingStatus}
+                className="flex-1"
+              >
+                Keep as {isPaid ? 'Paid' : 'Open'}
+              </Button>
+              <Button
+                onClick={handleConfirmStatusChange}
+                disabled={isTogglePaidPending || isConfirmingStatus}
+                className="flex-1"
+              >
+                {(isTogglePaidPending || isConfirmingStatus) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  isPaid ? 'Mark Open' : 'Mark Paid'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
     </>
   );

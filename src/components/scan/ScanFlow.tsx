@@ -30,6 +30,19 @@ export interface ScanApplyData {
   mode: 'prepend' | 'replace';
 }
 
+const restoreViewportState = () => {
+  // iOS Safari can keep an aggressive zoom/focus state after camera/file pickers.
+  // Blurring and forcing a viewport reflow keeps the Quick Add page usable.
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) {
+    active.blur();
+  }
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    window.dispatchEvent(new Event('resize'));
+  });
+};
+
 export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, existingLineDescriptions = [] }: ScanFlowProps) {
   const isMobile = useIsMobile();
 
@@ -57,6 +70,23 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
       window.removeEventListener('resize', checkOrientation);
       window.removeEventListener('orientationchange', handleOrientationChange);
     };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const stateToken = { scanFlowOpen: true, ts: Date.now() };
+    window.history.pushState(stateToken, '');
+
+    const handlePopState = () => {
+      handleClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Lock screen orientation while scan flow is active to prevent disruption
@@ -115,17 +145,26 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
   // Reset template state when closed
   useEffect(() => {
     if (!isOpen) {
+      reset();
       setSelectedTemplateId(null);
       setTemplateReady(false);
       setShowTemplatePicker(false);
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId) || null;
 
   const handleClose = () => {
     reset();
+    restoreViewportState();
     onClose();
+  };
+
+  const handleApplyAndClose = (data: ScanApplyData) => {
+    // Apply first so parent form updates are preserved, then clean up scan session.
+    onApply(data);
+    reset();
+    restoreViewportState();
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,7 +210,7 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
         isAddingPage={isAddingPage}
         errorMessage={errorMessage}
         onUpdateData={updateExtractedData}
-        onApply={onApply}
+        onApply={handleApplyAndClose}
         onRetake={() => reset()}
         onClose={handleClose}
         onAddPage={onAddPageFile}
@@ -377,6 +416,14 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
       {/* Landscape blocker — iOS doesn't support orientation lock API so we enforce portrait via overlay */}
       {isMobile && isLandscape && (
         <div className="fixed inset-0 z-[200] bg-background flex flex-col items-center justify-center gap-5 p-8 text-center">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+0.5rem)] p-2 rounded-full border border-border bg-card text-muted-foreground"
+            aria-label="Exit scan flow"
+          >
+            <X className="h-5 w-5" />
+          </button>
           <RotateCcw className="h-14 w-14 text-primary" />
           <p className="text-lg font-semibold">Rotate to Portrait</p>
           <p className="text-sm text-muted-foreground">Scanning only works in portrait mode. Please rotate your phone upright to continue.</p>
