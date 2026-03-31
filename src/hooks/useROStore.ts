@@ -511,6 +511,17 @@ export function useROStore() {
   const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>): Promise<boolean> => {
     if (!user) return false;
 
+    const applyLocalUpdate = (base: RepairOrder): RepairOrder => {
+      const nextLines = updates.lines ?? base.lines;
+      return {
+        ...base,
+        ...updates,
+        lines: nextLines,
+        paidHours: updates.lines ? calcLineHours(nextLines) : base.paidHours,
+        updatedAt: new Date().toISOString(),
+      };
+    };
+
     // Queue if offline — also apply the update locally so the tech sees the change.
     if (!isOnline) {
       const queued = await queueAction('updateRO', { id, updates });
@@ -519,14 +530,7 @@ export function useROStore() {
       setROs(prev => {
         const updated = prev.map(r => {
           if (r.id !== id) return r;
-          const newLines = updates.lines ?? r.lines;
-          return {
-            ...r,
-            ...updates,
-            lines: newLines,
-            paidHours: updates.lines ? calcLineHours(updates.lines) : r.paidHours,
-            updatedAt: new Date().toISOString(),
-          };
+          return applyLocalUpdate(r);
         });
         if (userId) void saveROsToCache(userId, updated);
         return updated;
@@ -536,6 +540,16 @@ export function useROStore() {
       toast.info('Update saved offline — will sync when reconnected');
       return true;
     }
+
+    const previousRO = rosRef.current.find((r) => r.id === id) ?? null;
+
+    // Optimistically update immediately so all active views (details/list/workspace)
+    // reflect paid/open and other edits without waiting on network latency.
+    setROs((prev) => {
+      const next = prev.map((r) => (r.id === id ? applyLocalUpdate(r) : r));
+      void saveROsToCache(user.id, next);
+      return next;
+    });
 
     const dbUpdates = toRosUpdate(updates);
 
@@ -551,7 +565,21 @@ export function useROStore() {
             toast.info('Network issue — update saved to offline sync queue');
             return true;
           }
+          if (previousRO) {
+            setROs((prev) => {
+              const rollback = prev.map((r) => (r.id === id ? previousRO : r));
+              void saveROsToCache(user.id, rollback);
+              return rollback;
+            });
+          }
           return false;
+        }
+        if (previousRO) {
+          setROs((prev) => {
+            const rollback = prev.map((r) => (r.id === id ? previousRO : r));
+            void saveROsToCache(user.id, rollback);
+            return rollback;
+          });
         }
         toast.error(`Failed to update RO: ${msg}`);
         return false;
@@ -581,6 +609,13 @@ export function useROStore() {
         const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);
         if (insErr) {
           console.error('Failed to insert lines', insErr);
+          if (previousRO) {
+            setROs((prev) => {
+              const rollback = prev.map((r) => (r.id === id ? previousRO : r));
+              void saveROsToCache(user.id, rollback);
+              return rollback;
+            });
+          }
           toast.error(`Lines failed to save: ${insErr.message}`);
           return false;
         }
@@ -623,12 +658,7 @@ export function useROStore() {
       setROs((prev) => {
         const next = prev.map((r) => {
           if (r.id !== id) return r;
-          return {
-            ...r,
-            ...updates,
-            lines: updates.lines ?? r.lines,
-            paidHours: updates.lines ? calcLineHours(updates.lines) : r.paidHours,
-          };
+          return applyLocalUpdate(r);
         });
         void saveROsToCache(user.id, next);
         return next;

@@ -300,6 +300,19 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   }, [isPro, viewMode, setViewMode]);
 
   useEffect(() => {
+    if (!selectedRO) return;
+    const next = ros.find((item) => item.id === selectedRO.id);
+    if (!next) {
+      setSelectedRO(null);
+      setShowDetail(false);
+      return;
+    }
+    if (next !== selectedRO) {
+      setSelectedRO(next);
+    }
+  }, [ros, selectedRO]);
+
+  useEffect(() => {
     onViewModeChange?.(viewMode);
   }, [viewMode, onViewModeChange]);
 
@@ -473,11 +486,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     { value: 'today' as const, label: getDateFilterLabel('today', userSettings, true) },
     ...(hasCustomPayPeriod
       ? [
-          { value: 'pay_period' as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: 'pay_period' as const, label: periodLabels.currentShort },
           { value: 'last_pay_period' as const, label: periodLabels.previousShort },
         ]
       : [
-          { value: 'week' as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: 'week' as const, label: periodLabels.currentShort },
           { value: 'last_week' as const, label: periodLabels.previousShort },
         ]),
     { value: 'month' as const, label: getDateFilterLabel('month', userSettings, true) },

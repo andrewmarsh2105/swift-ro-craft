@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreVertical, Pencil, Trash2, Flag, CheckCircle2, LockOpen } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Flag, CheckCircle2, LockOpen, Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import {
@@ -25,11 +25,12 @@ interface ROActionMenuProps {
   onDelete: () => void;
   onFlag?: () => void;
   onTogglePaid?: () => void;
+  isTogglePaidPending?: boolean;
   existingRONumbers?: string[];
   className?: string;
 }
 
-export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTogglePaid, existingRONumbers = [], className }: ROActionMenuProps) {
+export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTogglePaid, isTogglePaidPending = false, existingRONumbers = [], className }: ROActionMenuProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -92,17 +93,28 @@ export function ROActionMenu({ roNumber, isPaid, onEdit, onDelete, onFlag, onTog
       {onTogglePaid && (
         <button
           onClick={() => handleAction(onTogglePaid)}
-          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors rounded-lg"
+          disabled={isTogglePaidPending}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+            isTogglePaidPending
+              ? "text-muted-foreground cursor-not-allowed"
+              : "text-foreground hover:bg-muted",
+          )}
         >
-          {isPaid ? (
+          {isTogglePaidPending ? (
+            <>
+              <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+              Saving status…
+            </>
+          ) : isPaid ? (
             <>
               <LockOpen className="h-4 w-4 text-amber-500" />
-              Mark as Open
+              Mark Open
             </>
           ) : (
             <>
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              Mark as Paid
+              Mark Paid
             </>
           )}
         </button>

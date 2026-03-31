@@ -246,11 +246,11 @@ function DateFilterBar({
     { value: 'today', label: 'Today' },
     ...(hasCustomPayPeriod
       ? [
-          { value: 'pay_period' as DateFilterKey, label: `${currentLabel} (Default)` },
+          { value: 'pay_period' as DateFilterKey, label: currentLabel },
           { value: 'last_pay_period' as DateFilterKey, label: previousLabel },
         ]
       : [
-          { value: 'week' as DateFilterKey, label: `${currentLabel} (Default)` },
+          { value: 'week' as DateFilterKey, label: currentLabel },
           { value: 'last_week' as DateFilterKey, label: previousLabel },
         ]),
     { value: 'month', label: 'Month' },
