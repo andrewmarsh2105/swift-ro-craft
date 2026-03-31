@@ -77,6 +77,7 @@ export function ScanReviewScreen({
   onCancelPendingPage,
 }: ScanReviewScreenProps) {
   const isMobile = useIsMobile();
+  const mobileReadableInputClass = isMobile ? 'text-base' : 'text-sm';
   const [showApplyPrompt, setShowApplyPrompt] = useState(false);
   const [showDateCandidates, setShowDateCandidates] = useState(false);
   const [userEditedDate, setUserEditedDate] = useState(false);
@@ -477,7 +478,7 @@ export function ScanReviewScreen({
                 value={data.roNumber || ''}
                 onChange={e => updateField('roNumber', e.target.value)}
                 placeholder="—"
-                className="w-full h-10 px-3 bg-muted rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+                className={cn('w-full h-10 px-3 bg-muted rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
               />
             </div>
 
@@ -494,7 +495,7 @@ export function ScanReviewScreen({
                 value={data.advisor || ''}
                 onChange={e => updateField('advisor', e.target.value)}
                 placeholder="—"
-                className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={cn('w-full h-10 px-3 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
               />
             </div>
 
@@ -513,7 +514,7 @@ export function ScanReviewScreen({
                   setUserEditedDate(true);
                   updateField('date', e.target.value);
                 }}
-                className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={cn('w-full h-10 px-3 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
               />
               {data.candidateDates.length >= 2 && !userEditedDate && (
                 <div className="relative">
@@ -565,7 +566,7 @@ export function ScanReviewScreen({
                 value={data.customerName || ''}
                 onChange={e => updateField('customerName', e.target.value)}
                 placeholder="—"
-                className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={cn('w-full h-10 px-3 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
               />
             </div>
 
@@ -578,7 +579,7 @@ export function ScanReviewScreen({
                 value={data.mileage || ''}
                 onChange={e => updateField('mileage', e.target.value)}
                 placeholder="—"
-                className="w-full h-10 px-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={cn('w-full h-10 px-3 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
               />
             </div>
 
@@ -597,7 +598,7 @@ export function ScanReviewScreen({
                   }}
                   placeholder="Year"
                   maxLength={4}
-                  className="w-16 h-10 px-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={cn('w-16 h-10 px-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
                 />
                 <input
                   type="text"
@@ -608,7 +609,7 @@ export function ScanReviewScreen({
                     onUpdateData(updated);
                   }}
                   placeholder="Make"
-                  className="flex-1 h-10 px-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={cn('flex-1 h-10 px-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
                 />
                 <input
                   type="text"
@@ -619,7 +620,7 @@ export function ScanReviewScreen({
                     onUpdateData(updated);
                   }}
                   placeholder="Model"
-                  className="flex-1 h-10 px-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={cn('flex-1 h-10 px-2 bg-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
                 />
               </div>
               <input
@@ -632,7 +633,7 @@ export function ScanReviewScreen({
                 }}
                 placeholder="VIN (optional)"
                 maxLength={17}
-                className="w-full h-10 px-2 bg-muted rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                className={cn('w-full h-10 px-2 bg-muted rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary', mobileReadableInputClass)}
               />
             </div>
           </div>
@@ -975,7 +976,7 @@ function LineRow({ line, idx, showConfidence, isNew, isDuplicate, showPageBadge,
               value={line.description}
               onChange={e => onUpdate(line.id, 'description', e.target.value)}
               placeholder="Line description"
-              className="flex-1 h-9 px-2 bg-background rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 h-9 px-2 bg-background rounded text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {showPageBadge && line.sourcePage && <PageBadge page={line.sourcePage} />}
             {isDuplicate && (
@@ -1006,12 +1007,12 @@ function LineRow({ line, idx, showConfidence, isNew, isDuplicate, showPageBadge,
                 setRawHours(committed > 0 ? String(committed) : '');
               }}
               placeholder="Hours"
-              className="w-20 h-8 px-2 bg-background rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-20 h-8 px-2 bg-background rounded text-[16px] sm:text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <select
               value={line.laborType}
               onChange={e => onUpdate(line.id, 'laborType', e.target.value)}
-              className="h-8 px-2 bg-background rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+              className="h-8 px-2 bg-background rounded text-[16px] sm:text-xs focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {LABOR_TYPES.map(lt => (
                 <option key={lt.value} value={lt.value}>{lt.label}</option>
