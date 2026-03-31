@@ -57,7 +57,6 @@ function MobileApp() {
   };
 
   const handleScanPhoto = () => {
-    // Close the sheet first so we don't leave backdrop/focus state behind on navigation.
     setShowQuickAdd(false);
     navigate('/add-ro', { state: { openScan: true } });
   };
