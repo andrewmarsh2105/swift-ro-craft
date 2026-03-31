@@ -5,9 +5,11 @@ import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { LineItemEditor } from '@/components/mobile/LineItemEditor';
 import { createEmptyLine } from '@/lib/roLine';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
+import { PostSavePaidStatusPrompt } from '@/components/shared/PostSavePaidStatusPrompt';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useRO } from '@/contexts/ROContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 import type { LaborType, RepairOrder, ROLine, VehicleInfo } from '@/types/ro';
 import { cn, localDateStr } from '@/lib/utils';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
@@ -90,6 +92,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [showProUpgrade, setShowProUpgrade] = useState(false);
   const [advisorDraft, setAdvisorDraft] = useState('');
   const [showAdvisorCreate, setShowAdvisorCreate] = useState(false);
+  const postSaveStatusPrompt = usePostSavePaidStatusPrompt({ updateRO });
 
   // Form state — initialized via shared helper to avoid duplication
   const initial = getInitialFormState(editingRO);
@@ -159,8 +162,8 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      // New ROs are automatically marked as paid (use RO date); editing preserves existing paidDate
-      paidDate: editingRO ? (paidDate.trim() || null) : (paidDate.trim() || roDate || localDateStr()),
+      // New ROs are created open; prompt asks whether to mark paid immediately after save.
+      paidDate: editingRO ? (paidDate.trim() || null) : '',
       paidHours: linesTotalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -179,7 +182,12 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       } else {
         const saved = await addRO(roData);
         if (!saved) return;
+        if (!('id' in saved)) return;
         toast.success('RO saved');
+        postSaveStatusPrompt.requestStatusChoice({
+          roId: saved.id,
+          roNumber: roData.roNumber,
+        });
       }
       haptics.success();
 
@@ -601,6 +609,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       </BottomSheet>
 
       <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
+      <PostSavePaidStatusPrompt
+        open={postSaveStatusPrompt.statusPromptOpen}
+        roNumber={postSaveStatusPrompt.statusPromptRONumber}
+        isSaving={postSaveStatusPrompt.isSavingChoice}
+        onChoose={postSaveStatusPrompt.resolveChoice}
+        onDismiss={postSaveStatusPrompt.dismissPrompt}
+      />
     </BottomSheet>
   );
 }

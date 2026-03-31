@@ -22,8 +22,10 @@ import { toast } from 'sonner';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 import { DetailsCollapsible, PresetSearchRail } from '@/components/shared';
+import { PostSavePaidStatusPrompt } from '@/components/shared/PostSavePaidStatusPrompt';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
+import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 
 // Desktop imports
 import { DesktopWorkspace } from '@/components/desktop';
@@ -143,6 +145,7 @@ export default function AddRO() {
   // Unsaved changes guard
   const initialSnapshotRef = useRef<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const postSaveStatusPrompt = usePostSavePaidStatusPrompt({ updateRO });
 
   const currentSnapshot = useMemo(() => JSON.stringify({
     roNumber, advisor, date, laborType, customerName, notes, vehicle, mileage, paidDate, lines
@@ -338,8 +341,8 @@ export default function AddRO() {
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      // New ROs are automatically marked as paid (today's date); editing preserves existing paidDate
-      paidDate: editingRO ? (paidDate.trim() || '') : (paidDate.trim() || date || localDateStr()),
+      // New ROs are created open; prompt asks whether to mark paid immediately after save.
+      paidDate: editingRO ? (paidDate.trim() || '') : '',
       paidHours: totalHours, laborType,
       workPerformed: computedWorkPerformed, notes, date,
       photos: editingRO?.photos, lines, isSimpleMode: false,
@@ -353,22 +356,30 @@ export default function AddRO() {
         const success = await updateRO(editingRO.id, roData);
         if (!success) return;
         toast.success('RO updated');
+        navigate(-1);
       } else {
         const saved = await addRO(roData);
         if (!saved) return;
+        if (!('id' in saved)) return;
         toast.success('RO created');
+        postSaveStatusPrompt.requestStatusChoice({
+          roId: saved.id,
+          roNumber: roData.roNumber,
+          onComplete: () => {
+            if (addAnother) {
+              setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
+              setLines([createEmptyLine(1)]);
+              initialSnapshotRef.current = null; // will be set on next render
+            } else {
+              navigate(-1);
+            }
+          },
+        });
       }
       haptics.success();
       resetViewportZoom();
       // Reset snapshot so guard doesn't block
       initialSnapshotRef.current = currentSnapshot;
-      if (addAnother) {
-        setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
-        setLines([createEmptyLine(1)]);
-        initialSnapshotRef.current = null; // will be set on next render
-      } else {
-        navigate(-1);
-      }
     } catch (err: any) {
       toast.error(`Save failed: ${err?.message || 'Unknown error'}. Try again.`);
     } finally {
@@ -742,6 +753,13 @@ export default function AddRO() {
       />
 
       <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
+      <PostSavePaidStatusPrompt
+        open={postSaveStatusPrompt.statusPromptOpen}
+        roNumber={postSaveStatusPrompt.statusPromptRONumber}
+        isSaving={postSaveStatusPrompt.isSavingChoice}
+        onChoose={postSaveStatusPrompt.resolveChoice}
+        onDismiss={postSaveStatusPrompt.dismissPrompt}
+      />
     </div>
   );
 }
