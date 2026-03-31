@@ -247,6 +247,12 @@ export default function AddRO() {
     }
     setHighlightedLineIds(newLineIds);
     setShowScanFlow(false);
+    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (vp) {
+      const original = vp.content;
+      vp.content = `${original}, maximum-scale=1`;
+      requestAnimationFrame(() => { vp.content = original; });
+    }
     setTimeout(() => {
       linesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
