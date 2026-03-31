@@ -1,0 +1,3 @@
+# Reduce recurring PR merge conflicts on generated binary lockfile.
+# bun.lockb is machine-generated and should be regenerated from bun.lock/package-lock.json when needed.
+bun.lockb binary merge=ours
