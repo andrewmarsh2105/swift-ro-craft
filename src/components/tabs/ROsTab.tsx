@@ -8,6 +8,7 @@ import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { computeDateRangeBounds, filterROsByDateRange, filterROsByDateRangeWithCarryover, boundsRangeLabel, isCarryoverRO, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { applySharedROFilters, useSharedROFilters } from '@/hooks/useSharedROFilters';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import { maskHours } from '@/lib/maskHours';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
@@ -24,7 +25,7 @@ import { getReviewIssues } from '@/lib/reviewRules';
 import { cn, localDateStr } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
-import { compareAdvisorNames, normalizeAdvisorName, sortROs, matchesSearchQuery } from '@/lib/roFilters';
+import { compareAdvisorNames, normalizeAdvisorName, sortROs } from '@/lib/roFilters';
 import { getStatusSummary } from '@/lib/roStatus';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { getDateFilterLabel, getPeriodFilterLabels } from '@/lib/payPeriodRange';
@@ -249,12 +250,6 @@ const ROCard = memo(function ROCard({
 
 /* ── Filter types ───────────────────────────────── */
 
-interface FilterState {
-  advisors: string[];
-  laborTypes: LaborType[];
-  sortBy: 'date' | 'hours' | 'ro' | 'advisor' | 'customer' | 'laborType';
-}
-
 interface ROsTabProps {
   onEditRO: (ro: RepairOrder) => void;
   onViewModeChange?: (mode: 'cards' | 'spreadsheet') => void;
@@ -273,8 +268,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     Array.isArray(userSettings.payPeriodEndDates) &&
     userSettings.payPeriodEndDates.length > 0;
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const deferredSearch = useDeferredValue(searchQuery);
+  const { filters: sharedFilters, setFilters: setSharedFilters, setSearchQuery, toggleAdvisor, toggleLaborType, clearNonDateFilters } = useSharedROFilters();
+  const deferredSearch = useDeferredValue(sharedFilters.searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -308,11 +303,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     onViewModeChange?.(viewMode);
   }, [viewMode, onViewModeChange]);
 
-  const [filters, setFilters] = useLocalStorageState<FilterState>('ui.mobile.roTab.filters.v2', {
-    advisors: [],
-    laborTypes: [],
-    sortBy: 'date',
-  });
+  const [sortBy, setSortBy] = useLocalStorageState<'date' | 'hours' | 'ro' | 'advisor' | 'customer' | 'laborType'>('ui.mobile.roTab.sortBy.v1', 'date');
 
   const { dateFilter, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog, requestCustomDialog } =
     useSharedDateRange('week', 'mobile-ro-tab', userSettings);
@@ -342,33 +333,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   }, [ros, rangeBounds]);
 
   useEffect(() => {
-    setFilters((prev) => {
+    setSharedFilters((prev) => {
       if (prev.advisors.length === 0) return prev;
       const allowed = new Set(advisorsInRange.map((name) => normalizeAdvisorName(name)));
       const nextAdvisors = prev.advisors.filter((name) => allowed.has(normalizeAdvisorName(name)));
       return nextAdvisors.length === prev.advisors.length ? prev : { ...prev, advisors: nextAdvisors };
     });
-  }, [advisorsInRange, setFilters]);
+  }, [advisorsInRange, setSharedFilters]);
 
   const preFilteredROs = useMemo(() => {
     let result = ros;
 
-    if (deferredSearch.trim()) {
-      const q = deferredSearch.trim();
-      result = result.filter(ro => matchesSearchQuery(ro, q));
-    }
-
-    if (filters.advisors.length > 0) {
-      const selectedAdvisors = new Set(filters.advisors.map((a) => normalizeAdvisorName(a)));
-      result = result.filter(ro => selectedAdvisors.has(normalizeAdvisorName(ro.advisor)));
-    }
-
-    if (filters.laborTypes.length > 0) {
-      result = result.filter(ro => filters.laborTypes.includes(ro.laborType));
-    }
-
-    return sortROs(result, filters.sortBy);
-  }, [ros, deferredSearch, filters]);
+    result = applySharedROFilters(result, { ...sharedFilters, searchQuery: deferredSearch });
+    return sortROs(result, sortBy);
+  }, [ros, deferredSearch, sharedFilters, sortBy]);
 
   const filteredROs = useMemo(
     () => filterROsByDateRangeWithCarryover(preFilteredROs, rangeBounds),
@@ -414,7 +392,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   useEffect(() => {
     setVisibleCount(50);
-  }, [searchQuery, filters, dateFilter]);
+  }, [sharedFilters.searchQuery, sharedFilters.advisors, sharedFilters.laborTypes, sortBy, dateFilter]);
 
   const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
   const hasMore = visibleCount < filteredROs.length;
@@ -463,10 +441,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   }, [ros, hoursGoalDaily]);
 
   const activeFiltersCount =
-    filters.advisors.length +
-    filters.laborTypes.length +
+    sharedFilters.advisors.length +
+    sharedFilters.laborTypes.length +
     (dateFilter !== 'all' ? 1 : 0) +
-    (filters.sortBy !== 'date' ? 1 : 0);
+    (sortBy !== 'date' ? 1 : 0);
 
   // Stable callbacks for ROCard — these must not recreate on every render or
   // memo(ROCard) is bypassed entirely. Each handler receives the RO (or its id)
@@ -482,22 +460,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     setShowDetail(true);
   }, []);
 
-  const toggleAdvisorFilter = (advisor: string) => {
-    setFilters(prev => ({
-      ...prev,
-      advisors: prev.advisors.includes(advisor) ? prev.advisors.filter(a => a !== advisor) : [...prev.advisors, advisor],
-    }));
-  };
-
-  const toggleLaborTypeFilter = (type: LaborType) => {
-    setFilters(prev => ({
-      ...prev,
-      laborTypes: prev.laborTypes.includes(type) ? prev.laborTypes.filter(t => t !== type) : [...prev.laborTypes, type],
-    }));
-  };
-
   const clearFilters = () => {
-    setFilters({ advisors: [], laborTypes: [], sortBy: 'date' });
+    clearNonDateFilters();
+    setSortBy('date');
     setDateRange('all');
   };
 
@@ -639,15 +604,15 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/45" />
               <input
                 type="text"
-                value={searchQuery}
+                value={sharedFilters.searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search RO#, advisor, VIN, work…"
                 className={cn(
                   'w-full h-9 pl-8 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring',
-                  searchQuery ? 'pr-7' : 'pr-3',
+                  sharedFilters.searchQuery ? 'pr-7' : 'pr-3',
                 )}
               />
-              {searchQuery && (
+              {sharedFilters.searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
@@ -700,11 +665,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 { type: 'customer-pay' as LaborType, label: 'CP', color: 'hsl(var(--status-customer-pay))' },
                 { type: 'internal' as LaborType, label: 'INT', color: 'hsl(var(--status-internal))' },
               ]).map(({ type, label, color }) => {
-                const active = filters.laborTypes.includes(type);
+                const active = sharedFilters.laborTypes.includes(type);
                 return (
                   <button
                     key={type}
-                    onClick={() => toggleLaborTypeFilter(type)}
+                    onClick={() => toggleLaborType(type)}
                     className={cn(
                       'h-[24px] px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border',
                       active ? 'text-white' : 'bg-transparent border-border/60 hover:border-border',
@@ -840,10 +805,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               ] as const).map(o => (
                 <button
                   key={o.value}
-                  onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
+                  onClick={() => setSortBy(o.value)}
                   className={cn(
                     'px-3 py-2 text-[11px] font-semibold rounded-lg border quiet-transition min-h-[40px] text-left',
-                    filters.sortBy === o.value
+                    sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-card text-muted-foreground border-border/70 hover:bg-muted/40'
                   )}
@@ -861,8 +826,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 <Chip
                   key={type}
                   label={type === 'warranty' ? 'Warranty' : type === 'customer-pay' ? 'Customer Pay' : 'Internal'}
-                  selected={filters.laborTypes.includes(type)}
-                  onSelect={() => toggleLaborTypeFilter(type)}
+                  selected={sharedFilters.laborTypes.includes(type)}
+                  onSelect={() => toggleLaborType(type)}
                 />
               ))}
             </div>
@@ -876,8 +841,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   <Chip
                     key={advisor}
                     label={advisor}
-                    selected={filters.advisors.includes(advisor)}
-                    onSelect={() => toggleAdvisorFilter(advisor)}
+                    selected={sharedFilters.advisors.includes(advisor)}
+                    onSelect={() => toggleAdvisor(advisor)}
                   />
                 ))}
               </div>

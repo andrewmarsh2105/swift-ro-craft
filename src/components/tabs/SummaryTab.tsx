@@ -37,6 +37,7 @@ import { MultiPeriodComparison } from '@/components/summary/MultiPeriodCompariso
 import { getDayRange } from '@/lib/summaryDateRanges';
 import { computeDateRangeBounds, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { getDateFilterLabel, getDefaultPeriodFilter, getPeriodFilterLabels, normalizeDateFilterForPayPeriod } from '@/lib/payPeriodRange';
+import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -91,11 +92,18 @@ export function SummaryTab() {
 
   const defaultPeriodFilter = getDefaultPeriodFilter(userSettings);
   const periodLabels = getPeriodFilterLabels(userSettings);
+  const {
+    dateFilter: sharedDateFilter,
+    setFilter: setSharedDateFilter,
+    customStart: sharedCustomStart,
+    customEnd: sharedCustomEnd,
+    applyCustom: applySharedCustomRange,
+  } = useSharedDateRange('week', 'summary-tab', userSettings);
 
   type SummaryRangeMode = DateFilterKey | 'day';
-  const [rangeMode, setRangeMode] = useState<SummaryRangeMode>(defaultPeriodFilter);
-  const [customStart, setCustomStart] = useState<Date | undefined>();
-  const [customEnd, setCustomEnd] = useState<Date | undefined>();
+  const [rangeMode, setRangeMode] = useState<SummaryRangeMode>(sharedDateFilter);
+  const [customStart, setCustomStart] = useState<Date | undefined>(sharedCustomStart ? new Date(`${sharedCustomStart}T12:00:00`) : undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
@@ -129,6 +137,17 @@ export function SummaryTab() {
   useEffect(() => {
     setRangeMode((prev) => (prev === 'day' ? prev : normalizeDateFilterForPayPeriod(prev, userSettings)));
   }, [userSettings]);
+  useEffect(() => {
+    if (rangeMode !== 'day') setRangeMode(sharedDateFilter);
+  }, [sharedDateFilter, rangeMode]);
+  useEffect(() => {
+    setCustomStart(sharedCustomStart ? new Date(`${sharedCustomStart}T12:00:00`) : undefined);
+    setCustomEnd(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);
+  }, [sharedCustomStart, sharedCustomEnd]);
+  useEffect(() => {
+    if (rangeMode !== 'custom' || !customStart || !customEnd) return;
+    applySharedCustomRange(localDateStr(customStart), localDateStr(customEnd));
+  }, [rangeMode, customStart, customEnd, applySharedCustomRange]);
 
   const dateRange = useMemo(() => {
     if (rangeMode === 'day') return getDayRange();
@@ -260,7 +279,11 @@ export function SummaryTab() {
 
   const RangeSelector = () => (
     <div className="flex items-center gap-2">
-      <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
+      <Select value={rangeMode} onValueChange={(v) => {
+        setRangeMode(v);
+        if (v !== 'day') setSharedDateFilter(v as DateFilterKey);
+        setShowAllAdvisors(false);
+      }}>
         <SelectTrigger className="w-auto h-8 border border-border/60 bg-card shadow-none focus:ring-1 focus:ring-primary/30 px-3 gap-1 flex-shrink-0 text-xs font-semibold">
           <SelectValue />
         </SelectTrigger>
