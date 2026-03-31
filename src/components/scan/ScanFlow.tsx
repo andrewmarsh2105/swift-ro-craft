@@ -43,6 +43,15 @@ const restoreViewportState = () => {
   });
 };
 
+const resetViewportZoom = () => {
+  const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+  if (vp) {
+    const original = vp.content;
+    vp.content = `${original}, maximum-scale=1`;
+    requestAnimationFrame(() => { vp.content = original; });
+  }
+};
+
 export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, existingLineDescriptions = [] }: ScanFlowProps) {
   const isMobile = useIsMobile();
 
@@ -156,14 +165,8 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
 
   const handleClose = () => {
     reset();
-    // iOS Safari can leave the viewport zoomed after camera/file-picker use.
-    // Briefly set maximum-scale=1 to snap zoom back to 1, then restore normal limits.
-    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (vp) {
-      const original = vp.content;
-      vp.content = `${original}, maximum-scale=1`;
-      requestAnimationFrame(() => { vp.content = original; });
-    }
+    // Keep order: reset scan state, normalize zoom, then notify parent to close.
+    resetViewportZoom();
     restoreViewportState();
     onClose();
   };

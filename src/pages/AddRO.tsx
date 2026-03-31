@@ -228,6 +228,15 @@ export default function AddRO() {
 
   const presetsVisible = lines.length > 1 || lines.some(l => l.description.trim() || l.hoursPaid > 0);
 
+  const resetViewportZoom = () => {
+    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (vp) {
+      const original = vp.content;
+      vp.content = `${original}, maximum-scale=1`;
+      requestAnimationFrame(() => { vp.content = original; });
+    }
+  };
+
   const handleScanApply = (data: ScanApplyData) => {
     if (data.roNumber) setRoNumber(data.roNumber);
     if (data.advisor) setAdvisor(data.advisor);
@@ -247,12 +256,7 @@ export default function AddRO() {
     }
     setHighlightedLineIds(newLineIds);
     setShowScanFlow(false);
-    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (vp) {
-      const original = vp.content;
-      vp.content = `${original}, maximum-scale=1`;
-      requestAnimationFrame(() => { vp.content = original; });
-    }
+    resetViewportZoom();
     setTimeout(() => {
       linesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
@@ -355,6 +359,7 @@ export default function AddRO() {
         toast.success('RO created');
       }
       haptics.success();
+      resetViewportZoom();
       // Reset snapshot so guard doesn't block
       initialSnapshotRef.current = currentSnapshot;
       if (addAnother) {
