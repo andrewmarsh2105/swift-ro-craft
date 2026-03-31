@@ -533,3 +533,18 @@
     @apply font-bold text-foreground tabular-nums;
   }
 }
+
+/*
+ * iOS Safari auto-zoom prevention.
+ * Safari zooms the viewport when an input is focused with computed font-size < 16px.
+ * The zoom persists after blur and leaves the page in a broken layout.
+ * Targeting `pointer: coarse` keeps this from affecting desktop.
+ * `max(16px, 1em)` preserves intentionally larger sizes while enforcing the minimum.
+ */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
+}

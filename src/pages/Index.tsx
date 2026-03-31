@@ -57,6 +57,8 @@ function MobileApp() {
   };
 
   const handleScanPhoto = () => {
+    // Close the sheet before navigating so it doesn't flash on return.
+    setShowQuickAdd(false);
     navigate('/add-ro', { state: { openScan: true } });
   };
 
