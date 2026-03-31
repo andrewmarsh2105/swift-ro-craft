@@ -11,6 +11,7 @@ import { StatusPill } from '@/components/mobile/StatusPill';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
+import { PostSavePaidStatusPrompt } from '@/components/shared/PostSavePaidStatusPrompt';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { EmptyState } from '@/components/states/EmptyState';
@@ -25,6 +26,7 @@ import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
+import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 
 interface ROEditorProps {
   ro?: RepairOrder | null;
@@ -45,6 +47,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const { settings, addRO, updateRO, updateAdvisors, updatePresets, ros } = useRO();
   const { userSettings, getFlagsForRO, addFlag, clearFlag } = useFlagContext();
   const { isPro } = useSubscription();
+  const postSaveStatusPrompt = usePostSavePaidStatusPrompt({ updateRO });
 
   // RO cap — use ro.date (local YYYY-MM-DD) to avoid UTC createdAt timezone drift.
   const monthlyROCount = useMemo(() => {
@@ -237,8 +240,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      // New ROs are automatically marked as paid (use RO date); editing preserves existing paidDate
-      paidDate: ro ? (paidDate.trim() || '') : (paidDate.trim() || date || localDateStr()),
+      // New ROs are created open; prompt asks whether to mark paid immediately after save.
+      paidDate: ro ? (paidDate.trim() || '') : '',
       paidHours: totalHours, laborType,
       workPerformed: computedWorkPerformed, notes, date,
       photos: ro?.photos, lines, isSimpleMode: false,
@@ -250,19 +253,27 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         const success = await updateRO(ro.id, roData);
         if (!success) return;
         toast.success('RO updated');
+        onSave?.();
       } else {
         const saved = await addRO(roData);
         if (!saved) return;
+        if (!('id' in saved)) return;
         toast.success('RO created');
+        postSaveStatusPrompt.requestStatusChoice({
+          roId: saved.id,
+          roNumber: roData.roNumber,
+          onComplete: () => {
+            if (addAnother) {
+              setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
+              setLines([createEmptyLine(1)]); setShowDetails(false);
+              onSaveAndAddAnother?.();
+            } else {
+              onSave?.();
+            }
+          },
+        });
       }
       haptics.success();
-      if (addAnother) {
-        setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
-        setLines([createEmptyLine(1)]); setShowDetails(false);
-        onSaveAndAddAnother?.();
-      } else {
-        onSave?.();
-      }
     } catch (err: any) {
       toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
     } finally {
@@ -540,6 +551,13 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       />
 
       <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
+      <PostSavePaidStatusPrompt
+        open={postSaveStatusPrompt.statusPromptOpen}
+        roNumber={postSaveStatusPrompt.statusPromptRONumber}
+        isSaving={postSaveStatusPrompt.isSavingChoice}
+        onChoose={postSaveStatusPrompt.resolveChoice}
+        onDismiss={postSaveStatusPrompt.dismissPrompt}
+      />
     </div>
   );
 }
