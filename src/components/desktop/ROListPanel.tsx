@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocalStorageState } from "@/hooks/useLocalStorageState";
 
 import { useRO } from "@/contexts/ROContext";
 import { useFlagContext } from "@/contexts/FlagContext";
@@ -181,6 +182,7 @@ export const ROListPanel = memo(function ROListPanel({
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [density, setDensity] = useState<RowDensity>("normal");
   const laborTypeFilter = sharedFilters.laborTypes;
+  const [payStatusFilter, setPayStatusFilter] = useLocalStorageState<'all' | 'paid' | 'open'>('ui.desktop.roList.payStatus.v1', 'all');
 
   const hasCustomPayPeriod =
     userSettings.payPeriodType === "custom" &&
@@ -221,6 +223,12 @@ export const ROListPanel = memo(function ROListPanel({
       advisors: advisorFilter === "all" ? [] : [advisorFilter],
     });
 
+    if (payStatusFilter === 'paid') {
+      result = result.filter((ro) => !!ro.paidDate);
+    } else if (payStatusFilter === 'open') {
+      result = result.filter((ro) => !ro.paidDate);
+    }
+
     result = filterROsByDateRangeWithCarryover(result, listBounds);
 
     const dir = sortDir === "asc" ? 1 : -1;
@@ -244,7 +252,7 @@ export const ROListPanel = memo(function ROListPanel({
       }
       return 0;
     });
-  }, [ros, sharedFilters, advisorFilter, deferredQuery, listBounds, sortKey, sortDir]);
+  }, [ros, sharedFilters, advisorFilter, deferredQuery, listBounds, payStatusFilter, sortKey, sortDir]);
 
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
 
@@ -285,7 +293,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   useEffect(() => {
     setVisibleCount(80);
-  }, [deferredQuery, dateFilter, advisorFilter, laborTypeFilter, sortKey, sortDir]);
+  }, [deferredQuery, dateFilter, advisorFilter, laborTypeFilter, payStatusFilter, sortKey, sortDir]);
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
 
@@ -461,6 +469,35 @@ export const ROListPanel = memo(function ROListPanel({
                     : { color }}
                   title={type === "warranty" ? "Warranty" : type === "customer-pay" ? "Customer Pay" : "Internal"}
                 >
+                  {label}
+                </button>
+              );
+            })}
+
+            {/* Divider */}
+            <span className="w-px h-3.5 bg-border/60 flex-shrink-0" />
+
+            {/* Pay status filter */}
+            {([
+              { value: "paid" as const, label: "Paid", icon: CheckCircle2 },
+              { value: "open" as const, label: "Open", icon: LockOpen },
+            ]).map(({ value, label, icon: Icon }) => {
+              const active = payStatusFilter === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setPayStatusFilter(prev => prev === value ? 'all' : value)}
+                  className={cn(
+                    "h-6 px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border flex items-center gap-1",
+                    active
+                      ? value === 'paid'
+                        ? "bg-[hsl(var(--status-warranty))] text-white border-[hsl(var(--status-warranty))]"
+                        : "bg-[hsl(var(--status-internal))] text-white border-[hsl(var(--status-internal))]"
+                      : "bg-transparent border-border/60 hover:bg-muted/50 text-muted-foreground",
+                  )}
+                  title={`Filter: ${label} only`}
+                >
+                  <Icon className="h-2.5 w-2.5" />
                   {label}
                 </button>
               );

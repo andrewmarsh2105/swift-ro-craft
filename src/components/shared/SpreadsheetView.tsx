@@ -43,6 +43,7 @@ import {
   type SpreadsheetRow,
   type SpreadsheetLineRow,
   type SpreadsheetSubtotalRow,
+  type SpreadsheetSectionDividerRow,
 } from '@/lib/buildSpreadsheetRows';
 
 /* ─── Memoized line row ─── */
@@ -558,7 +559,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const warrantyHours = periodRow?.wHours ?? 0;
   const cpHours = periodRow?.cpHours ?? 0;
   const internalHours = periodRow?.iHours ?? 0;
-  const totalLines = allRows.filter(r => r.rowType === 'line').length;
+  // Only count paid line rows toward the lines total; open/unpaid rows are secondary.
+  const totalLines = allRows.filter(r => r.rowType === 'line' && !(r as SpreadsheetLineRow).isCarryover).length;
+  const paidROCount = filteredROs.filter(ro => !!ro.paidDate).length;
+  const openROCount = filteredROs.filter(ro => !ro.paidDate).length;
 
   /* ─── Paginate ─── */
   const visibleRows = useMemo(() => allRows.slice(0, visibleCount), [allRows, visibleCount]);
@@ -592,13 +596,17 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, [selectedROIds, getFlagsForRO, clearFlagsBulk, deselectAll]);
 
   const handleBatchExport = useCallback(() => {
-    const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id));
-    const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none', viewStart });
+    // Only export paid ROs from the selection — open ROs are never included in exports.
+    const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id) && !!ro.paidDate);
+    const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none' });
     const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-    const exportRows = rows.map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
+    const exportRows = rows
+      .filter(r => r.rowType !== 'sectionDivider')
+      .map(r => rowToExportCells(r, headers).map(c => csvCell(c)))
+      .filter(r => r.length > 0);
     const csv = buildCSV(headers, exportRows);
     downloadCSVFile(csv, `selected-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast.success(`Exported ${selectedROs.length} RO(s)`);
+    toast.success(`Exported ${selectedROs.length} paid RO(s)`);
     deselectAll();
   }, [selectedROIds, filteredROs, viewMode, deselectAll, viewStart]);
 
@@ -692,19 +700,35 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, [roFlagCounts]);
 
   /* ─── Export helpers ─── */
+
+  // Payroll exports never include open/unpaid rows; audit exports include everything.
+  const getExportRows = useCallback((mode: 'payroll' | 'audit') => {
+    if (mode === 'payroll') {
+      return allRows.filter(r =>
+        r.rowType === 'sectionDivider' ? false
+        : r.rowType === 'line' ? !(r as SpreadsheetLineRow).isCarryover
+        : r.rowType === 'roSubtotal' ? !(r as SpreadsheetSubtotalRow).isCarryover
+        : true,
+      );
+    }
+    return allRows.filter(r => r.rowType !== 'sectionDivider');
+  }, [allRows]);
+
   const handleExportCSV = useCallback((mode: 'payroll' | 'audit') => {
     const headers = mode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-    const exportRows = allRows.map(r => rowToExportCells(r, headers).map(c => csvCell(c)));
+    const rows = getExportRows(mode);
+    const exportRows = rows.map(r => rowToExportCells(r, headers).map(c => csvCell(c))).filter(r => r.length > 0);
     const csv = buildCSV(headers, exportRows);
     downloadCSVFile(csv, `${mode}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} CSV downloaded`);
-  }, [allRows]);
+  }, [allRows, getExportRows]);
 
   const handleExportXLSX = useCallback(async () => {
     try {
       const XLSX = await import('xlsx');
       const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-      const exportRows = allRows.map(r => rowToExportCells(r, headers));
+      const rows = getExportRows(viewMode);
+      const exportRows = rows.map(r => rowToExportCells(r, headers)).filter(r => r.length > 0);
       const data = [headers, ...exportRows];
 
       const ws = XLSX.utils.aoa_to_sheet(data);
@@ -729,7 +753,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     try {
       const { exportPDFFromRows } = await import('@/lib/pdfExport');
       exportPDFFromRows(
-        allRows,
+        getExportRows(mode),
         mode,
         `${mode}-${format(new Date(), 'yyyy-MM-dd')}.pdf`,
         `${mode === 'payroll' ? 'Payroll' : 'Audit'} Report${rangeLabel ? ' — ' + rangeLabel : ''}`,
@@ -738,7 +762,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     } catch {
       toast.error('PDF export failed');
     }
-  }, [allRows, rangeLabel]);
+  }, [getExportRows, rangeLabel]);
 
   const handlePrint = useCallback(() => {
     const el = tableRef.current;
@@ -997,6 +1021,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {isMobile ? (
         <div className="flex-1 overflow-auto">
           {visibleRows.map((row, i) => {
+            if (row.rowType === 'sectionDivider') {
+              const div = row as SpreadsheetSectionDividerRow;
+              return (
+                <div key={`divider-${i}`} className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-y border-dashed border-border/50 mt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{div.label}</span>
+                  <span className="flex-1 h-px bg-border/40" />
+                  <span className="text-[9px] text-muted-foreground/40 italic">not counted in totals</span>
+                </div>
+              );
+            }
             if (row.rowType === 'daySubtotal' || row.rowType === 'advisorSubtotal') {
               const sub = row as SpreadsheetSubtotalRow;
               return (
@@ -1109,6 +1143,21 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             </thead>
             <tbody>
               {visibleRows.map((row, i) => {
+                if (row.rowType === 'sectionDivider') {
+                  const div = row as SpreadsheetSectionDividerRow;
+                  const colCount = activeCols.length + (showCheckbox ? 1 : 0);
+                  return (
+                    <tr key={`divider-${i}`} className="bg-muted/20">
+                      <td colSpan={colCount} className={cn(cellPx, 'py-2')}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">{div.label}</span>
+                          <span className="flex-1 h-px bg-border/40" />
+                          <span className="text-[9px] text-muted-foreground/40 italic">visible but not counted in totals or exports</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
                 if (row.rowType === 'roSubtotal') {
                   const sub = row as SpreadsheetSubtotalRow;
                   const colCount = activeCols.length + (showCheckbox ? 1 : 0);
@@ -1260,7 +1309,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* ─── Footer ─── */}
       <div className="flex-shrink-0 border-t border-border/40 bg-background/60 px-3 py-1 flex items-center justify-between gap-2">
         <div className="flex gap-3 text-muted-foreground text-[11px] tabular-nums">
-          <span><strong className="text-foreground font-semibold">{filteredROs.length}</strong> ROs</span>
+          <span><strong className="text-foreground font-semibold">{paidROCount}</strong> paid</span>
+          {openROCount > 0 && <span><strong className="text-muted-foreground/60 font-semibold">{openROCount}</strong> <span className="text-muted-foreground/50">open</span></span>}
           <span><strong className="text-foreground font-semibold">{totalLines}</strong> lines</span>
         </div>
         <div className="flex items-center gap-2 tabular-nums text-[11px]">
