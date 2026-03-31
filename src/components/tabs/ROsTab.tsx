@@ -250,6 +250,7 @@ const ROCard = memo(function ROCard({
 
 /* ── Filter types ───────────────────────────────── */
 
+
 interface ROsTabProps {
   onEditRO: (ro: RepairOrder) => void;
   onViewModeChange?: (mode: 'cards' | 'spreadsheet') => void;
@@ -268,7 +269,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     Array.isArray(userSettings.payPeriodEndDates) &&
     userSettings.payPeriodEndDates.length > 0;
 
-  const { filters: sharedFilters, setFilters: setSharedFilters, setSearchQuery, toggleAdvisor, toggleLaborType, clearNonDateFilters } = useSharedROFilters();
+  const { filters: sharedFilters, setFilters: setSharedFilters, setSearchQuery, toggleAdvisor, toggleLaborType, setPayStatus, clearNonDateFilters } = useSharedROFilters();
   const deferredSearch = useDeferredValue(sharedFilters.searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
@@ -457,7 +458,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     sharedFilters.advisors.length +
     sharedFilters.laborTypes.length +
     (dateFilter !== 'all' ? 1 : 0) +
-    (sortBy !== 'date' ? 1 : 0);
+    (sortBy !== 'date' ? 1 : 0) +
+    (sharedFilters.payStatus !== 'all' ? 1 : 0);
 
   // Stable callbacks for ROCard — these must not recreate on every render or
   // memo(ROCard) is bypassed entirely. Each handler receives the RO (or its id)
@@ -696,6 +698,35 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   </button>
                 );
               })}
+              {/* Divider — separates labor type from pay status */}
+              <span className="w-px h-4 bg-border/60 flex-shrink-0 mx-1.5" />
+              {/* Pay status quick filters */}
+              <button
+                onClick={() => setPayStatus(sharedFilters.payStatus === 'paid' ? 'all' : 'paid')}
+                className={cn(
+                  'h-[22px] px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border flex items-center gap-1',
+                  sharedFilters.payStatus === 'paid'
+                    ? 'bg-[hsl(var(--status-warranty))] text-white border-[hsl(var(--status-warranty))]'
+                    : 'bg-transparent text-muted-foreground border-border/60 hover:border-border',
+                )}
+                title="Filter: Paid only"
+              >
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                Paid
+              </button>
+              <button
+                onClick={() => setPayStatus(sharedFilters.payStatus === 'open' ? 'all' : 'open')}
+                className={cn(
+                  'h-[22px] px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border flex items-center gap-1',
+                  sharedFilters.payStatus === 'open'
+                    ? 'bg-[hsl(var(--status-internal))] text-white border-[hsl(var(--status-internal))]'
+                    : 'bg-transparent text-muted-foreground border-border/60 hover:border-border',
+                )}
+                title="Filter: Open only"
+              >
+                <LockOpen className="h-2.5 w-2.5" />
+                Open
+              </button>
             </div>
           )}
         </div>
@@ -841,6 +872,24 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   label={type === 'warranty' ? 'Warranty' : type === 'customer-pay' ? 'Customer Pay' : 'Internal'}
                   selected={sharedFilters.laborTypes.includes(type)}
                   onSelect={() => toggleLaborType(type)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="surface-subtle p-3">
+            <label className="section-title block mb-2.5">Pay Status</label>
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { value: 'all' as const, label: 'All' },
+                { value: 'paid' as const, label: 'Paid' },
+                { value: 'open' as const, label: 'Open' },
+              ]).map(opt => (
+                <Chip
+                  key={opt.value}
+                  label={opt.label}
+                  selected={sharedFilters.payStatus === opt.value}
+                  onSelect={() => setPayStatus(opt.value)}
                 />
               ))}
             </div>

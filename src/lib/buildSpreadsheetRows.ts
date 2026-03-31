@@ -2,11 +2,10 @@ import { typeCode } from '@/lib/csvUtils';
 import { formatVehicleChip } from '@/types/ro';
 import type { RepairOrder } from '@/types/ro';
 import type { ROSnapshot } from '@/hooks/useCloseouts';
-import { isCarryoverRO } from '@/lib/dateRangeFilter';
 
 /* ─── Row types ─── */
 
-export type SpreadsheetRowType = 'line' | 'roSubtotal' | 'daySubtotal' | 'advisorSubtotal' | 'periodSubtotal';
+export type SpreadsheetRowType = 'line' | 'roSubtotal' | 'daySubtotal' | 'advisorSubtotal' | 'periodSubtotal' | 'sectionDivider';
 export type GroupByMode = 'date' | 'ro' | 'advisor' | 'none';
 
 export interface SpreadsheetLineRow {
@@ -28,53 +27,54 @@ export interface SpreadsheetLineRow {
   /** Original RO reference for click handlers (only present for live data) */
   ro?: RepairOrder;
   lineIndex?: number;
-  /** True when this line belongs to an unpaid RO from a prior period (carryover). */
+  /**
+   * True when this line belongs to an unpaid/open RO.
+   * These rows are shown but excluded from all totals and payroll exports.
+   */
   isCarryover?: boolean;
 }
 
 export interface SpreadsheetSubtotalRow {
   rowType: 'roSubtotal' | 'daySubtotal' | 'advisorSubtotal' | 'periodSubtotal';
   groupIndex: number;
-  label: string; // e.g. "RO #12345 total", "Day total (Feb 27)", "Period total (Feb 23–Mar 8)"
+  label: string;
   hours: number;
-  /** Optional type breakdown */
   cpHours?: number;
   wHours?: number;
   iHours?: number;
-  /** True when this subtotal row belongs to a carryover (unpaid prior-period) RO. */
+  /** True when this subtotal belongs to an open/unpaid RO (excluded from period totals). */
   isCarryover?: boolean;
 }
 
-export type SpreadsheetRow = SpreadsheetLineRow | SpreadsheetSubtotalRow;
+export interface SpreadsheetSectionDividerRow {
+  rowType: 'sectionDivider';
+  groupIndex: number;
+  label: string;
+}
+
+export type SpreadsheetRow = SpreadsheetLineRow | SpreadsheetSubtotalRow | SpreadsheetSectionDividerRow;
 
 /* ─── Builder from live RepairOrder[] ─── */
 
 export interface BuildRowsOptions {
   ros: RepairOrder[];
-  periodLabel?: string; // e.g. "Feb 23–Mar 8"
+  periodLabel?: string;
   groupBy?: GroupByMode;
-  /**
-   * Start of the currently viewed period (YYYY-MM-DD).
-   * When provided, unpaid ROs whose original date is before this value are
-   * included as carryover rows (shown but excluded from all subtotals).
-   */
   viewStart?: string;
 }
 
-export function buildSpreadsheetRows({ ros, periodLabel, groupBy = 'date', viewStart }: BuildRowsOptions): SpreadsheetRow[] {
-  // Paid ROs go into normal rows; unpaid ROs from prior periods become carryover rows.
+export function buildSpreadsheetRows({ ros, periodLabel, groupBy = 'date', viewStart: _viewStart }: BuildRowsOptions): SpreadsheetRow[] {
+  // Paid ROs are the primary payroll rows.
+  // All open/unpaid ROs are shown below as secondary (muted, not counted).
   const paidROs = ros.filter(ro => !!ro.paidDate);
-  const carryoverROs = viewStart
-    ? ros.filter(ro => isCarryoverRO(ro, viewStart))
-    : [];
-  // Combine: paid ROs + carryover ROs for display
-  const allROs = [...paidROs, ...carryoverROs];
+  const openROs = ros.filter(ro => !ro.paidDate);
+
   switch (groupBy) {
-    case 'ro': return buildGroupedByRO(allROs, periodLabel, viewStart);
-    case 'advisor': return buildGroupedByAdvisor(allROs, periodLabel, viewStart);
-    case 'none': return buildFlat(allROs, periodLabel, viewStart);
+    case 'ro': return buildGroupedByRO(paidROs, openROs, periodLabel);
+    case 'advisor': return buildGroupedByAdvisor(paidROs, openROs, periodLabel);
+    case 'none': return buildFlat(paidROs, openROs, periodLabel);
     case 'date':
-    default: return buildGroupedByDate(allROs, periodLabel, viewStart);
+    default: return buildGroupedByDate(paidROs, openROs, periodLabel);
   }
 }
 
@@ -84,11 +84,11 @@ function emitROLines(
   ro: RepairOrder,
   rows: SpreadsheetRow[],
   groupIndex: number,
-  carryover: boolean,
+  isOpen: boolean,
 ): { total: number; cp: number; w: number; i: number } {
   let roTotal = 0, roCP = 0, roW = 0, roI = 0;
   const hasLines = ro.lines?.length > 0;
-  // Carryover ROs always use ro.date; paid ROs show paidDate as the effective date
+  // Open ROs use ro.date; paid ROs show paidDate as the effective date.
   const displayDate = ro.paidDate || ro.date;
 
   if (hasLines) {
@@ -111,7 +111,7 @@ function emitROLines(
         notes: ro.notes || '',
         mileage: ro.mileage || '', vin: ro.vehicle?.vin || '',
         ro, lineIndex: i,
-        isCarryover: carryover || undefined,
+        isCarryover: isOpen || undefined,
       });
     }
   } else {
@@ -131,7 +131,7 @@ function emitROLines(
       notes: ro.notes || '',
       mileage: ro.mileage || '', vin: ro.vehicle?.vin || '',
       ro, lineIndex: -1,
-      isCarryover: carryover || undefined,
+      isCarryover: isOpen || undefined,
     });
   }
 
@@ -146,10 +146,34 @@ function pushPeriodSubtotal(rows: SpreadsheetRow[], periodLabel: string | undefi
   });
 }
 
-/* ─── Group by Date (original behaviour) ─── */
+function buildOpenSection(openROs: RepairOrder[], rows: SpreadsheetRow[], startGroupIndex: number): number {
+  if (openROs.length === 0) return startGroupIndex;
 
-function buildGroupedByDate(ros: RepairOrder[], periodLabel?: string, viewStart?: string): SpreadsheetRow[] {
-  const sorted = [...ros].sort((a, b) => {
+  rows.push({ rowType: 'sectionDivider', groupIndex: -1, label: 'Open / Unpaid' });
+
+  const sorted = [...openROs].sort((a, b) => {
+    const aD = a.date, bD = b.date;
+    return bD.localeCompare(aD) || a.roNumber.localeCompare(b.roNumber);
+  });
+
+  let groupIndex = startGroupIndex;
+  for (const ro of sorted) {
+    const t = emitROLines(ro, rows, groupIndex, true);
+    rows.push({
+      rowType: 'roSubtotal', groupIndex,
+      label: `RO #${ro.roNumber} (open)`,
+      hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i,
+      isCarryover: true,
+    });
+    groupIndex++;
+  }
+  return groupIndex;
+}
+
+/* ─── Group by Date ─── */
+
+function buildGroupedByDate(paidROs: RepairOrder[], openROs: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
+  const sorted = [...paidROs].sort((a, b) => {
     const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
     return aD.localeCompare(bD) || a.roNumber.localeCompare(b.roNumber);
   });
@@ -170,15 +194,9 @@ function buildGroupedByDate(ros: RepairOrder[], periodLabel?: string, viewStart?
     let dT = 0, dCP = 0, dW = 0, dI = 0;
 
     for (const ro of dateROs) {
-      const carryover = isCarryoverRO(ro, viewStart);
-      const t = emitROLines(ro, rows, groupIndex, carryover);
-      if (carryover) {
-        rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} (carryover)`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i, isCarryover: true });
-        // Carryover hours intentionally not accumulated into day/period totals
-      } else {
-        rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
-        dT += t.total; dCP += t.cp; dW += t.w; dI += t.i;
-      }
+      const t = emitROLines(ro, rows, groupIndex, false);
+      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+      dT += t.total; dCP += t.cp; dW += t.w; dI += t.i;
       groupIndex++;
     }
 
@@ -187,37 +205,36 @@ function buildGroupedByDate(ros: RepairOrder[], periodLabel?: string, viewStart?
   }
 
   pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
+
+  buildOpenSection(openROs, rows, groupIndex);
   return rows;
 }
 
 /* ─── Group by RO ─── */
 
-function buildGroupedByRO(ros: RepairOrder[], periodLabel?: string, viewStart?: string): SpreadsheetRow[] {
-  const sorted = [...ros].sort((a, b) => a.roNumber.localeCompare(b.roNumber));
+function buildGroupedByRO(paidROs: RepairOrder[], openROs: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
+  const sorted = [...paidROs].sort((a, b) => a.roNumber.localeCompare(b.roNumber));
   const rows: SpreadsheetRow[] = [];
   let groupIndex = 0;
   let pT = 0, pCP = 0, pW = 0, pI = 0;
 
   for (const ro of sorted) {
-    const carryover = isCarryoverRO(ro, viewStart);
-    const t = emitROLines(ro, rows, groupIndex, carryover);
-    if (carryover) {
-      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} (carryover)`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i, isCarryover: true });
-    } else {
-      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
-      pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
-    }
+    const t = emitROLines(ro, rows, groupIndex, false);
+    rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+    pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
     groupIndex++;
   }
 
   pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
+
+  buildOpenSection(openROs, rows, groupIndex);
   return rows;
 }
 
 /* ─── Group by Advisor ─── */
 
-function buildGroupedByAdvisor(ros: RepairOrder[], periodLabel?: string, viewStart?: string): SpreadsheetRow[] {
-  const sorted = [...ros].sort((a, b) =>
+function buildGroupedByAdvisor(paidROs: RepairOrder[], openROs: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
+  const sorted = [...paidROs].sort((a, b) =>
     (a.advisor || '').localeCompare(b.advisor || '') || a.roNumber.localeCompare(b.roNumber),
   );
 
@@ -236,14 +253,9 @@ function buildGroupedByAdvisor(ros: RepairOrder[], periodLabel?: string, viewSta
     let aT = 0, aCP = 0, aW = 0, aI = 0;
 
     for (const ro of advROs) {
-      const carryover = isCarryoverRO(ro, viewStart);
-      const t = emitROLines(ro, rows, groupIndex, carryover);
-      if (carryover) {
-        rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} (carryover)`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i, isCarryover: true });
-      } else {
-        rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
-        aT += t.total; aCP += t.cp; aW += t.w; aI += t.i;
-      }
+      const t = emitROLines(ro, rows, groupIndex, false);
+      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+      aT += t.total; aCP += t.cp; aW += t.w; aI += t.i;
       groupIndex++;
     }
 
@@ -252,13 +264,15 @@ function buildGroupedByAdvisor(ros: RepairOrder[], periodLabel?: string, viewSta
   }
 
   pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
+
+  buildOpenSection(openROs, rows, groupIndex);
   return rows;
 }
 
 /* ─── No grouping (flat) ─── */
 
-function buildFlat(ros: RepairOrder[], periodLabel?: string, viewStart?: string): SpreadsheetRow[] {
-  const sorted = [...ros].sort((a, b) => {
+function buildFlat(paidROs: RepairOrder[], openROs: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
+  const sorted = [...paidROs].sort((a, b) => {
     const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
     return aD.localeCompare(bD) || a.roNumber.localeCompare(b.roNumber);
   });
@@ -268,15 +282,14 @@ function buildFlat(ros: RepairOrder[], periodLabel?: string, viewStart?: string)
   let pT = 0, pCP = 0, pW = 0, pI = 0;
 
   for (const ro of sorted) {
-    const carryover = isCarryoverRO(ro, viewStart);
-    const t = emitROLines(ro, rows, groupIndex, carryover);
-    if (!carryover) {
-      pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
-    }
+    const t = emitROLines(ro, rows, groupIndex, false);
+    pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
     groupIndex++;
   }
 
   pushPeriodSubtotal(rows, periodLabel, pT, pCP, pW, pI);
+
+  buildOpenSection(openROs, rows, groupIndex);
   return rows;
 }
 
@@ -402,6 +415,7 @@ export const AUDIT_EXPORT_HEADERS = ['RO #', 'Date', 'Advisor', 'Customer', 'Veh
 
 /** Convert a SpreadsheetRow to an export cell array for the given headers */
 export function rowToExportCells(row: SpreadsheetRow, headers: string[]): string[] {
+  if (row.rowType === 'sectionDivider') return [];
   if (row.rowType === 'line') {
     return headers.map(h => {
       switch (h) {

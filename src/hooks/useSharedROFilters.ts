@@ -8,12 +8,14 @@ export interface SharedROFiltersState {
   searchQuery: string;
   advisors: string[];
   laborTypes: LaborType[];
+  payStatus: 'all' | 'paid' | 'open';
 }
 
 const DEFAULT_FILTERS: SharedROFiltersState = {
   searchQuery: '',
   advisors: [],
   laborTypes: [],
+  payStatus: 'all',
 };
 
 function readLS(): SharedROFiltersState {
@@ -25,6 +27,7 @@ function readLS(): SharedROFiltersState {
       searchQuery: typeof parsed.searchQuery === 'string' ? parsed.searchQuery : '',
       advisors: Array.isArray(parsed.advisors) ? parsed.advisors : [],
       laborTypes: Array.isArray(parsed.laborTypes) ? parsed.laborTypes as LaborType[] : [],
+      payStatus: (parsed.payStatus === 'paid' || parsed.payStatus === 'open') ? parsed.payStatus : 'all',
     };
   } catch {
     return DEFAULT_FILTERS;
@@ -54,6 +57,12 @@ export function applySharedROFilters(ros: RepairOrder[], filters: SharedROFilter
 
   if (filters.laborTypes.length > 0) {
     result = result.filter((ro) => filters.laborTypes.includes(ro.laborType));
+  }
+
+  if (filters.payStatus === 'paid') {
+    result = result.filter((ro) => !!ro.paidDate);
+  } else if (filters.payStatus === 'open') {
+    result = result.filter((ro) => !ro.paidDate);
   }
 
   return result;
@@ -101,8 +110,12 @@ export function useSharedROFilters() {
     }));
   }, []);
 
+  const setPayStatus = useCallback((payStatus: 'all' | 'paid' | 'open') => {
+    setFilters((prev) => ({ ...prev, payStatus }));
+  }, []);
+
   const clearNonDateFilters = useCallback(() => {
-    setFilters((prev) => ({ ...prev, searchQuery: '', advisors: [], laborTypes: [] }));
+    setFilters((prev) => ({ ...prev, searchQuery: '', advisors: [], laborTypes: [], payStatus: 'all' }));
   }, []);
 
   return useMemo(() => ({
@@ -112,6 +125,7 @@ export function useSharedROFilters() {
     toggleAdvisor,
     setSingleAdvisor,
     toggleLaborType,
+    setPayStatus,
     clearNonDateFilters,
-  }), [filters, setSearchQuery, toggleAdvisor, setSingleAdvisor, toggleLaborType, clearNonDateFilters]);
+  }), [filters, setSearchQuery, toggleAdvisor, setSingleAdvisor, toggleLaborType, setPayStatus, clearNonDateFilters]);
 }
