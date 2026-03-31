@@ -107,7 +107,7 @@ export default function Landing() {
         style={{ background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.08)' }}
       >
         <div className="max-w-[1200px] mx-auto flex items-center justify-between h-14 px-4 md:px-8">
-          <Logo variant="full" scheme="dark" size="md" />
+          <Logo variant="full" scheme="dark" size="lg" />
           <nav className="flex items-center gap-1">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">
               Features

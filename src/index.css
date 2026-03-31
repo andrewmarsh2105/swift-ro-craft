@@ -441,7 +441,7 @@
 
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
-    @apply flex-shrink-0 h-10 flex items-center justify-between px-3;
+    @apply flex-shrink-0 h-12 flex items-center justify-between px-4;
     background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.95) 100%);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid hsl(var(--border) / 0.5);

@@ -14,21 +14,23 @@ import wordmarkSrc from '@/assets/ro-navigator-wordmark.jpeg';
 
 type LogoVariant = 'full' | 'monogram' | 'mark' | 'wordmark';
 type LogoScheme  = 'light' | 'dark' | 'amber' | 'auto';
+type LogoSize    = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 interface LogoProps {
   variant?: LogoVariant;
   scheme?: LogoScheme;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: LogoSize;
   className?: string;
 }
 
-const HEIGHT_MAP = {
-  xs: 16,
-  sm: 20,
-  md: 26,
-  lg: 34,
-  xl: 44,
-} as const;
+const HEIGHT_MAP: Record<LogoSize, number> = {
+  xs:  16,
+  sm:  20,
+  md:  26,
+  lg:  34,
+  xl:  44,
+  '2xl': 56,
+};
 
 export function Logo({
   variant: _variant = 'full',
@@ -38,7 +40,6 @@ export function Logo({
 }: LogoProps) {
   const h = HEIGHT_MAP[size];
   const isDark = scheme === 'dark';
-  // For 'auto' scheme, use CSS class to invert in dark mode
   const isAuto = scheme === 'auto';
 
   return (
@@ -52,8 +53,12 @@ export function Logo({
         height={h}
         className={cn(
           'object-contain',
+          // Dark scheme: invert JPEG to white silhouette on dark backgrounds
           isDark && 'brightness-0 invert',
-          isAuto && 'dark:brightness-0 dark:invert',
+          // Light scheme: multiply blend removes white JPEG background on light surfaces
+          scheme === 'light' && 'mix-blend-multiply',
+          // Auto: multiply in light mode, invert in dark mode
+          isAuto && 'mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert',
         )}
         style={{
           height: h,

@@ -262,7 +262,7 @@ export function DesktopWorkspace() {
 
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
-        <Logo variant="full" scheme="auto" size="xs" className="text-foreground" />
+        <Logo variant="full" scheme="auto" size="lg" className="text-foreground" />
 
         {/* Right-side toolbar */}
         <div className="flex items-center gap-px">
