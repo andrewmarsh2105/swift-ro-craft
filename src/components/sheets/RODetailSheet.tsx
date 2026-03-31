@@ -121,6 +121,7 @@ export function RODetailSheet({
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isTogglingPaid, setIsTogglingPaid] = useState(false);
 
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
   const [convertingIssue, setConvertingIssue] = useState<ReviewIssue | null>(null);
@@ -133,6 +134,10 @@ export function RODetailSheet({
       setConvertingIssue(null);
     }
   }, [ro?.id, isOpen]);
+
+  useEffect(() => {
+    setIsTogglingPaid(false);
+  }, [ro?.id, ro?.paidDate]);
 
   const flags = useMemo(() => (ro ? getFlagsForRO(ro.id) : []), [getFlagsForRO, ro]);
   const issues = useMemo(() => (ro ? getReviewIssues(ro, ros) : []), [ro, ros]);
@@ -151,9 +156,16 @@ export function RODetailSheet({
 
   const isPaid = !!ro?.paidDate;
 
-  const handleTogglePaid = () => {
+  const handleTogglePaid = async () => {
     if (!ro) return;
-    updateRO(ro.id, { paidDate: isPaid ? '' : localDateStr() });
+    if (isTogglingPaid) return;
+    setIsTogglingPaid(true);
+    const ok = await updateRO(ro.id, { paidDate: isPaid ? '' : localDateStr() });
+    if (!ok) {
+      setIsTogglingPaid(false);
+      return;
+    }
+    toast.success(isPaid ? 'RO marked Open' : 'RO marked Paid');
   };
 
   const openConvertDialog = (issue: ReviewIssue) => {
@@ -201,6 +213,7 @@ export function RODetailSheet({
                     onDelete={() => setShowDeleteConfirm(true)}
                     onFlag={openFlagDialog}
                     onTogglePaid={handleTogglePaid}
+                    isTogglePaidPending={isTogglingPaid}
                     className="h-8 w-8 p-0 rounded-md"
                   />
                   <button
@@ -230,11 +243,13 @@ export function RODetailSheet({
                 <span className="hours-pill">{maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h</span>
                 <button
                   onClick={handleTogglePaid}
+                  disabled={isTogglingPaid}
+                  aria-busy={isTogglingPaid}
                   className="ml-auto inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold border border-border/70 bg-background hover:bg-muted/40 quiet-transition active:scale-[0.98]"
                   title={isPaid ? 'Mark as Open' : 'Mark as Paid'}
                 >
                   {isPaid ? <LockOpen className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                  {isPaid ? 'Mark Open' : 'Mark Paid'}
+                  {isTogglingPaid ? 'Saving…' : isPaid ? 'Mark Open' : 'Mark Paid'}
                 </button>
               </div>
 
@@ -449,16 +464,18 @@ export function RODetailSheet({
                     : "bg-emerald-600 hover:bg-emerald-700 text-white"
                 )}
                 onClick={handleTogglePaid}
+                disabled={isTogglingPaid}
+                aria-busy={isTogglingPaid}
               >
                 {isPaid ? (
                   <>
                     <LockOpen className="h-4 w-4" />
-                    Mark Open
+                    {isTogglingPaid ? 'Saving…' : 'Mark Open'}
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    Mark Paid
+                    {isTogglingPaid ? 'Saving…' : 'Mark Paid'}
                   </>
                 )}
               </Button>

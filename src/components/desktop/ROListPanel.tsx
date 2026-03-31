@@ -334,11 +334,11 @@ export const ROListPanel = memo(function ROListPanel({
     { value: "today" as const, label: getDateFilterLabel('today', userSettings, true) },
     ...(hasCustomPayPeriod
       ? [
-          { value: "pay_period" as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: "pay_period" as const, label: periodLabels.currentShort },
           { value: "last_pay_period" as const, label: periodLabels.previousShort },
         ]
       : [
-          { value: "week" as const, label: `${periodLabels.currentShort} (Default)` },
+          { value: "week" as const, label: periodLabels.currentShort },
           { value: "last_week" as const, label: periodLabels.previousShort },
         ]),
     { value: "month" as const, label: getDateFilterLabel('month', userSettings, true) },

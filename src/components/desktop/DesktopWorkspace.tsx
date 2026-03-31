@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, BarChart3, X, Table2, Crown, ClipboardList } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
@@ -203,6 +203,21 @@ export function DesktopWorkspace() {
   };
 
   const handleSaveAndAddAnother = () => handleAddNew();
+
+  useEffect(() => {
+    if (!selectedRO) return;
+    const next = ros.find((item) => item.id === selectedRO.id);
+    if (!next) {
+      setSelectedRO(null);
+      if (rightPanel === "details" || rightPanel === "editor") {
+        setRightPanel("none");
+      }
+      return;
+    }
+    if (next !== selectedRO) {
+      setSelectedRO(next);
+    }
+  }, [ros, selectedRO, rightPanel]);
 
   const handleDeleteFromDetails = () => {
     if (!selectedRO) return;

@@ -57,14 +57,19 @@ interface RODetailsPanelProps {
 }
 
 export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPanelProps) {
-  const { ros } = useRO();
+  const { ros, updateRO } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [flagOpen, setFlagOpen] = useState(false);
   const [expandedLineIds, setExpandedLineIds] = useState<Record<string, boolean>>({});
+  const [isTogglingPaid, setIsTogglingPaid] = useState(false);
 
   useEffect(() => {
     setExpandedLineIds({});
   }, [ro?.id]);
+
+  useEffect(() => {
+    setIsTogglingPaid(false);
+  }, [ro?.id, ro?.paidDate]);
 
   if (!ro) {
     return (
@@ -84,6 +89,18 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
   const status = getStatusSummary(ro, flags.length, issues.length);
   const accentColor = laborBorderVar(ro.laborType);
   const hasMetadata = !!(ro.customerName || ro.mileage || ro.vehicle?.vin || ro.paidDate || vehicleLabel(ro) !== "—");
+  const isPaid = !!ro.paidDate;
+
+  const handleTogglePaid = async () => {
+    if (isTogglingPaid) return;
+    setIsTogglingPaid(true);
+    const ok = await updateRO(ro.id, { paidDate: isPaid ? "" : new Date().toISOString().slice(0, 10) });
+    if (!ok) {
+      setIsTogglingPaid(false);
+      return;
+    }
+    toast.success(isPaid ? "RO marked Open" : "RO marked Paid");
+  };
 
   return (
     <div className="h-full flex flex-col bg-card">
@@ -113,6 +130,23 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
               <span className="hours-pill text-[13px] px-2.5 py-0.5">
                 {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
               </span>
+              <Button
+                size="sm"
+                variant={isPaid ? "outline" : "default"}
+                className={cn(
+                  "h-7 px-2.5 text-[11px] gap-1",
+                  isPaid
+                    ? "border-border/70 bg-background hover:bg-muted/40"
+                    : "bg-emerald-600 text-white hover:bg-emerald-600/90",
+                )}
+                onClick={handleTogglePaid}
+                disabled={isTogglingPaid}
+                aria-busy={isTogglingPaid}
+                title={isPaid ? "Mark as Open" : "Mark as Paid"}
+              >
+                {isPaid ? <LockOpen className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                {isTogglingPaid ? "Saving…" : isPaid ? "Mark Open" : "Mark Paid"}
+              </Button>
               <Button
                 size="sm"
                 className="h-7 px-2.5 text-[11px] gap-1 bg-primary text-primary-foreground hover:bg-primary/90"

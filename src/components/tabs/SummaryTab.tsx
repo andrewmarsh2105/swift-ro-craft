@@ -268,12 +268,12 @@ export function SummaryTab() {
           <SelectItem value="day">Day</SelectItem>
           {hasCustomPayPeriod ? (
             <>
-              <SelectItem value="pay_period">{`${periodLabels.current} (Default)`}</SelectItem>
+              <SelectItem value="pay_period">{periodLabels.current}</SelectItem>
               <SelectItem value="last_pay_period">{periodLabels.previous}</SelectItem>
             </>
           ) : (
             <>
-              <SelectItem value="week">{`${periodLabels.current} (Default)`}</SelectItem>
+              <SelectItem value="week">{periodLabels.current}</SelectItem>
               <SelectItem value="last_week">{periodLabels.previous}</SelectItem>
             </>
           )}
