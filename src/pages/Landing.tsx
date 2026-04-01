@@ -112,7 +112,7 @@ export default function Landing() {
             className="inline-flex items-center h-10"
             aria-label="RO Navigator home"
           >
-            <HeaderLogo priority className="w-[176px] sm:w-[184px]" />
+            <HeaderLogo scheme="white" priority />
           </Link>
           <nav className="flex items-center gap-1.5">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">
