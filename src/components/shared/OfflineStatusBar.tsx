@@ -29,6 +29,7 @@ export function OfflineStatusBar() {
   const dataSource = roStore?.dataSource ?? 'loading';
   const cachedAt = roStore?.cachedAt ?? null;
   const fetchError = roStore?.fetchError ?? false;
+  const fetchErrorMessage = roStore?.fetchErrorMessage ?? null;
 
   const [conflictOpen, setConflictOpen] = useState(false);
 
@@ -84,9 +85,13 @@ export function OfflineStatusBar() {
           <>
             <ServerCrash className="h-3.5 w-3.5 flex-shrink-0" />
             <span>
-              {cachedAt
-                ? `Can't reach server · showing saved data from ${formatCacheAge(cachedAt)}`
-                : `Can't reach server`}
+              {fetchErrorMessage?.includes('42P01')
+                ? 'Database tables missing — migrations not deployed to this project'
+                : fetchErrorMessage?.includes('JWT') || fetchErrorMessage?.includes('401') || fetchErrorMessage?.includes('apikey')
+                  ? 'Auth error — Supabase API key may be wrong for this project'
+                  : cachedAt
+                    ? `Can't reach server · showing saved data from ${formatCacheAge(cachedAt)}`
+                    : `Can't reach server`}
             </span>
             <button
               onClick={() => processQueue()}

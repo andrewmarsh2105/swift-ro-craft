@@ -102,6 +102,9 @@ export function useROStore() {
   const cacheHydrated = useRef(false);
   /** Whether the last fetchROs() attempt failed (so we can surface it in the UI). */
   const [fetchError, setFetchError] = useState(false);
+  /** Raw error message/code from the last failed fetchROs() — used by the UI to show
+   *  actionable diagnostics (e.g. "relation does not exist" → migrations not run). */
+  const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
   /**
    * True once both Phase 1 (hot window) and Phase 2 (older headers) have
    * completed for the current session. Consumers can show a subtle indicator
@@ -219,6 +222,7 @@ export function useROStore() {
       setDataSource('live');
       setCachedAt(null);
       setFetchError(false);
+      setFetchErrorMessage(null);
       setOfflinePendingIds(new Set());
       cacheHydrated.current = true;
       // Phase 2 may still be pending — don't claim full history yet.
@@ -290,9 +294,11 @@ export function useROStore() {
 
     } catch (err: unknown) {
       console.error('Failed to fetch ROs', err);
-      pushDebug({ action: 'fetchROs FAIL', error: errorMessage(err) });
+      const msg = errorMessage(err);
+      pushDebug({ action: 'fetchROs FAIL', error: msg });
       // Surface the error in the status bar, but keep any cached data visible.
       setFetchError(true);
+      setFetchErrorMessage(msg);
       if (!cacheHydrated.current) {
         setDataSource('loading'); // truly no data — keep showing empty/loading
       }
@@ -364,6 +370,7 @@ export function useROStore() {
       setDataSource('loading');
       setCachedAt(null);
       setFetchError(false);
+      setFetchErrorMessage(null);
       setOfflinePendingIds(new Set());
       setHasFullHistory(false);
       cacheHydrated.current = false;
@@ -1003,6 +1010,8 @@ export function useROStore() {
     offlinePendingIds,
     /** True when the last fetchROs attempt failed (network/server error). */
     fetchError,
+    /** Raw error message from the last failed fetchROs() — use for diagnostics. */
+    fetchErrorMessage,
     /**
      * True once both Phase 1 (hot window) and the background Phase 2 (older
      * headers) have finished loading.  False during the ~400 ms window after
