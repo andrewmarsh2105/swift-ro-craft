@@ -7,13 +7,13 @@ import type { Database } from './types';
 // deployed build works even when the hosting platform's env vars aren't set.
 const SUPABASE_URL =
   (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
-  'https://lgoymdnoziqnykxbfspw.supabase.co';
+  'https://spqjhfipdvvlmtalkjaz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY =
   (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnb3ltZG5vemlxbnlreGJmc3B3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTgzNDQsImV4cCI6MjA4NjQzNDM0NH0.lxlMyJQEX4WqHXCqKcnt8zugKfsAIGvJcyrtpT5-kaU';
+  'sb_publishable_fQ3pL-WCTrRSx4WHoRoK8A_3DHej6km';
 const SUPABASE_PROJECT_ID =
   (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ||
-  'lgoymdnoziqnykxbfspw';
+  'spqjhfipdvvlmtalkjaz';
 
 // DO NOT throw here. A module-level throw prevents React from mounting at all,
 // leaving the user on the pre-render loading screen forever with no recovery
