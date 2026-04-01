@@ -240,6 +240,7 @@ export function SummaryTab() {
   const visibleAdvisors = showAllAdvisors ? report.byAdvisor : report.byAdvisor.slice(0, 5);
   const hasMoreAdvisors = report.byAdvisor.length > 5;
   const maxDayHours = Math.max(...report.byDay.map(d => d.totalHours), 1);
+  const hiddenPastZeroActivityDays = report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0 && d.date < todayStr).length;
 
   const avgPerRO = report.totalROs > 0 ? Math.round((report.totalHours / report.totalROs) * 10) / 10 : 0;
 
@@ -404,8 +405,8 @@ export function SummaryTab() {
       {/* Status strip */}
       <div className="border-t px-4 py-2 flex items-center gap-1.5 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.12)', background: 'hsl(var(--primary) / 0.045)' }}>
         {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
-          <div key={lt.laborType} className="rounded-full border border-border/50 bg-card/70 px-2 py-0.5">
-            <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" />
+          <div key={lt.laborType} className="inline-flex h-7 items-center justify-center rounded-full border border-border/50 bg-card/70 px-2">
+            <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" className="h-5 items-center justify-center px-2.5 py-0 leading-none" />
           </div>
         )) : (
           <span className="text-[10px] text-muted-foreground/40">No type data</span>
@@ -498,9 +499,9 @@ export function SummaryTab() {
           </TableRow>
         </TableFooter>
       </Table>
-      {report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0).length > 0 && (
+      {hiddenPastZeroActivityDays > 0 && (
         <div className="px-4 pb-2 text-[10px] text-muted-foreground/60">
-          Hidden {report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0).length} zero-activity day{report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0).length === 1 ? '' : 's'}.
+          Hidden {hiddenPastZeroActivityDays} zero-activity day{hiddenPastZeroActivityDays === 1 ? '' : 's'}.
         </div>
       )}
     </div>
