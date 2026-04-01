@@ -1,12 +1,16 @@
 /**
  * Logo — RO Navigator brand wordmark
  *
- * Uses the official transparent SVG logo asset for all variants.
- * The `scheme` prop controls color treatment:
- *   - light/auto: dark text (native image)
- *   - dark: inverted to white via CSS filter
+ * Renders the two-tone wordmark inline:
+ *   "RO"        — Inter Black 900, blue  (#2B82F0)
+ *   "Navigator" — Inter ExtraBold 800, navy (#0C1829)
  *
- * Size controls the rendered height of the wordmark.
+ * scheme prop:
+ *   light — native brand colors (for light surfaces)
+ *   dark  — all white (for dark/navy surfaces)
+ *   auto  — native in light mode, white in dark mode
+ *
+ * size controls the font-size (and therefore the rendered height).
  */
 
 import { cn } from '@/lib/utils';
@@ -39,29 +43,30 @@ export function Logo({
 }: LogoProps) {
   const h = HEIGHT_MAP[size];
   const isDark = scheme === 'dark';
+  const isAuto = scheme === 'auto';
+
+  const roClass = cn(
+    isDark ? 'text-white' : 'text-[#2B82F0]',
+    isAuto && 'dark:text-white',
+  );
+  const navClass = cn(
+    isDark ? 'text-white' : 'text-[#0C1829]',
+    isAuto && 'dark:text-white',
+  );
 
   return (
     <span
-      className={cn('inline-flex items-center select-none shrink-0', className)}
+      className={cn('inline-flex items-baseline select-none shrink-0', className)}
       aria-label="RO Navigator"
     >
-      <img
-        src="/brand/logo-full.svg"
-        alt="RO Navigator"
-        height={h}
-        className={cn(
-          'block object-contain',
-          // Dark scheme: invert navy SVG logo to white for dark surfaces
-          isDark && 'brightness-0 invert',
-          // Auto: keep native navy on light backgrounds and invert in dark mode
-          scheme === 'auto' && 'dark:brightness-0 dark:invert',
-        )}
-        style={{
-          height: h,
-          width: 'auto',
-        }}
-        draggable={false}
-      />
+      <span
+        className={cn('font-black tracking-tight', roClass)}
+        style={{ fontSize: h, lineHeight: 1 }}
+      >RO</span>
+      <span
+        className={cn('font-extrabold tracking-tight', navClass)}
+        style={{ fontSize: h, lineHeight: 1, marginLeft: '0.22em' }}
+      >Navigator</span>
     </span>
   );
 }
