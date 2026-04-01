@@ -33,7 +33,7 @@ export function usePostSavePaidStatusPrompt({ updateRO }: UsePostSavePaidStatusP
       if (selection === 'paid') {
         toast.success(`RO #${pending.roNumber || ''} marked paid`);
       } else {
-        toast.success(`RO #${pending.roNumber || ''} kept open`);
+        toast.success(`RO #${pending.roNumber || ''} saved as open`);
       }
       pending.onComplete?.();
       setPending(null);
@@ -44,7 +44,7 @@ export function usePostSavePaidStatusPrompt({ updateRO }: UsePostSavePaidStatusP
 
   const dismissPrompt = useCallback(() => {
     if (isSavingChoice) return;
-    toast.message('RO left open for now');
+    toast.message(`RO #${pending?.roNumber || ''} left open for now`);
     pending?.onComplete?.();
     setPending(null);
   }, [isSavingChoice, pending]);
