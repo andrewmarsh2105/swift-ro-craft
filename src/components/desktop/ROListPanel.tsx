@@ -14,7 +14,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
 import { maskHours } from "@/lib/maskHours";
 import { cn, localDateStr } from "@/lib/utils";
-import { calcHours, dateDisplayContext, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
+import { calcHours, dateDisplayContext, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
 import { computeDateRangeBounds, filterROsByDateRange, filterROsByDateRangeWithCarryover, isCarryoverRO, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
