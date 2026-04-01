@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Check, ChevronDown, ChevronUp, InfinityIcon, Camera, FileSpreadsheet } from 'lucide-react';
-import { HeaderLogo } from '@/components/brand';
+import { HeaderLogo, Logo } from '@/components/brand';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
