@@ -1,4 +1,8 @@
-project_id = "lgoymdnoziqnykxbfspw"
+# Source of truth for the Supabase CLI (supabase link, function deploys, migrations).
+# MUST match the project ref in src/integrations/supabase/client.ts and
+# the VITE_SUPABASE_PROJECT_ID env var used at build time.
+# Current project: spqjhfipdvvlmtalkjaz  (migrated from lgoymdnoziqnykxbfspw on 2026-04-01)
+project_id = "spqjhfipdvvlmtalkjaz"
 
 [functions.admin-manage-overrides]
 verify_jwt = false

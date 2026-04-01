@@ -1,19 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// These are Supabase anon (public) keys — safe to embed in client-side code.
-// RLS policies on the server enforce all access control; hiding these values
-// provides no additional security. Hardcoding them as fallbacks ensures the
-// deployed build works even when the hosting platform's env vars aren't set.
+// ---------------------------------------------------------------------------
+// Supabase project: spqjhfipdvvlmtalkjaz
+// Migrated from: lgoymdnoziqnykxbfspw on 2026-04-01
+//
+// These three constants MUST all reference the same Supabase project.
+// If you change the project, update ALL THREE fallbacks AND supabase/config.toml
+// in the same commit — a partial update is what caused the mismatch this code
+// was written to prevent.
+//
+// The fallback values (anon/public keys) are safe to embed in client-side code.
+// RLS policies on the server enforce all access control.
+// ---------------------------------------------------------------------------
+const FALLBACK_PROJECT_ID = 'spqjhfipdvvlmtalkjaz';
+const FALLBACK_URL       = `https://${FALLBACK_PROJECT_ID}.supabase.co`;
+const FALLBACK_KEY       = 'sb_publishable_fQ3pL-WCTrRSx4WHoRoK8A_3DHej6km';
+
 const SUPABASE_URL =
-  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
-  'https://spqjhfipdvvlmtalkjaz.supabase.co';
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_URL;
 const SUPABASE_PUBLISHABLE_KEY =
-  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-  'sb_publishable_fQ3pL-WCTrRSx4WHoRoK8A_3DHej6km';
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) || FALLBACK_KEY;
 const SUPABASE_PROJECT_ID =
-  (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ||
-  'spqjhfipdvvlmtalkjaz';
+  (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) || FALLBACK_PROJECT_ID;
 
 // DO NOT throw here. A module-level throw prevents React from mounting at all,
 // leaving the user on the pre-render loading screen forever with no recovery
