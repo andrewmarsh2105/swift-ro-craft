@@ -484,7 +484,7 @@ export function useROStore() {
         }
         return null;
       }
-      toast.error('Failed to create RO');
+      toast.error(`Failed to create RO: ${msg}`);
       pushDebug({ action: 'addRO FAIL', userId: user.id, error: msg });
       return null;
     }
