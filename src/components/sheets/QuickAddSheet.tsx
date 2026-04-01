@@ -184,10 +184,20 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         if (!saved) return;
         if (!('id' in saved)) return;
         toast.success('RO saved');
+        haptics.success();
         postSaveStatusPrompt.requestStatusChoice({
           roId: saved.id,
           roNumber: roData.roNumber,
+          onComplete: () => {
+            if (addAnother) {
+              resetForm();
+            } else {
+              onClose();
+              resetForm();
+            }
+          },
         });
+        return;
       }
       haptics.success();
 
@@ -238,6 +248,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   ];
 
   return (
+    <>
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
@@ -609,13 +620,14 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       </BottomSheet>
 
       <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
-      <PostSavePaidStatusPrompt
-        open={postSaveStatusPrompt.statusPromptOpen}
-        roNumber={postSaveStatusPrompt.statusPromptRONumber}
-        isSaving={postSaveStatusPrompt.isSavingChoice}
-        onChoose={postSaveStatusPrompt.resolveChoice}
-        onDismiss={postSaveStatusPrompt.dismissPrompt}
-      />
     </BottomSheet>
+    <PostSavePaidStatusPrompt
+      open={postSaveStatusPrompt.statusPromptOpen}
+      roNumber={postSaveStatusPrompt.statusPromptRONumber}
+      isSaving={postSaveStatusPrompt.isSavingChoice}
+      onChoose={postSaveStatusPrompt.resolveChoice}
+      onDismiss={postSaveStatusPrompt.dismissPrompt}
+    />
+    </>
   );
 }
