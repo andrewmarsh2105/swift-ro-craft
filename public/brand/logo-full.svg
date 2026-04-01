@@ -1,32 +1,37 @@
 <!--
   RO Navigator — Full Wordmark (transparent background)
 
-  Two-tone: "RO" in brand blue #2B82F0, "Navigator" in brand navy #0C1829.
-  Transparent background — safe to overlay on any surface.
-
-  For in-app use the Logo React component (src/components/brand/Logo.tsx)
-  which renders the wordmark inline with loaded Inter font.
+  Two-tone wordmark used in the landing and app headers.
+  Transparent background.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 52" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 180" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">RO Navigator logo</title>
+  <desc id="desc">Blue gradient RO with navy Navigator wordmark on a transparent background.</desc>
 
-  <!-- "RO" — brand blue, Inter Black 900 -->
+  <defs>
+    <linearGradient id="roGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1D78FF" />
+      <stop offset="100%" stop-color="#0A5CDE" />
+    </linearGradient>
+  </defs>
+
   <text
-    x="0" y="40"
-    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+    x="0"
+    y="128"
+    font-family="Inter, Arial, sans-serif"
+    font-size="140"
     font-weight="900"
-    font-size="40"
-    letter-spacing="-1"
-    fill="#2B82F0"
+    letter-spacing="-7"
+    fill="url(#roGradient)"
   >RO</text>
 
-  <!-- "Navigator" — brand navy, Inter ExtraBold 800 -->
   <text
-    x="60" y="40"
-    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+    x="206"
+    y="128"
+    font-family="Inter, Arial, sans-serif"
+    font-size="140"
     font-weight="800"
-    font-size="40"
-    letter-spacing="-1"
-    fill="#0C1829"
+    letter-spacing="-4"
+    fill="#04064A"
   >Navigator</text>
-
 </svg>
