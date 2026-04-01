@@ -15,6 +15,11 @@ import { cn, localDateStr } from '@/lib/utils';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 
+function normalizePaidDateValue(value?: string | null): string {
+  const paidDate = value?.trim();
+  return paidDate && paidDate !== '—' ? paidDate : '';
+}
+
 interface QuickAddSheetProps {
   isOpen: boolean;
   onClose: () => void;
@@ -77,11 +82,11 @@ function getInitialFormState(editingRO?: RepairOrder): FormState {
     roDate: editingRO.date || localDateStr(),
     notes: editingRO.notes || '',
     lines,
-    paidDate: editingRO.paidDate || '',
+    paidDate: normalizePaidDateValue(editingRO.paidDate),
     customerName: editingRO.customerName || '',
     vehicle: editingRO.vehicle || {},
     mileage: editingRO.mileage || '',
-    showDetailsOpen: !!(editingRO.paidDate || editingRO.customerName || editingRO.mileage || editingRO.vehicle?.year || editingRO.vehicle?.make),
+    showDetailsOpen: !!(normalizePaidDateValue(editingRO.paidDate) || editingRO.customerName || editingRO.mileage || editingRO.vehicle?.year || editingRO.vehicle?.make),
   };
 }
 
@@ -163,7 +168,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
       // New ROs are created open; prompt asks whether to mark paid immediately after save.
-      paidDate: editingRO ? (paidDate.trim() || null) : '',
+      paidDate: editingRO ? (normalizePaidDateValue(paidDate) || null) : '',
       paidHours: linesTotalHours,
       laborType,
       workPerformed: computedWorkPerformed,
