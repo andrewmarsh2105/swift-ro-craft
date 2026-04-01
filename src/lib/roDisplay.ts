@@ -4,9 +4,31 @@
  * Shared display helpers for RO list/detail screens (keeps UI consistent).
  */
 import type { ROLine, RepairOrder } from "@/types/ro";
+import { hasPaidDate, normalizePaidDate } from '@/lib/paidDate';
 
 export function effectiveDate(ro: RepairOrder): string {
-  return ro.paidDate || ro.date;
+  return normalizePaidDate(ro.paidDate) ?? ro.date;
+}
+
+export function dateDisplayContext(ro: RepairOrder): {
+  primaryDate: string;
+  primaryLabel: "Paid" | "RO";
+  secondaryDate?: string;
+  secondaryLabel?: "RO" | "Paid";
+} {
+  if (hasPaidDate(ro)) {
+    return {
+      primaryDate: normalizePaidDate(ro.paidDate)!,
+      primaryLabel: "Paid",
+      secondaryDate: ro.date,
+      secondaryLabel: "RO",
+    };
+  }
+
+  return {
+    primaryDate: ro.date,
+    primaryLabel: "RO",
+  };
 }
 
 export function formatDateShort(dateStr: string): string {

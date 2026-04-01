@@ -104,11 +104,17 @@ export default function Landing() {
       {/* ── Navigation ──────────────────────────────────────── */}
       <header
         className="sticky top-0 z-30"
-        style={{ background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.10)' }}
       >
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-14 px-4 md:px-8">
-          <Logo variant="full" scheme="dark" size="lg" />
-          <nav className="flex items-center gap-1">
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-16 px-4 md:px-8">
+          <Link
+            to="/"
+            className="inline-flex items-center h-10 px-2.5 rounded-md border border-white/12 bg-white/[0.02] shadow-[0_1px_0_rgba(255,255,255,0.05)]"
+            aria-label="RO Navigator home"
+          >
+            <Logo variant="full" scheme="dark" size="xl" />
+          </Link>
+          <nav className="flex items-center gap-1.5">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">
               Features
             </a>

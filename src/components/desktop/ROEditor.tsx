@@ -32,7 +32,7 @@ interface ROEditorProps {
   ro?: RepairOrder | null;
   isNew?: boolean;
   focusLineId?: string | null;
-  onSave?: () => void;
+  onSave?: (roId?: string) => void;
   onCancel?: () => void;
   onSaveAndAddAnother?: () => void;
 }
@@ -226,6 +226,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   const handleSave = async (addAnother: boolean = false) => {
+    if (isSaving || postSaveStatusPrompt.isSavingChoice) return;
     if (!roNumber.trim()) { toast.error('RO number is required'); return; }
     if (!advisor.trim()) { toast.error('Advisor is required'); return; }
 
@@ -253,7 +254,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         const success = await updateRO(ro.id, roData);
         if (!success) return;
         toast.success('RO updated');
-        onSave?.();
+        onSave?.(ro.id);
       } else {
         const saved = await addRO(roData);
         if (!saved) return;
@@ -268,7 +269,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
               setLines([createEmptyLine(1)]); setShowDetails(false);
               onSaveAndAddAnother?.();
             } else {
-              onSave?.();
+              onSave?.(saved.id);
             }
           },
         });

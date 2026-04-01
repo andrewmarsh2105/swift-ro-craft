@@ -14,7 +14,7 @@ import { useRO } from "@/contexts/ROContext";
 
 import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
-import { calcHours, formatDateLong, vehicleLabel } from "@/lib/roDisplay";
+import { calcHours, dateDisplayContext, formatDateLong, vehicleLabel } from "@/lib/roDisplay";
 import { getStatusSummary } from "@/lib/roStatus";
 import { getReviewIssues } from "@/lib/reviewRules";
 import type { RepairOrder } from "@/types/ro";
@@ -86,6 +86,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
   const flags = getFlagsForRO(ro.id);
   const issues = getReviewIssues(ro, ros);
   const hours = calcHours(ro);
+  const dateContext = dateDisplayContext(ro);
   const status = getStatusSummary(ro, flags.length, issues.length);
   const accentColor = laborBorderVar(ro.laborType);
   const hasMetadata = !!(ro.customerName || ro.mileage || ro.vehicle?.vin || ro.paidDate || vehicleLabel(ro) !== "—");
@@ -161,7 +162,9 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
           {/* Compact secondary line */}
           <div className="flex items-center justify-between gap-2 mt-1">
             <p className="text-[10px] text-muted-foreground/60 truncate">
-              {formatDateLong(ro.date)} · {ro.advisor}
+              {dateContext.primaryLabel} {formatDateLong(dateContext.primaryDate)}
+              {dateContext.secondaryDate && ` · RO ${formatDateLong(dateContext.secondaryDate)}`}
+              {ro.advisor && ` · ${ro.advisor}`}
               {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
             </p>
 
@@ -206,7 +209,8 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
               <MetaField label="Vehicle" value={vehicleLabel(ro) !== "—" ? vehicleLabel(ro) : undefined} />
               <MetaField label="VIN" value={ro.vehicle?.vin} mono />
               <MetaField label="Mileage" value={ro.mileage} />
-              <MetaField label="Paid" value={ro.paidDate ? formatDateLong(ro.paidDate) : undefined} />
+              <MetaField label="RO Date" value={formatDateLong(ro.date)} />
+              <MetaField label="Paid Date" value={ro.paidDate ? formatDateLong(ro.paidDate) : undefined} />
             </div>
           </div>
         )}

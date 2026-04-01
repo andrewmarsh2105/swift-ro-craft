@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LaborType, RepairOrder } from '@/types/ro';
 import { matchesSearchQuery, normalizeAdvisorName } from '@/lib/roFilters';
+import { hasPaidDate } from '@/lib/paidDate';
 
 const LS_KEY = 'ui.sharedROFilters.v1';
 
@@ -60,9 +61,9 @@ export function applySharedROFilters(ros: RepairOrder[], filters: SharedROFilter
   }
 
   if (filters.payStatus === 'paid') {
-    result = result.filter((ro) => !!ro.paidDate);
+    result = result.filter((ro) => hasPaidDate(ro));
   } else if (filters.payStatus === 'open') {
-    result = result.filter((ro) => !ro.paidDate);
+    result = result.filter((ro) => !hasPaidDate(ro));
   }
 
   return result;

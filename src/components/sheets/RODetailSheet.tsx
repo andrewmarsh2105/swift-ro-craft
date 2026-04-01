@@ -38,7 +38,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
 import { maskHours } from "@/lib/maskHours";
 import { getReviewIssues, type ReviewIssue } from "@/lib/reviewRules";
-import { calcHours, effectiveDate, formatDateLong, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
+import { calcHours, dateDisplayContext, formatDateLong, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { cn, localDateStr } from "@/lib/utils";
 
 import type { RepairOrder } from "@/types/ro";
@@ -142,6 +142,7 @@ export function RODetailSheet({
   const flags = useMemo(() => (ro ? getFlagsForRO(ro.id) : []), [getFlagsForRO, ro]);
   const issues = useMemo(() => (ro ? getReviewIssues(ro, ros) : []), [ro, ros]);
   const hours = useMemo(() => (ro ? calcHours(ro) : 0), [ro]);
+  const dateContext = useMemo(() => (ro ? dateDisplayContext(ro) : null), [ro]);
 
   const handleConfirmDelete = () => {
     onDelete();
@@ -258,7 +259,7 @@ export function RODetailSheet({
                 <StatusPill type={ro.laborType} size="sm" />
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  {formatDateShort(ro.date)}
+                  {dateContext ? `${dateContext.primaryLabel} ${formatDateShort(dateContext.primaryDate)}` : "—"}
                 </span>
                 {ro.advisor && <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>}
                 {flags.length > 0 && (
@@ -278,11 +279,11 @@ export function RODetailSheet({
               <SectionCard title="Details">
                 <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-sm">
                   <div>
-                    <p className="text-[11px] text-muted-foreground">RO date</p>
+                    <p className="text-[11px] text-muted-foreground">RO date (work date)</p>
                     <p className="font-medium">{formatDateLong(ro.date)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-muted-foreground">Paid date</p>
+                    <p className="text-[11px] text-muted-foreground">Paid date (summary date)</p>
                     <p className="font-medium">{ro.paidDate ? formatDateLong(ro.paidDate) : "—"}</p>
                   </div>
                   <div>

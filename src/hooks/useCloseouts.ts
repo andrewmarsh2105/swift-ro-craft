@@ -4,6 +4,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
+import { normalizePaidDate } from '@/lib/paidDate';
 
 export type CloseoutRangeType = 'day' | 'week' | 'last_week' | 'pay_period' | 'two_weeks' | 'month' | 'custom';
 
@@ -74,7 +75,7 @@ export function buildROSnapshot(report: PayPeriodReport): ROSnapshot[] {
     return {
       roId: ro.id,
       roNumber: ro.roNumber,
-      roDate: ro.paidDate?.trim() && ro.paidDate !== '—' ? ro.paidDate : ro.date,
+      roDate: normalizePaidDate(ro.paidDate) ?? ro.date,
       advisor: ro.advisor || '—',
       customerName: ro.customerName,
       vehicle: vehicleParts.join(' ') || undefined,

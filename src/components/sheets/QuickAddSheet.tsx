@@ -92,6 +92,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [showProUpgrade, setShowProUpgrade] = useState(false);
   const [advisorDraft, setAdvisorDraft] = useState('');
   const [showAdvisorCreate, setShowAdvisorCreate] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const postSaveStatusPrompt = usePostSavePaidStatusPrompt({ updateRO });
 
   // Form state — initialized via shared helper to avoid duplication
@@ -108,34 +109,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [mileage, setMileage] = useState(initial.mileage);
   const [showDetailsOpen, setShowDetailsOpen] = useState(initial.showDetailsOpen);
 
-  const monthlyROCount = useMemo(() => {
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.date && r.date >= monthStart).length;
-  }, [ros]);
-  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
-
-  useEffect(() => {
-    if (isOpen) {
-      const state = getInitialFormState(editingRO);
-      setRoNumber(state.roNumber);
-      setAdvisor(state.advisor);
-      setLaborType(state.laborType);
-      setRoDate(state.roDate);
-      setNotes(state.notes);
-      setLines(state.lines);
-      setPaidDate(state.paidDate);
-      setCustomerName(state.customerName);
-      setVehicle(state.vehicle);
-      setMileage(state.mileage);
-      setShowDetailsOpen(state.showDetailsOpen);
-    }
-  }, [isOpen, editingRO]);
-
-  const linesTotalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
-
-  const resetForm = () => {
-    const state = getInitialFormState();
+  const applyFormState = (state: FormState) => {
     setRoNumber(state.roNumber);
     setAdvisor(state.advisor);
     setLaborType(state.laborType);
@@ -149,7 +123,27 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setShowDetailsOpen(state.showDetailsOpen);
   };
 
+  const monthlyROCount = useMemo(() => {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return ros.filter(r => r.date && r.date >= monthStart).length;
+  }, [ros]);
+  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
+
+  useEffect(() => {
+    if (isOpen) {
+      applyFormState(getInitialFormState(editingRO));
+    }
+  }, [isOpen, editingRO]);
+
+  const linesTotalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
+
+  const resetForm = () => {
+    applyFormState(getInitialFormState());
+  };
+
   const handleSave = async (addAnother: boolean = false) => {
+    if (isSaving || postSaveStatusPrompt.isSavingChoice) return;
     if (isAtCap) {
       setShowProUpgrade(true);
       return;
@@ -174,11 +168,19 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       isSimpleMode: false,
     };
 
+    setIsSaving(true);
     try {
       if (editingRO) {
         const success = await updateRO(editingRO.id, roData);
         if (!success) return;
         toast.success('RO updated');
+        haptics.success();
+        if (addAnother) {
+          resetForm();
+        } else {
+          onClose();
+          resetForm();
+        }
       } else {
         const saved = await addRO(roData);
         if (!saved) return;
@@ -187,18 +189,22 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         postSaveStatusPrompt.requestStatusChoice({
           roId: saved.id,
           roNumber: roData.roNumber,
+          onComplete: () => {
+            if (addAnother) {
+              resetForm();
+            } else {
+              onClose();
+              resetForm();
+            }
+          },
         });
-      }
-      haptics.success();
-
-      if (addAnother) {
-        resetForm();
-      } else {
-        onClose();
-        resetForm();
+        haptics.success();
+        return;
       }
     } catch (err: any) {
       toast.error(`Save failed: ${err?.message || 'Unknown error'}. Try again.`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -531,7 +537,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               {!editingRO && (
                 <button
                   onClick={() => handleSave(true)}
-                  disabled={!isValid}
+                  disabled={!isValid || isSaving || postSaveStatusPrompt.isSavingChoice}
                   className={cn(
                     'h-11 px-4 rounded-md font-semibold text-sm border min-h-[44px] transition-all active:scale-[0.98]',
                     isValid
@@ -546,7 +552,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               {/* Save */}
               <button
                 onClick={() => handleSave(false)}
-                disabled={!isValid}
+                disabled={!isValid || isSaving || postSaveStatusPrompt.isSavingChoice}
                 className={cn(
                   'h-11 px-7 rounded-md font-bold text-sm min-h-[44px] transition-all active:scale-[0.98] col-span-1',
                   editingRO && 'col-span-2',

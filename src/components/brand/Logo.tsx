@@ -1,7 +1,7 @@
 /**
  * Logo — RO Navigator brand wordmark
  *
- * Uses the official wordmark image asset for all variants.
+ * Uses the official transparent SVG logo asset for all variants.
  * The `scheme` prop controls color treatment:
  *   - light/auto: dark text (native image)
  *   - dark: inverted to white via CSS filter
@@ -10,7 +10,6 @@
  */
 
 import { cn } from '@/lib/utils';
-import wordmarkSrc from '@/assets/ro-navigator-wordmark.jpeg';
 
 type LogoVariant = 'full' | 'monogram' | 'mark' | 'wordmark';
 type LogoScheme  = 'light' | 'dark' | 'amber' | 'auto';
@@ -25,11 +24,11 @@ interface LogoProps {
 
 const HEIGHT_MAP: Record<LogoSize, number> = {
   xs:  16,
-  sm:  20,
-  md:  26,
-  lg:  34,
-  xl:  44,
-  '2xl': 56,
+  sm:  22,
+  md:  28,
+  lg:  36,
+  xl:  46,
+  '2xl': 58,
 };
 
 export function Logo({
@@ -40,25 +39,22 @@ export function Logo({
 }: LogoProps) {
   const h = HEIGHT_MAP[size];
   const isDark = scheme === 'dark';
-  const isAuto = scheme === 'auto';
 
   return (
     <span
-      className={cn('inline-flex items-center select-none', className)}
+      className={cn('inline-flex items-center select-none shrink-0', className)}
       aria-label="RO Navigator"
     >
       <img
-        src={wordmarkSrc}
+        src="/brand/logo-full.svg"
         alt="RO Navigator"
         height={h}
         className={cn(
-          'object-contain',
-          // Dark scheme: invert JPEG to white silhouette on dark backgrounds
+          'block object-contain',
+          // Dark scheme: invert navy SVG logo to white for dark surfaces
           isDark && 'brightness-0 invert',
-          // Light scheme: multiply blend removes white JPEG background on light surfaces
-          scheme === 'light' && 'mix-blend-multiply',
-          // Auto: multiply in light mode, invert in dark mode
-          isAuto && 'mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert',
+          // Auto: keep native navy on light backgrounds and invert in dark mode
+          scheme === 'auto' && 'dark:brightness-0 dark:invert',
         )}
         style={{
           height: h,

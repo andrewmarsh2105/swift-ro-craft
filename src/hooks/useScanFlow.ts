@@ -365,7 +365,7 @@ export function useScanFlow() {
     }
   }, [user, updateState, updateDebug]);
 
-  const handleFileSelected = useCallback((
+  const startScanForFile = useCallback((
     file: File,
     roId?: string,
     templateFieldMap?: Record<string, any>,
@@ -380,6 +380,17 @@ export function useScanFlow() {
     pageTemplateIdRef.current = templateId ?? null;
     runUploadAndOCR(file, newScanId, roId, templateFieldMap, presets, keywordAutofill, templateId);
   }, [runUploadAndOCR]);
+
+  const handleFileSelected = useCallback((
+    file: File,
+    roId?: string,
+    templateFieldMap?: Record<string, any>,
+    presets?: Preset[],
+    keywordAutofill?: boolean,
+    templateId?: string | null,
+  ) => {
+    startScanForFile(file, roId, templateFieldMap, presets, keywordAutofill, templateId);
+  }, [startScanForFile]);
 
   /**
    * Add another page to the existing scan session.
@@ -393,15 +404,8 @@ export function useScanFlow() {
     keywordAutofill?: boolean,
     templateId?: string | null,
   ) => {
-    // Generate a new scan ID for this page (stale result protection)
-    const newScanId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    scanIdRef.current = newScanId;
-    retryCountRef.current = 0;
-    fileRef.current = file;
-    pageTemplateIdRef.current = templateId ?? null;
-
-    runUploadAndOCR(file, newScanId, roId, templateFieldMap, presets, keywordAutofill, templateId);
-  }, [runUploadAndOCR]);
+    startScanForFile(file, roId, templateFieldMap, presets, keywordAutofill, templateId);
+  }, [startScanForFile]);
 
   const retry = useCallback(() => {
     if (busyRef.current) return;

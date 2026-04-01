@@ -332,6 +332,7 @@ export default function AddRO() {
   }, [addPresetLine]);
 
   const handleSave = async (addAnother: boolean = false) => {
+    if (isSaving || postSaveStatusPrompt.isSavingChoice) return;
     if (!roNumber.trim()) { toast.error('RO number is required'); return; }
     if (!advisor.trim()) { toast.error('Advisor is required'); return; }
 
@@ -356,7 +357,8 @@ export default function AddRO() {
         const success = await updateRO(editingRO.id, roData);
         if (!success) return;
         toast.success('RO updated');
-        navigate(-1);
+        if (window.history.length > 1) navigate(-1);
+        else navigate('/');
       } else {
         const saved = await addRO(roData);
         if (!saved) return;
@@ -371,7 +373,8 @@ export default function AddRO() {
               setLines([createEmptyLine(1)]);
               initialSnapshotRef.current = null; // will be set on next render
             } else {
-              navigate(-1);
+              if (window.history.length > 1) navigate(-1);
+              else navigate('/');
             }
           },
         });

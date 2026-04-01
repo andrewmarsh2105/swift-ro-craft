@@ -24,7 +24,7 @@ import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn, localDateStr } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
+import { dateDisplayContext, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
 import { compareAdvisorNames, normalizeAdvisorName, sortROs } from '@/lib/roFilters';
 import { getStatusSummary } from '@/lib/roStatus';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
@@ -128,7 +128,8 @@ const ROCard = memo(function ROCard({
   compact = false, isCarryover = false, rowTone = 'base',
 }: ROCardProps) {
   const hours = calcHours(ro);
-  const roDate = formatDateShort(effectiveDate(ro));
+  const dateContext = dateDisplayContext(ro);
+  const roDate = formatDateShort(dateContext.primaryDate);
   const accentColor = laborTypeBarColor(ro.laborType);
   const ltLabel = ro.laborType === 'warranty' ? 'W' : ro.laborType === 'customer-pay' ? 'CP' : 'INT';
 
@@ -163,7 +164,7 @@ const ROCard = memo(function ROCard({
               #{ro.roNumber || '—'}
             </span>
             <span className="text-[10px] text-muted-foreground/70 tabular-nums flex-shrink-0 leading-none">
-              {roDate}
+              {dateContext.primaryLabel} {roDate}
             </span>
             {ro.customerName ? (
               <span className={cn(
@@ -202,9 +203,19 @@ const ROCard = memo(function ROCard({
               {ltLabel}
             </span>
             {ro.advisor && (
+              <>
+                {dateContext.secondaryDate && (
+                  <>
+                    <span className="text-[10px] text-muted-foreground/55 tabular-nums flex-shrink-0">
+                      RO {formatDateShort(dateContext.secondaryDate)}
+                    </span>
+                    <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">·</span>
+                  </>
+                )}
               <span className="text-[10px] font-semibold text-foreground/65 truncate flex-shrink-0 max-w-[90px]">
                 {ro.advisor}
               </span>
+              </>
             )}
             {vehicle !== '—' && (
               <>

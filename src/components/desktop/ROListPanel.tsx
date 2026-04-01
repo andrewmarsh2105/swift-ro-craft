@@ -14,7 +14,7 @@ import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
 
 import { maskHours } from "@/lib/maskHours";
 import { cn, localDateStr } from "@/lib/utils";
-import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
+import { calcHours, dateDisplayContext, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { compareAdvisorNames, normalizeAdvisorName, compareRONumbers } from "@/lib/roFilters";
 import { getStatusSummary } from "@/lib/roStatus";
 import { computeDateRangeBounds, filterROsByDateRange, filterROsByDateRangeWithCarryover, isCarryoverRO, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
@@ -574,6 +574,7 @@ export const ROListPanel = memo(function ROListPanel({
               <div className="space-y-1.5 py-1">
                 {visible.map((ro, index) => {
                   const hours = calcHours(ro);
+                  const dateContext = dateDisplayContext(ro);
                   const flagsCount = flagCountByRO.get(ro.id) ?? 0;
                   const issuesCount = reviewIssueCountByRO.get(ro.id) ?? 0;
                   const selected = selectedROId === ro.id;
@@ -613,7 +614,7 @@ export const ROListPanel = memo(function ROListPanel({
                           </span>
                         </div>
                         <span className="text-[10px] tabular-nums text-muted-foreground leading-none mt-0.5 block">
-                          {formatDateShort(effectiveDate(ro))}
+                          {dateContext.primaryLabel} {formatDateShort(dateContext.primaryDate)}
                         </span>
                       </div>
 

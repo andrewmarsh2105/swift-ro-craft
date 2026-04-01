@@ -129,6 +129,7 @@ export function DesktopWorkspace() {
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [filteredROs, setFilteredROs] = useState<RepairOrder[]>(ros);
   const [isDragging, setIsDragging] = useState(false);
+  const [pendingCreatedROId, setPendingCreatedROId] = useState<string | null>(null);
 
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
@@ -187,9 +188,14 @@ export function DesktopWorkspace() {
     setRightPanel("editor");
   };
 
-  const handleSave = () => {
-    setSelectedRO(null);
+  const handleSave = (savedROId?: string) => {
     setIsAddingNew(false);
+    if (savedROId) {
+      setPendingCreatedROId(savedROId);
+      return;
+    }
+    setSelectedRO(null);
+    setRightPanel("none");
   };
 
   const handleCancel = () => {
@@ -218,6 +224,15 @@ export function DesktopWorkspace() {
       setSelectedRO(next);
     }
   }, [ros, selectedRO, rightPanel]);
+
+  useEffect(() => {
+    if (!pendingCreatedROId) return;
+    const created = ros.find((item) => item.id === pendingCreatedROId);
+    if (!created) return;
+    setSelectedRO(created);
+    setRightPanel("details");
+    setPendingCreatedROId(null);
+  }, [pendingCreatedROId, ros]);
 
   const handleDeleteFromDetails = () => {
     if (!selectedRO) return;
@@ -262,10 +277,17 @@ export function DesktopWorkspace() {
 
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
-        <Logo variant="full" scheme="auto" size="lg" className="text-foreground" />
+        <div className="flex items-center min-w-0 gap-2.5">
+          <div className="h-9 px-2.5 rounded-md border border-border/50 bg-background/70 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] inline-flex items-center">
+            <Logo variant="full" scheme="auto" size="lg" className="text-foreground" />
+          </div>
+          <span className="hidden xl:inline text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/65">
+            Work Queue
+          </span>
+        </div>
 
         {/* Right-side toolbar */}
-        <div className="flex items-center gap-px">
+        <div className="flex items-center gap-0.5">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} />
 
           {isPro && (
