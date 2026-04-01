@@ -136,7 +136,7 @@ export function toRosInsert(
     vehicle_model: ro.vehicle?.model ?? null,
     vehicle_trim: ro.vehicle?.trim ?? null,
     vehicle_vin: ro.vehicle?.vin ?? null,
-    paid_date: ro.paidDate ?? null,
+    paid_date: ro.paidDate || null,
   };
 
   return payload;
