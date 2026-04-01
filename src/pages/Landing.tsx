@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Check, ChevronDown, ChevronUp, InfinityIcon, Camera, FileSpreadsheet } from 'lucide-react';
-import { Logo } from '@/components/brand';
+import { HeaderLogo } from '@/components/brand';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
@@ -109,10 +109,10 @@ export default function Landing() {
         <div className="max-w-[1200px] mx-auto flex items-center justify-between h-16 px-4 md:px-8">
           <Link
             to="/"
-            className="inline-flex items-center h-10 px-2.5 rounded-md border border-white/12 bg-white/[0.02] shadow-[0_1px_0_rgba(255,255,255,0.05)]"
+            className="inline-flex items-center h-10"
             aria-label="RO Navigator home"
           >
-            <Logo variant="full" scheme="dark" size="xl" />
+            <HeaderLogo priority className="w-[176px] sm:w-[184px]" />
           </Link>
           <nav className="flex items-center gap-1.5">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">
