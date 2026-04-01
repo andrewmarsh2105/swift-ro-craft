@@ -639,7 +639,7 @@ export const ROListPanel = memo(function ROListPanel({
 
                       {/* Hours */}
                       <div className="text-right border-l border-border/45 pl-2" role="cell">
-                        <span className="hours-pill text-[10px]">
+                        <span className="hours-pill">
                           {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
                         </span>
                       </div>

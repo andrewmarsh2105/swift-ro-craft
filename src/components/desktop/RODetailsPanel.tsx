@@ -271,7 +271,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
                     </div>
 
                     {/* Hours */}
-                    <span className="hours-pill text-[10px] flex-shrink-0 mt-0.5">
+                    <span className="hours-pill flex-shrink-0 mt-0.5">
                       {maskHours(Number(l.hoursPaid.toFixed(1)), userSettings.hideTotals ?? false)}h
                     </span>
                   </div>
