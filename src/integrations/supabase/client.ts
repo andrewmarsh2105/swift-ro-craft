@@ -2,20 +2,22 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // ---------------------------------------------------------------------------
-// Supabase project: spqjhfipdvvlmtalkjaz
-// Migrated from: lgoymdnoziqnykxbfspw on 2026-04-01
+// Supabase project: lgoymdnoziqnykxbfspw  ← active project with all user data
+//
+// NOTE: a migration to spqjhfipdvvlmtalkjaz was attempted but data was never
+// transferred. Reverted here to restore user data and Pro access.
+// Do not change the project again without exporting data from the old one first.
 //
 // These three constants MUST all reference the same Supabase project.
 // If you change the project, update ALL THREE fallbacks AND supabase/config.toml
-// in the same commit — a partial update is what caused the mismatch this code
-// was written to prevent.
+// in the same commit — a partial update is what caused the original mismatch.
 //
 // The fallback values (anon/public keys) are safe to embed in client-side code.
 // RLS policies on the server enforce all access control.
 // ---------------------------------------------------------------------------
-const FALLBACK_PROJECT_ID = 'spqjhfipdvvlmtalkjaz';
+const FALLBACK_PROJECT_ID = 'lgoymdnoziqnykxbfspw';
 const FALLBACK_URL       = `https://${FALLBACK_PROJECT_ID}.supabase.co`;
-const FALLBACK_KEY       = 'sb_publishable_fQ3pL-WCTrRSx4WHoRoK8A_3DHej6km';
+const FALLBACK_KEY       = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnb3ltZG5vemlxbnlreGJmc3B3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTgzNDQsImV4cCI6MjA4NjQzNDM0NH0.lxlMyJQEX4WqHXCqKcnt8zugKfsAIGvJcyrtpT5-kaU';
 
 const SUPABASE_URL =
   (import.meta.env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_URL;
