@@ -146,7 +146,7 @@ export function DetailsCollapsible({
                     value={paidDate || ''}
                     onChange={(e) => onPaidDateChange(e.target.value)}
                     className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    title="Leave empty if paid same day as RO"
+                    title="Optional — set when paid date differs from RO date"
                   />
                   {paidDate && (
                     <button
@@ -158,7 +158,7 @@ export function DetailsCollapsible({
                     </button>
                   )}
                   {!paidDate && (
-                    <span className="text-xs text-muted-foreground italic">Paid on a different day?</span>
+                    <span className="text-xs text-muted-foreground italic">Optional — different from RO date.</span>
                   )}
                 </div>
               )}
@@ -259,7 +259,7 @@ export function DetailsCollapsible({
                     )}
                   </div>
                   {!paidDate && (
-                    <div className="pl-16 text-xs text-muted-foreground italic mt-1">Paid on a different day?</div>
+                    <div className="pl-16 text-xs text-muted-foreground italic mt-1">Optional — different from RO date.</div>
                   )}
                 </div>
               )}

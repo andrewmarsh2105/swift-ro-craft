@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
@@ -67,8 +67,10 @@ function MobileApp() {
       <TrialCountdownBanner />
       <OfflineStatusBar />
       {/* Branded mobile app header */}
-      <header className="flex-shrink-0 flex items-center px-4 h-11 border-b border-border/40 bg-card/95 backdrop-blur-sm">
-        <Logo variant="full" scheme="auto" size="sm" />
+      <header className="flex-shrink-0 flex items-center px-4 h-12 border-b border-border/40 bg-card/95 backdrop-blur-sm">
+        <div className="h-8 px-2 rounded-md border border-border/45 bg-background/75 inline-flex items-center shadow-[0_1px_0_hsl(var(--foreground)/0.03)]">
+          <Logo variant="full" scheme="auto" size="md" />
+        </div>
       </header>
       <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         {activeTab === "ros" && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}

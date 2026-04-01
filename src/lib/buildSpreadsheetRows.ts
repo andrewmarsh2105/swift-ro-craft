@@ -2,6 +2,7 @@ import { typeCode } from '@/lib/csvUtils';
 import { formatVehicleChip } from '@/types/ro';
 import type { RepairOrder } from '@/types/ro';
 import type { ROSnapshot } from '@/hooks/useCloseouts';
+import { hasPaidDate, normalizePaidDate } from '@/lib/paidDate';
 
 /* ─── Row types ─── */
 
@@ -66,8 +67,8 @@ export interface BuildRowsOptions {
 export function buildSpreadsheetRows({ ros, periodLabel, groupBy = 'date', viewStart: _viewStart }: BuildRowsOptions): SpreadsheetRow[] {
   // Paid ROs are the primary payroll rows.
   // All open/unpaid ROs are shown below as secondary (muted, not counted).
-  const paidROs = ros.filter(ro => !!ro.paidDate);
-  const openROs = ros.filter(ro => !ro.paidDate);
+  const paidROs = ros.filter(ro => hasPaidDate(ro));
+  const openROs = ros.filter(ro => !hasPaidDate(ro));
 
   switch (groupBy) {
     case 'ro': return buildGroupedByRO(paidROs, openROs, periodLabel);
@@ -89,7 +90,7 @@ function emitROLines(
   let roTotal = 0, roCP = 0, roW = 0, roI = 0;
   const hasLines = ro.lines?.length > 0;
   // Open ROs use ro.date; paid ROs show paidDate as the effective date.
-  const displayDate = ro.paidDate || ro.date;
+  const displayDate = normalizePaidDate(ro.paidDate) ?? ro.date;
 
   if (hasLines) {
     for (let i = 0; i < ro.lines.length; i++) {
@@ -174,7 +175,8 @@ function buildOpenSection(openROs: RepairOrder[], rows: SpreadsheetRow[], startG
 
 function buildGroupedByDate(paidROs: RepairOrder[], openROs: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
   const sorted = [...paidROs].sort((a, b) => {
-    const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
+    const aD = normalizePaidDate(a.paidDate) ?? a.date;
+    const bD = normalizePaidDate(b.paidDate) ?? b.date;
     return aD.localeCompare(bD) || a.roNumber.localeCompare(b.roNumber);
   });
 
@@ -183,7 +185,7 @@ function buildGroupedByDate(paidROs: RepairOrder[], openROs: RepairOrder[], peri
 
   const dateMap = new Map<string, RepairOrder[]>();
   for (const ro of sorted) {
-    const dateKey = (ro.paidDate || ro.date).slice(0, 10);
+    const dateKey = (normalizePaidDate(ro.paidDate) ?? ro.date).slice(0, 10);
     if (!dateMap.has(dateKey)) dateMap.set(dateKey, []);
     dateMap.get(dateKey)!.push(ro);
   }
@@ -273,7 +275,8 @@ function buildGroupedByAdvisor(paidROs: RepairOrder[], openROs: RepairOrder[], p
 
 function buildFlat(paidROs: RepairOrder[], openROs: RepairOrder[], periodLabel?: string): SpreadsheetRow[] {
   const sorted = [...paidROs].sort((a, b) => {
-    const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
+    const aD = normalizePaidDate(a.paidDate) ?? a.date;
+    const bD = normalizePaidDate(b.paidDate) ?? b.date;
     return aD.localeCompare(bD) || a.roNumber.localeCompare(b.roNumber);
   });
 

@@ -5,6 +5,7 @@ import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import { getEffectivePayPeriodType, type PayPeriodSettingsLike } from '@/lib/payPeriodRange';
 import type { RepairOrder } from '@/types/ro';
+import { hasPaidDate, normalizePaidDate } from '@/lib/paidDate';
 
 export type DateFilterKey = 'all' | 'today' | 'last_week' | 'week' | 'month' | 'pay_period' | 'last_pay_period' | 'custom';
 
@@ -149,8 +150,7 @@ export function computeDateRangeBounds(opts: ComputeDateRangeOpts): DateRangeBou
 }
 
 export function effectiveDate(ro: RepairOrder): string {
-  const paidDate = ro.paidDate?.trim();
-  return paidDate && paidDate !== '—' ? paidDate : ro.date;
+  return normalizePaidDate(ro.paidDate) ?? ro.date;
 }
 
 export function filterROsByDateRange(ros: RepairOrder[], bounds: DateRangeBounds | null): RepairOrder[] {
@@ -167,7 +167,7 @@ export function filterROsByDateRange(ros: RepairOrder[], bounds: DateRangeBounds
 }
 
 export function isCarryoverRO(ro: RepairOrder, viewStart: string | null | undefined): boolean {
-  if (ro.paidDate) return false;
+  if (hasPaidDate(ro)) return false;
   if (!viewStart) return false;
   return ro.date < viewStart;
 }
@@ -185,7 +185,7 @@ export function filterROsByDateRangeWithCarryover(
   return ros.filter((ro) => {
     const effKey = toDayKey(effectiveDate(ro));
     if (!isNaN(effKey) && effKey >= startKey && effKey <= endKey) return true;
-    if (!ro.paidDate) {
+    if (!hasPaidDate(ro)) {
       const roDateKey = toDayKey(ro.date);
       return !isNaN(roDateKey) && roDateKey < startKey;
     }

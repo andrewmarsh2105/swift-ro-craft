@@ -453,9 +453,10 @@
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
     @apply flex-shrink-0 h-12 flex items-center justify-between px-4;
-    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.95) 100%);
+    background: linear-gradient(180deg, hsl(var(--card) / 0.98) 0%, hsl(var(--card) / 0.92) 100%);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 0 1px 0 hsl(var(--foreground) / 0.03);
   }
 
   /* ── Desktop workspace-specific tokens ───────────── */

@@ -3,6 +3,7 @@ import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import type { RepairOrder, LaborType, ROLine } from '@/types/ro';
 import { normalizeAdvisorName } from '@/lib/roFilters';
+import { hasPaidDate, normalizePaidDate } from '@/lib/paidDate';
 
 export interface DayBreakdown {
   date: string;
@@ -75,8 +76,7 @@ function toDayKey(s: string): number {
 
 /** Resolve effective date string for an RO (paidDate overrides ro.date). */
 function effectiveDateOf(ro: RepairOrder): string {
-  const pd = ro.paidDate?.trim();
-  return (pd && pd !== '—') ? pd : ro.date;
+  return normalizePaidDate(ro.paidDate) ?? ro.date;
 }
 
 export function usePayPeriodReport(startDate: string, endDate: string): PayPeriodReport {
@@ -89,7 +89,7 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
 
     const rosInRange = ros.filter(ro => {
       // Exclude open ROs (no paidDate) from all reporting
-      if (!ro.paidDate) return false;
+      if (!hasPaidDate(ro)) return false;
       const raw = effectiveDateOf(ro);
       const key = toDayKey(raw);
       return !isNaN(key) && key >= startKey && key <= endKey;

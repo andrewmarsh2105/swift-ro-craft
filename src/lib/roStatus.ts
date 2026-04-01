@@ -4,9 +4,10 @@
  * Industrial status indicators for list/detail views.
  */
 import type { RepairOrder } from "@/types/ro";
+import { hasPaidDate } from '@/lib/paidDate';
 
 export function getPaidLabel(ro: RepairOrder): "Paid" | "Open" {
-  return ro.paidDate ? "Paid" : "Open";
+  return hasPaidDate(ro) ? "Paid" : "Open";
 }
 
 export function getStatusSummary(ro: RepairOrder, flagsCount: number, checksCount: number) {

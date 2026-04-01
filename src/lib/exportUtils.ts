@@ -1,6 +1,7 @@
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
 import type { RepairOrder, ROLine } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
+import { normalizePaidDate } from '@/lib/paidDate';
 
 /** Wrap a CSV cell value in double-quotes, escaping any embedded quotes. */
 function csvCell(val: string | number | null | undefined): string {
@@ -25,7 +26,7 @@ export function generateLineCSV(report: PayPeriodReport): string {
       ((ro as { vehicleLabel?: string }).vehicleLabel || '');
     return [
       csvCell(isFirstLine ? ro.roNumber : ''),
-      csvCell(isFirstLine ? (ro.paidDate?.trim() && ro.paidDate !== '—' ? ro.paidDate : ro.date) : ''),
+      csvCell(isFirstLine ? (normalizePaidDate(ro.paidDate) ?? ro.date) : ''),
       csvCell(isFirstLine ? (ro.advisor || '—') : ''),
       csvCell(isFirstLine ? (ro.customerName || '') : ''),
       csvCell(isFirstLine ? vehicleLabel : ''),

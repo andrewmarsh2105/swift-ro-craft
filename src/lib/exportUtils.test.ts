@@ -125,4 +125,37 @@ describe('exportUtils', () => {
     const csv = generateLineCSV(report);
     expect(csv).toContain("\"'23 Toyota Camry\"");
   });
+
+  it('generateLineCSV falls back to RO date when paidDate is placeholder/blank', () => {
+    const ro = makeRO({
+      id: 'ro-placeholder',
+      roNumber: '3003',
+      date: '2026-03-07',
+      paidDate: ' — ',
+      lines: [
+        { id: 'l1', lineNo: 1, description: 'Rotate tires', hoursPaid: 0.7, laborType: 'customer-pay', createdAt: '', updatedAt: '' },
+      ],
+    });
+
+    const report = {
+      startDate: '2026-03-01',
+      endDate: '2026-03-31',
+      totalHours: 0.7,
+      totalROs: 1,
+      totalLines: 1,
+      byDay: [],
+      byAdvisor: [],
+      byLaborType: [],
+      byLaborRef: [],
+      missingHoursCount: 0,
+      needsReviewCount: 0,
+      flaggedCount: 0,
+      rosInRange: [ro],
+      linesInRange: ro.lines.map(line => ({ ro, line })),
+    } satisfies PayPeriodReport;
+
+    const csv = generateLineCSV(report);
+    expect(csv).toContain('"2026-03-07"');
+    expect(csv).not.toContain('" — "');
+  });
 });

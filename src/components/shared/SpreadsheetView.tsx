@@ -29,6 +29,8 @@ import {
 } from '@/components/shared/spreadsheet/types';
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
+import { dateDisplayContext } from '@/lib/roDisplay';
+import { hasPaidDate } from '@/lib/paidDate';
 import { toast } from 'sonner';
 import { computeDateRangeBounds, filterROsByDateRangeWithCarryover, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
@@ -124,9 +126,13 @@ interface MobileLineCardProps {
   onToggleSelect: (roId: string) => void;
   flagCount: number;
   rowTone: 'base' | 'alt';
+  showGroupHeader: boolean;
+  isGroupStart: boolean;
 }
 
-const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelected, showCheckbox, onToggleSelect, flagCount, rowTone }: MobileLineCardProps) {
+const MobileLineCard = memo(function MobileLineCard({
+  line, onSelectRO, isSelected, showCheckbox, onToggleSelect, flagCount, rowTone, showGroupHeader, isGroupStart,
+}: MobileLineCardProps) {
   const borderColorClass = line.isCarryover
     ? 'border-l-border'
     : line.laborType === 'warranty'
@@ -149,11 +155,12 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
         'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b border-border/40',
         'cursor-pointer active:bg-primary/[0.14] transition-colors',
         borderColorClass,
+        isGroupStart && 'mt-2 rounded-t-md border-t border-border/45 shadow-[0_1px_3px_-2px_hsl(var(--foreground)/0.2)]',
         line.isCarryover
-          ? 'opacity-60 bg-muted/10'
+          ? 'opacity-60 bg-muted/[0.14]'
           : (isSelected
             ? 'bg-primary/[0.13]'
-            : (rowTone === 'alt' ? 'bg-primary/[0.055]' : 'bg-card/95')),
+            : (rowTone === 'alt' ? 'bg-muted/[0.28]' : 'bg-card/95')),
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
@@ -167,37 +174,43 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="font-bold text-xs text-foreground shrink-0">#{line.roNumber}</span>
-          <span className={cn(
-            'text-[9px] font-bold px-1.5 py-0 rounded-full uppercase tracking-wide',
-            isPaid
-              ? 'bg-[hsl(var(--status-warranty-bg))] text-[hsl(var(--status-warranty))]'
-              : 'bg-[hsl(var(--status-internal-bg))] text-[hsl(var(--status-internal))]',
-          )}>
-            {isPaid ? 'PAID' : 'OPEN'}
-          </span>
-          {line.isCarryover && (
-            <span className="text-[8px] font-semibold text-muted-foreground/75 border border-dashed border-muted-foreground/30 rounded px-1 py-px uppercase tracking-wide">
-              Carryover
+        {showGroupHeader ? (
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="font-bold text-xs text-foreground shrink-0">#{line.roNumber}</span>
+            <span className={cn(
+              'text-[9px] font-bold px-1.5 py-0 rounded-full uppercase tracking-wide',
+              isPaid
+                ? 'bg-[hsl(var(--status-warranty-bg))] text-[hsl(var(--status-warranty))]'
+                : 'bg-[hsl(var(--status-internal-bg))] text-[hsl(var(--status-internal))]',
+            )}>
+              {isPaid ? 'PAID' : 'OPEN'}
             </span>
-          )}
-          {flagCount > 0 && (
-            <Flag className="h-3 w-3 text-amber-500 fill-amber-500/20" />
-          )}
-          {line.customer && (
-            <span className="text-[11px] text-muted-foreground truncate">{line.customer}</span>
-          )}
-        </div>
-        <p className="text-sm text-foreground leading-snug line-clamp-2">
+            {line.isCarryover && (
+              <span className="text-[8px] font-semibold text-muted-foreground/75 border border-dashed border-muted-foreground/30 rounded px-1 py-px uppercase tracking-wide">
+                Carryover
+              </span>
+            )}
+            {flagCount > 0 && (
+              <Flag className="h-3 w-3 text-amber-500 fill-amber-500/20" />
+            )}
+            {line.customer && (
+              <span className="text-[11px] text-muted-foreground truncate">{line.customer}</span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 mb-1">
+            <span className="text-[10px] text-muted-foreground/70 tabular-nums font-medium">Line {line.lineNo}</span>
+          </div>
+        )}
+        <p className={cn('text-[13px] text-foreground leading-snug line-clamp-2', !showGroupHeader && 'pl-1')}>
           {line.description || <span className="italic text-muted-foreground">No description</span>}
         </p>
       </div>
       <div className="flex flex-col items-end gap-0.5 shrink-0 ml-1">
-        <span className="text-base font-bold tabular-nums leading-none">
+        <span className="text-[15px] font-bold tabular-nums leading-none">
           {line.hours.toFixed(1)}h
         </span>
-        <span className={cn('text-[10px] font-semibold uppercase tracking-wide', typeColor)}>
+        <span className={cn('text-[10px] font-semibold uppercase tracking-[0.08em]', typeColor)}>
           {line.type}
         </span>
       </div>
@@ -561,8 +574,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const internalHours = periodRow?.iHours ?? 0;
   // Only count paid line rows toward the lines total; open/unpaid rows are secondary.
   const totalLines = allRows.filter(r => r.rowType === 'line' && !(r as SpreadsheetLineRow).isCarryover).length;
-  const paidROCount = filteredROs.filter(ro => !!ro.paidDate).length;
-  const openROCount = filteredROs.filter(ro => !ro.paidDate).length;
+  const paidROCount = filteredROs.filter(ro => hasPaidDate(ro)).length;
+  const openROCount = filteredROs.filter(ro => !hasPaidDate(ro)).length;
 
   /* ─── Paginate ─── */
   const visibleRows = useMemo(() => allRows.slice(0, visibleCount), [allRows, visibleCount]);
@@ -597,7 +610,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   const handleBatchExport = useCallback(() => {
     // Only export paid ROs from the selection — open ROs are never included in exports.
-    const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id) && !!ro.paidDate);
+    const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id) && hasPaidDate(ro));
     const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none' });
     const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
     const exportRows = rows
@@ -627,13 +640,22 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         );
       case 'date': {
         const [y, m, d] = row.date.split('-').map(Number);
-        return <span className="text-muted-foreground">{new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>;
+        const dateLabel = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const isPaidDateRow = row.ro ? dateDisplayContext(row.ro).primaryLabel === 'Paid' : !!(row.ro && hasPaidDate(row.ro));
+        return (
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <span>{dateLabel}</span>
+            <span className={cn('text-[9px] font-semibold uppercase tracking-wide', isPaidDateRow ? 'text-emerald-600/90' : 'text-muted-foreground/70')}>
+              {isPaidDateRow ? 'Paid' : 'RO'}
+            </span>
+          </span>
+        );
       }
       case 'advisor': return <span className="text-foreground/80">{row.advisor || '—'}</span>;
       case 'customer': return <span className="text-foreground/80">{row.customer || '—'}</span>;
       case 'vehicle': return row.vehicle || <span className="text-muted-foreground/50">—</span>;
       case 'status': {
-        const isPaid = !!row.ro?.paidDate;
+        const isPaid = !!(row.ro && hasPaidDate(row.ro));
         return (
           <span className={cn(
             'inline-block text-[9px] font-bold px-1.5 py-px rounded uppercase tracking-wider',
@@ -1021,10 +1043,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {isMobile ? (
         <div className="flex-1 overflow-auto">
           {visibleRows.map((row, i) => {
+            const prevRow = i > 0 ? visibleRows[i - 1] : null;
             if (row.rowType === 'sectionDivider') {
               const div = row as SpreadsheetSectionDividerRow;
               return (
-                <div key={`divider-${i}`} className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-y border-dashed border-border/50 mt-1">
+                <div key={`divider-${i}`} className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-y border-dashed border-border/50 mt-2 mb-1">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{div.label}</span>
                   <span className="flex-1 h-px bg-border/40" />
                   <span className="text-[9px] text-muted-foreground/40 italic">not counted in totals</span>
@@ -1045,20 +1068,30 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             }
             if (row.rowType === 'roSubtotal') {
               const sub = row as SpreadsheetSubtotalRow;
+              const tone = sub.groupIndex % 2 === 1 ? 'alt' : 'base';
               if (sub.isCarryover) {
                 return (
-                  <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-muted/10 border-b border-dashed border-border/30 opacity-60">
+                  <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-2.5 bg-muted/[0.16] border-x border-b border-dashed border-border/35 opacity-70 rounded-b-md mb-3">
                     <span className="text-[10px] italic text-muted-foreground/70">{sub.label}</span>
                     <span className="text-[10px] tabular-nums text-muted-foreground/50">{sub.hours.toFixed(1)}h unpaid</span>
                   </div>
                 );
               }
               return (
-                <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-accent/20 border-b border-border/40">
-                  <span className="text-xs font-semibold text-muted-foreground">{sub.label}</span>
+                <div
+                  key={`rosub-${i}`}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2.5 border-x border-b border-border/40 border-t border-border/30 rounded-b-md mb-3',
+                    tone === 'alt' ? 'bg-muted/[0.34]' : 'bg-accent/25',
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">Total</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground">{sub.label}</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     {(sub.cpHours! > 0 || sub.wHours! > 0 || sub.iHours! > 0) && (
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[10px] text-muted-foreground/85">
                         {[
                           sub.cpHours ? `CP ${sub.cpHours.toFixed(1)}` : '',
                           sub.wHours ? `W ${sub.wHours.toFixed(1)}` : '',
@@ -1066,7 +1099,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                         ].filter(Boolean).join(' · ')}
                       </span>
                     )}
-                    <span className="text-xs font-bold tabular-nums text-primary">{maskHours(sub.hours, hideTotals)}h</span>
+                    <span className="text-[15px] font-bold tabular-nums text-primary">{maskHours(sub.hours, hideTotals)}h</span>
                   </div>
                 </div>
               );
@@ -1082,6 +1115,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             }
             const line = row as SpreadsheetLineRow;
             const roId = line.ro?.id ?? '';
+            const isGroupStart = !prevRow || prevRow.rowType !== 'line' || (prevRow as SpreadsheetLineRow).groupIndex !== line.groupIndex;
+            const rowTone = line.groupIndex % 2 === 0 ? 'base' : 'alt';
             return (
               <MobileLineCard
                 key={`line-${i}`}
@@ -1091,7 +1126,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 showCheckbox={showCheckbox}
                 onToggleSelect={toggleSelect}
                 flagCount={roFlagCounts.get(roId) ?? 0}
-                rowTone={i % 2 === 0 ? 'base' : 'alt'}
+                rowTone={rowTone}
+                showGroupHeader={isGroupStart}
+                isGroupStart={isGroupStart}
               />
             );
           })}
