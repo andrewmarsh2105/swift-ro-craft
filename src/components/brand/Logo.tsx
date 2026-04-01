@@ -45,28 +45,20 @@ export function Logo({
   const isDark = scheme === 'dark';
   const isAuto = scheme === 'auto';
 
-  const roClass = cn(
-    isDark ? 'text-white' : 'text-[#2B82F0]',
-    isAuto && 'dark:text-white',
-  );
-  const navClass = cn(
-    isDark ? 'text-white' : 'text-[#0C1829]',
-    isAuto && 'dark:text-white',
-  );
-
   return (
-    <span
-      className={cn('inline-flex items-baseline select-none shrink-0', className)}
-      aria-label="RO Navigator"
-    >
-      <span
-        className={cn('font-black tracking-tight', roClass)}
-        style={{ fontSize: h, lineHeight: 1 }}
-      >RO</span>
-      <span
-        className={cn('font-extrabold tracking-tight', navClass)}
-        style={{ fontSize: h, lineHeight: 1, marginLeft: '0.22em' }}
-      >Navigator</span>
-    </span>
+    <img
+      src="/brand/logo-full.svg"
+      alt="RO Navigator"
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      className={cn(
+        'block w-auto shrink-0 select-none object-contain',
+        isDark && '[filter:brightness(0)_invert(1)]',
+        isAuto && 'dark:[filter:brightness(0)_invert(1)]',
+        className,
+      )}
+      style={{ height: h }}
+    />
   );
 }
