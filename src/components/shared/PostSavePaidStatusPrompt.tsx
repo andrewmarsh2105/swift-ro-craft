@@ -30,68 +30,61 @@ export function PostSavePaidStatusPrompt({
   const isMobile = useIsMobile();
   const title = roNumber ? `RO #${roNumber} saved` : 'RO saved';
 
-  const content = (
-    <>
-      <div className="space-y-1">
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="text-sm text-muted-foreground">
-          Choose the status now so totals, carryover, and filters stay accurate.
-        </p>
-      </div>
-
-      <div className="grid gap-2 pt-3">
-        <button
-          type="button"
-          onClick={() => onChoose('paid')}
-          disabled={isSaving}
-          className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-left transition-colors hover:bg-emerald-500/15 disabled:opacity-60"
-        >
-          <span className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-            <CircleDollarSign className="h-4 w-4" />
-            Mark Paid
-          </span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            Counts in paid payroll totals immediately.
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onChoose('open')}
-          disabled={isSaving}
-          className="w-full rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-3 text-left transition-colors hover:bg-blue-500/15 disabled:opacity-60"
-        >
-          <span className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
-            <FolderOpen className="h-4 w-4" />
-            Keep Open / Unpaid
-          </span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            Excluded from paid totals until marked paid later.
-          </span>
-        </button>
-      </div>
+  const buttons = (
+    <div className="grid gap-2">
+      <button
+        type="button"
+        onClick={() => onChoose('paid')}
+        disabled={isSaving}
+        className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-left transition-colors hover:bg-emerald-500/15 disabled:opacity-60"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+          <CircleDollarSign className="h-4 w-4" />
+          Mark Paid
+        </span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          Added to paid totals right away.
+        </span>
+      </button>
 
       <button
         type="button"
-        onClick={onDismiss}
+        onClick={() => onChoose('open')}
         disabled={isSaving}
-        className="w-full pt-1 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
+        className="w-full rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-3 text-left transition-colors hover:bg-blue-500/15 disabled:opacity-60"
       >
-        Decide later (leave open)
+        <span className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+          <FolderOpen className="h-4 w-4" />
+          Keep Open
+        </span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          Won't count in paid totals until marked paid.
+        </span>
       </button>
-    </>
+    </div>
   );
 
   if (isMobile) {
     return (
-      <BottomSheet isOpen={open} onClose={onDismiss} title="Choose RO status">
-        <div className="px-4 pb-5 pt-2 space-y-2">
-          {content}
-          {isSaving && (
-            <div className="flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground">
+      <BottomSheet isOpen={open} onClose={onDismiss} title={title}>
+        <div className="px-4 pb-6 pt-2 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Pick a status to keep your totals accurate.
+          </p>
+          {buttons}
+          {isSaving ? (
+            <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Updating status…
+              Updating…
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="w-full py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Skip for now
+            </button>
           )}
         </div>
       </BottomSheet>
@@ -102,21 +95,31 @@ export function PostSavePaidStatusPrompt({
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onDismiss(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Choose RO status</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Set this now to keep paid totals and open carryover accurate.
+            Pick a status to keep paid totals and open carryover accurate.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2">{content}</div>
+        <div className="space-y-2">{buttons}</div>
 
         <DialogFooter>
-          {isSaving && (
-            <span className="inline-flex items-center gap-2 text-xs text-muted-foreground mr-auto">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Updating status…
-            </span>
-          )}
+          <div className="flex w-full items-center justify-between">
+            <button
+              type="button"
+              onClick={onDismiss}
+              disabled={isSaving}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
+            >
+              Skip for now
+            </button>
+            {isSaving && (
+              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Updating…
+              </span>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
