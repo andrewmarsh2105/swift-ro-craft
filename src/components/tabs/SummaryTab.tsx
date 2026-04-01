@@ -241,6 +241,7 @@ export function SummaryTab() {
   const hasMoreAdvisors = report.byAdvisor.length > 5;
   const maxDayHours = Math.max(...report.byDay.map(d => d.totalHours), 1);
   const hiddenPastZeroActivityDays = report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0 && d.date < todayStr).length;
+  const futureDaysInRange = report.byDay.filter((d) => d.date > todayStr).length;
 
   const avgPerRO = report.totalROs > 0 ? Math.round((report.totalHours / report.totalROs) * 10) / 10 : 0;
 
@@ -403,10 +404,10 @@ export function SummaryTab() {
       </div>
 
       {/* Status strip */}
-      <div className="border-t px-4 py-2 flex items-center gap-1.5 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.12)', background: 'hsl(var(--primary) / 0.045)' }}>
+      <div className="border-t px-4 py-2.5 flex items-center gap-2 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.12)', background: 'hsl(var(--primary) / 0.045)' }}>
         {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
           <div key={lt.laborType} className="inline-flex h-7 items-center justify-center rounded-full border border-border/50 bg-card/70 px-2">
-            <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" className="h-5 items-center justify-center px-2.5 py-0 leading-none" />
+            <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" className="h-5 items-center justify-center px-2.5 py-0 leading-none font-mono tabular-nums tracking-normal" />
           </div>
         )) : (
           <span className="text-[10px] text-muted-foreground/40">No type data</span>
@@ -469,23 +470,23 @@ export function SummaryTab() {
             const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
             return (
               <TableRow key={day.date} className={cn('border-border/30', isToday && 'bg-primary/[0.04]')}>
-                <TableCell className="py-1.5 pl-4 w-12">
-                  <div className="text-[10px] font-semibold text-muted-foreground/60 uppercase">{dayNames[date.getDay()]}</div>
+                <TableCell className="py-2 pl-4 w-14">
+                  <div className="text-[11px] font-semibold text-muted-foreground/65 uppercase">{dayNames[date.getDay()]}</div>
                   <div className={cn('text-sm font-bold tabular-nums', isToday && 'text-primary')}>{date.getDate()}</div>
                 </TableCell>
-                <TableCell className="py-1.5 pr-2">
-                  <div className="relative h-5 flex items-center">
+                <TableCell className="py-2 pr-2">
+                  <div className="relative h-6 flex items-center">
                     <div
                       className={cn('absolute left-0 top-0 h-full rounded-r transition-all', isToday ? 'bg-primary/20' : 'bg-primary/10')}
                       style={{ width: `${barWidth}%` }}
                     />
-                    <span className="relative z-10 text-xs font-bold tabular-nums ml-1.5">
+                    <span className="relative z-10 text-[13px] font-bold tabular-nums ml-2">
                       {maskHours(day.totalHours, hideTotals)}h
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="py-1.5 pr-4 text-right">
-                  <span className="text-[10px] text-muted-foreground/60">{day.roCount} RO{day.roCount !== 1 ? 's' : ''}</span>
+                <TableCell className="py-2 pr-4 text-right">
+                  <span className="text-[11px] text-muted-foreground/65">{day.roCount} RO{day.roCount !== 1 ? 's' : ''}</span>
                 </TableCell>
               </TableRow>
             );
@@ -501,7 +502,8 @@ export function SummaryTab() {
       </Table>
       {hiddenPastZeroActivityDays > 0 && (
         <div className="px-4 pb-2 text-[10px] text-muted-foreground/60">
-          Hidden {hiddenPastZeroActivityDays} zero-activity day{hiddenPastZeroActivityDays === 1 ? '' : 's'}.
+          Hidden {hiddenPastZeroActivityDays} past zero-activity day{hiddenPastZeroActivityDays === 1 ? '' : 's'}.
+          {futureDaysInRange > 0 && ` ${futureDaysInRange} future day${futureDaysInRange === 1 ? '' : 's'} in this period not counted.`}
         </div>
       )}
     </div>
@@ -719,12 +721,12 @@ export function SummaryTab() {
 
   const renderMobileSummary = () => (
     <HideTotalsContext.Provider value={hideTotals}>
-      <div className="space-y-3">
+      <div className="space-y-4 pb-2">
 
         <AlertsBlock />
 
         {/* Range selector */}
-        <div className="px-4 pt-3">
+        <div className="px-4 pt-2.5">
           <RangeSelector />
         </div>
 
@@ -743,7 +745,7 @@ export function SummaryTab() {
         </div>
 
         {/* Breakdowns */}
-        <div className="px-4 space-y-3">
+        <div className="px-4 space-y-4">
           <HoursByDay />
           <HoursByAdvisor />
         </div>
