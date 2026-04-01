@@ -7,7 +7,7 @@ import { RODetailsPanel } from "./RODetailsPanel";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
-import { Logo } from "@/components/brand";
+import { HeaderLogo } from "@/components/brand";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
 import { useRO } from "@/contexts/ROContext";
@@ -278,9 +278,7 @@ export function DesktopWorkspace() {
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
         <div className="flex items-center min-w-0 gap-2.5">
-          <div className="h-9 px-2.5 rounded-md border border-border/50 bg-background/70 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] inline-flex items-center">
-            <Logo variant="full" scheme="auto" size="lg" className="text-foreground" />
-          </div>
+          <HeaderLogo className="w-[172px] xl:w-[184px]" />
           <span className="hidden xl:inline text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/65">
             Work Queue
           </span>

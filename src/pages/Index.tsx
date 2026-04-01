@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
-import { Logo } from "@/components/brand";
+import { HeaderLogo } from "@/components/brand";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
@@ -68,9 +68,7 @@ function MobileApp() {
       <OfflineStatusBar />
       {/* Branded mobile app header */}
       <header className="flex-shrink-0 flex items-center px-4 h-12 border-b border-border/40 bg-card/95 backdrop-blur-sm">
-        <div className="h-8 px-2 rounded-md border border-border/45 bg-background/75 inline-flex items-center shadow-[0_1px_0_hsl(var(--foreground)/0.03)]">
-          <Logo variant="full" scheme="auto" size="md" />
-        </div>
+        <HeaderLogo className="w-[156px] sm:w-[168px]" />
       </header>
       <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         {activeTab === "ros" && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}
