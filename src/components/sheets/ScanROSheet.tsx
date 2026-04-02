@@ -156,7 +156,7 @@ export function ScanROSheet({ isOpen, onClose, onApply }: ScanROSheetProps) {
             initial={{ x: 20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 20, opacity: 0 }}
-            className="flex flex-col h-full safe-top"
+            className="flex flex-col h-full safe-top safe-bottom"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
@@ -238,7 +238,7 @@ export function ScanROSheet({ isOpen, onClose, onApply }: ScanROSheetProps) {
             </div>
 
             {/* Bottom Action */}
-            <div className="p-4 border-t border-border safe-bottom">
+            <div className="p-4 border-t border-border safe-bottom pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
               <button
                 onClick={handleApply}
                 className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold tap-target touch-feedback"

@@ -201,7 +201,7 @@ export function useROStore() {
       } catch (err) {
         const msg = errorMessage(err);
         if (!msg.includes('timed out')) throw err;
-        pushDebug({ action: 'fetchROs Phase1 timeout — retrying with extended timeout', timeoutMs: 20_000 });
+        pushDebug({ action: 'fetchROs Phase1 timeout — retrying with extended timeout (20s)' });
         [roResult, lineResult] = await runPhase1(45_000);
       }
 

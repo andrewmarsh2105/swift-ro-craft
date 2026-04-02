@@ -281,8 +281,8 @@ export function SummaryTab() {
 
   const RangeSelector = () => (
     <div className="flex items-center gap-2">
-      <Select value={rangeMode} onValueChange={(v) => {
-        setRangeMode(v);
+      <Select value={rangeMode} onValueChange={(v: string) => {
+        setRangeMode(v as SummaryRangeMode);
         if (v !== 'day') setSharedDateFilter(v as DateFilterKey);
         setShowAllAdvisors(false);
       }}>

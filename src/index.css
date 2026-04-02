@@ -547,6 +547,11 @@
   .data-strong {
     @apply font-bold text-foreground tabular-nums;
   }
+
+  /* Prevent content from being obscured by fixed bottom elements on short viewports */
+  .scroll-pad-bottom {
+    scroll-padding-bottom: 6rem;
+  }
 }
 
 @media print {
@@ -560,6 +565,9 @@
   .app-bar,
   .panel-action-bar,
   .toolbar-btn,
+  .tab-bar-pwa,
+  .fab,
+  .fab-extended,
   [data-sonner-toaster],
   [role="dialog"],
   [data-radix-popper-content-wrapper] {
@@ -569,5 +577,16 @@
   .panel-header {
     position: static !important;
     backdrop-filter: none !important;
+  }
+
+  /* Ensure printed content isn't clipped by flex/overflow constraints */
+  .flex-1,
+  [class*="overflow-hidden"],
+  [class*="overflow-y-auto"],
+  [class*="min-h-0"] {
+    overflow: visible !important;
+    min-height: auto !important;
+    height: auto !important;
+    flex: none !important;
   }
 }
