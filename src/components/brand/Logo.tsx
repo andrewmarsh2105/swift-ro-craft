@@ -21,7 +21,7 @@ const HEIGHT_MAP: Record<LogoSize, number> = {
 };
 
 const ASSET_BY_SCHEME: Record<Exclude<LogoScheme, 'auto' | 'amber'>, string> = {
-  light: '/brand/logo-wordmark-navy.svg',
+  light: '/brand/logo-ronavigator.png',
   dark: '/brand/logo-wordmark-white.svg',
 };
 
