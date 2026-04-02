@@ -278,10 +278,7 @@ export function DesktopWorkspace() {
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
         <div className="flex items-center min-w-0 gap-2.5">
-          <HeaderLogo scheme="white" className="h-8 w-auto" />
-          <span className="hidden xl:inline text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
-            Work Queue
-          </span>
+          <HeaderLogo scheme="navy" className="h-8 w-auto" />
         </div>
 
         {/* Right-side toolbar */}
