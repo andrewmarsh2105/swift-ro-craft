@@ -2,7 +2,6 @@ import { useMemo, useRef, useCallback, useState, useEffect, memo, type ReactNode
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, MoreVertical,
   Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarRange, CalendarDays,
@@ -787,22 +786,43 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, [getExportRows, rangeLabel]);
 
   const handlePrint = useCallback(() => {
-    const el = tableRef.current;
-    if (!el) return;
+    const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
+    const rows = getExportRows(viewMode).map((row) => rowToExportCells(row, headers));
     const w = window.open('', '_blank');
     if (!w) return;
+    const tableRowsHtml = rows
+      .map((cells) => `<tr>${cells.map((cell) => `<td>${String(cell ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`).join('')}</tr>`)
+      .join('');
+
     w.document.write(`<html><head><title>Spreadsheet</title>
       <style>
-        body{font-family:system-ui,sans-serif;margin:1rem}
-        table{width:100%;border-collapse:collapse;font-size:12px}
-        th,td{padding:4px 8px;border:1px solid #ddd;text-align:left}
-        th{background:#f5f5f5;font-weight:600}
-        @media print{body{margin:0}}
-      </style></head><body>${DOMPurify.sanitize(el.innerHTML)}</body></html>`);
+        body{font-family:Inter,system-ui,sans-serif;margin:0;padding:16px;color:#0f172a}
+        .meta{margin-bottom:12px}
+        .meta h1{font-size:16px;margin:0 0 4px 0}
+        .meta p{margin:0;font-size:11px;color:#475569}
+        table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+        th,td{padding:6px 8px;border:1px solid #cbd5e1;text-align:left;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere}
+        th{background:#f8fafc;font-weight:700}
+        @page{margin:12mm}
+        @media print{
+          body{padding:0}
+          tr,td,th{page-break-inside:avoid}
+          thead{display:table-header-group}
+        }
+      </style></head><body>
+      <div class="meta">
+        <h1>${viewMode === 'payroll' ? 'Payroll' : 'Audit'} Spreadsheet Export</h1>
+        <p>Generated ${format(new Date(), 'MMM d, yyyy h:mm a')}</p>
+      </div>
+      <table>
+        <thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
+        <tbody>${tableRowsHtml}</tbody>
+      </table>
+      </body></html>`);
     w.document.close();
     w.focus();
     w.print();
-  }, []);
+  }, [getExportRows, viewMode]);
 
   /* ─── Density classes ─── */
   const cellPy = density === 'compact' ? 'py-[5px]' : 'py-2';

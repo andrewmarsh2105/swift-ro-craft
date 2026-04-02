@@ -177,11 +177,12 @@ export function LinesGrid({
   };
 
   const totalHours = calcLineHours(lines);
+  const tableColumns = 'grid-cols-[44px_minmax(0,1fr)_minmax(130px,0.9fr)_minmax(96px,0.7fr)_88px]';
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card">
       {/* Table Header */}
-      <div className="grid grid-cols-[48px_1fr_120px_100px_88px] bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className={cn('grid bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide', tableColumns)}>
         <div className="px-3 py-2 text-center">#</div>
         <div className="px-3 py-2">Description</div>
         <div className="px-3 py-2">Type</div>
@@ -190,7 +191,7 @@ export function LinesGrid({
       </div>
 
       {/* Table Body */}
-      <div className="max-h-[500px] overflow-y-auto">
+      <div>
         {lines.map((line, index) => {
           const isExpanded = expandedId === line.id;
           const isHighlighted = highlightedIds.includes(line.id);
@@ -206,7 +207,7 @@ export function LinesGrid({
               )}
             >
               {/* Compact row — always visible */}
-              <div className="grid grid-cols-[48px_1fr_120px_100px_88px] hover:bg-muted/30 transition-colors">
+              <div className={cn('grid hover:bg-muted/30 transition-colors', tableColumns)}>
                 {/* Line Number */}
                 <div className="px-3 py-2 text-center text-sm font-medium text-muted-foreground flex items-center justify-center">
                   <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-semibold">
@@ -346,7 +347,7 @@ export function LinesGrid({
       )}
 
       {/* Footer with Total */}
-      <div className="grid grid-cols-[48px_1fr_120px_100px_88px] bg-muted/30 border-t border-border font-semibold">
+      <div className={cn('grid bg-muted/30 border-t border-border font-semibold', tableColumns)}>
         <div className="px-3 py-3" />
         <div className="px-3 py-3 text-sm text-muted-foreground">
           Total ({lines.length} lines)
@@ -358,4 +359,3 @@ export function LinesGrid({
     </div>
   );
 }
-
