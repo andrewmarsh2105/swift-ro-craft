@@ -238,7 +238,7 @@ export function ScanROSheet({ isOpen, onClose, onApply }: ScanROSheetProps) {
             </div>
 
             {/* Bottom Action */}
-            <div className="p-4 border-t border-border safe-bottom">
+            <div className="p-4 border-t border-border safe-bottom pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
               <button
                 onClick={handleApply}
                 className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold tap-target touch-feedback"

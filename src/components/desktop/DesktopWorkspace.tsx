@@ -454,7 +454,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="absolute inset-0"
+                      className="absolute inset-0 overflow-y-auto"
                     >
                       <RODetailsPanel
                         ro={selectedRO}
