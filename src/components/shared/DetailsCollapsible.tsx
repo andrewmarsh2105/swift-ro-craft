@@ -135,17 +135,17 @@ export function DetailsCollapsible({
           )}
         >
           {isDesktop ? (
-            /* Desktop: grid layout */
-            <div className="space-y-2">
+            /* Desktop: wrap-safe layout */
+            <div className="space-y-3">
               {onPaidDateChange && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Paid Date</label>
                   <CalendarCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                   <input
                     type="date"
                     value={paidDate || ''}
                     onChange={(e) => onPaidDateChange(e.target.value)}
-                    className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="h-8 min-w-[180px] flex-1 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     title="Optional — set when paid date differs from RO date"
                   />
                   {paidDate && (
@@ -158,60 +158,62 @@ export function DetailsCollapsible({
                     </button>
                   )}
                   {!paidDate && (
-                    <span className="text-xs text-muted-foreground italic">Optional — different from RO date.</span>
+                    <span className="w-full pl-[4.5rem] text-xs text-muted-foreground italic">Optional — different from RO date.</span>
                   )}
                 </div>
               )}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Customer</label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={(e) => onCustomerNameChange(e.target.value)}
                   placeholder="Customer name (optional)"
-                  className="flex-1 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 min-w-0 flex-1 basis-[260px] px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Vehicle</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={vehicle.year || ''}
-                  onChange={(e) => {
-                    const y = parseInt(e.target.value);
-                    const maxYear = new Date().getFullYear() + 2;
-                    onVehicleChange({ ...vehicle, year: (!y || y < 1900 || y > maxYear) ? undefined : y });
-                  }}
-                  placeholder="Year"
-                  maxLength={4}
-                  className="w-16 h-8 px-2 bg-muted rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <input
-                  type="text"
-                  value={vehicle.make || ''}
-                  onChange={(e) => onVehicleChange({ ...vehicle, make: e.target.value })}
-                  placeholder="Make"
-                  className="w-24 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <input
-                  type="text"
-                  value={vehicle.model || ''}
-                  onChange={(e) => onVehicleChange({ ...vehicle, model: e.target.value })}
-                  placeholder="Model"
-                  className="w-24 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                {(vehicle.year || vehicle.make || vehicle.model) && (
-                  <button
-                    onClick={handleClearVehicle}
-                    className="p-1.5 text-muted-foreground hover:text-destructive rounded transition-colors"
-                    title="Clear vehicle"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+              <div className="flex flex-wrap items-start gap-2">
+                <label className="w-16 flex-shrink-0 pt-2 text-xs text-muted-foreground">Vehicle</label>
+                <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={vehicle.year || ''}
+                    onChange={(e) => {
+                      const y = parseInt(e.target.value);
+                      const maxYear = new Date().getFullYear() + 2;
+                      onVehicleChange({ ...vehicle, year: (!y || y < 1900 || y > maxYear) ? undefined : y });
+                    }}
+                    placeholder="Year"
+                    maxLength={4}
+                    className="h-8 w-20 px-2 bg-muted rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={vehicle.make || ''}
+                    onChange={(e) => onVehicleChange({ ...vehicle, make: e.target.value })}
+                    placeholder="Make"
+                    className="h-8 min-w-[140px] flex-1 basis-[140px] px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={vehicle.model || ''}
+                    onChange={(e) => onVehicleChange({ ...vehicle, model: e.target.value })}
+                    placeholder="Model"
+                    className="h-8 min-w-[140px] flex-1 basis-[140px] px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  {(vehicle.year || vehicle.make || vehicle.model) && (
+                    <button
+                      onClick={handleClearVehicle}
+                      className="self-center p-1.5 text-muted-foreground hover:text-destructive rounded transition-colors"
+                      title="Clear vehicle"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <label className="text-xs text-muted-foreground w-16 flex-shrink-0">VIN</label>
                 <input
                   type="text"
@@ -219,10 +221,10 @@ export function DetailsCollapsible({
                   onChange={(e) => onVehicleChange({ ...vehicle, vin: e.target.value.toUpperCase() })}
                   placeholder="VIN (optional)"
                   maxLength={17}
-                  className="w-48 h-8 px-2 bg-muted rounded text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 min-w-[220px] flex-1 px-2 bg-muted rounded font-mono text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Mileage</label>
                 <input
                   type="text"
@@ -230,7 +232,7 @@ export function DetailsCollapsible({
                   value={mileage}
                   onChange={(e) => onMileageChange(e.target.value.replace(/\D/g, ''))}
                   placeholder="Mileage (optional)"
-                  className="w-28 h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 w-28 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
