@@ -28,7 +28,7 @@ export function HeaderLogo({ className, priority = false, scheme = 'navy' }: Hea
       decoding="async"
       draggable={false}
       className={cn(
-        'block h-auto w-[142px] max-w-full shrink-0 select-none object-contain sm:w-[156px] lg:w-[164px]',
+        'block h-8 w-auto max-w-full shrink-0 select-none object-contain sm:h-9',
         className,
       )}
     />

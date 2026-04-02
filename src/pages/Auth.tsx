@@ -114,7 +114,7 @@ export default function Auth() {
 
         <div className="relative flex flex-col h-full p-10">
           {/* Logo */}
-          <Logo variant="full" scheme="dark" size="xl" />
+          <Logo variant="full" scheme="dark" size="2xl" />
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
@@ -181,7 +181,7 @@ export default function Auth() {
           >
             {/* Mobile-only branding */}
             <div className="flex items-center justify-center md:hidden">
-              <Logo variant="full" scheme="auto" size="lg" className="text-foreground" />
+              <Logo variant="full" scheme="light" size="xl" />
             </div>
 
             {/* Desktop heading */}
