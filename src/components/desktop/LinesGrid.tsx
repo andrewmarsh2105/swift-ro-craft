@@ -177,10 +177,11 @@ export function LinesGrid({
   };
 
   const totalHours = calcLineHours(lines);
-  const tableColumns = 'grid-cols-[40px_minmax(0,1fr)_minmax(90px,0.6fr)_minmax(64px,0.4fr)_72px]';
+  const tableColumns = 'grid-cols-[40px_minmax(220px,1.7fr)_minmax(110px,0.75fr)_minmax(76px,0.5fr)_72px]';
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card">
+    <div className="border border-border rounded-lg bg-card overflow-x-auto">
+      <div className="min-w-[620px]">
       {/* Table Header */}
       <div className={cn('grid bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide', tableColumns)}>
         <div className="px-3 py-2 text-center">#</div>
@@ -355,6 +356,7 @@ export function LinesGrid({
         <div className="px-3 py-3" />
         <div className="px-3 py-3 text-right text-primary tabular-nums">{totalHours.toFixed(1)}h</div>
         <div className="px-3 py-3" />
+      </div>
       </div>
     </div>
   );

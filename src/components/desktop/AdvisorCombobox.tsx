@@ -52,8 +52,8 @@ export function AdvisorCombobox({ value, onChange, advisors, onCreateAdvisor, cl
   };
 
   return (
-    <div ref={containerRef} className={cn('relative', className)}>
-      <div className="flex items-center gap-2">
+    <div ref={containerRef} className={cn('relative w-full min-w-0', className)}>
+      <div className="flex w-full items-center gap-2">
         <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <input
           ref={inputRef}
@@ -68,12 +68,12 @@ export function AdvisorCombobox({ value, onChange, advisors, onCreateAdvisor, cl
             setSearch(value);
           }}
           placeholder="Select Advisor"
-          className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[140px]"
+          className="h-8 w-full min-w-0 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[12rem] bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
           <div className="max-h-48 overflow-y-auto py-1">
             {filtered.map((adv) => (
               <button
