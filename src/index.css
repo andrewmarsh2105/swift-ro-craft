@@ -547,6 +547,11 @@
   .data-strong {
     @apply font-bold text-foreground tabular-nums;
   }
+
+  /* Prevent content from being obscured by fixed bottom elements on short viewports */
+  .scroll-pad-bottom {
+    scroll-padding-bottom: 6rem;
+  }
 }
 
 @media print {
