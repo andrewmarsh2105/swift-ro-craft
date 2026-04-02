@@ -177,7 +177,7 @@ export function LinesGrid({
   };
 
   const totalHours = calcLineHours(lines);
-  const tableColumns = 'grid-cols-[44px_minmax(0,1fr)_minmax(130px,0.9fr)_minmax(96px,0.7fr)_88px]';
+  const tableColumns = 'grid-cols-[40px_minmax(0,1fr)_minmax(90px,0.6fr)_minmax(64px,0.4fr)_72px]';
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card">
@@ -269,7 +269,7 @@ export function LinesGrid({
                     }
                     onKeyDown={(e) => handleKeyDown(e, index, 'laborType')}
                     disabled={readOnly}
-                    className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded-[10px] text-sm focus:outline-none transition-colors disabled:opacity-60 cursor-pointer"
+                    className="w-full h-8 px-1.5 bg-transparent border border-transparent hover:border-border focus:border-primary focus:bg-background rounded-[10px] text-xs focus:outline-none transition-colors disabled:opacity-60 cursor-pointer truncate"
                   >
                     {LABOR_TYPE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
