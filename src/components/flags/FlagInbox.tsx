@@ -24,9 +24,10 @@ const DATE_RANGES = [
 
 interface FlagInboxProps {
   onNavigateToRO?: (roId: string, lineId?: string | null) => void;
+  triggerClassName?: string;
 }
 
-export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
+export function FlagInbox({ onNavigateToRO, triggerClassName }: FlagInboxProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -250,7 +251,7 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
         onClick={handleOpen}
         className={cn(
           'relative p-2 rounded-lg transition-colors',
-          'text-muted-foreground hover:text-foreground hover:bg-muted',
+          triggerClassName ?? 'text-muted-foreground hover:text-foreground hover:bg-muted',
           totalBadge > 0 && 'text-orange-500'
         )}
         title="Flag Inbox"

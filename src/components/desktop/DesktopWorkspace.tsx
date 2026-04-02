@@ -278,15 +278,15 @@ export function DesktopWorkspace() {
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
         <div className="flex items-center min-w-0 gap-2.5">
-          <HeaderLogo className="h-8 w-auto" />
-          <span className="hidden xl:inline text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/65">
+          <HeaderLogo scheme="white" className="h-8 w-auto" />
+          <span className="hidden xl:inline text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
             Work Queue
           </span>
         </div>
 
         {/* Right-side toolbar */}
         <div className="flex items-center gap-0.5">
-          <FlagInbox onNavigateToRO={handleSelectROWithFocus} />
+          <FlagInbox onNavigateToRO={handleSelectROWithFocus} triggerClassName="text-white/55 hover:text-white hover:bg-white/10" />
 
           {isPro && (
             <ToolbarBtn

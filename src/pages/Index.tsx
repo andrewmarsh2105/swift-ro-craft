@@ -67,8 +67,8 @@ function MobileApp() {
       <TrialCountdownBanner />
       <OfflineStatusBar />
       {/* Branded mobile app header */}
-      <header className="flex-shrink-0 flex items-center px-4 h-12 border-b border-border/40 bg-card/95 backdrop-blur-sm">
-        <HeaderLogo className="h-8 w-auto sm:h-9" />
+      <header className="flex-shrink-0 flex items-center px-4 h-12 border-b border-white/10" style={{ background: '#0C1829' }}>
+        <HeaderLogo scheme="white" className="h-8 w-auto sm:h-9" />
       </header>
       <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         {activeTab === "ros" && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}
