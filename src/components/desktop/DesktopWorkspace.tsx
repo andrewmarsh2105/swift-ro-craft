@@ -383,9 +383,9 @@ export function DesktopWorkspace() {
               />
 
               <div
-                className="flex-1 min-w-0 relative overflow-hidden workspace-active border border-border/70 rounded-lg shadow-sm"
+                className="flex-1 min-w-0 overflow-hidden workspace-active border border-border/70 rounded-lg shadow-sm flex flex-col"
               >
-                <div className="px-4 py-2 border-b border-border/60 bg-card/95 backdrop-blur-sm">
+                <div className="px-4 py-2 border-b border-border/60 bg-card/95 backdrop-blur-sm flex-shrink-0">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground/70">
@@ -401,6 +401,7 @@ export function DesktopWorkspace() {
                     )}
                   </div>
                 </div>
+                <div className="flex-1 min-h-0 relative">
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
                     <motion.div
@@ -409,7 +410,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="overflow-y-auto absolute inset-x-0 bottom-0 top-[57px]"
+                      className="overflow-y-auto absolute inset-0"
                     >
                       <Suspense fallback={<PanelFallback />}>
                         <SettingsTab />
@@ -422,7 +423,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="overflow-y-auto absolute inset-x-0 bottom-0 top-[57px]"
+                      className="overflow-y-auto absolute inset-0"
                     >
                       <Suspense fallback={<PanelFallback />}>
                         <SummaryTab />
@@ -435,7 +436,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="absolute inset-x-0 bottom-0 top-[57px]"
+                      className="absolute inset-0"
                     >
                       <ROEditor
                         ro={selectedRO}
@@ -453,7 +454,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="absolute inset-x-0 bottom-0 top-[57px]"
+                      className="absolute inset-0"
                     >
                       <RODetailsPanel
                         ro={selectedRO}
@@ -464,6 +465,7 @@ export function DesktopWorkspace() {
                     </motion.div>
                   ) : null}
                 </AnimatePresence>
+                </div>
               </div>
             </>
           )}

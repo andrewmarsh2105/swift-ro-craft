@@ -283,12 +283,13 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   return (
-    <div className="flex flex-col h-full bg-muted/20">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-muted/20">
+      <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="panel-header px-4 py-3 space-y-3 bg-card/95">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
           <div className="space-y-3 min-w-0">
-            <div className="grid grid-cols-4 gap-2 p-2.5 rounded-lg border border-border/70 bg-background/90">
-              <div className="col-span-1 min-w-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 p-2.5 rounded-lg border border-border/70 bg-background/90">
+              <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">RO Number</p>
                 <div className="flex items-center gap-1.5">
                   <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -309,7 +310,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
                 )}
               </div>
 
-              <div className="col-span-1 min-w-0">
+              <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">RO Date</p>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -320,7 +321,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
                 </div>
               </div>
 
-              <div className="col-span-1 min-w-0">
+              <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">Advisor</p>
                 <AdvisorCombobox
                   value={advisor} onChange={setAdvisor}
@@ -332,7 +333,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
                 />
               </div>
 
-              <div className="col-span-1 min-w-0">
+              <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground/70 mb-1">Labor Type</p>
                 <select
                   value={laborType}
@@ -360,7 +361,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             </div>
           </div>
 
-          <div className="w-[230px] shrink-0 p-2.5 rounded-lg border border-primary/20 bg-gradient-to-b from-primary/[0.10] to-background">
+          <div className="w-full xl:w-[230px] shrink-0 p-2.5 rounded-lg border border-primary/20 bg-gradient-to-b from-primary/[0.10] to-background">
             <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/80 mb-2">Session</p>
             <div className="space-y-2">
               <div className="flex items-center justify-between rounded-md border border-border/50 bg-background/80 px-2.5 py-2">
@@ -448,8 +449,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 p-4">
-        <div className="h-full grid grid-cols-[minmax(0,1fr)_300px] gap-4">
+      <div className="min-h-0 p-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-4">
           <div className="min-h-0 rounded-xl border border-border/70 bg-background shadow-sm overflow-hidden flex flex-col">
             {settings.presets.length > 0 && (
               <div className="flex-shrink-0 border-b border-border/50 bg-muted/20 px-3 py-2">
@@ -492,7 +493,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3">
+          <div className="rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3 min-h-[220px] xl:min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
               <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2 inline-flex items-center gap-1.5">
                 <StickyNote className="h-3.5 w-3.5" />
@@ -506,6 +507,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <div className="panel-action-bar">

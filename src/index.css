@@ -548,3 +548,26 @@
     @apply font-bold text-foreground tabular-nums;
   }
 }
+
+@media print {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .app-bar,
+  .panel-action-bar,
+  .toolbar-btn,
+  [data-sonner-toaster],
+  [role="dialog"],
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  .panel-header {
+    position: static !important;
+    backdrop-filter: none !important;
+  }
+}
