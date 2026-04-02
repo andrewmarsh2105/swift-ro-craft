@@ -467,8 +467,8 @@ export default function AddRO() {
 
       {/* Core fields strip */}
       <div className="flex-shrink-0 border-b border-border/70 bg-card">
-        <div className="px-3 pt-2 pb-1.5 flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 flex-shrink-0 min-w-[120px]">
+        <div className="px-3 pt-2 pb-1.5 grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
             <FileText className="h-3.5 w-3.5 text-muted-foreground/70" />
             <input
               type="text"
@@ -479,17 +479,17 @@ export default function AddRO() {
               maxLength={20}
               aria-label="Repair order number"
               aria-required="true"
-              className="w-[92px] h-10 px-2.5 bg-background rounded-lg border border-input text-[15px] font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full max-w-[120px] h-10 px-2.5 bg-background rounded-lg border border-input text-[15px] font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 min-w-0 justify-end">
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
               aria-label="Repair order date"
-              className="w-[122px] h-10 px-2.5 bg-background rounded-lg border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full max-w-[148px] h-10 px-2.5 bg-background rounded-lg border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -497,7 +497,7 @@ export default function AddRO() {
             type="button"
             onClick={() => setShowAdvisorList(true)}
             className={cn(
-              'flex-1 min-w-[132px] h-10 px-2.5 rounded-lg border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'col-span-2 h-10 px-2.5 rounded-lg border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               advisor ? 'bg-background font-medium' : 'bg-muted/30 text-muted-foreground'
             )}
             aria-label={advisor ? `Selected advisor ${advisor}` : 'Select advisor'}

@@ -93,7 +93,7 @@ export function CompactLinesGrid({
                   : 'border-border bg-card shadow-sm',
               )}>
                 {/* Row 1: Line # + Description + Hours + Actions */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className={cn(
                     'text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-colors tabular-nums',
                     isHighlighted 
@@ -114,9 +114,9 @@ export function CompactLinesGrid({
                         setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id });
                       }
                     }}
-                    className="flex-1 h-9 px-2.5 bg-background border border-input rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
+                    className="flex-1 min-w-[150px] h-9 px-2.5 bg-background border border-input rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
                   />
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
                     <DecimalHoursInput
                       value={line.hoursPaid}
                       onChange={(v) => handleHoursInput(index, v)}
@@ -148,12 +148,12 @@ export function CompactLinesGrid({
                 </div>
 
                 {/* Row 2: Labor Type + metadata chips */}
-                <div className="flex items-center gap-2 pl-7 pt-1.5">
+                <div className="flex flex-wrap items-center gap-2 pl-7 pt-1.5">
                   <select
                     value={line.laborType || ''}
                     onChange={(e) => handleLineChange(index, { laborType: e.target.value as LaborType || undefined })}
                     disabled={readOnly}
-                    className="h-8 px-2.5 bg-secondary border border-border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[82px]"
+                    className="h-8 px-2.5 bg-secondary border border-border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[82px] flex-shrink-0"
                   >
                     <option value="">Default</option>
                     {LABOR_TYPES.map((t) => (
