@@ -364,7 +364,7 @@ export const ROListPanel = memo(function ROListPanel({
               <div className="flex items-center gap-1.5">
                 <PanelLeft className="h-3.5 w-3.5 text-primary/80 flex-shrink-0" />
                 <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75">
-                  Work Queue
+                  Dashboard
                 </p>
               </div>
               <div className="flex items-baseline gap-1.5 mt-0.5">

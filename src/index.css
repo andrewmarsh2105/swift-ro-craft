@@ -452,9 +452,8 @@
 
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
-    @apply flex-shrink-0 h-12 flex items-center justify-between px-4;
-    background: #0C1829;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    @apply flex-shrink-0 h-12 flex items-center justify-between px-4 bg-background;
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
 
   /* ── Desktop workspace-specific tokens ───────────── */

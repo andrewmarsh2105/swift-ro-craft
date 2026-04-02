@@ -9,7 +9,7 @@ interface HeaderLogoProps {
 }
 
 const ASSET_MAP: Record<HeaderLogoScheme, string> = {
-  navy: '/brand/logo-wordmark-navy.svg',
+  navy: '/brand/logo-ronavigator.png',
   white: '/brand/logo-wordmark-white.svg',
 };
 
@@ -28,7 +28,7 @@ export function HeaderLogo({ className, priority = false, scheme = 'navy' }: Hea
       decoding="async"
       draggable={false}
       className={cn(
-        'block h-8 w-auto max-w-full shrink-0 select-none object-contain sm:h-9',
+        'block h-8 w-auto max-w-[180px] shrink-0 select-none object-contain sm:h-9',
         className,
       )}
     />

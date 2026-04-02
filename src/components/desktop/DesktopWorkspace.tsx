@@ -283,7 +283,7 @@ export function DesktopWorkspace() {
 
         {/* Right-side toolbar */}
         <div className="flex items-center gap-0.5">
-          <FlagInbox onNavigateToRO={handleSelectROWithFocus} triggerClassName="text-white/55 hover:text-white hover:bg-white/10" />
+          <FlagInbox onNavigateToRO={handleSelectROWithFocus} triggerClassName="text-muted-foreground hover:text-foreground hover:bg-muted/60" />
 
           {isPro && (
             <ToolbarBtn
