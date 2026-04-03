@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Check, ChevronDown, ChevronUp, InfinityIcon, Camera, FileSpreadsheet } from 'lucide-react';
-import { HeaderLogo } from '@/components/brand';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
@@ -9,6 +8,7 @@ import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
+const LANDING_WHITE_LOGO_SRC = '/brand/logo-wordmark-white.svg';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -106,13 +106,20 @@ export default function Landing() {
         className="sticky top-0 z-30"
         style={{ background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.10)' }}
       >
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-16 px-4 md:px-8">
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-[72px] px-4 md:px-8">
           <Link
             to="/"
-            className="inline-flex items-center h-10"
+            className="inline-flex items-center h-12"
             aria-label="RO Navigator home"
           >
-            <HeaderLogo priority className="h-9 w-auto sm:h-10 lg:h-11" />
+            <img
+              src={LANDING_WHITE_LOGO_SRC}
+              alt="RO Navigator"
+              loading="eager"
+              decoding="async"
+              draggable={false}
+              className="block h-10 w-auto max-w-[220px] shrink-0 select-none object-contain sm:h-11 sm:max-w-[250px] lg:h-12 lg:max-w-[280px]"
+            />
           </Link>
           <nav className="flex items-center gap-1.5">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">
@@ -743,7 +750,14 @@ export default function Landing() {
       >
         <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <HeaderLogo className="h-[22px] w-auto" />
+            <img
+              src={LANDING_WHITE_LOGO_SRC}
+              alt="RO Navigator"
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              className="block h-[22px] w-auto max-w-[140px] shrink-0 select-none object-contain"
+            />
             <span className="text-xs text-slate-600">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
             </span>
