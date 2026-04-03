@@ -589,3 +589,148 @@
     flex: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   @media print — clean, readable output with no app chrome
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  /* Force light backgrounds and dark text regardless of theme */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 35%;
+    --border: 0 0% 82%;
+    --primary: 214 100% 36%;
+    --primary-foreground: 0 0% 100%;
+  }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    overscroll-behavior: auto;
+  }
+
+  /* Hide non-content chrome */
+  .app-bar,
+  .tab-bar-pwa,
+  .panel-action-bar,
+  .toolbar-btn,
+  .fab,
+  .fab-extended,
+  [data-radix-popper-content-wrapper],
+  [role="dialog"],
+  [data-sonner-toaster],
+  button.quiet-transition,
+  nav {
+    display: none !important;
+  }
+
+  /* Let the main content expand to fill the page */
+  .h-screen {
+    height: auto !important;
+  }
+
+  /* Remove fixed/sticky positioning that breaks print layout */
+  .panel-header,
+  .sticky,
+  [class*="sticky"] {
+    position: static !important;
+  }
+
+  /* Reset overflow so everything prints — no clipped containers */
+  .overflow-hidden,
+  .overflow-y-auto,
+  .overflow-auto,
+  [class*="overflow"] {
+    overflow: visible !important;
+  }
+
+  /* Remove backdrop blur and shadows — they print as blobs */
+  [style*="backdrop-filter"],
+  [style*="-webkit-backdrop-filter"] {
+    backdrop-filter: none !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Table reset for print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group; /* repeat header on each printed page */
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    padding: 4px 8px !important;
+    border: 1px solid #ccc !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  th {
+    background: #f0f0f0 !important;
+    font-weight: 700 !important;
+  }
+
+  /* LinesGrid / data tables */
+  .grid.grid-cols-\[48px_1fr_120px_100px_88px\] {
+    display: grid;
+  }
+
+  /* Status pills and hours pill — readable in B&W */
+  .hours-pill {
+    background: transparent !important;
+    border: 1px solid currentColor !important;
+  }
+
+  .status-pill,
+  .status-pill-warranty,
+  .status-pill-customer-pay,
+  .status-pill-internal {
+    background: transparent !important;
+    border: 1px solid currentColor !important;
+  }
+
+  /* Workspace panels — no borders/backgrounds, just content */
+  .workspace-active,
+  .workspace-queue {
+    background: white !important;
+    border: none !important;
+  }
+
+  /* Ensure dialogs (ProofPack, Closeout) print properly when open */
+  [role="dialog"] .overflow-auto,
+  [role="dialog"] [class*="overflow"] {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* Cards */
+  .surface-panel,
+  .card-mobile,
+  .card-raised {
+    border: 1px solid #ddd !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 15mm 12mm;
+  }
+}

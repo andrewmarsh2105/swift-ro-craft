@@ -180,10 +180,10 @@ export function LinesGrid({
   const tableColumns = 'grid-cols-[40px_minmax(220px,1.7fr)_minmax(110px,0.75fr)_minmax(76px,0.5fr)_72px]';
 
   return (
-    <div className="border border-border rounded-lg bg-card overflow-x-auto">
-      <div className="min-w-[620px]">
-      {/* Table Header */}
-      <div className={cn('grid bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide', tableColumns)}>
+    <div className="border border-border rounded-lg bg-card">
+      {/* Table Header — sticky. overflow-hidden is intentionally NOT on the root div so sticky works.
+          rounded-t-lg clips the header background to the top border-radius of the table. */}
+      <div className={cn('sticky top-0 z-10 grid rounded-t-lg overflow-hidden bg-muted/80 backdrop-blur-sm border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide', tableColumns)}>
         <div className="px-3 py-2 text-center">#</div>
         <div className="px-3 py-2">Description</div>
         <div className="px-3 py-2">Type</div>
@@ -191,7 +191,7 @@ export function LinesGrid({
         <div className="px-3 py-2 text-center">Actions</div>
       </div>
 
-      {/* Table Body */}
+      {/* Table Body — no inner scroll; the parent overflow-y-auto container handles scrolling */}
       <div>
         {lines.map((line, index) => {
           const isExpanded = expandedId === line.id;
@@ -340,15 +340,15 @@ export function LinesGrid({
       {!readOnly && (
         <button
           onClick={handleAddLine}
-          className="w-full py-2 px-4 flex items-center justify-center gap-2 text-sm text-primary hover:bg-primary/5 transition-colors border-t border-border"
+          className="w-full py-2 px-4 flex items-center justify-center gap-2 text-sm text-primary hover:bg-primary/5 transition-colors border-t border-border bg-card"
         >
           <Plus className="h-4 w-4" />
           Add Line
         </button>
       )}
 
-      {/* Footer with Total */}
-      <div className={cn('grid bg-muted/30 border-t border-border font-semibold', tableColumns)}>
+      {/* Footer with Total — rounded-b-lg clips background to the bottom border-radius */}
+      <div className={cn('grid rounded-b-lg overflow-hidden bg-muted/30 border-t border-border font-semibold', tableColumns)}>
         <div className="px-3 py-3" />
         <div className="px-3 py-3 text-sm text-muted-foreground">
           Total ({lines.length} lines)
@@ -356,7 +356,6 @@ export function LinesGrid({
         <div className="px-3 py-3" />
         <div className="px-3 py-3 text-right text-primary tabular-nums">{totalHours.toFixed(1)}h</div>
         <div className="px-3 py-3" />
-      </div>
       </div>
     </div>
   );

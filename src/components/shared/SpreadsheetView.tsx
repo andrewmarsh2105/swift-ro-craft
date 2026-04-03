@@ -796,19 +796,19 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
     w.document.write(`<html><head><title>Spreadsheet</title>
       <style>
-        body{font-family:Inter,system-ui,sans-serif;margin:0;padding:16px;color:#0f172a}
+        *{box-sizing:border-box}
+        body{font-family:Inter,system-ui,sans-serif;margin:0;padding:16px;background:white;color:#0f172a;font-size:11px}
         .meta{margin-bottom:12px}
         .meta h1{font-size:16px;margin:0 0 4px 0}
         .meta p{margin:0;font-size:11px;color:#475569}
-        table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
-        th,td{padding:6px 8px;border:1px solid #cbd5e1;text-align:left;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere}
-        th{background:#f8fafc;font-weight:700}
-        @page{margin:12mm}
-        @media print{
-          body{padding:0}
-          tr,td,th{page-break-inside:avoid}
-          thead{display:table-header-group}
-        }
+        table{width:100%;border-collapse:collapse;font-size:11px;table-layout:auto}
+        thead{display:table-header-group}
+        tr{page-break-inside:avoid}
+        th,td{padding:5px 8px;border:1px solid #cbd5e1;text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere}
+        th{background:#f0f0f0;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.04em}
+        td:last-child{text-align:right}
+        @page{margin:10mm 8mm;size:landscape}
+        @media print{body{padding:0}}
       </style></head><body>
       <div class="meta">
         <h1>${viewMode === 'payroll' ? 'Payroll' : 'Audit'} Spreadsheet Export</h1>
