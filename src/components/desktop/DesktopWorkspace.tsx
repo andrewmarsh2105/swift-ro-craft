@@ -433,7 +433,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="absolute inset-0 min-h-0 overflow-hidden"
+                      className="absolute inset-0 min-h-0 overflow-y-auto overscroll-contain"
                     >
                       <ROEditor
                         ro={selectedRO}

@@ -283,9 +283,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-muted/20">
-      <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className="panel-header px-4 py-3 space-y-3 bg-card/95">
+    <div className="min-h-full flex flex-col bg-muted/20">
+      <div className="px-4 py-3 space-y-3 bg-card/95 border-b border-border/50">
         <div className="grid grid-cols-1 gap-3 items-start">
           <div className="space-y-3 min-w-0">
             <div
@@ -452,7 +451,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         </div>
       </div>
 
-      <div className="min-h-0 p-4">
+      <div className="p-4">
         <div className="grid grid-cols-1 gap-4">
           <div className="min-h-0 rounded-xl border border-border/70 bg-background shadow-sm overflow-hidden flex flex-col">
             {settings.presets.length > 0 && (
@@ -511,9 +510,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           </div>
         </div>
       </div>
-      </div>
 
-      <div className="panel-action-bar">
+      <div className="border-t border-border/50 px-4 py-2 bg-card/95">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Cancel
