@@ -496,7 +496,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3 min-h-[220px]">
+          <div className="min-h-0 rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3 overflow-y-auto">
             <div className="flex-1 flex flex-col min-h-0">
               <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2 inline-flex items-center gap-1.5">
                 <StickyNote className="h-3.5 w-3.5" />
@@ -505,7 +505,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
               <textarea
                 value={notes} onChange={e => setNotes(e.target.value)}
                 placeholder="Additional notes..."
-                className="flex-1 min-h-[180px] w-full p-3 bg-muted/20 rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex-1 min-h-[120px] w-full p-3 bg-muted/20 rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
           </div>

@@ -98,19 +98,31 @@ export function exportPDFFromRows(
   }
 
   const typeColIdx = headers.indexOf('Type');
+  const hoursIdx = headers.indexOf('Hours');
+  const dateIdx = headers.indexOf('Date');
+  const wpIdx = headers.indexOf('Work Performed');
+  const roIdx = headers.indexOf('RO #');
+  const advisorIdx = headers.indexOf('Advisor');
+  const lineNoIdx = headers.indexOf('#');
+
   autoTable(doc, {
     head: [headers],
     body,
     startY: 25,
-    styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
-    headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+    styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', fontSize: 7 },
     columnStyles: {
-      ...(headers.indexOf('Hours') >= 0 ? { [headers.indexOf('Hours')]: { halign: 'right' } } : {}),
-      ...(headers.indexOf('Work Performed') >= 0 ? { [headers.indexOf('Work Performed')]: { cellWidth: 50 } } : {}),
-      ...(headers.indexOf('Date') >= 0 ? { [headers.indexOf('Date')]: { cellWidth: 28 } } : {}),
+      ...(hoursIdx >= 0 ? { [hoursIdx]: { halign: 'right', cellWidth: 18 } } : {}),
+      ...(wpIdx >= 0 ? { [wpIdx]: { cellWidth: 'auto', minCellWidth: 40 } } : {}),
+      ...(dateIdx >= 0 ? { [dateIdx]: { cellWidth: 26 } } : {}),
+      ...(roIdx >= 0 ? { [roIdx]: { cellWidth: 22 } } : {}),
+      ...(typeColIdx >= 0 ? { [typeColIdx]: { cellWidth: 20 } } : {}),
+      ...(advisorIdx >= 0 ? { [advisorIdx]: { cellWidth: 28 } } : {}),
+      ...(lineNoIdx >= 0 ? { [lineNoIdx]: { cellWidth: 10, halign: 'center' } } : {}),
     },
     didParseCell: (data) => applyTypeColors(data, typeColIdx),
     margin: { left: 10, right: 10 },
+    tableWidth: 'auto',
   });
 
   addPageNumbers(doc);
