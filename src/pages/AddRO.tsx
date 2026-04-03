@@ -761,7 +761,6 @@ export default function AddRO() {
         roNumber={postSaveStatusPrompt.statusPromptRONumber}
         isSaving={postSaveStatusPrompt.isSavingChoice}
         onChoose={postSaveStatusPrompt.resolveChoice}
-        onDismiss={postSaveStatusPrompt.dismissPrompt}
       />
     </div>
   );
