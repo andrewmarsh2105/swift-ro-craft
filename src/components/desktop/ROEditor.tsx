@@ -283,7 +283,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-muted/20">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-muted/20">
       <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="panel-header px-4 py-3 space-y-3 bg-card/95">
         <div className="grid grid-cols-1 gap-3 items-start">

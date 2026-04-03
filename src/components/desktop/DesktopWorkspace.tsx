@@ -271,7 +271,7 @@ export function DesktopWorkspace() {
           : "Workspace";
 
   return (
-    <div className="h-screen flex flex-col bg-muted/20">
+    <div className="h-[100dvh] overflow-hidden flex flex-col bg-muted/20">
       <TrialCountdownBanner />
       <OfflineStatusBar />
 
@@ -346,7 +346,7 @@ export function DesktopWorkspace() {
       ) : (
         <div
           className={cn(
-            "flex-1 flex min-h-0 p-2 gap-2",
+            "flex-1 flex min-h-0 overflow-hidden p-2 gap-2",
             isDragging && "select-none",
           )}
         >
@@ -398,7 +398,7 @@ export function DesktopWorkspace() {
                     )}
                   </div>
                 </div>
-                <div className="flex-1 min-h-0 relative">
+                <div className="flex-1 min-h-0 relative overflow-hidden">
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
                     <motion.div
@@ -433,7 +433,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="absolute inset-0"
+                      className="absolute inset-0 min-h-0 overflow-hidden"
                     >
                       <ROEditor
                         ro={selectedRO}
