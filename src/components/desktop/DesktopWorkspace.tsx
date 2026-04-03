@@ -271,7 +271,7 @@ export function DesktopWorkspace() {
           : "Workspace";
 
   return (
-    <div className="h-[100dvh] overflow-hidden flex flex-col bg-muted/20">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col bg-muted/20">
       <TrialCountdownBanner />
       <OfflineStatusBar />
 
