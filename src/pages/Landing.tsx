@@ -106,10 +106,10 @@ export default function Landing() {
         className="sticky top-0 z-30"
         style={{ background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.10)' }}
       >
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-[72px] px-4 md:px-8">
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-[96px] px-4 md:px-8">
           <Link
             to="/"
-            className="inline-flex items-center h-12"
+            className="inline-flex items-center"
             aria-label="RO Navigator home"
           >
             <img
@@ -118,7 +118,7 @@ export default function Landing() {
               loading="eager"
               decoding="async"
               draggable={false}
-              className="block h-12 w-auto max-w-[260px] shrink-0 select-none object-contain sm:h-[52px] sm:max-w-[300px] lg:h-[56px] lg:max-w-[360px]"
+              className="block h-[64px] w-auto max-w-[300px] shrink-0 select-none object-contain sm:h-[72px] sm:max-w-[380px] lg:h-[80px] lg:max-w-[480px]"
             />
           </Link>
           <nav className="flex items-center gap-1.5">
