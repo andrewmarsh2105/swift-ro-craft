@@ -118,7 +118,7 @@ export default function Landing() {
               loading="eager"
               decoding="async"
               draggable={false}
-              className="block h-10 w-auto max-w-[220px] shrink-0 select-none object-contain sm:h-11 sm:max-w-[250px] lg:h-12 lg:max-w-[280px]"
+              className="block h-12 w-auto max-w-[260px] shrink-0 select-none object-contain sm:h-[52px] sm:max-w-[300px] lg:h-[56px] lg:max-w-[360px]"
             />
           </Link>
           <nav className="flex items-center gap-1.5">
@@ -756,7 +756,7 @@ export default function Landing() {
               loading="lazy"
               decoding="async"
               draggable={false}
-              className="block h-[22px] w-auto max-w-[140px] shrink-0 select-none object-contain"
+              className="block h-[28px] w-auto max-w-[160px] shrink-0 select-none object-contain"
             />
             <span className="text-xs text-slate-600">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
