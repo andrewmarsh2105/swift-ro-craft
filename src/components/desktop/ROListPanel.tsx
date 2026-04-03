@@ -344,7 +344,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   return (
     <>
-      <div className="flex flex-col h-full bg-background">
+      <div className="flex flex-col h-full min-h-0 bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
         <div className="flex-shrink-0 bg-gradient-to-b from-muted/20 to-background" style={{ borderBottom: '1px solid hsl(var(--border) / 0.45)' }}>
@@ -512,7 +512,7 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── List ──────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {loadingROs ? (
             <div className="divide-y divide-border/30">
               {Array.from({ length: 12 }).map((_, i) => (
