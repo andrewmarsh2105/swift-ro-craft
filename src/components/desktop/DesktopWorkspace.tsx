@@ -433,7 +433,7 @@ export function DesktopWorkspace() {
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="absolute inset-0 overflow-y-auto"
+                      className="absolute inset-0"
                     >
                       <ROEditor
                         ro={selectedRO}

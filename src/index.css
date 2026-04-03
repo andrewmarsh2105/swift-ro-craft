@@ -486,13 +486,11 @@
 
   /* ── Desktop toolbar button ────────────────────────── */
   .toolbar-btn {
-    @apply h-7 w-7 flex items-center justify-center quiet-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+    @apply h-7 w-7 flex items-center justify-center quiet-transition text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background;
     border-radius: calc(var(--radius) - 2px);
-    color: rgba(255, 255, 255, 0.55);
   }
   .toolbar-btn:hover {
-    color: rgba(255, 255, 255, 0.90);
-    background-color: rgba(255, 255, 255, 0.10);
+    @apply text-foreground bg-muted/60;
   }
 
   .toolbar-btn-active {
