@@ -11,6 +11,7 @@ import { useFlagContext } from "@/contexts/FlagContext";
 
 import { ROActionMenu } from "@/components/shared/ROActionMenu";
 import { AddFlagDialog } from "@/components/flags/AddFlagDialog";
+import { CarryoverIndicator } from "@/components/shared/CarryoverIndicator";
 
 import { maskHours } from "@/lib/maskHours";
 import { cn, localDateStr } from "@/lib/utils";
@@ -104,19 +105,9 @@ function RowStatusChips({
           OPEN
         </span>
       )}
-      {/* Carryover badge — distinct from flags, non-intrusive */}
+      {/* Carryover indicator — contextual, secondary to OPEN */}
       {isCarryover && (
-        <span
-          className="inline-flex items-center text-[8px] font-semibold leading-none px-1.5 py-0.5 rounded-sm uppercase tracking-wide"
-          style={{
-            color: "hsl(var(--muted-foreground))",
-            background: "transparent",
-            border: "1px dashed hsl(var(--border))",
-          }}
-          title="From a prior week — mark paid to include in current totals"
-        >
-          Carryover
-        </span>
+        <CarryoverIndicator className="ml-0.5" />
       )}
       {status.flags > 0 && (
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>

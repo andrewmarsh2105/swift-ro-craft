@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { trackSignupCompleted } from '@/lib/analytics';
 import { Loader2, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, Shield, Wifi } from 'lucide-react';
-import { Logo } from '@/components/brand';
+import { HeaderLogo } from '@/components/brand';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -114,7 +114,7 @@ export default function Auth() {
 
         <div className="relative flex flex-col h-full p-10">
           {/* Logo */}
-          <Logo variant="full" scheme="dark" size="2xl" />
+          <HeaderLogo priority className="h-[58px] w-auto" />
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
@@ -181,7 +181,7 @@ export default function Auth() {
           >
             {/* Mobile-only branding */}
             <div className="flex items-center justify-center md:hidden">
-              <Logo variant="full" scheme="light" size="xl" />
+              <HeaderLogo priority className="h-[46px] w-auto" />
             </div>
 
             {/* Desktop heading */}

@@ -68,7 +68,7 @@ function MobileApp() {
       <OfflineStatusBar />
       {/* Branded mobile app header */}
       <header className="flex-shrink-0 flex items-center px-4 h-12 border-b border-border/50 bg-background">
-        <HeaderLogo scheme="navy" className="h-8 w-auto sm:h-9" />
+        <HeaderLogo className="h-8 w-auto sm:h-9" />
       </header>
       <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         {activeTab === "ros" && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}

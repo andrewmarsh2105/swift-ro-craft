@@ -1,28 +1,20 @@
 import { cn } from '@/lib/utils';
 
-type HeaderLogoScheme = 'navy' | 'white';
-
 interface HeaderLogoProps {
   className?: string;
   priority?: boolean;
-  scheme?: HeaderLogoScheme;
 }
-
-const ASSET_MAP: Record<HeaderLogoScheme, string> = {
-  navy: '/brand/logo-ronavigator.png',
-  white: '/brand/logo-wordmark-white.svg',
-};
 
 /**
  * Shared header logo treatment.
  *
- * Uses the official transparent wordmark assets (navy/white navigator variants)
- * and a fixed width with object-contain to preserve intrinsic aspect ratio.
+ * Uses the dashboard source-of-truth transparent wordmark asset and a fixed
+ * width with object-contain to preserve intrinsic aspect ratio.
  */
-export function HeaderLogo({ className, priority = false, scheme = 'navy' }: HeaderLogoProps) {
+export function HeaderLogo({ className, priority = false }: HeaderLogoProps) {
   return (
     <img
-      src={ASSET_MAP[scheme]}
+      src="/brand/logo-ronavigator.png"
       alt="RO Navigator"
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
