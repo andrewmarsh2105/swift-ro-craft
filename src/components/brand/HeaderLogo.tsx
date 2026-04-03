@@ -14,7 +14,7 @@ interface HeaderLogoProps {
 export function HeaderLogo({ className, priority = false }: HeaderLogoProps) {
   return (
     <img
-      src="/brand/logo-ronavigator.png"
+      src="/brand/logo-ronavigator-app-dark.png"
       alt="RO Navigator"
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
