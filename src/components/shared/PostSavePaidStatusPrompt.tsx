@@ -17,7 +17,6 @@ interface PostSavePaidStatusPromptProps {
   roNumber?: string;
   isSaving?: boolean;
   onChoose: (choice: PostSaveStatusChoice) => void;
-  onDismiss: () => void;
 }
 
 export function PostSavePaidStatusPrompt({
@@ -25,7 +24,6 @@ export function PostSavePaidStatusPrompt({
   roNumber,
   isSaving = false,
   onChoose,
-  onDismiss,
 }: PostSavePaidStatusPromptProps) {
   const isMobile = useIsMobile();
   const title = roNumber ? `RO #${roNumber} saved` : 'RO saved';
@@ -66,25 +64,20 @@ export function PostSavePaidStatusPrompt({
 
   if (isMobile) {
     return (
-      <BottomSheet isOpen={open} onClose={onDismiss} title={title}>
+      <BottomSheet isOpen={open} onClose={() => {}} title={title}>
         <div className="px-4 pb-6 pt-2 space-y-3">
           <p className="text-sm text-muted-foreground">
             Pick a status to keep your totals accurate.
           </p>
           {buttons}
-          {isSaving ? (
+          <p className="text-xs text-muted-foreground">
+            Choose one option to finish saving and close this RO.
+          </p>
+          {isSaving && (
             <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Updating…
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="w-full py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              Skip for now
-            </button>
           )}
         </div>
       </BottomSheet>
@@ -92,7 +85,7 @@ export function PostSavePaidStatusPrompt({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onDismiss(); }}>
+    <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -105,14 +98,9 @@ export function PostSavePaidStatusPrompt({
 
         <DialogFooter>
           <div className="flex w-full items-center justify-between">
-            <button
-              type="button"
-              onClick={onDismiss}
-              disabled={isSaving}
-              className="text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
-            >
-              Skip for now
-            </button>
+            <span className="text-xs text-muted-foreground">
+              Choose one option to finish saving.
+            </span>
             {isSaving && (
               <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

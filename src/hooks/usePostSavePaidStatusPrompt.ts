@@ -42,19 +42,11 @@ export function usePostSavePaidStatusPrompt({ updateRO }: UsePostSavePaidStatusP
     }
   }, [isSavingChoice, pending, updateRO]);
 
-  const dismissPrompt = useCallback(() => {
-    if (isSavingChoice) return;
-    toast.message(`RO #${pending?.roNumber || ''} left open for now`);
-    pending?.onComplete?.();
-    setPending(null);
-  }, [isSavingChoice, pending]);
-
   return useMemo(() => ({
     statusPromptOpen: !!pending,
     statusPromptRONumber: pending?.roNumber,
     isSavingChoice,
     requestStatusChoice,
     resolveChoice,
-    dismissPrompt,
-  }), [pending, isSavingChoice, requestStatusChoice, resolveChoice, dismissPrompt]);
+  }), [pending, isSavingChoice, requestStatusChoice, resolveChoice]);
 }

@@ -628,7 +628,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       roNumber={postSaveStatusPrompt.statusPromptRONumber}
       isSaving={postSaveStatusPrompt.isSavingChoice}
       onChoose={postSaveStatusPrompt.resolveChoice}
-      onDismiss={postSaveStatusPrompt.dismissPrompt}
     />
     </>
   );

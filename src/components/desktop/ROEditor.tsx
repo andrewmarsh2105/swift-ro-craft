@@ -562,7 +562,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         roNumber={postSaveStatusPrompt.statusPromptRONumber}
         isSaving={postSaveStatusPrompt.isSavingChoice}
         onChoose={postSaveStatusPrompt.resolveChoice}
-        onDismiss={postSaveStatusPrompt.dismissPrompt}
       />
     </div>
   );
