@@ -15,6 +15,7 @@ import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Chip } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
 import { ROActionMenu } from '@/components/shared/ROActionMenu';
+import { CarryoverIndicator } from '@/components/shared/CarryoverIndicator';
 import { FlagInbox } from '@/components/flags/FlagInbox';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { EmptyState } from '@/components/states/EmptyState';
@@ -48,56 +49,48 @@ function InlineStatusChips({
 }: { ro: RepairOrder; flagsCount: number; checksCount: number; isCarryover?: boolean }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
   return (
-    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+    <div className="flex items-center gap-1 flex-shrink-0">
       {/* Paid — labeled pill for instant scanning */}
-      <div className="flex items-center gap-1">
-        {status.paid === 'Paid' ? (
-          <span
-            className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
-            style={{
-              backgroundColor: 'hsl(var(--status-warranty-bg))',
-              color: 'hsl(var(--status-warranty))',
-              borderRadius: '3px',
-              border: '1px solid hsl(var(--status-warranty) / 0.25)',
-            }}
-          >
-            <CheckCircle2 className="h-2.5 w-2.5" />
-            <span>PAID</span>
-          </span>
-        ) : (
-          <span
-            className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
-            style={{
-              backgroundColor: 'hsl(var(--status-internal-bg))',
-              color: 'hsl(var(--status-internal))',
-              borderRadius: '3px',
-              border: '1px solid hsl(var(--status-internal) / 0.25)',
-            }}
-          >
-            <LockOpen className="h-2.5 w-2.5" />
-            <span>OPEN</span>
-          </span>
-        )}
-        {status.flags > 0 && (
-          <span className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none" style={{ color: 'hsl(var(--status-internal))' }}>
-            <Flag className="h-2.5 w-2.5" />
-            <span>{status.flags}</span>
-          </span>
-        )}
-        {status.checks > 0 && (
-          <span className="inline-flex items-center gap-[3px] text-[8px] font-bold text-destructive leading-none">
-            <AlertTriangle className="h-2.5 w-2.5" />
-            <span>{status.checks}</span>
-          </span>
-        )}
-      </div>
-      {/* Carryover — subtle and visually separate from flags/checks */}
-      {isCarryover && (
+      {status.paid === 'Paid' ? (
         <span
-          className="inline-flex items-center gap-[3px] text-[8px] font-semibold leading-none px-1.5 py-[2px] rounded-sm border border-dashed border-border text-muted-foreground/85 uppercase tracking-wide"
-          title="From a prior week — mark paid to include in current totals"
+          className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
+          style={{
+            backgroundColor: 'hsl(var(--status-warranty-bg))',
+            color: 'hsl(var(--status-warranty))',
+            borderRadius: '3px',
+            border: '1px solid hsl(var(--status-warranty) / 0.25)',
+          }}
         >
-          Carryover
+          <CheckCircle2 className="h-2.5 w-2.5" />
+          <span>PAID</span>
+        </span>
+      ) : (
+        <span
+          className="inline-flex items-center gap-[3px] text-[9px] font-bold leading-none px-1.5 py-[3px] flex-shrink-0"
+          style={{
+            backgroundColor: 'hsl(var(--status-internal-bg))',
+            color: 'hsl(var(--status-internal))',
+            borderRadius: '3px',
+            border: '1px solid hsl(var(--status-internal) / 0.25)',
+          }}
+        >
+          <LockOpen className="h-2.5 w-2.5" />
+          <span>OPEN</span>
+        </span>
+      )}
+      {isCarryover && (
+        <CarryoverIndicator className="ml-0.5" />
+      )}
+      {status.flags > 0 && (
+        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold leading-none" style={{ color: 'hsl(var(--status-internal))' }}>
+          <Flag className="h-2.5 w-2.5" />
+          <span>{status.flags}</span>
+        </span>
+      )}
+      {status.checks > 0 && (
+        <span className="inline-flex items-center gap-[3px] text-[8px] font-bold text-destructive leading-none">
+          <AlertTriangle className="h-2.5 w-2.5" />
+          <span>{status.checks}</span>
         </span>
       )}
     </div>
