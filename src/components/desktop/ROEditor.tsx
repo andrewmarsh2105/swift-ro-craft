@@ -283,7 +283,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-muted/20">
+    <div className="flex flex-col min-h-full bg-muted/20">
       <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="panel-header px-4 py-3 space-y-3 bg-card/95">
         <div className="grid grid-cols-1 gap-3 items-start">
@@ -483,7 +483,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
                 />
               </div>
             )}
-            <div className="flex-1 min-h-0 overflow-y-auto p-3" ref={linesContainerRef}>
+            <div className="p-3" ref={linesContainerRef}>
               <LinesGrid
                 lines={lines} onLinesChange={setLines}
                 presets={settings.presets}
@@ -496,7 +496,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             </div>
           </div>
 
-          <div className="min-h-0 rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3 overflow-y-auto">
+          <div className="rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3">
             <div className="flex-1 flex flex-col min-h-0">
               <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2 inline-flex items-center gap-1.5">
                 <StickyNote className="h-3.5 w-3.5" />
