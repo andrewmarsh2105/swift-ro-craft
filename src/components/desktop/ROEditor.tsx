@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Calendar, Clock, FileText, Loader2, AlertCircle, Flag, StickyNote, Layers } from 'lucide-react';
+import { Camera, Save, Calendar, FileText, Loader2, AlertCircle, Flag, StickyNote } from 'lucide-react';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -185,7 +185,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   }, [focusLineId]);
 
   const totalHours = calcLineHours(lines);
-  const populatedLineCount = lines.filter((line) => line.description.trim() !== '' || line.hoursPaid > 0).length;
   const isValid = roNumber.trim() !== '';
 
   const handleScanApply = (data: ScanApplyData) => {
@@ -361,27 +360,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
                 layout="desktop"
               />
             </div>
-          </div>
 
-          <div className="w-full shrink-0 p-2.5 rounded-lg border border-primary/20 bg-gradient-to-b from-primary/[0.10] to-background">
-            <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/80 mb-2">Session</p>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between rounded-md border border-border/50 bg-background/80 px-2.5 py-2">
-                <span className="text-[11px] font-medium text-muted-foreground inline-flex items-center gap-1.5">
-                  <Layers className="h-3.5 w-3.5" />
-                  Lines
-                </span>
-                <span className="text-[13px] font-bold tabular-nums text-foreground">{populatedLineCount}</span>
-              </div>
-              <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/[0.08] px-2.5 py-2">
-                <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  Total
-                </span>
-                <span className="text-[18px] font-extrabold tabular-nums text-primary">{totalHours.toFixed(1)}h</span>
-              </div>
-            </div>
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {isPro && (
                 <button
                   onClick={() => setShowScanFlow(true)}
