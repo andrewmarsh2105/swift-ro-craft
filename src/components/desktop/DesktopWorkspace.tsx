@@ -211,6 +211,22 @@ export function DesktopWorkspace() {
   const handleSaveAndAddAnother = () => handleAddNew();
 
   useEffect(() => {
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+
+    // Desktop workspace owns scrolling at pane level (left queue + right workspace).
+    // Lock page/root scrolling while this shell is mounted to prevent a third
+    // competing scroll container at the document level.
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!selectedRO) return;
     const next = ros.find((item) => item.id === selectedRO.id);
     if (!next) {
@@ -271,7 +287,7 @@ export function DesktopWorkspace() {
           : "Workspace";
 
   return (
-    <div className="h-[100dvh] overflow-hidden flex flex-col bg-muted/20">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col bg-muted/20">
       <TrialCountdownBanner />
       <OfflineStatusBar />
 
