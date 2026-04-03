@@ -8,7 +8,7 @@ import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
-const LANDING_WHITE_LOGO_SRC = '/brand/logo-wordmark-white.svg';
+const LANDING_WHITE_LOGO_SRC = '/logo-navigator-landing-white.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
