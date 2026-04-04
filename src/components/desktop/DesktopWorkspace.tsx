@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, BarChart3, Table2, Crown, ClipboardList, LayoutDashboard } from "lucide-react";
+import { Settings, BarChart3, Table2, Crown, LayoutDashboard } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
@@ -314,21 +314,18 @@ export function DesktopWorkspace() {
 
   const showEditor = rightPanel === "editor" && (selectedRO || isAddingNew);
   const showDetails = rightPanel === "details" && selectedRO;
-  const hasRightPanel = rightPanel !== "none" && (showEditor || showDetails || rightPanel === "settings" || rightPanel === "summary");
+  // Settings and Summary are now full-page — they don't narrow the queue
+  const hasRightPanel = rightPanel !== "none" && (showEditor || showDetails);
   const isWideList = !hasRightPanel;
-  const activeWorkspaceLabel = rightPanel === "settings"
-    ? "Settings"
-    : rightPanel === "summary"
-      ? "Summary & Reports"
-      : showEditor
-        ? isAddingNew
-          ? "New RO Intake"
-          : selectedRO
-            ? `Editing RO #${selectedRO.roNumber}`
-            : "Editing"
-        : showDetails && selectedRO
-          ? `RO #${selectedRO.roNumber} Details`
-          : "Workspace";
+  const activeWorkspaceLabel = showEditor
+    ? isAddingNew
+      ? "New RO Intake"
+      : selectedRO
+        ? `Editing RO #${selectedRO.roNumber}`
+        : "Editing"
+    : showDetails && selectedRO
+      ? `RO #${selectedRO.roNumber} Details`
+      : "Workspace";
 
   return (
     <div className="h-full min-h-0 overflow-hidden flex flex-col bg-muted/20">
@@ -385,143 +382,152 @@ export function DesktopWorkspace() {
         onSettings={() => togglePanel("settings")}
       />
 
-      {viewMode === "spreadsheet" ? (
-        <div className="flex-1 min-h-0">
-          <Suspense fallback={<PanelFallback />}>
-            <SpreadsheetView
-              ros={ros}
-              onSelectRO={(ro) => {
-                setViewMode("split");
-                handleSelectRO(ro);
-              }}
-            />
-          </Suspense>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            "flex-1 flex min-h-0 overflow-hidden p-2 gap-2",
-            isDragging && "select-none",
-          )}
-        >
-          {/* Left Panel — Queue */}
-          <div
-            className={cn(
-              "min-w-0 flex-shrink-0 overflow-hidden workspace-queue border border-border/70 rounded-lg shadow-sm",
-              !isWideList && "bg-background",
-            )}
-            style={{
-              ...(isWideList ? { flex: "1 1 0%" } : { width: splitter.width }),
-            }}
+      {/* ── Full-page views: Spreadsheet / Summary / Settings ── */}
+      <AnimatePresence mode="wait">
+        {viewMode === "spreadsheet" ? (
+          <motion.div
+            key="spreadsheet"
+            variants={panelVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex-1 min-h-0"
           >
-            <ROListPanel
-              selectedROId={selectedRO?.id || null}
-              onSelectRO={handleSelectRO}
-              onAddNew={handleAddNew}
-              onFilteredROsChange={setFilteredROs}
-              compact={!isWideList}
-            />
-          </div>
-
-          {/* Splitter + Right Panel — Workspace */}
-          {!isWideList && (
-            <>
-              <SplitHandle
-                isDragging={isDragging}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
+            <Suspense fallback={<PanelFallback />}>
+              <SpreadsheetView
+                ros={ros}
+                onSelectRO={(ro) => {
+                  setViewMode("split");
+                  handleSelectRO(ro);
+                }}
               />
+            </Suspense>
+          </motion.div>
 
-              <div
-                className="flex-1 min-w-0 overflow-hidden workspace-active border border-border/70 rounded-lg shadow-sm flex flex-col"
-              >
-                <div className="px-4 py-2 border-b border-border/60 bg-card/95 backdrop-blur-sm flex-shrink-0">
-                  <div className="flex items-center justify-between gap-3">
+        ) : rightPanel === "summary" ? (
+          <motion.div
+            key="summary"
+            variants={panelVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex-1 min-h-0 overflow-y-auto"
+          >
+            <Suspense fallback={<PanelFallback />}>
+              <SummaryTab />
+            </Suspense>
+          </motion.div>
+
+        ) : rightPanel === "settings" ? (
+          <motion.div
+            key="settings"
+            variants={panelVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex-1 min-h-0 overflow-y-auto"
+          >
+            <Suspense fallback={<PanelFallback />}>
+              <SettingsTab />
+            </Suspense>
+          </motion.div>
+
+        ) : (
+          /* ── Dashboard split layout ──────────────────── */
+          <motion.div
+            key="dashboard"
+            variants={panelVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className={cn(
+              "flex-1 flex min-h-0 overflow-hidden p-2 gap-2",
+              isDragging && "select-none",
+            )}
+          >
+            {/* Left Panel — Queue */}
+            <div
+              className={cn(
+                "min-w-0 flex-shrink-0 overflow-hidden workspace-queue border border-border/70 rounded-lg shadow-sm",
+                !isWideList && "bg-background",
+              )}
+              style={{
+                ...(isWideList ? { flex: "1 1 0%" } : { width: splitter.width }),
+              }}
+            >
+              <ROListPanel
+                selectedROId={selectedRO?.id || null}
+                onSelectRO={handleSelectRO}
+                onAddNew={handleAddNew}
+                onFilteredROsChange={setFilteredROs}
+                compact={!isWideList}
+              />
+            </div>
+
+            {/* Splitter + Right Panel — Workspace */}
+            {!isWideList && (
+              <>
+                <SplitHandle
+                  isDragging={isDragging}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                />
+
+                <div className="flex-1 min-w-0 overflow-hidden workspace-active border border-border/70 rounded-lg shadow-sm flex flex-col">
+                  <div className="px-4 py-2 border-b border-border/60 bg-card/95 backdrop-blur-sm flex-shrink-0">
                     <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground/70">
                         Active Workspace
                       </p>
                       <p className="text-sm font-semibold text-foreground truncate">{activeWorkspaceLabel}</p>
                     </div>
-                    {!selectedRO && (rightPanel === "settings" || rightPanel === "summary") && (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/70 bg-muted/30 text-[11px] font-medium text-muted-foreground">
-                        <ClipboardList className="h-3 w-3" />
-                        Queue remains available on the left
-                      </div>
-                    )}
+                  </div>
+                  <div className="flex-1 min-h-0 relative overflow-hidden">
+                    <AnimatePresence mode="wait">
+                      {showEditor ? (
+                        <motion.div
+                          key={`editor-${selectedRO?.id ?? "new"}`}
+                          variants={panelVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="absolute inset-0 min-h-0 overflow-y-auto overscroll-contain"
+                        >
+                          <ROEditor
+                            ro={selectedRO}
+                            isNew={isAddingNew}
+                            focusLineId={focusLineId}
+                            onSave={handleSave}
+                            onCancel={handleCancel}
+                            onSaveAndAddAnother={handleSaveAndAddAnother}
+                          />
+                        </motion.div>
+                      ) : showDetails ? (
+                        <motion.div
+                          key={`details-${selectedRO?.id}`}
+                          variants={panelVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="absolute inset-0 overflow-y-auto"
+                        >
+                          <RODetailsPanel
+                            ro={selectedRO}
+                            onEdit={handleEditRO}
+                            onDelete={handleDeleteFromDetails}
+                            onSelectRO={handleSelectRO}
+                          />
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
                   </div>
                 </div>
-                <div className="flex-1 min-h-0 relative overflow-hidden">
-                <AnimatePresence mode="wait">
-                  {rightPanel === "settings" ? (
-                    <motion.div
-                      key="settings"
-                      variants={panelVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      className="overflow-y-auto absolute inset-0"
-                    >
-                      <Suspense fallback={<PanelFallback />}>
-                        <SettingsTab />
-                      </Suspense>
-                    </motion.div>
-                  ) : rightPanel === "summary" ? (
-                    <motion.div
-                      key="summary"
-                      variants={panelVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      className="overflow-y-auto absolute inset-0"
-                    >
-                      <Suspense fallback={<PanelFallback />}>
-                        <SummaryTab />
-                      </Suspense>
-                    </motion.div>
-                  ) : showEditor ? (
-                    <motion.div
-                      key={`editor-${selectedRO?.id ?? "new"}`}
-                      variants={panelVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      className="absolute inset-0 min-h-0 overflow-y-auto overscroll-contain"
-                    >
-                      <ROEditor
-                        ro={selectedRO}
-                        isNew={isAddingNew}
-                        focusLineId={focusLineId}
-                        onSave={handleSave}
-                        onCancel={handleCancel}
-                        onSaveAndAddAnother={handleSaveAndAddAnother}
-                      />
-                    </motion.div>
-                  ) : showDetails ? (
-                    <motion.div
-                      key={`details-${selectedRO?.id}`}
-                      variants={panelVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      className="absolute inset-0 overflow-y-auto"
-                    >
-                      <RODetailsPanel
-                        ro={selectedRO}
-                        onEdit={handleEditRO}
-                        onDelete={handleDeleteFromDetails}
-                        onSelectRO={handleSelectRO}
-                      />
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ProUpgradeDialog
         open={showUpgradeDialog}
