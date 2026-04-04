@@ -32,6 +32,26 @@ type FieldStatus = 'idle' | 'saving' | 'saved' | 'error';
 // Avoids a Supabase function invocation on every settings tab mount.
 let _cachedAdminStatus: boolean | null = null;
 
+function SettingsSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-[13px] font-semibold tracking-tight">{title}</h2>
+        {description && <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
@@ -555,52 +575,60 @@ export function SettingsTab() {
 
                 {/* ═══ Full-page grid for settings ═══ */}
                 <div className="grid grid-cols-12 gap-4 items-start">
-                  {/* Left column: Display + Behavior */}
-                  <div className="col-span-12 lg:col-span-4 space-y-4">
-                    <SettingsGroup title="Display">
-                      <SettingsRow
-                        label="Dark Mode"
-                        toggle
-                        toggleValue={darkMode}
-                        onToggle={toggleDarkMode}
-                      />
-                      <SettingsRow
-                        label="Hide Hour Totals"
-                        description="Shows — instead of totals"
-                        toggle
-                        toggleValue={userSettings.hideTotals}
-                        onToggle={(v) => updateUserSetting('hideTotals', v)}
-                      />
-                    </SettingsGroup>
+                  {/* Left column: app + tracking preferences */}
+                  <div className="col-span-12 lg:col-span-9 space-y-5">
+                    <SettingsSection
+                      title="App Preferences"
+                      description="Control appearance and how repair orders are shown while you work."
+                    >
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <SettingsGroup title="Display">
+                          <SettingsRow
+                            label="Dark Mode"
+                            toggle
+                            toggleValue={darkMode}
+                            onToggle={toggleDarkMode}
+                          />
+                          <SettingsRow
+                            label="Hide Hour Totals"
+                            description="Shows — instead of totals"
+                            toggle
+                            toggleValue={userSettings.hideTotals}
+                            onToggle={(v) => updateUserSetting('hideTotals', v)}
+                          />
+                        </SettingsGroup>
 
-                    <SettingsGroup title="RO Behavior">
-                      <SettingsRow
-                        label="Vehicle on Lines"
-                        description="Year/make/model on each line"
-                        toggle
-                        toggleValue={userSettings.showVehicleChips}
-                        onToggle={(v) => updateUserSetting('showVehicleChips', v)}
-                      />
-                      <SettingsRow
-                        label="Keyword Auto-Fill"
-                        description="Match job keywords to preset hours"
-                        toggle
-                        toggleValue={userSettings.keywordAutofill}
-                        onToggle={(v) => updateUserSetting('keywordAutofill', v)}
-                      />
-                      <SettingsRow
-                        label="Scan Confidence"
-                        description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
-                        toggle
-                        toggleValue={userSettings.showScanConfidence}
-                        onToggle={(v) => updateUserSetting('showScanConfidence', v)}
-                        disabled={!isPro}
-                      />
-                    </SettingsGroup>
-                  </div>
+                        <SettingsGroup title="RO Behavior">
+                          <SettingsRow
+                            label="Vehicle on Lines"
+                            description="Year/make/model on each line"
+                            toggle
+                            toggleValue={userSettings.showVehicleChips}
+                            onToggle={(v) => updateUserSetting('showVehicleChips', v)}
+                          />
+                          <SettingsRow
+                            label="Keyword Auto-Fill"
+                            description="Match job keywords to preset hours"
+                            toggle
+                            toggleValue={userSettings.keywordAutofill}
+                            onToggle={(v) => updateUserSetting('keywordAutofill', v)}
+                          />
+                          <SettingsRow
+                            label="Scan Confidence"
+                            description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
+                            toggle
+                            toggleValue={userSettings.showScanConfidence}
+                            onToggle={(v) => updateUserSetting('showScanConfidence', v)}
+                            disabled={!isPro}
+                          />
+                        </SettingsGroup>
+                      </div>
+                    </SettingsSection>
 
-                  {/* Center column: Goals + Pay Period */}
-                  <div className="col-span-12 lg:col-span-5 space-y-4">
+                    <SettingsSection
+                      title="Pay Tracking"
+                      description="Set goals and pay-period boundaries for summary calculations."
+                    >
                     {/* Goals — refined card */}
                     <div className="space-y-1">
                       <div className="px-0.5 flex items-baseline gap-2">
@@ -668,27 +696,33 @@ export function SettingsTab() {
                       userSettings={userSettings}
                       updateUserSetting={updateUserSetting}
                     />
+                    </SettingsSection>
                   </div>
 
-                  {/* Right column: Help */}
+                  {/* Right column: help + support */}
                   <div className="col-span-12 lg:col-span-3 space-y-4">
-                    <SettingsGroup title="Help">
-                      <button
-                        onClick={() => {
-                          window.open('mailto:support@ronavigator.com', '_blank');
-                          navigator.clipboard.writeText('support@ronavigator.com');
-                          toast.success('Email copied');
-                        }}
-                        className="w-full px-4 py-3 flex items-center gap-3 tap-target active:bg-muted/40 transition-colors"
-                      >
-                        <Mail className="h-4 w-4 text-muted-foreground/60" />
-                        <div className="flex-1 min-w-0 text-left">
-                          <span className="text-[13px] font-medium">Contact Support</span>
-                          <p className="text-[11px] text-muted-foreground/50">support@ronavigator.com</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-                      </button>
-                    </SettingsGroup>
+                    <SettingsSection
+                      title="Support"
+                      description="Get help quickly and keep your workflow moving."
+                    >
+                      <SettingsGroup title="Help">
+                        <button
+                          onClick={() => {
+                            window.open('mailto:support@ronavigator.com', '_blank');
+                            navigator.clipboard.writeText('support@ronavigator.com');
+                            toast.success('Email copied');
+                          }}
+                          className="w-full px-4 py-3 flex items-center gap-3 tap-target active:bg-muted/40 transition-colors"
+                        >
+                          <Mail className="h-4 w-4 text-muted-foreground/60" />
+                          <div className="flex-1 min-w-0 text-left">
+                            <span className="text-[13px] font-medium">Contact Support</span>
+                            <p className="text-[11px] text-muted-foreground/50">support@ronavigator.com</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                        </button>
+                      </SettingsGroup>
+                    </SettingsSection>
                   </div>
                 </div>
               </div>
@@ -827,50 +861,57 @@ export function SettingsTab() {
               )}
             </div>
 
-            {/* App Preferences */}
-            <SettingsGroup title="Display">
-              <SettingsRow
-                label="Dark Mode"
-                toggle
-                toggleValue={darkMode}
-                onToggle={toggleDarkMode}
-              />
-              <SettingsRow
-                label="Hide Hour Totals"
-                description="Shows — instead of totals"
-                toggle
-                toggleValue={userSettings.hideTotals}
-                onToggle={(v) => updateUserSetting('hideTotals', v)}
-              />
-            </SettingsGroup>
+            <SettingsSection
+              title="App Preferences"
+              description="Control appearance and how repair orders are shown."
+            >
+              <SettingsGroup title="Display">
+                <SettingsRow
+                  label="Dark Mode"
+                  toggle
+                  toggleValue={darkMode}
+                  onToggle={toggleDarkMode}
+                />
+                <SettingsRow
+                  label="Hide Hour Totals"
+                  description="Shows — instead of totals"
+                  toggle
+                  toggleValue={userSettings.hideTotals}
+                  onToggle={(v) => updateUserSetting('hideTotals', v)}
+                />
+              </SettingsGroup>
 
-            {/* RO Behavior */}
-            <SettingsGroup title="RO Behavior">
-              <SettingsRow
-                label="Vehicle on Lines"
-                description="Year/make/model on each line"
-                toggle
-                toggleValue={userSettings.showVehicleChips}
-                onToggle={(v) => updateUserSetting('showVehicleChips', v)}
-              />
-              <SettingsRow
-                label="Keyword Auto-Fill"
-                description="Match job keywords to preset hours"
-                toggle
-                toggleValue={userSettings.keywordAutofill}
-                onToggle={(v) => updateUserSetting('keywordAutofill', v)}
-              />
-              <SettingsRow
-                label="Scan Confidence"
-                description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
-                toggle
-                toggleValue={userSettings.showScanConfidence}
-                onToggle={(v) => updateUserSetting('showScanConfidence', v)}
-                disabled={!isPro}
-              />
-            </SettingsGroup>
+              <SettingsGroup title="RO Behavior">
+                <SettingsRow
+                  label="Vehicle on Lines"
+                  description="Year/make/model on each line"
+                  toggle
+                  toggleValue={userSettings.showVehicleChips}
+                  onToggle={(v) => updateUserSetting('showVehicleChips', v)}
+                />
+                <SettingsRow
+                  label="Keyword Auto-Fill"
+                  description="Match job keywords to preset hours"
+                  toggle
+                  toggleValue={userSettings.keywordAutofill}
+                  onToggle={(v) => updateUserSetting('keywordAutofill', v)}
+                />
+                <SettingsRow
+                  label="Scan Confidence"
+                  description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
+                  toggle
+                  toggleValue={userSettings.showScanConfidence}
+                  onToggle={(v) => updateUserSetting('showScanConfidence', v)}
+                  disabled={!isPro}
+                />
+              </SettingsGroup>
+            </SettingsSection>
 
             {/* Goals & Earnings */}
+            <SettingsSection
+              title="Pay Tracking"
+              description="Set goals and pay-period boundaries for summary totals."
+            >
             <div className="space-y-1">
               <div className="px-0.5 flex items-center gap-2">
                 <DollarSign className="h-3.5 w-3.5 text-primary/80" />
@@ -933,25 +974,31 @@ export function SettingsTab() {
               userSettings={userSettings}
               updateUserSetting={updateUserSetting}
             />
+            </SettingsSection>
 
             {/* Help */}
-            <SettingsGroup title="Help">
-              <button
-                onClick={() => {
-                  window.open('mailto:support@ronavigator.com', '_blank');
-                  navigator.clipboard.writeText('support@ronavigator.com');
-                  toast.success('Email copied');
-                }}
-                className="w-full px-4 py-3 flex items-center gap-3 tap-target active:bg-muted/40 transition-colors"
-              >
-                <Mail className="h-4 w-4 text-muted-foreground/60" />
-                <div className="flex-1 min-w-0 text-left">
-                  <span className="text-[13px] font-medium">Contact Support</span>
-                  <p className="text-[11px] text-muted-foreground/50">support@ronavigator.com</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-              </button>
-            </SettingsGroup>
+            <SettingsSection
+              title="Support"
+              description="Need help or found an issue? Reach out here."
+            >
+              <SettingsGroup title="Help">
+                <button
+                  onClick={() => {
+                    window.open('mailto:support@ronavigator.com', '_blank');
+                    navigator.clipboard.writeText('support@ronavigator.com');
+                    toast.success('Email copied');
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 tap-target active:bg-muted/40 transition-colors"
+                >
+                  <Mail className="h-4 w-4 text-muted-foreground/60" />
+                  <div className="flex-1 min-w-0 text-left">
+                    <span className="text-[13px] font-medium">Contact Support</span>
+                    <p className="text-[11px] text-muted-foreground/50">support@ronavigator.com</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                </button>
+              </SettingsGroup>
+            </SettingsSection>
           </>
         ) : (
           <ManageContent />
