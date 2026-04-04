@@ -114,7 +114,7 @@ export default function Auth() {
 
         <div className="relative flex flex-col h-full p-10">
           {/* Logo */}
-          <HeaderLogo priority className="h-[140px] w-auto" />
+          <HeaderLogo priority className="h-10 w-auto" />
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
