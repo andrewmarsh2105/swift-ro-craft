@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, BarChart3, X, Table2, Crown, ClipboardList } from "lucide-react";
+import { Settings, BarChart3, Table2, Crown, ClipboardList, LayoutDashboard } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
@@ -52,29 +52,73 @@ const panelVariants = {
 type RightPanel = "details" | "editor" | "settings" | "summary" | "none";
 type ViewMode = "split" | "spreadsheet";
 
-/* ── Toolbar icon button ─────────────────────────── */
-function ToolbarBtn({
-  title, active, onClick, children,
+/* ── Primary nav tab bar (Xtime-inspired) ───────── */
+function NavTabBar({
+  viewMode,
+  rightPanel,
+  isPro,
+  onDashboard,
+  onSpreadsheet,
+  onSummary,
+  onSettings,
 }: {
-  title: string;
-  active?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  viewMode: ViewMode;
+  rightPanel: RightPanel;
+  isPro: boolean;
+  onDashboard: () => void;
+  onSpreadsheet: () => void;
+  onSummary: () => void;
+  onSettings: () => void;
 }) {
+  const isDashboard = viewMode !== "spreadsheet" && rightPanel !== "settings" && rightPanel !== "summary";
+  const isSpreadsheet = viewMode === "spreadsheet";
+  const isSummary = rightPanel === "summary";
+  const isSettings = rightPanel === "settings";
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "toolbar-btn",
-        active && "toolbar-btn-active",
-      )}
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-    >
-      {children}
-    </button>
+    <nav className="nav-tab-bar" aria-label="Main navigation">
+      <button
+        type="button"
+        className={cn("nav-tab", isDashboard && "nav-tab-active")}
+        onClick={onDashboard}
+        aria-current={isDashboard ? "page" : undefined}
+      >
+        <LayoutDashboard className="h-[15px] w-[15px]" />
+        <span>Dashboard</span>
+      </button>
+
+      <button
+        type="button"
+        className={cn("nav-tab", isSpreadsheet && "nav-tab-active")}
+        onClick={onSpreadsheet}
+        aria-current={isSpreadsheet ? "page" : undefined}
+        title={!isPro ? "Upgrade to Pro for Spreadsheet View" : undefined}
+      >
+        <Table2 className="h-[15px] w-[15px]" />
+        <span>Spreadsheet</span>
+        {!isPro && <Crown className="h-2.5 w-2.5 text-amber-500 ml-0.5 flex-shrink-0" />}
+      </button>
+
+      <button
+        type="button"
+        className={cn("nav-tab", isSummary && "nav-tab-active")}
+        onClick={onSummary}
+        aria-current={isSummary ? "page" : undefined}
+      >
+        <BarChart3 className="h-[15px] w-[15px]" />
+        <span>Summary</span>
+      </button>
+
+      <button
+        type="button"
+        className={cn("nav-tab", isSettings && "nav-tab-active")}
+        onClick={onSettings}
+        aria-current={isSettings ? "page" : undefined}
+      >
+        <Settings className="h-[15px] w-[15px]" />
+        <span>Settings</span>
+      </button>
+    </nav>
   );
 }
 
@@ -297,42 +341,9 @@ export function DesktopWorkspace() {
           <HeaderLogo height={52} />
         </div>
 
-        {/* Right-side toolbar */}
-        <div className="flex items-center gap-0.5">
+        {/* Right-side toolbar — utility items only; nav moved to NavTabBar */}
+        <div className="flex items-center gap-1">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} triggerClassName="text-muted-foreground hover:text-foreground hover:bg-muted/60" />
-
-          {isPro && (
-            <ToolbarBtn
-              title="Spreadsheet View"
-              active={viewMode === "spreadsheet"}
-              onClick={() => {
-                setViewMode((v) => (v === "spreadsheet" ? "split" : "spreadsheet"));
-                if (viewMode === "split") setRightPanel("none");
-                setSelectedRO(null);
-                setIsAddingNew(false);
-              }}
-            >
-              <Table2 className="icon-toolbar" />
-            </ToolbarBtn>
-          )}
-
-          <div className="w-px h-4 bg-border/40 mx-0.5" />
-
-          <ToolbarBtn
-            title="Summary & Reports"
-            active={rightPanel === "summary"}
-            onClick={() => togglePanel("summary")}
-          >
-            <BarChart3 className="icon-toolbar" />
-          </ToolbarBtn>
-
-          <ToolbarBtn
-            title="Settings"
-            active={rightPanel === "settings"}
-            onClick={() => togglePanel("settings")}
-          >
-            {rightPanel === "settings" ? <X className="icon-toolbar" /> : <Settings className="icon-toolbar" />}
-          </ToolbarBtn>
 
           {!isPro && (
             <button
@@ -346,6 +357,33 @@ export function DesktopWorkspace() {
           )}
         </div>
       </div>
+
+      {/* ── Primary Nav Tab Bar ───────────────────────── */}
+      <NavTabBar
+        viewMode={viewMode}
+        rightPanel={rightPanel}
+        isPro={isPro}
+        onDashboard={() => {
+          setViewMode("split");
+          if (rightPanel === "settings" || rightPanel === "summary") {
+            setRightPanel("none");
+            setSelectedRO(null);
+            setIsAddingNew(false);
+          }
+        }}
+        onSpreadsheet={() => {
+          if (!isPro) {
+            setShowUpgradeDialog(true);
+            return;
+          }
+          setViewMode((v) => (v === "spreadsheet" ? "split" : "spreadsheet"));
+          if (viewMode === "split") setRightPanel("none");
+          setSelectedRO(null);
+          setIsAddingNew(false);
+        }}
+        onSummary={() => togglePanel("summary")}
+        onSettings={() => togglePanel("settings")}
+      />
 
       {viewMode === "spreadsheet" ? (
         <div className="flex-1 min-h-0">
