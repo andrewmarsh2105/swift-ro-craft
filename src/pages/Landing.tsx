@@ -106,7 +106,7 @@ export default function Landing() {
         className="sticky top-0 z-30"
         style={{ background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.10)' }}
       >
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-24 px-4 md:px-8">
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between px-4 md:px-8" style={{ height: 100 }}>
           <Link
             to="/"
             className="inline-flex items-center"
@@ -118,7 +118,7 @@ export default function Landing() {
               loading="eager"
               decoding="async"
               draggable={false}
-              style={{ height: 64, width: 'auto' }}
+              style={{ height: 88, width: 'auto' }}
               className="block shrink-0 select-none object-contain"
             />
           </Link>
