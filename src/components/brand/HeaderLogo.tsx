@@ -3,15 +3,17 @@ import { cn } from '@/lib/utils';
 interface HeaderLogoProps {
   className?: string;
   priority?: boolean;
+  height?: number;
 }
 
 /**
  * Shared header logo treatment.
  *
- * Uses the dashboard source-of-truth transparent wordmark asset and a fixed
- * width with object-contain to preserve intrinsic aspect ratio.
+ * Uses the dashboard source-of-truth transparent wordmark asset.
+ * Pass `height` (number, px) to set size via inline style — bypasses
+ * Tailwind purging and class-merge conflicts entirely.
  */
-export function HeaderLogo({ className, priority = false }: HeaderLogoProps) {
+export function HeaderLogo({ className, priority = false, height }: HeaderLogoProps) {
   return (
     <img
       src="/brand/logo-ronavigator-app-dark.png"
@@ -19,8 +21,10 @@ export function HeaderLogo({ className, priority = false }: HeaderLogoProps) {
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
       draggable={false}
+      style={height ? { height, width: 'auto' } : undefined}
       className={cn(
-        'block h-9 w-auto max-w-[260px] shrink-0 select-none object-contain sm:h-10',
+        'block shrink-0 select-none object-contain',
+        !height && 'h-9 w-auto max-w-[260px] sm:h-10',
         className,
       )}
     />
