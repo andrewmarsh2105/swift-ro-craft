@@ -20,7 +20,7 @@ export function HeaderLogo({ className, priority = false }: HeaderLogoProps) {
       decoding="async"
       draggable={false}
       className={cn(
-        'block h-8 w-auto max-w-[180px] shrink-0 select-none object-contain sm:h-9',
+        'block h-8 w-auto max-w-[220px] shrink-0 select-none object-contain',
         className,
       )}
     />
