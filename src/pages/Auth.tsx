@@ -181,7 +181,7 @@ export default function Auth() {
           >
             {/* Mobile-only branding */}
             <div className="flex items-center justify-center md:hidden">
-              <HeaderLogo priority className="h-[100px] w-auto" />
+              <HeaderLogo priority className="h-9 w-auto" />
             </div>
 
             {/* Desktop heading */}
