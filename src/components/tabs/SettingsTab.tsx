@@ -438,11 +438,14 @@ export function SettingsTab() {
   // ── Desktop layout ──
   if (isDesktop) {
     return (
-      <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col h-full overflow-y-auto bg-gradient-to-b from-background via-background to-muted/20">
         {/* Header */}
-        <div className="panel-header px-4 pt-3 pb-2">
-          <div className="flex items-center justify-between">
-            <h1 className="text-[15px] font-bold tracking-tight">Settings</h1>
+        <div className="panel-header px-5 pt-4 pb-3 border-b border-border/40 bg-background/90 backdrop-blur">
+          <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+            <div>
+              <h1 className="text-[18px] font-bold tracking-tight">Settings</h1>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Personalize your workspace, goals, and account preferences.</p>
+            </div>
             <SegmentedControl
               options={[
                 { value: 'settings', label: 'Settings' },
@@ -455,12 +458,12 @@ export function SettingsTab() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4 max-w-2xl mx-auto w-full">
+          <div className="p-5 max-w-7xl mx-auto w-full">
             {settingsView === 'settings' ? (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {/* ═══ Account & Identity — top hero section ═══ */}
                 <div
-                  className="bg-card border border-border/40 overflow-hidden"
+                  className="bg-card border border-border/50 overflow-hidden shadow-sm"
                   style={{ borderRadius: 'var(--radius)' }}
                 >
                   {/* Identity row */}
@@ -550,10 +553,10 @@ export function SettingsTab() {
                   </div>
                 </div>
 
-                {/* ═══ Two-column grid for settings ═══ */}
-                <div className="grid grid-cols-2 gap-3 items-start">
+                {/* ═══ Full-page grid for settings ═══ */}
+                <div className="grid grid-cols-12 gap-4 items-start">
                   {/* Left column: Display + Behavior */}
-                  <div className="space-y-4">
+                  <div className="col-span-12 lg:col-span-4 space-y-4">
                     <SettingsGroup title="Display">
                       <SettingsRow
                         label="Dark Mode"
@@ -596,8 +599,8 @@ export function SettingsTab() {
                     </SettingsGroup>
                   </div>
 
-                  {/* Right column: Goals + Pay Period + Help */}
-                  <div className="space-y-4">
+                  {/* Center column: Goals + Pay Period */}
+                  <div className="col-span-12 lg:col-span-5 space-y-4">
                     {/* Goals — refined card */}
                     <div className="space-y-1">
                       <div className="px-0.5 flex items-baseline gap-2">
@@ -665,8 +668,10 @@ export function SettingsTab() {
                       userSettings={userSettings}
                       updateUserSetting={updateUserSetting}
                     />
+                  </div>
 
-                    {/* Help */}
+                  {/* Right column: Help */}
+                  <div className="col-span-12 lg:col-span-3 space-y-4">
                     <SettingsGroup title="Help">
                       <button
                         onClick={() => {
