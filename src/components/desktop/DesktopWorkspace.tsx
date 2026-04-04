@@ -294,7 +294,7 @@ export function DesktopWorkspace() {
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
         <div className="flex items-center min-w-0 gap-2.5">
-          <HeaderLogo className="h-[60px] w-auto" />
+          <HeaderLogo className="h-[76px] w-auto" />
         </div>
 
         {/* Right-side toolbar */}
