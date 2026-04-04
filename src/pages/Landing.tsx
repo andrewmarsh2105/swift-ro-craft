@@ -106,21 +106,24 @@ export default function Landing() {
         className="sticky top-0 z-30"
         style={{ background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.10)' }}
       >
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between px-4 md:px-8" style={{ height: 100 }}>
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between px-4 md:px-8" style={{ height: 72 }}>
           <Link
             to="/"
             className="inline-flex items-center"
             aria-label="RO Navigator home"
           >
-            <img
-              src={LANDING_WHITE_LOGO_SRC}
-              alt="RO Navigator"
-              loading="eager"
-              decoding="async"
-              draggable={false}
-              style={{ height: 88, width: 'auto' }}
-              className="block shrink-0 select-none object-contain"
-            />
+            {/* Clipping wrapper strips the transparent PNG padding */}
+            <div style={{ height: 48, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+              <img
+                src={LANDING_WHITE_LOGO_SRC}
+                alt="RO Navigator"
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                style={{ height: 144, width: 'auto' }}
+                className="block shrink-0 select-none object-contain"
+              />
+            </div>
           </Link>
           <nav className="flex items-center gap-1.5">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">

@@ -460,8 +460,7 @@
 
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
-    @apply flex-shrink-0 flex items-center justify-between px-4 bg-background;
-    height: 152px;
+    @apply flex-shrink-0 h-16 flex items-center justify-between px-4 bg-background;
     border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
 
