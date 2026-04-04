@@ -96,7 +96,7 @@ function MobileApp() {
         onScanPhoto={handleScanPhoto}
       />
 
-      <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      {!showQuickAdd && <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
     </div>
   );
 }
