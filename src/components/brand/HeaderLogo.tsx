@@ -24,7 +24,7 @@ export function HeaderLogo({ className, priority = false, height }: HeaderLogoPr
       style={height ? { height, width: 'auto' } : undefined}
       className={cn(
         'block shrink-0 select-none object-contain',
-        !height && 'h-9 w-auto max-w-[260px] sm:h-10',
+        !height && 'h-9 w-auto sm:h-10',
         className,
       )}
     />
