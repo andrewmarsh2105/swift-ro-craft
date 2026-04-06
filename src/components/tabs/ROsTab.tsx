@@ -113,12 +113,13 @@ interface ROCardProps {
   compact?: boolean;
   isCarryover?: boolean;
   rowTone?: 'base' | 'alt';
+  isSelected?: boolean;
 }
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDelete, onFlag, onTogglePaid, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
-  compact = false, isCarryover = false, rowTone = 'base',
+  compact = false, isCarryover = false, rowTone = 'base', isSelected = false,
 }: ROCardProps) {
   const hours = calcHours(ro);
   const dateContext = dateDisplayContext(ro);
@@ -138,12 +139,21 @@ const ROCard = memo(function ROCard({
     <div
       className={cn(
         "ro-row-card relative overflow-hidden group rounded-lg border shadow-[0_1px_0_hsl(var(--foreground)/0.03)]",
-        rowTone === 'alt' ? 'bg-muted/[0.24] border-border/60' : 'bg-card/95 border-border/70',
+        isSelected
+          ? 'list-row-selected bg-primary/[0.2] border-primary/65 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.5),0_2px_8px_hsl(var(--primary)/0.14)]'
+          : rowTone === 'alt'
+            ? 'bg-primary/[0.06] border-primary/20'
+            : 'bg-background border-border/70',
       )}
       style={{ borderLeftColor: accentColor, borderLeftWidth: '3px' }}
     >
       <div
-        className="flex items-stretch gap-0 cursor-pointer hover:bg-primary/[0.1] transition-colors duration-75 active:bg-primary/[0.16]"
+        className={cn(
+          "flex items-stretch gap-0 cursor-pointer transition-colors duration-100",
+          isSelected
+            ? "hover:bg-primary/[0.24] active:bg-primary/[0.28]"
+            : "hover:bg-primary/[0.14] active:bg-primary/[0.2]",
+        )}
         onClick={() => onViewDetails(ro)}
       >
         <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[6px]' : 'py-[9px]')}>
@@ -809,6 +819,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   compact={density === 'compact'}
                   isCarryover={carryoverROIds.has(ro.id)}
                   rowTone={idx % 2 === 0 ? 'base' : 'alt'}
+                  isSelected={selectedRO?.id === ro.id && showDetail}
                   onEdit={handleCardEdit}
                   onFlag={handleCardFlag}
                   onDelete={handleCardDelete}
