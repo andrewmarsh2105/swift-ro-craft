@@ -21,7 +21,7 @@ const MAX_HOURS_PER_LINE = 24;
 const MAX_LINE_DESCRIPTION_LENGTH = 500;
 const MAX_CANDIDATE_DATES = 8;
 const OCR_TIMEOUT_MS = 90_000; // 90 seconds
-const VALID_LABOR_TYPES: ExtractedLine['laborType'][] = ['warranty', 'customer-pay', 'internal'];
+import { VALID_LABOR_TYPES } from '@/lib/laborTypes';
 
 /** Match extracted line descriptions against presets to fill missing hours */
 function applyKeywordAutofill(lines: ExtractedLine[], presets: Preset[]): ExtractedLine[] {

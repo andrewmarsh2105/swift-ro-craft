@@ -22,9 +22,9 @@ import { haptics } from '@/lib/haptics';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
-import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { useROCap } from '@/hooks/useROCap';
 import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 
@@ -37,25 +37,15 @@ interface ROEditorProps {
   onSaveAndAddAnother?: () => void;
 }
 
-const LABOR_TYPES: { value: LaborType; label: string }[] = [
-  { value: 'warranty', label: 'Warranty' },
-  { value: 'customer-pay', label: 'Customer Pay' },
-  { value: 'internal', label: 'Internal' },
-];
+import { LABOR_TYPES } from '@/lib/laborTypes';
 
 export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
   const { settings, addRO, updateRO, updateAdvisors, updatePresets, ros } = useRO();
   const { userSettings, getFlagsForRO, addFlag, clearFlag } = useFlagContext();
   const { isPro } = useSubscription();
   const postSaveStatusPrompt = usePostSavePaidStatusPrompt({ updateRO });
-
-  // RO cap — use ro.date (local YYYY-MM-DD) to avoid UTC createdAt timezone drift.
-  const monthlyROCount = useMemo(() => {
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.date && r.date >= monthStart).length;
-  }, [ros]);
-  const isAtCap = !isPro && isNew && monthlyROCount >= RO_MONTHLY_CAP;
+  const { isAtCap: _isAtCap } = useROCap();
+  const isAtCap = _isAtCap && isNew;
 
   // Date range for filtering advisors to match the current list view filter
   const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'desktop-list', userSettings);

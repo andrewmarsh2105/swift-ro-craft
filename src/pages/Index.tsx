@@ -10,6 +10,7 @@ import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
 import { ROsTab } from "@/components/tabs/ROsTab";
 import { DesktopWorkspace } from "@/components/desktop/DesktopWorkspace";
+import { PanelErrorBoundary } from "@/components/states/PanelErrorBoundary";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
@@ -70,13 +71,25 @@ function MobileApp() {
       <header className="flex-shrink-0 flex items-center px-4 h-16 border-b border-border/50 bg-background">
         <HeaderLogo height={52} />
       </header>
-      <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
-        {activeTab === "ros" && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}
+      <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(var(--tab-bar-height) + var(--safe-area-inset-bottom))' }}>
+        {activeTab === "ros" && (
+          <PanelErrorBoundary label="ROs">
+            <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />
+          </PanelErrorBoundary>
+        )}
 
         {activeTab !== "ros" && (
           <Suspense fallback={<TabFallback />}>
-            {activeTab === "summary" && <SummaryTab />}
-            {activeTab === "settings" && <SettingsTab />}
+            {activeTab === "summary" && (
+              <PanelErrorBoundary label="Summary">
+                <SummaryTab />
+              </PanelErrorBoundary>
+            )}
+            {activeTab === "settings" && (
+              <PanelErrorBoundary label="Settings">
+                <SettingsTab />
+              </PanelErrorBoundary>
+            )}
           </Suspense>
         )}
       </main>

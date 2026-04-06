@@ -12,13 +12,10 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 import type { LaborType, RepairOrder, ROLine, VehicleInfo } from '@/types/ro';
 import { cn, localDateStr } from '@/lib/utils';
-import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
+import { normalizePaidDateValue } from '@/lib/paidDate';
+import { useROCap } from '@/hooks/useROCap';
+import { LABOR_TYPES as _LABOR_TYPES_RAW, laborColor } from '@/lib/laborTypes';
 import { toast } from 'sonner';
-
-function normalizePaidDateValue(value?: string | null): string {
-  const paidDate = value?.trim();
-  return paidDate && paidDate !== '—' ? paidDate : '';
-}
 
 interface QuickAddSheetProps {
   isOpen: boolean;
@@ -128,12 +125,8 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setShowDetailsOpen(state.showDetailsOpen);
   };
 
-  const monthlyROCount = useMemo(() => {
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.date && r.date >= monthStart).length;
-  }, [ros]);
-  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
+  const { isAtCap: _isAtCap } = useROCap();
+  const isAtCap = _isAtCap && !editingRO;
 
   useEffect(() => {
     if (isOpen) {
@@ -231,23 +224,11 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setShowAdvisorCreate(false);
   };
 
-  const LABOR_TYPES = [
-    {
-      value: 'warranty' as LaborType,
-      fullLabel: 'Warranty',
-      dotColor: 'hsl(var(--status-warranty))',
-    },
-    {
-      value: 'customer-pay' as LaborType,
-      fullLabel: 'Customer Pay',
-      dotColor: 'hsl(var(--status-customer-pay))',
-    },
-    {
-      value: 'internal' as LaborType,
-      fullLabel: 'Internal',
-      dotColor: 'hsl(var(--status-internal))',
-    },
-  ];
+  const LABOR_TYPES = _LABOR_TYPES_RAW.map(lt => ({
+    value: lt.value,
+    fullLabel: lt.fullLabel,
+    dotColor: laborColor(lt.value),
+  }));
 
   return (
     <>

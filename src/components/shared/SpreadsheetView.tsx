@@ -36,6 +36,7 @@ import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { applySharedROFilters, useSharedROFilters } from '@/hooks/useSharedROFilters';
 import { getDateFilterLabel, getPeriodFilterLabels } from '@/lib/payPeriodRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
+import { PrintHeader } from '@/components/shared/PrintHeader';
 import {
   buildSpreadsheetRows,
   PAYROLL_EXPORT_HEADERS,
@@ -433,9 +434,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const isMobile = useIsMobile();
   const hideTotals = userSettings.hideTotals ?? false;
 
-  const persistedViewMode = ((userSettings as any).spreadsheetViewMode as ViewMode) || 'payroll';
-  const persistedDensity = ((userSettings as any).spreadsheetDensity as Density) || 'compact';
-  const persistedGroupBy = ((userSettings as any).spreadsheetGroupBy as GroupBy) || 'date';
+  const persistedViewMode = (userSettings.spreadsheetViewMode as ViewMode) || 'payroll';
+  const persistedDensity = (userSettings.spreadsheetDensity as Density) || 'compact';
+  const persistedGroupBy = (userSettings.spreadsheetGroupBy as GroupBy) || 'date';
 
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
@@ -489,16 +490,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   const handleViewModeChange = (m: ViewMode) => {
     setViewMode(m);
-    updateUserSetting('spreadsheetViewMode' as any, m);
+    updateUserSetting('spreadsheetViewMode', m);
   };
   const handleGroupByChange = (g: GroupBy) => {
     setGroupBy(g);
-    updateUserSetting('spreadsheetGroupBy' as any, g);
+    updateUserSetting('spreadsheetGroupBy', g);
   };
   const handleDensityChange = () => {
     const next: Density = density === 'comfortable' ? 'compact' : 'comfortable';
     setDensity(next);
-    updateUserSetting('spreadsheetDensity' as any, next);
+    updateUserSetting('spreadsheetDensity', next);
   };
   const handleToggleCol = (id: ColumnId) => {
     if (id === 'roTotal') return;
@@ -866,6 +867,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   return (
     <div className="h-full flex flex-col bg-muted/15">
+      <PrintHeader periodLabel={computedRangeLabel} />
       {/* ─── Toolbar ─── */}
       <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border/50 bg-card/85 backdrop-blur-sm flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">

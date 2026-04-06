@@ -67,24 +67,7 @@ function SortHeader({
   );
 }
 
-/* ── Labor type left-border color ──────────────── */
-const laborBorderColor = (type: LaborType) =>
-  type === "warranty"
-    ? "hsl(var(--status-warranty))"
-    : type === "customer-pay"
-      ? "hsl(var(--status-customer-pay))"
-      : "hsl(var(--status-internal))";
-
-/* ── Labor type abbreviation ────────────────────── */
-const laborAbbr = (type: LaborType) =>
-  type === "warranty" ? "W" : type === "customer-pay" ? "CP" : "INT";
-
-const laborPillClass = (type: LaborType) =>
-  type === "warranty"
-    ? "status-pill-warranty"
-    : type === "customer-pay"
-      ? "status-pill-customer-pay"
-      : "status-pill-internal";
+import { laborColor as laborBorderColor, laborAbbr, laborPillClass } from "@/lib/laborTypes";
 
 /* ── Compact status indicators ─────────────────── */
 function RowStatusChips({

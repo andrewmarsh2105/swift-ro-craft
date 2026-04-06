@@ -39,13 +39,7 @@ function MetaField({ label, value, mono }: { label: string; value: React.ReactNo
   );
 }
 
-/* ── Labor type helpers ────────────────────────── */
-const laborBorderVar = (type: string) =>
-  type === "warranty"
-    ? "hsl(var(--status-warranty))"
-    : type === "customer-pay"
-      ? "hsl(var(--status-customer-pay))"
-      : "hsl(var(--status-internal))";
+import { laborColor as laborBorderVar } from "@/lib/laborTypes";
 
 /* ── Main panel ─────────────────────────────────── */
 

@@ -74,10 +74,8 @@ function toDayKey(s: string): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
-/** Resolve effective date string for an RO (paidDate overrides ro.date). */
-function effectiveDateOf(ro: RepairOrder): string {
-  return normalizePaidDate(ro.paidDate) ?? ro.date;
-}
+// Use canonical effectiveDate from roDisplay
+import { effectiveDate as effectiveDateOf } from '@/lib/roDisplay';
 
 export function usePayPeriodReport(startDate: string, endDate: string): PayPeriodReport {
   const { ros, settings } = useRO();

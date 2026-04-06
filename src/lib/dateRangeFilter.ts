@@ -149,9 +149,8 @@ export function computeDateRangeBounds(opts: ComputeDateRangeOpts): DateRangeBou
   return null;
 }
 
-export function effectiveDate(ro: RepairOrder): string {
-  return normalizePaidDate(ro.paidDate) ?? ro.date;
-}
+// Re-export from canonical location for backwards compat
+export { effectiveDate } from '@/lib/roDisplay';
 
 export function filterROsByDateRange(ros: RepairOrder[], bounds: DateRangeBounds | null): RepairOrder[] {
   if (!bounds) return ros;
