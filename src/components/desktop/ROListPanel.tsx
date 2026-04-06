@@ -284,11 +284,6 @@ export const ROListPanel = memo(function ROListPanel({
   const rangeChipLabel = useMemo(() => boundsRangeLabel(listBounds), [listBounds]);
   const activeRangeLabel = useMemo(() => getDateFilterLabel(dateFilter, userSettings), [dateFilter, userSettings]);
 
-  const totals = useMemo(() => {
-    const totalHours = filteredROs.filter(ro => !!ro.paidDate).reduce((sum, ro) => sum + calcHours(ro), 0);
-    return { totalHours, totalAll: filteredROs.length };
-  }, [filteredROs]);
-
   const toggleSort = useCallback((nextKey: SortKey) => {
     setSortKey((current) => {
       if (current !== nextKey) {
@@ -343,12 +338,6 @@ export const ROListPanel = memo(function ROListPanel({
               </div>
               <div className="flex items-baseline gap-1.5 mt-0.5">
                 <h2 className="text-[13px] font-extrabold tracking-tight text-foreground truncate">{userSettings.shopName || 'RO Navigator'}</h2>
-                <span className="text-[11px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
-                  {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
-                </span>
-                <span className="text-[9px] text-muted-foreground/60 font-medium flex-shrink-0">
-                  · {totals.totalAll}
-                </span>
               </div>
               {selectedROId && (
                 <p className="text-[10px] text-primary/90 font-semibold truncate mt-0.5">
