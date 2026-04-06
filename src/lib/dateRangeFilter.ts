@@ -151,6 +151,8 @@ export function computeDateRangeBounds(opts: ComputeDateRangeOpts): DateRangeBou
 
 // Re-export from canonical location for backwards compat
 export { effectiveDate } from '@/lib/roDisplay';
+// Also import for local use
+import { effectiveDate } from '@/lib/roDisplay';
 
 export function filterROsByDateRange(ros: RepairOrder[], bounds: DateRangeBounds | null): RepairOrder[] {
   if (!bounds) return ros;
