@@ -623,43 +623,6 @@
   }
 }
 
-@media print {
-  html,
-  body,
-  #root {
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  .app-bar,
-  .panel-action-bar,
-  .toolbar-btn,
-  .tab-bar-pwa,
-  .fab,
-  .fab-extended,
-  [data-sonner-toaster],
-  [role="dialog"],
-  [data-radix-popper-content-wrapper] {
-    display: none !important;
-  }
-
-  .panel-header {
-    position: static !important;
-    backdrop-filter: none !important;
-  }
-
-  /* Ensure printed content isn't clipped by flex/overflow constraints */
-  .flex-1,
-  [class*="overflow-hidden"],
-  [class*="overflow-y-auto"],
-  [class*="min-h-0"] {
-    overflow: visible !important;
-    min-height: auto !important;
-    height: auto !important;
-    flex: none !important;
-  }
-}
-
 /* ─────────────────────────────────────────────────────────────
    @media print — clean, readable output with no app chrome
    ───────────────────────────────────────────────────────────── */
@@ -677,7 +640,9 @@
     --primary-foreground: 0 0% 100%;
   }
 
-  html, body {
+  html, body, #root {
+    height: auto !important;
+    overflow: visible !important;
     background: white !important;
     color: black !important;
     overscroll-behavior: auto;
@@ -686,6 +651,7 @@
   /* Hide non-content chrome */
   .app-bar,
   .tab-bar-pwa,
+  .nav-tab-bar,
   .panel-action-bar,
   .toolbar-btn,
   .fab,
@@ -693,9 +659,13 @@
   [data-radix-popper-content-wrapper],
   [role="dialog"],
   [data-sonner-toaster],
-  button.quiet-transition,
-  nav {
+  button.quiet-transition {
     display: none !important;
+  }
+
+  /* Print header — shown only in print output */
+  .print-header {
+    display: block !important;
   }
 
   /* Let the main content expand to fill the page */
@@ -708,14 +678,21 @@
   .sticky,
   [class*="sticky"] {
     position: static !important;
+    backdrop-filter: none !important;
   }
 
   /* Reset overflow so everything prints — no clipped containers */
+  .flex-1,
   .overflow-hidden,
   .overflow-y-auto,
   .overflow-auto,
-  [class*="overflow"] {
+  [class*="overflow-hidden"],
+  [class*="overflow-y-auto"],
+  [class*="min-h-0"] {
     overflow: visible !important;
+    min-height: auto !important;
+    height: auto !important;
+    flex: none !important;
   }
 
   /* Remove backdrop blur and shadows — they print as blobs */
@@ -737,7 +714,7 @@
   }
 
   thead {
-    display: table-header-group; /* repeat header on each printed page */
+    display: table-header-group;
   }
 
   tr {
@@ -796,7 +773,6 @@
   .card-raised {
     border: 1px solid #ddd !important;
     background: white !important;
-    box-shadow: none !important;
   }
 
   /* Page margins */

@@ -36,11 +36,8 @@ interface ScanReviewScreenProps {
   onCancelPendingPage: () => void;
 }
 
-const LABOR_TYPES = [
-  { value: 'warranty', label: 'W' },
-  { value: 'customer-pay', label: 'CP' },
-  { value: 'internal', label: 'Int' },
-] as const;
+import { LABOR_TYPES as _LABOR_TYPES } from '@/lib/laborTypes';
+const LABOR_TYPES = _LABOR_TYPES.map(lt => ({ value: lt.value, label: lt.short }));
 
 function ConfidenceBadge({ value }: { value: number }) {
   const pct = Math.round(value * 100);

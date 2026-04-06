@@ -21,11 +21,8 @@ interface CompactLinesGridProps {
 }
 
 
-const LABOR_TYPES: { value: LaborType; label: string; short: string }[] = [
-  { value: 'warranty', label: 'Warranty', short: 'Warr' },
-  { value: 'customer-pay', label: 'Customer Pay', short: 'Cust' },
-  { value: 'internal', label: 'Internal', short: 'Int' },
-];
+import { LABOR_TYPES as _LABOR_TYPES_RAW } from '@/lib/laborTypes';
+const LABOR_TYPES = _LABOR_TYPES_RAW.map(lt => ({ value: lt.value, label: lt.label, short: lt.short === 'W' ? 'Warr' : lt.short === 'CP' ? 'Cust' : 'Int' }));
 
 
 export function CompactLinesGrid({

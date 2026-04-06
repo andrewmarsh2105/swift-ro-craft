@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, BarChart3, Table2, Crown, LayoutDashboard } from "lucide-react";
+import { PanelErrorBoundary } from "@/components/states/PanelErrorBoundary";
+import { DashboardKPIBar } from "@/components/shared/DashboardKPIBar";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
@@ -303,13 +305,13 @@ export function DesktopWorkspace() {
 
   const togglePanel = (panel: "settings" | "summary") => {
     if (rightPanel === panel) {
-      setRightPanel("none");
-    } else {
-      setRightPanel(panel);
-      setSelectedRO(null);
-      setIsAddingNew(false);
-      if (viewMode === "spreadsheet") setViewMode("split");
+      // Clicking active tab is a no-op — don't toggle-close to empty state
+      return;
     }
+    setRightPanel(panel);
+    setSelectedRO(null);
+    setIsAddingNew(false);
+    if (viewMode === "spreadsheet") setViewMode("split");
   };
 
   const showEditor = rightPanel === "editor" && (selectedRO || isAddingNew);
@@ -393,15 +395,17 @@ export function DesktopWorkspace() {
             exit="exit"
             className="flex-1 min-h-0"
           >
-            <Suspense fallback={<PanelFallback />}>
-              <SpreadsheetView
-                ros={ros}
-                onSelectRO={(ro) => {
-                  setViewMode("split");
-                  handleSelectRO(ro);
-                }}
-              />
-            </Suspense>
+            <PanelErrorBoundary label="Spreadsheet">
+              <Suspense fallback={<PanelFallback />}>
+                <SpreadsheetView
+                  ros={ros}
+                  onSelectRO={(ro) => {
+                    setViewMode("split");
+                    handleSelectRO(ro);
+                  }}
+                />
+              </Suspense>
+            </PanelErrorBoundary>
           </motion.div>
 
         ) : rightPanel === "summary" ? (
@@ -413,9 +417,11 @@ export function DesktopWorkspace() {
             exit="exit"
             className="flex-1 min-h-0 overflow-y-auto"
           >
-            <Suspense fallback={<PanelFallback />}>
-              <SummaryTab />
-            </Suspense>
+            <PanelErrorBoundary label="Summary">
+              <Suspense fallback={<PanelFallback />}>
+                <SummaryTab />
+              </Suspense>
+            </PanelErrorBoundary>
           </motion.div>
 
         ) : rightPanel === "settings" ? (
@@ -427,9 +433,11 @@ export function DesktopWorkspace() {
             exit="exit"
             className="flex-1 min-h-0 overflow-y-auto"
           >
-            <Suspense fallback={<PanelFallback />}>
-              <SettingsTab />
-            </Suspense>
+            <PanelErrorBoundary label="Settings">
+              <Suspense fallback={<PanelFallback />}>
+                <SettingsTab />
+              </Suspense>
+            </PanelErrorBoundary>
           </motion.div>
 
         ) : (
@@ -441,10 +449,12 @@ export function DesktopWorkspace() {
             animate="animate"
             exit="exit"
             className={cn(
-              "flex-1 flex min-h-0 overflow-hidden p-2 gap-2",
+              "flex-1 flex flex-col min-h-0 overflow-hidden",
               isDragging && "select-none",
             )}
           >
+            <DashboardKPIBar />
+            <div className={cn("flex-1 flex min-h-0 overflow-hidden p-2 gap-2")}>
             {/* Left Panel — Queue */}
             <div
               className={cn(
@@ -494,6 +504,7 @@ export function DesktopWorkspace() {
                           exit="exit"
                           className="absolute inset-0 min-h-0 overflow-y-auto overscroll-contain"
                         >
+                          <PanelErrorBoundary label="RO Editor">
                           <ROEditor
                             ro={selectedRO}
                             isNew={isAddingNew}
@@ -502,6 +513,7 @@ export function DesktopWorkspace() {
                             onCancel={handleCancel}
                             onSaveAndAddAnother={handleSaveAndAddAnother}
                           />
+                        </PanelErrorBoundary>
                         </motion.div>
                       ) : showDetails ? (
                         <motion.div
@@ -512,12 +524,14 @@ export function DesktopWorkspace() {
                           exit="exit"
                           className="absolute inset-0 overflow-y-auto"
                         >
-                          <RODetailsPanel
-                            ro={selectedRO}
-                            onEdit={handleEditRO}
-                            onDelete={handleDeleteFromDetails}
-                            onSelectRO={handleSelectRO}
-                          />
+                          <PanelErrorBoundary label="RO Details">
+                            <RODetailsPanel
+                              ro={selectedRO}
+                              onEdit={handleEditRO}
+                              onDelete={handleDeleteFromDetails}
+                              onSelectRO={handleSelectRO}
+                            />
+                          </PanelErrorBoundary>
                         </motion.div>
                       ) : null}
                     </AnimatePresence>
@@ -525,6 +539,7 @@ export function DesktopWorkspace() {
                 </div>
               </>
             )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

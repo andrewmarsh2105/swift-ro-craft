@@ -45,10 +45,8 @@ function dbToPreset(row: LaborReferenceRow): Preset {
   };
 }
 
-function effectiveDateOf(ro: RepairOrder): string {
-  const paidDate = ro.paidDate?.trim();
-  return paidDate && paidDate !== '—' ? paidDate : ro.date;
-}
+// Use shared effectiveDate from roDisplay, aliased for local naming convention
+import { effectiveDate as effectiveDateOf } from '@/lib/roDisplay';
 
 /**
  * How many days back to treat as the "hot window" for Phase 1 fetching.

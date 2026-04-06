@@ -1,82 +1,39 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Download, Copy, FileText, Flag, CalendarIcon, AlertCircle, ChevronDown, Lock, Target, DollarSign, Crown, TrendingUp } from 'lucide-react';
+import { AlertCircle, CalendarIcon, Lock, Crown, Flag } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { StatusPill } from '@/components/mobile/StatusPill';
 import { ProofPack } from '@/components/reports/ProofPack';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn, localDateStr } from '@/lib/utils';
 import { maskHours } from '@/lib/maskHours';
-import { Table, TableBody, TableFooter, TableRow, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useCloseouts } from '@/hooks/useCloseouts';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { ClosedPeriodsList } from '@/components/reports/ClosedPeriodsList';
 import { CloseoutDetailView } from '@/components/reports/CloseoutDetailView';
 import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { HideTotalsContext } from '@/contexts/HideTotalsContext';
 import { MultiPeriodComparison } from '@/components/summary/MultiPeriodComparison';
+import { StatCell } from '@/components/summary/StatCell';
+import { HeroKPI } from '@/components/summary/HeroKPI';
+import { HoursByDay } from '@/components/summary/HoursByDay';
+import { HoursByAdvisor } from '@/components/summary/HoursByAdvisor';
+import { MoreDetail } from '@/components/summary/MoreDetail';
+import { GoalsAndEarnings } from '@/components/summary/GoalsAndEarnings';
+import { ExportBlock } from '@/components/summary/ExportBlock';
 import { getDayRange } from '@/lib/summaryDateRanges';
 import { computeDateRangeBounds, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { getDateFilterLabel, getDefaultPeriodFilter, getPeriodFilterLabels, normalizeDateFilterForPayPeriod } from '@/lib/payPeriodRange';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
-
-const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// ── Goal bar (inline, compact) ────────────────────────────
-function GoalBar({ label, current, goal, hide }: { label: string; current: number; goal: number; hide: boolean }) {
-  const pct = Math.min((current / goal) * 100, 100);
-  const isComplete = current >= goal;
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Target className={cn('h-3 w-3', isComplete ? 'text-green-600' : 'text-primary/60')} />
-          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
-        </div>
-        <span className={cn('text-xs font-bold tabular-nums', isComplete ? 'text-green-600' : 'text-foreground')}>
-          {hide ? '--.-' : current.toFixed(1)} / {goal}h
-          {isComplete && !hide && <span className="ml-1 text-green-600">✓</span>}
-        </span>
-      </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className={cn('h-full rounded-full transition-all duration-500', isComplete ? 'bg-green-500' : 'bg-primary')}
-          style={{ width: `${hide ? 0 : pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ── Stat cell for desktop KPI row ─────────────────────────
-function StatCell({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
-  return (
-    <div className="flex flex-col">
-      <span className="data-header">{label}</span>
-      <span className={cn('text-base font-bold tabular-nums font-mono leading-tight', accent && 'text-green-600')}>{value}</span>
-      {sub && <span className="text-[9px] text-muted-foreground/40">{sub}</span>}
-    </div>
-  );
-}
 
 // ── Main SummaryTab ───────────────────────────────────────
 export function SummaryTab() {
@@ -106,7 +63,6 @@ export function SummaryTab() {
   const [customEnd, setCustomEnd] = useState<Date | undefined>(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
-  const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const [upgradeTrigger, setUpgradeTrigger] = useState<import('@/lib/proFeatures').UpgradeTrigger>('generic');
   const [showUpgrade, setShowUpgrade] = useState(false);
   const openUpgrade = (trigger: import('@/lib/proFeatures').UpgradeTrigger) => {
@@ -189,18 +145,6 @@ export function SummaryTab() {
     return `${format(s, 'MMM d')} – ${format(e, 'MMM d')}`;
   }, [dateRange]);
 
-  const handleCopySummary = async () => {
-    const text = generateSummaryText(report);
-    await navigator.clipboard.writeText(text);
-    toast.success('Summary copied');
-  };
-
-  const handleExportCSV = () => {
-    const csv = generateLineCSV(report);
-    downloadCSV(csv, `ro-lines-${dateRange.start}-to-${dateRange.end}.csv`);
-    toast.success('CSV downloaded');
-  };
-
   const rangeTypeForCloseout: CloseoutRangeType = (rangeMode === 'pay_period' || rangeMode === 'last_pay_period') ? 'pay_period'
     : rangeMode === 'last_week' ? 'last_week'
     : rangeMode === 'month' ? 'month'
@@ -237,19 +181,27 @@ export function SummaryTab() {
     setShowCloseoutConfirm(false);
   };
 
-  const visibleAdvisors = showAllAdvisors ? report.byAdvisor : report.byAdvisor.slice(0, 5);
-  const hasMoreAdvisors = report.byAdvisor.length > 5;
-  const maxDayHours = Math.max(...report.byDay.map(d => d.totalHours), 1);
-  const hiddenPastZeroActivityDays = report.byDay.filter((d) => d.totalHours === 0 && d.roCount === 0 && d.date < todayStr).length;
-  const futureDaysInRange = report.byDay.filter((d) => d.date > todayStr).length;
-
   const avgPerRO = report.totalROs > 0 ? Math.round((report.totalHours / report.totalROs) * 10) / 10 : 0;
 
   const isDesktop = !isMobile;
 
-  // ── Shared sub-components ──────────────────────────────
+  const handleCopySummary = async () => {
+    const text = generateSummaryText(report);
+    await navigator.clipboard.writeText(text);
+    toast.success('Summary copied');
+  };
 
-  const AlertsBlock = () => (
+  const handleExportCSV = () => {
+    const csv = generateLineCSV(report);
+    downloadCSV(csv, `ro-lines-${dateRange.start}-to-${dateRange.end}.csv`);
+    toast.success('CSV downloaded');
+  };
+
+  const handleShowProofPack = () => { setSnapshotProofPack(null); setShowProofPack(true); };
+  const handleOpenExportUpgrade = () => openUpgrade('export');
+
+  // ── Alerts inline (small, tightly coupled to state) ────
+  const alertsBlock = (
     <>
       {isPro && isNearEnd && !periodAlreadyClosed && (
         <div className="flex items-center gap-2.5 rounded-lg border border-amber-300 bg-amber-50/80 px-3 py-2.5">
@@ -262,7 +214,6 @@ export function SummaryTab() {
           </Button>
         </div>
       )}
-
       {periodAlreadyClosed && existingCloseout && Math.abs(report.totalHours - existingCloseout.totals.totalHours) > 0.1 && (
         <div className="rounded-lg border border-yellow-300 bg-yellow-50/80 px-3 py-2.5">
           <div className="flex items-start gap-2.5">
@@ -279,12 +230,12 @@ export function SummaryTab() {
     </>
   );
 
-  const RangeSelector = () => (
+  // ── Range selector inline (tightly coupled to state) ───
+  const rangeSelectorBlock = (
     <div className="flex items-center gap-2">
       <Select value={rangeMode} onValueChange={(v: string) => {
         setRangeMode(v as SummaryRangeMode);
         if (v !== 'day') setSharedDateFilter(v as DateFilterKey);
-        setShowAllAdvisors(false);
       }}>
         <SelectTrigger className="w-auto h-8 border border-border/60 bg-card shadow-none focus:ring-1 focus:ring-primary/30 px-3 gap-1 flex-shrink-0 text-xs font-semibold">
           <SelectValue />
@@ -331,355 +282,74 @@ export function SummaryTab() {
     </div>
   );
 
-  const CustomDatePickers = () => {
-    if (rangeMode !== 'custom') return null;
-    return (
-      <div className="flex gap-2 items-center">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customStart && 'text-muted-foreground')}>
-              <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
-              {customStart ? format(customStart, 'MMM d, yyyy') : 'Start'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
-          </PopoverContent>
-        </Popover>
-        <span className="text-muted-foreground text-xs">–</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customEnd && 'text-muted-foreground')}>
-              <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
-              {customEnd ? format(customEnd, 'MMM d, yyyy') : 'End'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
-          </PopoverContent>
-        </Popover>
-      </div>
-    );
+  // ── Custom date pickers inline ─────────────────────────
+  const customDatePickersBlock = rangeMode !== 'custom' ? null : (
+    <div className="flex gap-2 items-center">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customStart && 'text-muted-foreground')}>
+            <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+            {customStart ? format(customStart, 'MMM d, yyyy') : 'Start'}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className="p-3 pointer-events-auto" />
+        </PopoverContent>
+      </Popover>
+      <span className="text-muted-foreground text-xs">–</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className={cn('flex-1 justify-start text-left text-xs', !customEnd && 'text-muted-foreground')}>
+            <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+            {customEnd ? format(customEnd, 'MMM d, yyyy') : 'End'}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className="p-3 pointer-events-auto" />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+
+  // ── Shared props for extracted components ───────────────
+  const heroKPIProps = {
+    totalHours: report.totalHours,
+    totalROs: report.totalROs,
+    totalLines: report.totalLines,
+    avgPerRO,
+    byLaborType: report.byLaborType,
+    flaggedCount: report.flaggedCount,
+    hideTotals,
   };
 
-  const HeroKPI = ({ compact }: { compact?: boolean }) => (
-    <div
-      className="overflow-hidden"
-      style={{
-        borderRadius: 'calc(var(--radius) + 2px)',
-        border: '1px solid hsl(var(--primary) / 0.22)',
-        background: 'linear-gradient(180deg, hsl(var(--card)), hsl(var(--primary) / 0.03))',
-        boxShadow: 'var(--shadow-raised)',
-      }}
-    >
-      <div className={cn('px-4 pt-3', compact ? 'pb-1.5' : 'pb-2')}>
-        <div className="flex items-center justify-between">
-          <div className="data-header mb-0.5" style={{ color: 'hsl(var(--primary) / 0.68)' }}>Total Hours</div>
-          <span className="text-[10px] font-semibold text-muted-foreground/65">
-            {report.totalROs} ROs
-          </span>
-        </div>
-        <div className="flex items-end gap-1.5">
-          <span className={cn('font-bold tabular-nums tracking-tight text-primary leading-none font-mono', compact ? 'text-[34px]' : 'text-[38px]')}>
-            {maskHours(report.totalHours, hideTotals)}
-          </span>
-          <span className="text-base font-bold text-primary/35 font-mono">h</span>
-        </div>
-      </div>
-
-      {/* Secondary metrics */}
-      <div className="px-4 pb-2 grid grid-cols-3 gap-1.5">
-        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
-          <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">ROs</div>
-          <div className="text-[12px] font-bold tabular-nums">{report.totalROs}</div>
-        </div>
-        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
-          <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">Lines</div>
-          <div className="text-[12px] font-bold tabular-nums">{report.totalLines}</div>
-        </div>
-        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
-          <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">Avg / RO</div>
-          <div className="text-[12px] font-bold tabular-nums">{maskHours(avgPerRO, hideTotals)}h</div>
-        </div>
-      </div>
-
-      {/* Status strip */}
-      <div className="border-t px-4 py-2.5 flex items-center gap-2 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.12)', background: 'hsl(var(--primary) / 0.045)' }}>
-        {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
-          <div key={lt.laborType} className="inline-flex h-7 items-center justify-center rounded-full border border-border/50 bg-card/70 px-2">
-            <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" className="h-5 items-center justify-center px-2.5 py-0 leading-none font-mono tabular-nums tracking-normal" />
-          </div>
-        )) : (
-          <span className="text-[10px] text-muted-foreground/40">No type data</span>
-        )}
-
-        {report.flaggedCount > 0 && (
-          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-            <div className="flex items-center gap-0.5">
-              <Flag className="h-2.5 w-2.5 text-orange-500" />
-              <span className="text-[10px] font-bold tabular-nums text-orange-500">{report.flaggedCount}</span>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const GoalsAndEarnings = () => {
-    const hasGoals = hoursGoalDaily > 0 || hoursGoalWeekly > 0;
-    const hasEarnings = hourlyRate > 0 && !hideTotals;
-    if (!hasGoals && !hasEarnings) return null;
-    return (
-      <div className="border border-primary/20 bg-card overflow-hidden px-4 py-3 space-y-2.5" style={{ borderRadius: 'var(--radius)' }}>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/65">Goals & Earnings</span>
-          {hourlyRate > 0 && !hideTotals && (
-            <span className="text-[12px] font-bold tabular-nums text-green-600">${(report.totalHours * hourlyRate).toFixed(0)}</span>
-          )}
-        </div>
-        {hoursGoalDaily > 0 && rangeMode === 'day' && (
-          <GoalBar label="Daily Goal" current={report.totalHours} goal={hoursGoalDaily} hide={hideTotals} />
-        )}
-        {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
-          <GoalBar label="Weekly Goal" current={report.totalHours} goal={hoursGoalWeekly} hide={hideTotals} />
-        )}
-        {hasEarnings && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <DollarSign className="h-3 w-3 text-green-600" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Est. Earnings</span>
-            </div>
-            <span className="text-sm font-bold tabular-nums text-green-600">${(report.totalHours * hourlyRate).toFixed(0)}</span>
-          </div>
-        )}
-      </div>
-    );
+  const closedPeriodsProps = {
+    closeouts,
+    hideTotals,
+    onViewProofPack: (c: CloseoutSnapshot) => { setSnapshotProofPack(c); setShowProofPack(true); },
+    onViewDetail: (c: CloseoutSnapshot) => setDetailCloseout(c),
   };
-
-  const HoursByDay = () => (
-    <div className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-      <div className="px-4 pt-2.5 pb-1.5 flex items-center justify-between">
-        <span className="data-header">Hours by Day</span>
-        <span className="text-[9px] text-muted-foreground/30">{report.byDay.length}d</span>
-      </div>
-      <Table>
-        <TableBody>
-          {report.byDay.filter((d) => d.totalHours > 0 || d.roCount > 0).map((day) => {
-            const date = new Date(day.date + 'T12:00:00');
-            const isToday = day.date === todayStr;
-            const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
-            return (
-              <TableRow key={day.date} className={cn('border-border/30', isToday && 'bg-primary/[0.04]')}>
-                <TableCell className="py-2 pl-4 w-14">
-                  <div className="text-[11px] font-semibold text-muted-foreground/65 uppercase">{dayNames[date.getDay()]}</div>
-                  <div className={cn('text-sm font-bold tabular-nums', isToday && 'text-primary')}>{date.getDate()}</div>
-                </TableCell>
-                <TableCell className="py-2 pr-2">
-                  <div className="relative h-6 flex items-center">
-                    <div
-                      className={cn('absolute left-0 top-0 h-full rounded-r transition-all', isToday ? 'bg-primary/20' : 'bg-primary/10')}
-                      style={{ width: `${barWidth}%` }}
-                    />
-                    <span className="relative z-10 text-[13px] font-bold tabular-nums ml-2">
-                      {maskHours(day.totalHours, hideTotals)}h
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="py-2 pr-4 text-right">
-                  <span className="text-[11px] text-muted-foreground/65">{day.roCount} RO{day.roCount !== 1 ? 's' : ''}</span>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-        <TableFooter>
-          <TableRow className="border-border/40">
-            <TableCell className="font-bold text-xs py-1.5 pl-4 text-muted-foreground">Total</TableCell>
-            <TableCell className="font-bold text-xs tabular-nums py-1.5">{maskHours(report.totalHours, hideTotals)}h</TableCell>
-            <TableCell className="text-right text-[10px] text-muted-foreground py-1.5 pr-4">{report.totalROs} ROs</TableCell>
-          </TableRow>
-        </TableFooter>
-      </Table>
-      {hiddenPastZeroActivityDays > 0 && (
-        <div className="px-4 pb-2 text-[10px] text-muted-foreground/60">
-          Hidden {hiddenPastZeroActivityDays} past zero-activity day{hiddenPastZeroActivityDays === 1 ? '' : 's'}.
-          {futureDaysInRange > 0 && ` ${futureDaysInRange} future day${futureDaysInRange === 1 ? '' : 's'} in this period not counted.`}
-        </div>
-      )}
-    </div>
-  );
-
-  const HoursByAdvisor = () => (
-    <div className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-      <div className="px-4 pt-2.5 pb-1.5">
-        <span className="data-header">Hours by Advisor</span>
-      </div>
-      {report.byAdvisor.length === 0 ? (
-        <div className="px-4 pb-3 text-xs text-muted-foreground">No data for this range</div>
-      ) : (
-        <>
-          <Table>
-            <TableBody>
-              {visibleAdvisors.map((adv) => (
-                <TableRow key={adv.advisor} className="border-border/30">
-                  <TableCell className="py-2 pl-4">
-                    <div className="text-sm font-semibold">{adv.advisor}</div>
-                    <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary/60"
-                        style={{ width: `${Math.max(8, (adv.totalHours / Math.max(...report.byAdvisor.map(a => a.totalHours), 1)) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex gap-1.5 mt-0.5">
-                      {!hideTotals && adv.warrantyHours > 0 && <span className="text-[10px] text-muted-foreground/60">W:{adv.warrantyHours.toFixed(1)}</span>}
-                      {!hideTotals && adv.customerPayHours > 0 && <span className="text-[10px] text-muted-foreground/60">CP:{adv.customerPayHours.toFixed(1)}</span>}
-                      {!hideTotals && adv.internalHours > 0 && <span className="text-[10px] text-muted-foreground/60">I:{adv.internalHours.toFixed(1)}</span>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-2 text-right">
-                    <span className="text-[10px] text-muted-foreground/60">{adv.roCount} ROs</span>
-                  </TableCell>
-                  <TableCell className="py-2 pr-4 text-right">
-                    <span className="text-sm font-bold tabular-nums">{maskHours(adv.totalHours, hideTotals)}h</span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {hasMoreAdvisors && (
-            <button
-              onClick={() => setShowAllAdvisors(!showAllAdvisors)}
-              className="w-full py-2 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors border-t border-border/40"
-            >
-              {showAllAdvisors ? 'Show less' : `View all ${report.byAdvisor.length} advisors`}
-            </button>
-          )}
-        </>
-      )}
-    </div>
-  );
-
-  const MoreDetail = () => (
-    <Accordion type="single" collapsible>
-      <AccordionItem value="more" className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-        <AccordionTrigger className="px-4 py-2 text-xs font-semibold text-muted-foreground/60 hover:no-underline">
-          More Detail
-        </AccordionTrigger>
-        <AccordionContent className="px-4 pb-4 space-y-4">
-          <div className="space-y-1.5">
-            <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.12em]">Hours by Labor Type</h4>
-            {report.byLaborType.map(lt => (
-              <div key={lt.laborType} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                <span className="text-xs text-foreground font-medium">{lt.label}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-muted-foreground">{lt.lineCount} lines</span>
-                  <span className="text-xs font-bold tabular-nums">{maskHours(lt.totalHours, hideTotals)}h</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {report.byLaborRef.length > 0 && (
-            <div className="space-y-1.5">
-              <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.12em]">By Reference / Preset</h4>
-              {report.byLaborRef.map(r => (
-                <div key={r.referenceId} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                  <span className="text-xs text-foreground font-medium">{r.referenceName}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-muted-foreground">{r.lineCount} lines</span>
-                    <span className="text-xs font-bold tabular-nums">{maskHours(r.totalHours, hideTotals)}h</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {report.flaggedCount > 0 && (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-orange-200 bg-orange-50/80">
-              <Flag className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
-              <span className="text-xs font-medium text-orange-800">{report.flaggedCount} flagged item{report.flaggedCount !== 1 ? 's' : ''} in this range</span>
-            </div>
-          )}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  );
-
-  const ExportBlock = () => (
-    <div className="space-y-2">
-      <div className={cn('flex gap-2', isDesktop ? '' : 'w-full')}>
-        {/* Copy summary — first-class action for daily use */}
-        <Button
-          variant="outline"
-          className={cn('h-10 cursor-pointer text-sm gap-2 font-semibold', isDesktop ? '' : 'flex-1')}
-          onClick={handleCopySummary}
-          title="Copy summary to clipboard"
-        >
-          <Copy className="h-4 w-4" />
-          Copy
-        </Button>
-
-        {/* Export dropdown for less-frequent actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className={cn('h-10 cursor-pointer text-sm gap-1.5', isDesktop ? 'w-auto' : '')}>
-              <Download className="h-4 w-4" />
-              Export
-              <ChevronDown className="h-3 w-3 opacity-40" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            {isPro && (
-              <>
-                <DropdownMenuItem onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Proof Pack
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuItem onClick={() => {
-              if (!isPro) {
-                openUpgrade('export');
-                return;
-              }
-              handleExportCSV();
-            }}>
-              <Download className="h-4 w-4 mr-2" />
-              Lines CSV (paid only)
-              {!isPro && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <p className="text-[10px] text-muted-foreground/60">
-        Exports use the selected range · Only paid ROs included
-      </p>
-    </div>
-  );
 
   // ── Desktop two-column layout ──────────────────────────
 
   const renderDesktopSummary = () => (
     <HideTotalsContext.Provider value={hideTotals}>
       <div className="desktop-sections p-4">
-        {/* Alerts */}
-        <AlertsBlock />
+        {alertsBlock}
+        {rangeSelectorBlock}
+        {customDatePickersBlock}
 
-        {/* Range selector */}
-        <RangeSelector />
-        <CustomDatePickers />
-
-        {/* ── Two-column grid: KPI left, breakdowns right ── */}
         <div className="grid grid-cols-[1fr_1fr] gap-3 items-start">
-
-          {/* LEFT COLUMN: KPI + Goals + Export */}
           <div className="space-y-3">
-            <HeroKPI />
+            <HeroKPI {...heroKPIProps} />
+            <GoalsAndEarnings
+              hoursGoalDaily={hoursGoalDaily}
+              hoursGoalWeekly={hoursGoalWeekly}
+              hourlyRate={hourlyRate}
+              totalHours={report.totalHours}
+              rangeMode={rangeMode}
+              hideTotals={hideTotals}
+            />
 
-            <GoalsAndEarnings />
-
-            {/* Desktop: inline secondary stats row */}
             {(hourlyRate > 0 || report.totalROs > 0) && (
               <div className="flex items-center gap-4 px-1">
                 <StatCell label="ROs" value={String(report.totalROs)} sub={`${report.totalLines} lines`} />
@@ -690,85 +360,68 @@ export function SummaryTab() {
               </div>
             )}
 
-            {/* Export + History grouped together on desktop */}
             <div className="flex items-center gap-2 pt-1">
-              <ExportBlock />
+              <ExportBlock
+                isDesktop
+                isPro={isPro}
+                onCopySummary={handleCopySummary}
+                onExportCSV={handleExportCSV}
+                onShowProofPack={handleShowProofPack}
+                onOpenUpgrade={handleOpenExportUpgrade}
+              />
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Breakdowns + Detail */}
           <div className="space-y-3">
-            <HoursByDay />
-            <HoursByAdvisor />
-            <MoreDetail />
+            <HoursByDay byDay={report.byDay} totalHours={report.totalHours} totalROs={report.totalROs} todayStr={todayStr} hideTotals={hideTotals} />
+            <HoursByAdvisor byAdvisor={report.byAdvisor} hideTotals={hideTotals} />
+            <MoreDetail byLaborType={report.byLaborType} byLaborRef={report.byLaborRef} flaggedCount={report.flaggedCount} hideTotals={hideTotals} />
           </div>
         </div>
 
-        {/* Closed periods — full width below */}
-        {isPro && (
-          <ClosedPeriodsList
-            closeouts={closeouts}
-            hideTotals={hideTotals}
-            onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
-            onViewDetail={(c) => setDetailCloseout(c)}
-          />
-        )}
+        {isPro && <ClosedPeriodsList {...closedPeriodsProps} />}
       </div>
     </HideTotalsContext.Provider>
   );
 
-  // ── Mobile single-column layout (preserved) ────────────
+  // ── Mobile single-column layout ────────────────────────
 
   const renderMobileSummary = () => (
     <HideTotalsContext.Provider value={hideTotals}>
       <div className="space-y-4 pb-2">
-
-        <AlertsBlock />
-
-        {/* Range selector */}
-        <div className="px-4 pt-2.5">
-          <RangeSelector />
-        </div>
-
+        {alertsBlock}
+        <div className="px-4 pt-2.5">{rangeSelectorBlock}</div>
+        <div className="px-4">{customDatePickersBlock}</div>
+        <div className="px-4"><HeroKPI {...heroKPIProps} /></div>
         <div className="px-4">
-          <CustomDatePickers />
+          <GoalsAndEarnings
+            hoursGoalDaily={hoursGoalDaily}
+            hoursGoalWeekly={hoursGoalWeekly}
+            hourlyRate={hourlyRate}
+            totalHours={report.totalHours}
+            rangeMode={rangeMode}
+            hideTotals={hideTotals}
+          />
         </div>
-
-        {/* Hero KPI with goals inside */}
-        <div className="px-4">
-          <HeroKPI />
-        </div>
-
-        {/* Goals (mobile: separate card) */}
-        <div className="px-4">
-          <GoalsAndEarnings />
-        </div>
-
-        {/* Breakdowns */}
         <div className="px-4 space-y-4">
-          <HoursByDay />
-          <HoursByAdvisor />
+          <HoursByDay byDay={report.byDay} totalHours={report.totalHours} totalROs={report.totalROs} todayStr={todayStr} hideTotals={hideTotals} />
+          <HoursByAdvisor byAdvisor={report.byAdvisor} hideTotals={hideTotals} />
         </div>
-
-        {/* More detail */}
         <div className="px-4">
-          <MoreDetail />
+          <MoreDetail byLaborType={report.byLaborType} byLaborRef={report.byLaborRef} flaggedCount={report.flaggedCount} hideTotals={hideTotals} />
         </div>
-
-        {/* Export & History */}
         <div className="px-4 space-y-2">
-          <ExportBlock />
+          <ExportBlock
+            isDesktop={false}
+            isPro={isPro}
+            onCopySummary={handleCopySummary}
+            onExportCSV={handleExportCSV}
+            onShowProofPack={handleShowProofPack}
+            onOpenUpgrade={handleOpenExportUpgrade}
+          />
         </div>
-
         {isPro && (
-          <div className="pb-4">
-            <ClosedPeriodsList
-              closeouts={closeouts}
-              hideTotals={hideTotals}
-              onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
-              onViewDetail={(c) => setDetailCloseout(c)}
-            />
-          </div>
+          <div className="pb-4"><ClosedPeriodsList {...closedPeriodsProps} /></div>
         )}
       </div>
     </HideTotalsContext.Provider>
