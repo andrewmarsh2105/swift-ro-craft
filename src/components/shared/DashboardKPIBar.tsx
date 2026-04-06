@@ -1,49 +1,27 @@
 import { useMemo } from 'react';
-import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { computeDateRangeBounds } from '@/lib/dateRangeFilter';
-import { hasPaidDate } from '@/lib/paidDate';
-import { effectiveDate } from '@/lib/roDisplay';
 import { maskHours } from '@/lib/maskHours';
-import { getDefaultPeriodFilter } from '@/lib/payPeriodRange';
-import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { cn } from '@/lib/utils';
+import type { RepairOrder } from '@/types/ro';
 
 /**
  * Compact KPI strip for the dashboard showing period totals at a glance.
- * Designed to sit at the top of the desktop workspace or above the mobile RO list.
+ * Receives filteredROs from ROListPanel (via DesktopWorkspace) so it always
+ * stays in sync with what the list panel is showing.
  */
-export function DashboardKPIBar({ className }: { className?: string }) {
-  const { ros } = useRO();
+export function DashboardKPIBar({ className, filteredROs }: { className?: string; filteredROs: RepairOrder[] }) {
   const { userSettings } = useFlagContext();
   const hideTotals = userSettings.hideTotals ?? false;
 
-  const defaultFilter = getDefaultPeriodFilter(userSettings);
-  const { dateFilter } = useSharedDateRange('week', 'desktop-list', userSettings);
-
-  const bounds = useMemo(() => computeDateRangeBounds({
-    filter: dateFilter || defaultFilter,
-    weekStartDay: userSettings.weekStartDay ?? 0,
-    payPeriodType: userSettings.payPeriodType,
-    payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
-    hasCustomPayPeriod: !!(userSettings.payPeriodEndDates?.length),
-  }), [dateFilter, defaultFilter, userSettings.weekStartDay, userSettings.payPeriodType, userSettings.payPeriodEndDates]);
-
   const stats = useMemo(() => {
-    if (!bounds) return { totalHours: 0, totalROs: 0, warranty: 0, customerPay: 0, internal: 0 };
-    const startKey = new Date(`${bounds.start}T00:00:00`).getTime();
-    const endKey = new Date(`${bounds.end}T23:59:59`).getTime();
-
     let totalHours = 0;
     let warranty = 0;
     let customerPay = 0;
     let internal = 0;
     let totalROs = 0;
 
-    for (const ro of ros) {
-      if (!hasPaidDate(ro)) continue;
-      const effDate = new Date(`${effectiveDate(ro)}T12:00:00`).getTime();
-      if (effDate < startKey || effDate > endKey) continue;
+    for (const ro of filteredROs) {
+      if (!ro.paidDate) continue;
       totalROs++;
 
       if (ro.lines?.length) {
@@ -64,9 +42,7 @@ export function DashboardKPIBar({ className }: { className?: string }) {
     }
 
     return { totalHours, totalROs, warranty, customerPay, internal };
-  }, [ros, bounds]);
-
-  if (!bounds) return null;
+  }, [filteredROs]);
 
   return (
     <div className={cn(
@@ -96,10 +72,6 @@ export function DashboardKPIBar({ className }: { className?: string }) {
           <span className="tabular-nums data-mono">{maskHours(stats.internal, hideTotals)}</span>
         </span>
       </div>
-
-      <div className="h-3 w-px bg-border/50" />
-
-      <span className="text-muted-foreground/60 tabular-nums">{stats.totalROs} ROs</span>
     </div>
   );
 }

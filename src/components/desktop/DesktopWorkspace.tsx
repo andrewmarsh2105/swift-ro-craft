@@ -453,7 +453,7 @@ export function DesktopWorkspace() {
               isDragging && "select-none",
             )}
           >
-            <DashboardKPIBar />
+            <DashboardKPIBar filteredROs={filteredROs} />
             <div className={cn("flex-1 flex min-h-0 overflow-hidden p-2 gap-2")}>
             {/* Left Panel — Queue */}
             <div
