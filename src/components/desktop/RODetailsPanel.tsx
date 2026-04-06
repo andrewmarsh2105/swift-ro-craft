@@ -3,6 +3,14 @@ import { AlertTriangle, ChevronDown, ChevronUp, Copy, Flag, Pencil, Trash2, Chec
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/states/EmptyState";
 import { StatusPill } from "@/components/mobile/StatusPill";
 import { FlagBadge } from "@/components/flags/FlagBadge";
@@ -56,6 +64,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
   const [flagOpen, setFlagOpen] = useState(false);
   const [expandedLineIds, setExpandedLineIds] = useState<Record<string, boolean>>({});
   const [isTogglingPaid, setIsTogglingPaid] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     setExpandedLineIds({});
@@ -328,10 +337,10 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
             Flag
           </Button>
           <Button
-            variant="ghost"
+            variant="destructive"
             size="sm"
-            className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            onClick={onDelete}
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setShowDeleteConfirm(true)}
           >
             <Trash2 className="h-3.5 w-3.5" />
             Delete
@@ -345,6 +354,35 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
         onSubmit={(flagType, note) => addFlag(ro.id, flagType, note)}
         title={`Flag RO #${ro.roNumber}`}
       />
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Delete RO #{ro.roNumber}?</DialogTitle>
+            <DialogDescription>
+              This cannot be undone. This will permanently delete the repair order and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-3 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => { setShowDeleteConfirm(false); onDelete(); }}
+              className="flex-1"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
