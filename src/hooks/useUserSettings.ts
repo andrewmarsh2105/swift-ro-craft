@@ -28,9 +28,8 @@ interface UserSettings {
   shopName: string;
 }
 
-type SaveStatus = 'success' | 'failed' | 'local_only';
 export interface SaveSettingResult {
-  status: SaveStatus;
+  status: 'success' | 'failed';
   message?: string;
 }
 
@@ -57,29 +56,6 @@ const defaults: UserSettings = {
   shopName: '',
 };
 
-const GOAL_LS_KEYS = {
-  hoursGoalDaily: 'ro-tracker-goal-daily',
-  hoursGoalWeekly: 'ro-tracker-goal-weekly',
-  hourlyRate: 'ro-tracker-hourly-rate',
-} as const;
-
-type GoalKey = keyof typeof GOAL_LS_KEYS;
-const PROFILE_LS_KEYS = {
-  displayName: 'ro-tracker-display-name',
-  shopName: 'ro-tracker-shop-name',
-} as const;
-
-type ProfileKey = keyof typeof PROFILE_LS_KEYS;
-type FallbackKey = GoalKey | ProfileKey;
-
-const fallbackDbColumns: Record<FallbackKey, string> = {
-  hoursGoalDaily: 'hours_goal_daily',
-  hoursGoalWeekly: 'hours_goal_weekly',
-  hourlyRate: 'hourly_rate',
-  displayName: 'display_name',
-  shopName: 'shop_name',
-};
-
 const dbKeyMap: Record<keyof UserSettings, string> = {
   theme: 'theme',
   showScanConfidence: 'show_scan_confidence',
@@ -103,13 +79,6 @@ const dbKeyMap: Record<keyof UserSettings, string> = {
   shopName: 'shop_name',
 };
 
-function isMissingColumnError(error: { message?: string; details?: string; hint?: string; code?: string }) {
-  const errorText = [error.message, error.details, error.hint].filter(Boolean).join(' ');
-  return /column .* does not exist/i.test(errorText)
-    || /could not find the .* column/i.test(errorText)
-    || error.code === 'PGRST204';
-}
-
 export function useUserSettings() {
   const { user } = useAuth();
   const userId = user?.id;
@@ -117,23 +86,6 @@ export function useUserSettings() {
   const settingsRef = useRef<UserSettings>(defaults);
   settingsRef.current = settings;
   const [loaded, setLoaded] = useState(false);
-
-  const getLocalGoal = useCallback((key: GoalKey): number => {
-    const raw = localStorage.getItem(GOAL_LS_KEYS[key]);
-    return raw !== null ? parseFloat(raw) || 0 : 0;
-  }, []);
-
-  const persistLocalGoal = useCallback((key: GoalKey, value: number) => {
-    localStorage.setItem(GOAL_LS_KEYS[key], String(value));
-  }, []);
-
-  const persistProfileSettingLocally = useCallback((key: ProfileKey, value: string) => {
-    localStorage.setItem(PROFILE_LS_KEYS[key], value);
-  }, []);
-
-  const getLocalProfileSetting = useCallback((key: ProfileKey) => {
-    return localStorage.getItem(PROFILE_LS_KEYS[key]) || '';
-  }, []);
 
   const fetchSettings = useCallback(async () => {
     const { data } = await supabase
@@ -143,14 +95,6 @@ export function useUserSettings() {
       .maybeSingle();
 
     if (!data) {
-      setSettings(prev => ({
-        ...prev,
-        displayName: getLocalProfileSetting('displayName'),
-        shopName: getLocalProfileSetting('shopName'),
-        hoursGoalDaily: getLocalGoal('hoursGoalDaily'),
-        hoursGoalWeekly: getLocalGoal('hoursGoalWeekly'),
-        hourlyRate: getLocalGoal('hourlyRate'),
-      }));
       setLoaded(true);
       return;
     }
@@ -172,14 +116,14 @@ export function useUserSettings() {
       spreadsheetViewMode: (row.spreadsheet_view_mode as string | undefined) || 'payroll',
       spreadsheetDensity: (row.spreadsheet_density as string | undefined) || 'comfortable',
       spreadsheetGroupBy: (row.spreadsheet_group_by as string | undefined) || 'date',
-      hoursGoalDaily: (row.hours_goal_daily as number | null | undefined) ?? getLocalGoal('hoursGoalDaily'),
-      hoursGoalWeekly: (row.hours_goal_weekly as number | null | undefined) ?? getLocalGoal('hoursGoalWeekly'),
-      hourlyRate: (row.hourly_rate as number | null | undefined) ?? getLocalGoal('hourlyRate'),
-      displayName: (row.display_name as string | null | undefined) ?? getLocalProfileSetting('displayName'),
-      shopName: (row.shop_name as string | null | undefined) ?? getLocalProfileSetting('shopName'),
+      hoursGoalDaily: (row.hours_goal_daily as number | null | undefined) ?? 0,
+      hoursGoalWeekly: (row.hours_goal_weekly as number | null | undefined) ?? 0,
+      hourlyRate: (row.hourly_rate as number | null | undefined) ?? 0,
+      displayName: (row.display_name as string | null | undefined) ?? '',
+      shopName: (row.shop_name as string | null | undefined) ?? '',
     });
     setLoaded(true);
-  }, [getLocalGoal, getLocalProfileSetting, userId]);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -196,51 +140,21 @@ export function useUserSettings() {
       return { status: 'failed', message: 'No authenticated user.' };
     }
 
-    const previousValue = settingsRef.current[key];
-    if (Object.is(previousValue, value)) {
+    if (Object.is(settingsRef.current[key], value)) {
       return { status: 'success' };
     }
 
-    if (key in GOAL_LS_KEYS) {
-      persistLocalGoal(key as GoalKey, Number(value) || 0);
-    }
-    if (key in PROFILE_LS_KEYS) {
-      persistProfileSettingLocally(key as ProfileKey, String(value ?? ''));
-    }
-
-    const dbKey = dbKeyMap[key];
     const { error } = await supabase
       .from('user_settings')
-      .upsert({
-        user_id: userId,
-        [dbKey]: value,
-      }, { onConflict: 'user_id' });
+      .upsert({ user_id: userId, [dbKeyMap[key]]: value }, { onConflict: 'user_id' });
 
     if (error) {
-      const fallbackKeys = Object.keys(fallbackDbColumns) as FallbackKey[];
-      const fallbackKey = fallbackKeys.find(k => fallbackDbColumns[k] === dbKey);
-
-      if (fallbackKey && isMissingColumnError(error)) {
-        setSettings(prev => ({ ...prev, [key]: value }));
-        return {
-          status: 'local_only',
-          message: 'Saved on this device. Cloud sync for this setting is not available yet.',
-        };
-      }
-
-      if (key in GOAL_LS_KEYS) {
-        persistLocalGoal(key as GoalKey, Number(previousValue) || 0);
-      }
-      if (key in PROFILE_LS_KEYS) {
-        persistProfileSettingLocally(key as ProfileKey, String(previousValue ?? ''));
-      }
-
       return { status: 'failed', message: 'Failed to save setting. Please try again.' };
     }
 
     setSettings(prev => ({ ...prev, [key]: value }));
     return { status: 'success' };
-  }, [persistLocalGoal, persistProfileSettingLocally, userId]);
+  }, [userId]);
 
   return { settings, loaded, updateSetting };
 }
