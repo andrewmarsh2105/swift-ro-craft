@@ -109,7 +109,7 @@ export function exportReconciliationPDF(input: ReconciliationReportInput): void 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(185, 28, 28);  // red-700
     const discLabel = rows.length === 1 ? '1 Discrepancy Found' : `${rows.length} Discrepancies Found`;
-    doc.text(`⚠  ${discLabel}`, margin + 6, y + 9);
+    doc.text(`! ${discLabel}`, margin + 6, y + 9);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(220, 38, 38);

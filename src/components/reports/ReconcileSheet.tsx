@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import {
   FileText, Upload, Loader2, CheckCircle2, AlertTriangle,
-  Printer, ChevronDown, ChevronUp, X,
+  Printer, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
@@ -13,11 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
-import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useCloseouts } from '@/hooks/useCloseouts';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
-import { formatMediumDate, formatDateRange } from '@/lib/dateFormatters';
+import { formatDateRange } from '@/lib/dateFormatters';
 import { exportReconciliationPDF, type ReconciliationRow } from '@/lib/reconciliationPDF';
 import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
 
@@ -175,7 +174,8 @@ export function ReconcileSheet({ open, onClose }: ReconcileSheetProps) {
   // ── Field helpers ──────────────────────────────────────────────────────────
   function setField(key: keyof PayStubFields, val: string) {
     setFields(prev => ({ ...prev, [key]: val }));
-    setDiscrepancies(null);  // reset results on edit
+    setDiscrepancies(null);
+    setLowConfidenceWarning(false);
   }
 
   function resetAll() {
