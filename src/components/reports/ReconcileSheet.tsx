@@ -109,20 +109,8 @@ function computeDiscrepancies(
   const estimatedPay = hourlyRate > 0 ? navTotals.totalHours * hourlyRate : 0;
   if (estimatedPay > 0) {
     check('Estimated Gross Pay', estimatedPay, fields.grossPay, 'money');
-  } else if (fields.grossPay) {
-    // Still check gross pay even without hourly rate (can't compare, but show entered value)
-    const stubPay = parseNum(fields.grossPay);
-    if (stubPay !== null) {
-      items.push({
-        label: 'Gross Pay',
-        navigatorRaw: 0,
-        payStubRaw: stubPay,
-        diff: stubPay,
-        isShortfall: false,
-        unit: 'money',
-      });
-    }
   }
+  // If hourlyRate is 0, gross pay comparison is not possible — skip silently
 
   check('Warranty Hours', navTotals.warrantyHours, fields.warrantyHours, 'hours');
   check('Customer-Pay Hours', navTotals.cpHours, fields.customerPayHours, 'hours');
@@ -159,6 +147,7 @@ export function ReconcileSheet({ open, onClose }: ReconcileSheetProps) {
   // Results
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[] | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [lowConfidenceWarning, setLowConfidenceWarning] = useState(false);
 
   // Determine active period
   const selectedCloseout: CloseoutSnapshot | null =
@@ -194,6 +183,7 @@ export function ReconcileSheet({ open, onClose }: ReconcileSheetProps) {
     setDiscrepancies(null);
     setUploadConfidence({});
     setShowDetails(false);
+    setLowConfidenceWarning(false);
   }
 
   // ── Upload handler ────────────────────────────────────────────────────────
@@ -260,7 +250,22 @@ export function ReconcileSheet({ open, onClose }: ReconcileSheetProps) {
       toast.error('Select a pay period first');
       return;
     }
-    const disc = computeDiscrepancies(navTotals, userSettings.hourlyRate ?? 0, fields);
+
+    // Warn if gross pay entered but no hourly rate configured
+    const hourlyRate = userSettings.hourlyRate ?? 0;
+    if (fields.grossPay.trim() !== '' && hourlyRate === 0) {
+      toast.info('Gross pay comparison skipped — set your hourly rate in settings to enable it.');
+    }
+
+    // Check for low-confidence OCR fields that are populated
+    const LOW_CONFIDENCE_THRESHOLD = 0.5;
+    const hasLowConf = inputMode === 'upload' && (Object.keys(fields) as Array<keyof PayStubFields>).some(key => {
+      const conf = uploadConfidence[key];
+      return fields[key].trim() !== '' && conf != null && conf < LOW_CONFIDENCE_THRESHOLD;
+    });
+    setLowConfidenceWarning(hasLowConf);
+
+    const disc = computeDiscrepancies(navTotals, hourlyRate, fields);
     setDiscrepancies(disc);
     setShowDetails(true);
   }
@@ -525,6 +530,14 @@ export function ReconcileSheet({ open, onClose }: ReconcileSheetProps) {
 
           {showDetails && (
             <>
+              {lowConfidenceWarning && (
+                <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-3 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 dark:text-amber-300">
+                    One or more scanned values had low OCR confidence. Review the highlighted fields above before relying on these results.
+                  </p>
+                </div>
+              )}
               {discrepancies!.length === 0 ? (
                 <div className="flex items-center gap-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl px-4 py-4">
                   <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />

@@ -12,7 +12,7 @@ export interface ReconciliationRow {
   navigatorValue: string;   // formatted display string (e.g. "42.5 hrs")
   payStubValue: string;
   difference: string;       // e.g. "-2.5 hrs" or "-$120.00"
-  isShortfall: boolean;     // navigator < payStub (paid less than expected)
+  isShortfall: boolean;     // payStub < navigator (paid less than tracked)
 }
 
 export interface ReconciliationReportInput {
