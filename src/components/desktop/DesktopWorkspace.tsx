@@ -10,10 +10,13 @@ import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
 import { HeaderLogo } from "@/components/brand";
+import { ScorecardSheet } from "@/components/stats/ScorecardSheet";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
 import { useRO } from "@/contexts/ROContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useFlagContext } from "@/contexts/FlagContext";
+import { useGoalNotifications } from "@/hooks/useGoalNotifications";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
 import { useSplitterWidth } from "@/hooks/useSplitterWidth";
 import { toast } from "sonner";
@@ -165,7 +168,14 @@ function SplitHandle({
 export function DesktopWorkspace() {
   const { ros, deleteRO } = useRO();
   const { isPro } = useSubscription();
+  const { userSettings } = useFlagContext();
   const splitter = useSplitterWidth();
+
+  // Mount goal notifications (runs check on app open + every 30 min)
+  useGoalNotifications();
+
+  const [showScorecard, setShowScorecard] = useState(false);
+  const avatarInitial = (userSettings.displayName || '').trim().charAt(0).toUpperCase() || '?';
 
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
@@ -354,6 +364,15 @@ export function DesktopWorkspace() {
               Pro
             </button>
           )}
+
+          <button
+            onClick={() => setShowScorecard(true)}
+            className="ml-1 h-7 w-7 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-[11px] font-bold select-none hover:opacity-80 quiet-transition"
+            aria-label="Tech profile & stats"
+            title="Tech Profile & Stats"
+          >
+            {avatarInitial}
+          </button>
         </div>
       </div>
 
@@ -549,6 +568,8 @@ export function DesktopWorkspace() {
         onOpenChange={setShowUpgradeDialog}
         trigger="spreadsheet"
       />
+
+      <ScorecardSheet isOpen={showScorecard} onClose={() => setShowScorecard(false)} />
     </div>
   );
 }

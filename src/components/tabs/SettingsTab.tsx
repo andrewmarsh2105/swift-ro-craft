@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Plus, Trash2, ChevronDown, ChevronUp, Crown, ChevronRight, Star, Mail, Check, Loader2, User, Building2, DollarSign, Target, Shield, LogOut } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Crown, ChevronRight, Star, Mail, Check, Loader2, User, Building2, DollarSign, Target, Shield, LogOut, Bell } from 'lucide-react';
+import { useGoalNotifications } from '@/hooks/useGoalNotifications';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useRO } from '@/contexts/ROContext';
@@ -60,6 +61,7 @@ export function SettingsTab() {
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
   const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, hasBillingIssue, openPortal } = useSubscription();
+  const { permissionState: notifPermission, notificationsEnabled, toggleNotifications } = useGoalNotifications();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
@@ -692,6 +694,33 @@ export function SettingsTab() {
                       </div>
                     </div>
 
+                    {/* Goal reminders */}
+                    {notifPermission !== 'unsupported' && (
+                      <div className="space-y-1">
+                        <div className="px-0.5 flex items-baseline gap-2">
+                          <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Reminders</h3>
+                        </div>
+                        <div
+                          className="bg-card border border-border/40 overflow-hidden"
+                          style={{ borderRadius: 'var(--radius)' }}
+                        >
+                          <SettingsRow
+                            label="Goal reminders"
+                            description={
+                              notifPermission === 'denied'
+                                ? 'Notifications are blocked — enable them in browser settings.'
+                                : 'Get notified when you\'re behind on hours or a period closes.'
+                            }
+                            toggle
+                            toggleValue={notificationsEnabled}
+                            onToggle={toggleNotifications}
+                            disabled={notifPermission === 'denied'}
+                            icon={<Bell className="h-4 w-4" />}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <PayPeriodRangeSection
                       userSettings={userSettings}
                       updateUserSetting={updateUserSetting}
@@ -968,6 +997,31 @@ export function SettingsTab() {
               </div>
               </div>
             </div>
+
+            {/* Goal reminders */}
+            {notifPermission !== 'unsupported' && (
+              <div className="space-y-1">
+                <div className="px-0.5 flex items-center gap-2">
+                  <Bell className="h-3.5 w-3.5 text-primary/80" />
+                  <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Reminders</h3>
+                </div>
+                <div className="bg-card border border-border/50 rounded-[var(--radius)] overflow-hidden">
+                  <SettingsRow
+                    label="Goal reminders"
+                    description={
+                      notifPermission === 'denied'
+                        ? 'Notifications are blocked — enable them in browser settings.'
+                        : 'Get notified when you\'re behind on hours or a period closes.'
+                    }
+                    toggle
+                    toggleValue={notificationsEnabled}
+                    onToggle={toggleNotifications}
+                    disabled={notifPermission === 'denied'}
+                    icon={<Bell className="h-4 w-4" />}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Pay Period */}
             <PayPeriodRangeSection
