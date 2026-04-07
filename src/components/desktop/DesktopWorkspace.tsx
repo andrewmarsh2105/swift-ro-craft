@@ -171,7 +171,6 @@ export function DesktopWorkspace() {
   const { userSettings } = useFlagContext();
   const splitter = useSplitterWidth();
 
-  // Mount goal notifications (runs check on app open + every 30 min)
   useGoalNotifications();
 
   const [showScorecard, setShowScorecard] = useState(false);

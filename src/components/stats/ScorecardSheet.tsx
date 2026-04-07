@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useScorecard } from '@/hooks/useScorecard';
+import { useScorecard, formatScorecardDate } from '@/hooks/useScorecard';
 
 interface ScorecardSheetProps {
   isOpen: boolean;
@@ -18,18 +18,6 @@ function formatMoney(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
   return `$${Math.round(n).toLocaleString()}`;
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
 }
 
 /* ── Stat tile ─────────────────────────────────────── */
@@ -133,6 +121,7 @@ function LaborMixBar({
 
 export function ScorecardSheet({ isOpen, onClose }: ScorecardSheetProps) {
   const data = useScorecard();
+  const topAdvisorMaxHours = data.topAdvisors[0]?.hours || 1;
 
   const handleCopyStats = () => {
     const lines: string[] = ['── RO Navigator Tech Profile ──'];
@@ -150,7 +139,7 @@ export function ScorecardSheet({ isOpen, onClose }: ScorecardSheetProps) {
 
     if (data.bestDayHours > 0) {
       lines.push('');
-      lines.push(`Best Day: ${formatHours(data.bestDayHours)} hrs (${formatDate(data.bestDayDate)})`);
+      lines.push(`Best Day: ${formatHours(data.bestDayHours)} hrs (${formatScorecardDate(data.bestDayDate)})`);
     }
     if (data.bestWeekHours > 0) {
       lines.push(`Best Period: ${formatHours(data.bestWeekHours)} hrs (${data.bestWeekLabel})`);
@@ -249,7 +238,7 @@ export function ScorecardSheet({ isOpen, onClose }: ScorecardSheetProps) {
                 <StatTile
                   label="Best Day"
                   value={`${formatHours(data.bestDayHours)} hrs`}
-                  sub={formatDate(data.bestDayDate)}
+                  sub={formatScorecardDate(data.bestDayDate)}
                 />
               )}
               {data.bestWeekHours > 0 && (
@@ -322,11 +311,9 @@ export function ScorecardSheet({ isOpen, onClose }: ScorecardSheetProps) {
               style={{ borderRadius: 'var(--radius)' }}
             >
               {data.topAdvisors.map((advisor, i) => {
-                const maxHours = data.topAdvisors[0]?.hours || 1;
-                const barPct = (advisor.hours / maxHours) * 100;
+                const barPct = (advisor.hours / topAdvisorMaxHours) * 100;
                 return (
                   <div key={advisor.name} className="px-4 py-2.5 relative overflow-hidden">
-                    {/* Subtle background bar */}
                     <div
                       className="absolute inset-y-0 left-0 bg-primary/5 pointer-events-none"
                       style={{ width: `${barPct}%` }}

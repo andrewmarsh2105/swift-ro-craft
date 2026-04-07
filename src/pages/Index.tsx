@@ -53,7 +53,6 @@ function MobileApp() {
     "cards",
   );
 
-  // Mount goal notifications (runs check on app open + every 30 min)
   useGoalNotifications();
 
   const { userSettings } = useFlagContext();
