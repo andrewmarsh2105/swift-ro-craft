@@ -12,8 +12,11 @@ import { ROsTab } from "@/components/tabs/ROsTab";
 import { DesktopWorkspace } from "@/components/desktop/DesktopWorkspace";
 import { PanelErrorBoundary } from "@/components/states/PanelErrorBoundary";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { ScorecardSheet } from "@/components/stats/ScorecardSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
+import { useGoalNotifications } from "@/hooks/useGoalNotifications";
+import { useFlagContext } from "@/contexts/FlagContext";
 import type { RepairOrder } from "@/types/ro";
 
 const SummaryTab = lazy(() =>
@@ -39,6 +42,7 @@ function TabFallback() {
 function MobileApp() {
   const navigate = useNavigate();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showScorecard, setShowScorecard] = useState(false);
 
   const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "settings">(
     "ui.mobile.activeTab.v1",
@@ -48,6 +52,11 @@ function MobileApp() {
     "ui.mobile.roViewMode.v1",
     "cards",
   );
+
+  useGoalNotifications();
+
+  const { userSettings } = useFlagContext();
+  const avatarInitial = (userSettings.displayName || '').trim().charAt(0).toUpperCase() || '?';
 
   const handleEditRO = (ro: RepairOrder) => {
     navigate("/add-ro", { state: { editingROId: ro.id } });
@@ -68,8 +77,15 @@ function MobileApp() {
       <TrialCountdownBanner />
       <OfflineStatusBar />
       {/* Branded mobile app header */}
-      <header className="flex-shrink-0 flex items-center px-4 h-16 border-b border-border/50 bg-background">
+      <header className="flex-shrink-0 flex items-center justify-between px-4 h-16 border-b border-border/50 bg-background">
         <HeaderLogo height={52} />
+        <button
+          onClick={() => setShowScorecard(true)}
+          className="h-9 w-9 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-sm font-bold select-none tap-target active:opacity-80 transition-opacity"
+          aria-label="Tech profile & stats"
+        >
+          {avatarInitial}
+        </button>
       </header>
       <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(var(--tab-bar-height) + var(--safe-area-inset-bottom))' }}>
         {activeTab === "ros" && (
@@ -108,6 +124,8 @@ function MobileApp() {
         onClose={() => setShowQuickAdd(false)}
         onScanPhoto={handleScanPhoto}
       />
+
+      <ScorecardSheet isOpen={showScorecard} onClose={() => setShowScorecard(false)} />
 
       {!showQuickAdd && <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
     </div>

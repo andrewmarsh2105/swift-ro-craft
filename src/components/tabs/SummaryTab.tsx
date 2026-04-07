@@ -34,6 +34,7 @@ import { getDayRange } from '@/lib/summaryDateRanges';
 import { computeDateRangeBounds, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { getDateFilterLabel, getDefaultPeriodFilter, getPeriodFilterLabels, normalizeDateFilterForPayPeriod } from '@/lib/payPeriodRange';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { ReconcileSheet } from '@/components/reports/ReconcileSheet';
 
 // ── Main SummaryTab ───────────────────────────────────────
 export function SummaryTab() {
@@ -87,6 +88,9 @@ export function SummaryTab() {
   const [compareEnd1, setCompareEnd1] = useState<Date | undefined>();
   const [compareStart2, setCompareStart2] = useState<Date | undefined>();
   const [compareEnd2, setCompareEnd2] = useState<Date | undefined>();
+
+  // Reconcile state
+  const [showReconcile, setShowReconcile] = useState(false);
 
   const today = new Date();
   const todayStr = localDateStr(today);
@@ -447,6 +451,24 @@ export function SummaryTab() {
                 </span>
               </button>
             )}
+            {isPro ? (
+              <button
+                onClick={() => setShowReconcile(true)}
+                className="flex-1 flex items-center justify-center h-10 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent"
+              >
+                Reconcile
+              </button>
+            ) : (
+              <button
+                onClick={() => openUpgrade('reconcile')}
+                className="flex-1 flex items-center justify-center gap-1.5 h-10 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent"
+              >
+                Reconcile
+                <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                  <Crown className="h-2.5 w-2.5" />PRO
+                </span>
+              </button>
+            )}
           </TabsList>
         </Tabs>
       </div>
@@ -537,6 +559,8 @@ export function SummaryTab() {
       )}
 
       <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} trigger={upgradeTrigger} />
+
+      <ReconcileSheet open={showReconcile} onClose={() => setShowReconcile(false)} />
     </div>
   );
 }
