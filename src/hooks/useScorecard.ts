@@ -3,7 +3,7 @@ import { useRO } from '@/contexts/ROContext';
 import { useCloseouts } from '@/hooks/useCloseouts';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { effectiveDate as effectiveDateOf, calcHours } from '@/lib/roDisplay';
-import { formatShortDate, parseDateStr, formatDateRange } from '@/lib/dateFormatters';
+import { formatMonthYear, formatDateRange } from '@/lib/dateFormatters';
 
 export interface ScorecardData {
   displayName: string;
@@ -88,12 +88,8 @@ export function useScorecard(): ScorecardData {
 
     let memberSince: string | null = null;
     if (earliestCreatedAt) {
-      try {
-        memberSince = new Date(earliestCreatedAt).toLocaleDateString('en-US', {
-          month: 'long',
-          year: 'numeric',
-        });
-      } catch { /* ignore */ }
+      try { memberSince = formatMonthYear(new Date(earliestCreatedAt)); }
+      catch { /* ignore */ }
     }
 
     const lifetimeEstimatedEarnings = hourlyRate > 0 ? lifetimeHours * hourlyRate : 0;
@@ -145,9 +141,4 @@ export function useScorecard(): ScorecardData {
   }, [ros, closeouts, userSettings]);
 }
 
-/** Format a YYYY-MM-DD string as "Jan 5" — convenience wrapper for display */
-export function formatScorecardDate(dateStr: string | null): string {
-  if (!dateStr) return '—';
-  try { return formatShortDate(parseDateStr(dateStr)); }
-  catch { return dateStr; }
-}
+export { formatScorecardDate } from '@/lib/dateFormatters';

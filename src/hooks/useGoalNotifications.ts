@@ -159,7 +159,6 @@ export function useGoalNotifications() {
     if (permission === 'granted') {
       localStorage.setItem(ENABLED_KEY, 'true');
       setNotificationsEnabled(true);
-      // interval useEffect will fire on next render and run checkAndNotify immediately
     } else {
       setPermissionState(permission);
     }

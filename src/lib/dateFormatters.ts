@@ -52,3 +52,15 @@ export function formatDateRange(startStr: string, endStr: string): string {
   if (startStr === endStr) return formatMediumDate(s);
   return `${formatShortDate(s)} – ${formatShortDate(e)}`;
 }
+
+/** "April 2025" — month + year for member-since displays */
+export function formatMonthYear(date: Date): string {
+  return date.toLocaleDateString(EN_US, { month: 'long', year: 'numeric' });
+}
+
+/** Format a nullable YYYY-MM-DD string as "Jan 5" — "—" if null */
+export function formatScorecardDate(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  try { return formatShortDate(parseDateStr(dateStr)); }
+  catch { return dateStr; }
+}
