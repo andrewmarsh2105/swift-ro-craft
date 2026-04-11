@@ -17,7 +17,6 @@ export type UpgradeTrigger =
   | 'export'
   | 'closeout'
   | 'compare'
-  | 'reconcile'
   | 'generic';
 
 export interface UpgradeContext {
@@ -62,11 +61,6 @@ export const UPGRADE_CONTEXT: Record<UpgradeTrigger, UpgradeContext> = {
   'compare': {
     headline: 'Compare two pay periods',
     pitch: 'See two periods side by side — catch patterns, flag discrepancies, and prove your hours.',
-    highlightFeature: 'Pay period closeouts & comparison',
-  },
-  'reconcile': {
-    headline: 'Reconcile your pay stub',
-    pitch: "Upload your pay stub or enter the numbers — we'll compare against your RO Navigator records and show you exactly where you're being underpaid.",
     highlightFeature: 'Pay period closeouts & comparison',
   },
   'generic': {
