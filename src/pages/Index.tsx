@@ -12,7 +12,6 @@ import { ROsTab } from "@/components/tabs/ROsTab";
 import { DesktopWorkspace } from "@/components/desktop/DesktopWorkspace";
 import { PanelErrorBoundary } from "@/components/states/PanelErrorBoundary";
 import { OnboardingModal } from "@/components/OnboardingModal";
-import { ScorecardSheet } from "@/components/stats/ScorecardSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";
@@ -42,7 +41,6 @@ function TabFallback() {
 function MobileApp() {
   const navigate = useNavigate();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [showScorecard, setShowScorecard] = useState(false);
 
   const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "settings">(
     "ui.mobile.activeTab.v1",
@@ -72,6 +70,11 @@ function MobileApp() {
     navigate('/add-ro', { state: { openScan: true } });
   };
 
+  const handleOpenProfile = () => {
+    localStorage.setItem('ui.settings.openAccountSheet.v1', String(Date.now()));
+    setActiveTab('settings');
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <TrialCountdownBanner />
@@ -80,9 +83,9 @@ function MobileApp() {
       <header className="flex-shrink-0 flex items-center justify-between px-4 h-16 border-b border-border/50 bg-background">
         <HeaderLogo height={52} />
         <button
-          onClick={() => setShowScorecard(true)}
+          onClick={handleOpenProfile}
           className="h-9 w-9 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-sm font-bold select-none tap-target active:opacity-80 transition-opacity"
-          aria-label="Tech profile & stats"
+          aria-label="Open profile settings"
         >
           {avatarInitial}
         </button>
@@ -124,8 +127,6 @@ function MobileApp() {
         onClose={() => setShowQuickAdd(false)}
         onScanPhoto={handleScanPhoto}
       />
-
-      <ScorecardSheet isOpen={showScorecard} onClose={() => setShowScorecard(false)} />
 
       {!showQuickAdd && <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
     </div>

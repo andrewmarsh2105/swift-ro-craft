@@ -133,6 +133,14 @@ export function SettingsTab() {
     };
   }, []);
 
+  useEffect(() => {
+    const trigger = localStorage.getItem('ui.settings.openAccountSheet.v1');
+    if (!trigger) return;
+    localStorage.removeItem('ui.settings.openAccountSheet.v1');
+    setSettingsView('settings');
+    setShowAccountSheet(true);
+  }, [setSettingsView]);
+
   // Preset form state
   const [presetName, setPresetName] = useState('');
   const [presetLaborType, setPresetLaborType] = useState<LaborType>('customer-pay');
@@ -298,11 +306,6 @@ export function SettingsTab() {
     } else {
       setGoalSaveStatus('error');
     }
-  };
-
-  const handleAccountSettingSave = async (key: 'displayName' | 'shopName', value: string) => {
-    const result = await updateSetting(key, value);
-    return result;
   };
 
   // Desktop inline save for name/shop
@@ -485,6 +488,15 @@ export function SettingsTab() {
               <div className="space-y-5">
                 {/* ═══ Account & Identity — top hero section ═══ */}
                 <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowAccountSheet(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setShowAccountSheet(true);
+                    }
+                  }}
                   className="bg-card border border-border/50 overflow-hidden shadow-sm"
                   style={{ borderRadius: 'var(--radius)' }}
                 >
@@ -507,7 +519,8 @@ export function SettingsTab() {
                         {isPro ? 'PRO' : 'FREE'}
                       </span>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (isPro) openPortal();
                           else setShowUpgradeDialog(true);
                         }}
@@ -560,14 +573,20 @@ export function SettingsTab() {
                   <div className="border-t border-border/30 px-4 py-2 flex items-center gap-3">
                     {isAdmin && (
                       <button
-                        onClick={() => navigate('/admin')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/admin');
+                        }}
                         className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5"
                       >
                         <Shield className="h-3 w-3" /> Admin
                       </button>
                     )}
                     <button
-                      onClick={signOut}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        signOut();
+                      }}
                       className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1.5 ml-auto"
                     >
                       <LogOut className="h-3 w-3" /> Sign Out
@@ -800,6 +819,22 @@ export function SettingsTab() {
         />
 
         <ProUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
+
+        <AccountSheet
+          isOpen={showAccountSheet}
+          onClose={() => setShowAccountSheet(false)}
+          avatarInitial={avatarInitial}
+          email={user?.email}
+          isPro={isPro}
+          subscriptionEnd={subscriptionEnd}
+          daysUntilEnd={daysUntilEnd}
+          isNearExpiry={isNearExpiry}
+          hasBillingIssue={hasBillingIssue}
+          isAdmin={isAdmin}
+          openPortal={openPortal}
+          setShowUpgradeDialog={setShowUpgradeDialog}
+          signOut={signOut}
+        />
       </div>
     );
   }
@@ -1101,8 +1136,6 @@ export function SettingsTab() {
         isOpen={showAccountSheet}
         onClose={() => setShowAccountSheet(false)}
         avatarInitial={avatarInitial}
-        displayName={syncedSettings.displayName}
-        shopName={syncedSettings.shopName}
         email={user?.email}
         isPro={isPro}
         subscriptionEnd={subscriptionEnd}
@@ -1110,7 +1143,6 @@ export function SettingsTab() {
         isNearExpiry={isNearExpiry}
         hasBillingIssue={hasBillingIssue}
         isAdmin={isAdmin}
-        updateSetting={handleAccountSettingSave}
         openPortal={openPortal}
         setShowUpgradeDialog={setShowUpgradeDialog}
         signOut={signOut}
@@ -1118,4 +1150,3 @@ export function SettingsTab() {
     </div>
   );
 }
-
