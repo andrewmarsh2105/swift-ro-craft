@@ -12,6 +12,7 @@ import {
   type QueuedActionType,
   type SyncConflict,
 } from '@/lib/offlineQueue';
+import type { FlagType } from '@/types/flags';
 import { toRosInsert, toRoLineInserts, toRoLinesJsonb, toRosUpdate } from '@/features/ro/data/roMapper';
 
 const MAX_RETRIES = 3;
@@ -100,7 +101,7 @@ export function useOfflineSync() {
             );
             const { error: rpcErr } = await supabase.rpc('replace_ro_lines', {
               _ro_id: id,
-              _lines: linesJsonb as any,
+              _lines: linesJsonb as unknown as Record<string, unknown>[],
             });
             if (rpcErr) throw rpcErr;
           }
@@ -117,7 +118,7 @@ export function useOfflineSync() {
             user_id: user.id,
             ro_id: roId,
             ro_line_id: roLineId || null,
-            flag_type: flagType as any,
+            flag_type: flagType as FlagType,
             note: note || null,
           });
           if (error) throw error;
@@ -167,8 +168,8 @@ export function useOfflineSync() {
           console.warn('Unknown queued action type:', action.type);
           return { success: true }; // dequeue unknown actions
       }
-    } catch (err: any) {
-      const message = err?.message || 'Unknown sync error';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown sync error';
       console.error(`Sync failed for ${action.type}:`, message);
       return { success: false, error: message };
     }
@@ -241,7 +242,7 @@ export function useOfflineSync() {
   }, [refreshPendingCount, refreshConflicts]);
 
   // Queue an action (used when offline)
-  const queueAction = useCallback(async (type: QueuedActionType, payload: any) => {
+  const queueAction = useCallback(async (type: QueuedActionType, payload: Record<string, unknown>) => {
     try {
       await enqueue({ type, payload });
       await refreshPendingCount();

@@ -40,11 +40,20 @@ function fmtDate(d?: string | null): string {
 }
 
 const BOLD = { fontStyle: 'bold' as const };
-const SUBTOTAL_STYLE = { fontStyle: 'bold' as const, fillColor: [245, 245, 245] as any };
-const DAY_STYLE = { fontStyle: 'bold' as const, fillColor: [235, 240, 250] as any };
-const PERIOD_STYLE = { fontStyle: 'bold' as const, fillColor: [230, 240, 255] as any };
+const SUBTOTAL_FILL = [245, 245, 245] as const;
+const DAY_FILL = [235, 240, 250] as const;
+const PERIOD_FILL = [230, 240, 255] as const;
+const SUBTOTAL_STYLE = { fontStyle: 'bold' as const, fillColor: [...SUBTOTAL_FILL] };
+const DAY_STYLE = { fontStyle: 'bold' as const, fillColor: [...DAY_FILL] };
+const PERIOD_STYLE = { fontStyle: 'bold' as const, fillColor: [...PERIOD_FILL] };
 
-function applyTypeColors(data: any, typeColIdx: number) {
+type AutoTableCellHookData = {
+  section: string;
+  column: { index: number };
+  cell: { raw: unknown; styles: Record<string, unknown> };
+};
+
+function applyTypeColors(data: AutoTableCellHookData, typeColIdx: number) {
   if (data.section === 'body' && data.column.index === typeColIdx) {
     const val = typeof data.cell.raw === 'string' ? data.cell.raw : '';
     if (val === 'W' || val.startsWith('W:')) data.cell.styles.textColor = [37, 99, 235];
@@ -71,7 +80,7 @@ export function exportPDFFromRows(
   doc.text(`Generated ${format(new Date(), 'MMM d, yyyy h:mm a')}`, 14, 21);
   doc.setTextColor(0);
 
-  const body: (string | { content: string; styles: Record<string, any> })[][] = [];
+  const body: (string | { content: string; styles: Record<string, unknown> })[][] = [];
 
   for (const row of rows) {
     if (row.rowType === 'line') {

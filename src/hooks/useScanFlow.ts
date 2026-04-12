@@ -65,7 +65,7 @@ export function useScanFlow() {
   const pageTemplateIdRef = useRef<string | null>(null);
   const lastRunContextRef = useRef<{
     roId?: string;
-    templateFieldMap?: Record<string, any>;
+    templateFieldMap?: Record<string, string>;
     presets?: Preset[];
     keywordAutofill?: boolean;
     templateId?: string | null;
@@ -108,7 +108,7 @@ export function useScanFlow() {
     file: File,
     currentScanId: string,
     roId?: string,
-    templateFieldMap?: Record<string, any>,
+    templateFieldMap?: Record<string, string>,
     presets?: Preset[],
     keywordAutofill?: boolean,
     templateId?: string | null,
@@ -204,14 +204,14 @@ export function useScanFlow() {
       const ocrResult = rawBody;
 
       const rawLines = Array.isArray(ocrResult?.lines) ? ocrResult.lines : [];
-      let extractedLines: ExtractedLine[] = rawLines.map((line: any) => {
+      let extractedLines: ExtractedLine[] = rawLines.map((line: Record<string, unknown>) => {
         const rawDesc = typeof line?.description === 'string' ? line.description : String(line?.description ?? '');
         const description = rawDesc.trim().slice(0, MAX_LINE_DESCRIPTION_LENGTH);
         const numericHours = Number(line?.hours);
         const safeHours = Number.isFinite(numericHours)
           ? Math.max(0, Math.min(numericHours, MAX_HOURS_PER_LINE))
           : 0;
-        const lineLaborType = VALID_LABOR_TYPES.includes(line?.laborType) ? line.laborType : 'customer-pay';
+        const lineLaborType = VALID_LABOR_TYPES.includes(line?.laborType as string) ? (line.laborType as string) : 'customer-pay';
         const numericConfidence = Number(line?.confidence);
         const safeConfidence = Number.isFinite(numericConfidence)
           ? Math.max(0, Math.min(numericConfidence, 1))
@@ -231,9 +231,9 @@ export function useScanFlow() {
 
       const candidateDates = Array.isArray(ocrResult.candidateDates)
         ? ocrResult.candidateDates
-            .map((c: any) => ({
+            .map((c: Record<string, unknown>) => ({
               value: typeof c?.value === 'string' ? c.value : '',
-              source: c?.source === 'header' ? 'header' : 'text',
+              source: c?.source === 'header' ? 'header' as const : 'text' as const,
               originalFormat: typeof c?.originalFormat === 'string' ? c.originalFormat : (typeof c?.value === 'string' ? c.value : ''),
             }))
             .filter(c => /^\d{4}-\d{2}-\d{2}$/.test(c.value))
@@ -334,12 +334,12 @@ export function useScanFlow() {
           // non-critical cleanup error, ignore
         }
       })();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (scanIdRef.current !== currentScanId) return;
-      const isTimeout = err?.name === 'AbortError';
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
       const errorMsg = isTimeout
         ? 'Scan timed out. Please check your connection and try again.'
-        : (err?.message || 'Unknown error');
+        : (err instanceof Error ? err.message : 'Unknown error');
       updateDebug({ lastError: errorMsg });
       setSession(prev => {
         if (prev.pages.length > 0) {
@@ -368,7 +368,7 @@ export function useScanFlow() {
   const startScanForFile = useCallback((
     file: File,
     roId?: string,
-    templateFieldMap?: Record<string, any>,
+    templateFieldMap?: Record<string, string>,
     presets?: Preset[],
     keywordAutofill?: boolean,
     templateId?: string | null,
@@ -384,7 +384,7 @@ export function useScanFlow() {
   const handleFileSelected = useCallback((
     file: File,
     roId?: string,
-    templateFieldMap?: Record<string, any>,
+    templateFieldMap?: Record<string, string>,
     presets?: Preset[],
     keywordAutofill?: boolean,
     templateId?: string | null,
@@ -399,7 +399,7 @@ export function useScanFlow() {
   const handleAddPage = useCallback((
     file: File,
     roId?: string,
-    templateFieldMap?: Record<string, any>,
+    templateFieldMap?: Record<string, string>,
     presets?: Preset[],
     keywordAutofill?: boolean,
     templateId?: string | null,
@@ -457,9 +457,9 @@ export function useScanFlow() {
       for (const conflict of prev.pendingHeaderConflicts) {
         const res = resolutions[conflict.field] ?? 'keep';
         if (res === 'replace') {
-          (overrides as any)[conflict.field] = conflict.newValue;
+          overrides[conflict.field] = conflict.newValue;
         } else if (existing) {
-          (overrides as any)[conflict.field] = (existing as any)[conflict.field];
+          overrides[conflict.field] = existing[conflict.field];
         }
       }
 
