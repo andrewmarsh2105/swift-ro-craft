@@ -601,8 +601,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         </div>
 
         {/* Search/filter/date controls */}
-        <div className="px-3 pb-2 space-y-1.5">
-          <div className="flex items-center gap-2">
+        <div className="px-3 pb-1.5 space-y-1.5">
+          <div className="flex items-center gap-1.5">
           {/* Monthly cap indicator — compact, left of search */}
             {!isPro && !loadingROs && (
               <button
