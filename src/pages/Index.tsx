@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 
@@ -9,7 +9,11 @@ import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
 import { ROsTab } from "@/components/tabs/ROsTab";
-import { DesktopWorkspace } from "@/components/desktop/DesktopWorkspace";
+import { lazy } from "react";
+
+const DesktopWorkspace = lazy(() =>
+  import("@/components/desktop/DesktopWorkspace").then((m) => ({ default: m.DesktopWorkspace })),
+);
 import { PanelErrorBoundary } from "@/components/states/PanelErrorBoundary";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -138,7 +142,11 @@ export default function Index() {
   return (
     <>
       <OnboardingModal />
-      {isMobile ? <MobileApp /> : <DesktopWorkspace />}
+      {isMobile ? <MobileApp /> : (
+        <Suspense fallback={<TabFallback />}>
+          <DesktopWorkspace />
+        </Suspense>
+      )}
     </>
   );
 }
