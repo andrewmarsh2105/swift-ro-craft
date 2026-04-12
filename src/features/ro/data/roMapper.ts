@@ -166,6 +166,36 @@ export function toRosUpdate(updates: Partial<RepairOrder>): RoUpdate {
   return payload;
 }
 
+/**
+ * Build a JSONB-compatible array for the `replace_ro_lines` RPC.
+ * Each element matches the column structure expected by the SQL function.
+ */
+export function toRoLinesJsonb(
+  lines: Array<{
+    description: string;
+    laborType?: LaborType;
+    hoursPaid: number;
+    matchedReferenceId?: string;
+    vehicleOverride?: boolean;
+    lineVehicle?: VehicleInfo;
+  }>,
+  fallbackLaborType: LaborType,
+): object[] {
+  return lines.map((l, i) => ({
+    line_no: i + 1,
+    description: l.description,
+    labor_type: l.laborType ?? fallbackLaborType,
+    hours_paid: l.hoursPaid,
+    is_tbd: false,
+    matched_reference_id: l.matchedReferenceId ?? null,
+    vehicle_override: !!l.vehicleOverride,
+    line_vehicle_year: l.lineVehicle?.year ?? null,
+    line_vehicle_make: l.lineVehicle?.make ?? null,
+    line_vehicle_model: l.lineVehicle?.model ?? null,
+    line_vehicle_trim: l.lineVehicle?.trim ?? null,
+  }));
+}
+
 export function toRoLineInserts(params: {
   userId: string;
   roId: string;
