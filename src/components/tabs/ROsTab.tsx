@@ -279,6 +279,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const { ros, deleteRO, updateRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
   const { flags, userSettings, addFlag } = useFlagContext();
+  const { isOnline, pendingCount, syncing } = useOffline();
 
   const hasCustomPayPeriod =
     userSettings.payPeriodType === 'custom' &&
