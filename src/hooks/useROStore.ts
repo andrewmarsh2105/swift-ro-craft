@@ -55,10 +55,35 @@ import { effectiveDate as effectiveDateOf } from '@/lib/roDisplay';
  */
 const HOT_WINDOW_DAYS = 120;
 
+/** Page size for paginated fetches. Supabase default max is 1000. */
+const PAGE_SIZE = 1000;
+
 function hotCutoffDateStr(): string {
   const d = new Date();
   d.setDate(d.getDate() - HOT_WINDOW_DAYS);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Paginated fetch helper — keeps requesting pages of PAGE_SIZE until a
+ * partial page is returned (meaning we've exhausted the result set).
+ * Returns all rows concatenated.
+ */
+async function fetchAllPages<T>(
+  queryFn: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const all: T[] = [];
+  let offset = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await queryFn(offset, offset + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = data || [];
+    all.push(...rows);
+    if (rows.length < PAGE_SIZE) break; // last page
+    offset += PAGE_SIZE;
+  }
+  return all;
 }
 
 function paidLinesOf(ro: RepairOrder): ROLine[] {
