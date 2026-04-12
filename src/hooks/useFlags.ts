@@ -4,8 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
 import type { ROFlag, FlagType } from '@/types/flags';
+import type { Tables } from '@/integrations/supabase/types';
 
-function dbToFlag(row: any): ROFlag {
+type FlagRow = Tables<'ro_flags'>;
+
+function dbToFlag(row: FlagRow): ROFlag {
   return {
     id: row.id,
     userId: row.user_id,
@@ -34,7 +37,7 @@ export function useFlags() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       setFlags((data || []).map(dbToFlag));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch flags', err);
     } finally {
       setLoading(false);
@@ -64,7 +67,7 @@ export function useFlags() {
           user_id: user.id,
           ro_id: roId,
           ro_line_id: roLineId || null,
-          flag_type: flagType as any,
+          flag_type: flagType,
           note: note || null,
         })
         .select()
@@ -81,7 +84,7 @@ export function useFlags() {
       }
       setFlags(prev => [dbToFlag(data), ...prev]);
       toast.success('Flag added');
-    } catch (err: any) {
+    } catch (err: unknown) {
       await queueAction('addFlag', { roId, flagType, note, roLineId });
       toast.info('Network issue — flag saved offline');
     }
@@ -115,7 +118,7 @@ export function useFlags() {
       }
       setFlags(prev => prev.filter(f => f.id !== flagId));
       toast.success('Flag cleared');
-    } catch (err: any) {
+    } catch (err: unknown) {
       await queueAction('clearFlag', { flagId });
       setFlags(prev => prev.filter(f => f.id !== flagId));
       toast.info('Network issue — flag cleared offline');
@@ -145,7 +148,7 @@ export function useFlags() {
         .update({ cleared_at: new Date().toISOString() })
         .in('id', flagIds);
       toast.success(`Cleared ${flagIds.length} flag${flagIds.length === 1 ? '' : 's'}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       await Promise.all(flagIds.map(id => queueAction('clearFlag', { flagId: id })));
       toast.info('Network issue — flags cleared offline');
     }
@@ -172,7 +175,7 @@ export function useFlags() {
         .update({ cleared_at: new Date().toISOString() })
         .in('id', ids);
       if (error) throw error;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to clear period flags', err);
       // Revert the optimistic removal so flags reappear and the user can retry
       setFlags(prev => {
