@@ -386,6 +386,7 @@ export function useROStore() {
       setFetchErrorMessage(null);
       setOfflinePendingIds(new Set());
       setHasFullHistory(false);
+      setHistoryIncomplete(false);
       cacheHydrated.current = false;
       return;
     }
@@ -1032,6 +1033,11 @@ export function useROStore() {
      * Consumers may use this to show a subtle "loading older history…" badge.
      */
     hasFullHistory,
+    /**
+     * True when Phase 2 failed — the displayed dataset may be incomplete.
+     * Consumers should show a subtle warning rather than hiding this state.
+     */
+    historyIncomplete,
     addRO,
     updateRO,
     deleteRO,
