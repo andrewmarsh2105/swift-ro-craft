@@ -107,12 +107,16 @@ export function OfflineStatusBar() {
               <RefreshCw className="h-3 w-3" />
             </button>
           </>
-        ) : showSyncing ? (
+        ) : showSyncingSpinner ? (
           <>
             <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin" />
             <span>Syncing {pendingCount > 0 ? `${pendingCount} change${pendingCount > 1 ? 's' : ''}` : ''}…</span>
           </>
-        ) : showConflicts ? (
+        ) : showIncompleteHistory ? (
+          <>
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>Older history may be incomplete</span>
+          </>
           <>
             <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
             <span>
