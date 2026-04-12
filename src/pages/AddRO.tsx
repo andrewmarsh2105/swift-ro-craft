@@ -28,8 +28,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 
-// Desktop imports
-import { DesktopWorkspace } from '@/components/desktop';
+// Desktop workspace – lazy so mobile never pays for desktop code
+import { lazy, Suspense } from 'react';
+const DesktopWorkspace = lazy(() =>
+  import('@/components/desktop/DesktopWorkspace').then((m) => ({ default: m.DesktopWorkspace })),
+);
 
 
 export default function AddRO() {
@@ -391,8 +394,12 @@ export default function AddRO() {
 
   const isValid = roNumber.trim() !== '' && advisor.trim() !== '';
 
-  // Desktop: use workspace
-  if (!isMobile) return <DesktopWorkspace />;
+  // Desktop: use workspace (lazy-loaded)
+  if (!isMobile) return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <DesktopWorkspace />
+    </Suspense>
+  );
 
   // If editing but RO not found (and not loading)
   if (editingROId && !editingRO && !loadingROs) {
