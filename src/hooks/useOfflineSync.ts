@@ -101,7 +101,8 @@ export function useOfflineSync() {
             );
             const { error: rpcErr } = await supabase.rpc('replace_ro_lines', {
               _ro_id: id,
-              _lines: linesJsonb as unknown as Record<string, unknown>[],
+              // RPC expects Json; the mapper returns a plain array of objects
+              _lines: linesJsonb as unknown as Parameters<typeof supabase.rpc<'replace_ro_lines'>>[1] extends { _lines: infer L } ? L : never,
             });
             if (rpcErr) throw rpcErr;
           }

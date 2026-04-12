@@ -47,13 +47,8 @@ const SUBTOTAL_STYLE = { fontStyle: 'bold' as const, fillColor: [...SUBTOTAL_FIL
 const DAY_STYLE = { fontStyle: 'bold' as const, fillColor: [...DAY_FILL] };
 const PERIOD_STYLE = { fontStyle: 'bold' as const, fillColor: [...PERIOD_FILL] };
 
-type AutoTableCellHookData = {
-  section: string;
-  column: { index: number };
-  cell: { raw: unknown; styles: Record<string, unknown> };
-};
-
-function applyTypeColors(data: AutoTableCellHookData, typeColIdx: number) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- jspdf-autotable CellHookData is loosely typed
+function applyTypeColors(data: any, typeColIdx: number) {
   if (data.section === 'body' && data.column.index === typeColIdx) {
     const val = typeof data.cell.raw === 'string' ? data.cell.raw : '';
     if (val === 'W' || val.startsWith('W:')) data.cell.styles.textColor = [37, 99, 235];
