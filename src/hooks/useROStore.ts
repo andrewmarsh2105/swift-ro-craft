@@ -135,6 +135,12 @@ export function useROStore() {
    */
   const [hasFullHistory, setHasFullHistory] = useState(false);
   /**
+   * True when Phase 2 attempted but failed — the dataset is known to be
+   * incomplete. UI should surface a subtle warning instead of pretending
+   * the dataset is complete.
+   */
+  const [historyIncomplete, setHistoryIncomplete] = useState(false);
+  /**
    * Generation counter used to abort the background Phase 2 load when a new
    * fetchROs call starts, the component unmounts, or the userId changes.
    * Each fetchROs call increments this; Phase 2 checks if it still matches.
