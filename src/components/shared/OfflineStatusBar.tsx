@@ -31,7 +31,6 @@ export function OfflineStatusBar() {
   const fetchError = roStore?.fetchError ?? false;
   const fetchErrorMessage = roStore?.fetchErrorMessage ?? null;
   const historyIncomplete = roStore?.historyIncomplete ?? false;
-  const hasFullHistory = roStore?.hasFullHistory ?? false;
 
   const [conflictOpen, setConflictOpen] = useState(false);
 
