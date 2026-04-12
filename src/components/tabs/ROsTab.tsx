@@ -804,7 +804,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               }
             />
           ) : (
-            <div className="p-2.5 space-y-2">
+            <div className="p-2 space-y-1.5">
               {visibleROs.map((ro, idx) => (
                 <ROCard
                   key={ro.id}
