@@ -11,6 +11,7 @@ import {
   dbToRepairOrder,
   groupLinesByRoId,
   toRoLineInserts,
+  toRoLinesJsonb,
   toRosInsert,
   toRosUpdate,
   type RoLineRow,
@@ -620,48 +621,29 @@ export function useROStore() {
       }
     }
 
-    // Replace lines if provided.
-    // Order matters for safety: insert new lines first, then delete old ones.
-    // If the insert fails we bail out with the old lines still intact.
-    // If the delete fails we have duplicate lines temporarily, but the user can
-    // edit the RO again to fix it — no payroll data is permanently lost.
+    // Replace lines atomically via RPC — delete + insert in a single transaction.
+    // This prevents duplicate or orphaned lines on partial failure or retry.
     if (updates.lines) {
-      // Snapshot existing line IDs so we can target-delete only those rows
-      const { data: existingLines } = await supabase
-        .from('ro_lines')
-        .select('id')
-        .eq('ro_id', id);
-      const existingIds = (existingLines || []).map((l: { id: string }) => l.id);
-
-      if (updates.lines.length > 0) {
-        const lineInserts = toRoLineInserts({
-          userId: user.id,
-          roId: id,
-          lines: updates.lines,
-          fallbackLaborType: updates.laborType || 'customer-pay',
-        });
-        const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);
-        if (insErr) {
-          console.error('Failed to insert lines', insErr);
-          if (previousRO) {
-            setROs((prev) => {
-              const rollback = prev.map((r) => (r.id === id ? previousRO : r));
-              void saveROsToCache(user.id, rollback);
-              return rollback;
-            });
-          }
-          toast.error(`Lines failed to save: ${insErr.message}`);
-          return false;
+      const linesJsonb = toRoLinesJsonb(
+        updates.lines,
+        updates.laborType || 'customer-pay',
+      );
+      const { error: rpcErr } = await supabase.rpc('replace_ro_lines', {
+        _ro_id: id,
+        _lines: linesJsonb as any,
+      });
+      if (rpcErr) {
+        console.error('replace_ro_lines RPC failed', rpcErr);
+        pushDebug({ action: 'replaceLines FAIL', roId: id, error: rpcErr.message });
+        if (previousRO) {
+          setROs((prev) => {
+            const rollback = prev.map((r) => (r.id === id ? previousRO : r));
+            void saveROsToCache(user.id, rollback);
+            return rollback;
+          });
         }
-      }
-
-      // Delete old lines only after the new ones are safely written
-      if (existingIds.length > 0) {
-        const { error: delErr } = await supabase.from('ro_lines').delete().in('id', existingIds);
-        if (delErr) {
-          console.error('Failed to delete old lines', delErr);
-          // Non-fatal: new lines are saved, old ones are duplicates — re-fetch will sort it out
-        }
+        toast.error(`Lines failed to save: ${rpcErr.message}`);
+        return false;
       }
     }
 
