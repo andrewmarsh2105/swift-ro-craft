@@ -117,6 +117,7 @@ export function OfflineStatusBar() {
             <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
             <span>Older history may be incomplete</span>
           </>
+        ) : showConflicts ? (
           <>
             <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
             <span>
