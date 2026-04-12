@@ -523,42 +523,19 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* ── Sticky header ───────────────────────────── */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-b border-border/50">
 
-        {/* Top bar: title, period context, totals, and status strip */}
-        <div className="px-3 pt-2 pb-0 border-b border-border/40">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h2 className="text-[13px] font-semibold text-foreground/90 truncate leading-none">
-                {goalSettings.shopName || 'Repair Orders'}
-              </h2>
-              <div className="mt-1 text-[10px] text-muted-foreground/75 flex items-center gap-1">
-                <CalendarRange className="h-2.5 w-2.5" />
-                <span>{`${activeRangeLabel} · ${rangeChipLabel}`}</span>
-              </div>
-            </div>
-            {viewMode !== 'spreadsheet' && (
-              <div className="flex-shrink-0 text-right">
-                <div className="text-[18px] font-black tabular-nums text-primary leading-none tracking-tight font-mono">
-                  {maskHours(totalHours, userSettings.hideTotals ?? false)}h
-                </div>
-                <div className="text-[10px] text-muted-foreground/65 font-medium mt-0.5">
-                  {filteredROs.length} ROs
-                </div>
-              </div>
-            )}
-          </div>
-          {viewMode !== 'spreadsheet' && (
-            <MobileStatusStrip
-              periodHours={totalHours}
-              openCount={openCount}
-              flaggedCount={activeFlagsCount}
-              hideTotals={userSettings.hideTotals ?? false}
-              isOffline={!isOnline}
-              isSyncing={syncing}
-              pendingCount={pendingCount}
-              className="mx--3 mt-1.5 border-t border-b-0 border-x-0"
-            />
-          )}
-        </div>
+        {/* Status strip — the single quick-glance KPI bar */}
+        {viewMode !== 'spreadsheet' && (
+          <MobileStatusStrip
+            periodHours={totalHours}
+            roCount={filteredROs.length}
+            openCount={openCount}
+            flaggedCount={activeFlagsCount}
+            hideTotals={userSettings.hideTotals ?? false}
+            isOffline={!isOnline}
+            isSyncing={syncing}
+            pendingCount={pendingCount}
+          />
+        )}
 
         <div className="flex items-center h-10 px-3 gap-2">
           <div className="flex items-center gap-1 flex-shrink-0">
