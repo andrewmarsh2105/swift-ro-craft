@@ -4,25 +4,20 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { ROProvider } from "@/contexts/ROContext";
-import { FlagProvider } from "@/contexts/FlagContext";
-import { OfflineProvider } from "@/contexts/OfflineContext";
-import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import Index from "./pages/Index";
-import Landing from "./pages/Landing";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/states/ErrorBoundary";
 
-// Lazy-loaded heavy routes
-const AddRO = lazy(() => import("./pages/AddRO"));
-const FlagInboxPage = lazy(() => import("./pages/FlagInboxPage"));
-const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+// Lazy-loaded routes – public
+const Landing = lazy(() => import("./pages/Landing"));
 const Auth = lazy(() => import("./pages/Auth"));
-const Admin = lazy(() => import("./pages/Admin"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Support = lazy(() => import("./pages/Support"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Lazy-loaded authenticated shell (contains providers + all app routes)
+const AuthenticatedShell = lazy(() => import("./components/AuthenticatedShell"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,103 +28,70 @@ const queryClient = new QueryClient({
   },
 });
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
-}
-
-function HomeRoute() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return user ? <Index /> : <Landing />;
-}
-
-function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-}
-
 const LazyFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
 
+function HomeRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <LazyFallback />;
+
+  if (user) {
+    // Render the authenticated shell which lazy-loads Index + providers
+    return <AuthenticatedShell />;
+  }
+
+  return <Landing />;
+}
+
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LazyFallback />;
+  if (user) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function ProtectedRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <LazyFallback />;
+  if (!user) return <Navigate to="/auth" replace />;
+  return <AuthenticatedShell />;
+}
+
 const App = () => {
   return (
-  // Outer ErrorBoundary catches crashes in any Provider (AuthProvider,
-  // SubscriptionProvider, OfflineProvider, ROProvider, FlagProvider).
-  // Previously, the only ErrorBoundary was inside BrowserRouter which means
-  // provider-level errors produced a blank white screen.
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SubscriptionProvider>
-        <OfflineProvider>
-        <ROProvider>
-          <FlagProvider>
-            <TooltipProvider>
-              <Sonner />
+        <TooltipProvider>
+          <Sonner />
 
-              <BrowserRouter>
-                {/* Inner boundary catches router/route-level errors without
-                    requiring a full page reload for non-critical failures. */}
-                <ErrorBoundary>
-                <Suspense fallback={<LazyFallback />}>
-                  <Routes>
-                    <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/" element={<HomeRoute />} />
-                    <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
-                    <Route path="/flag-inbox" element={<ProtectedRoute><FlagInboxPage /></ProtectedRoute>} />
-                    <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/support" element={<Support />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-                </ErrorBoundary>
-              </BrowserRouter>
-            </TooltipProvider>
-          </FlagProvider>
-        </ROProvider>
-        </OfflineProvider>
-        </SubscriptionProvider>
+          <BrowserRouter>
+            <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <Routes>
+                {/* Public routes – no app providers mounted */}
+                <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/support" element={<Support />} />
+
+                {/* Authenticated routes – providers mount inside AuthenticatedShell */}
+                <Route path="/" element={<HomeRoute />} />
+                <Route path="/add-ro" element={<ProtectedRoute />} />
+                <Route path="/flag-inbox" element={<ProtectedRoute />} />
+                <Route path="/admin" element={<ProtectedRoute />} />
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            </ErrorBoundary>
+          </BrowserRouter>
+        </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
   </ErrorBoundary>
