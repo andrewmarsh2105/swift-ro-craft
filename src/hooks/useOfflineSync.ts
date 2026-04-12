@@ -12,7 +12,7 @@ import {
   type QueuedActionType,
   type SyncConflict,
 } from '@/lib/offlineQueue';
-import { toRosInsert, toRoLineInserts, toRosUpdate } from '@/features/ro/data/roMapper';
+import { toRosInsert, toRoLineInserts, toRoLinesJsonb, toRosUpdate } from '@/features/ro/data/roMapper';
 
 const MAX_RETRIES = 3;
 
@@ -93,28 +93,16 @@ export function useOfflineSync() {
             if (error) throw error;
           }
           if (updates.lines) {
-            // Snapshot existing line IDs before touching anything
-            const { data: existingLines } = await supabase
-              .from('ro_lines').select('id').eq('ro_id', id);
-            const existingIds = (existingLines || []).map((l: { id: string }) => l.id);
-
-            // Insert new lines first — if this fails we throw and retry the whole action
-            if (updates.lines.length > 0) {
-              const lineInserts = toRoLineInserts({
-                userId: user.id,
-                roId: id,
-                lines: updates.lines,
-                fallbackLaborType: updates.laborType || 'customer-pay',
-              });
-              const { error: insErr } = await supabase.from('ro_lines').insert(lineInserts);
-              if (insErr) throw insErr;
-            }
-
-            // Delete old lines only after new ones are safely written
-            if (existingIds.length > 0) {
-              const { error: delErr } = await supabase.from('ro_lines').delete().in('id', existingIds);
-              if (delErr) throw delErr;
-            }
+            // Atomic line replacement via RPC — idempotent on retry
+            const linesJsonb = toRoLinesJsonb(
+              updates.lines,
+              updates.laborType || 'customer-pay',
+            );
+            const { error: rpcErr } = await supabase.rpc('replace_ro_lines', {
+              _ro_id: id,
+              _lines: linesJsonb as any,
+            });
+            if (rpcErr) throw rpcErr;
           }
           return { success: true };
         }
