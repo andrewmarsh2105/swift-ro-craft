@@ -579,6 +579,10 @@ export type Database = {
         Returns: boolean
       }
       owns_ro: { Args: { _ro_id: string; _user_id: string }; Returns: boolean }
+      replace_ro_lines: {
+        Args: { _lines: Json; _ro_id: string }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "user"
