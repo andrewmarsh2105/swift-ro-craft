@@ -57,11 +57,13 @@ export function OfflineStatusBar() {
             ? 'bg-destructive/10 text-destructive border-b border-destructive/20'
             : showServerErrorBanner
               ? 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-b border-orange-500/20'
-              : showSyncing
+              : showSyncingSpinner
                 ? 'bg-primary/10 text-primary border-b border-primary/20'
                 : showConflicts
                   ? 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-b border-orange-500/20'
-                  : 'bg-muted text-muted-foreground border-b border-border',
+                  : showIncompleteHistory
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-b border-amber-500/20'
+                    : 'bg-muted text-muted-foreground border-b border-border',
         )}
       >
         {showOfflineBanner ? (
