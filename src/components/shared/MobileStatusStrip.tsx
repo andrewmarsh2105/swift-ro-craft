@@ -1,9 +1,10 @@
-import { Clock, AlertCircle, Flag, WifiOff, Loader2 } from 'lucide-react';
+import { Clock, AlertCircle, Flag, WifiOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { maskHours } from '@/lib/maskHours';
 import { cn } from '@/lib/utils';
 
 interface MobileStatusStripProps {
   periodHours: number;
+  roCount: number;
   openCount: number;
   flaggedCount: number;
   hideTotals: boolean;
@@ -15,10 +16,11 @@ interface MobileStatusStripProps {
 
 /**
  * Compact, high-trust KPI strip for the mobile ROs tab.
- * Answers "Where am I in this pay period?" at a glance.
+ * Single horizontal bar answering "Where am I in this pay period?" at a glance.
  */
 export function MobileStatusStrip({
   periodHours,
+  roCount,
   openCount,
   flaggedCount,
   hideTotals,
@@ -27,40 +29,47 @@ export function MobileStatusStrip({
   pendingCount = 0,
   className,
 }: MobileStatusStripProps) {
+  const paidCount = roCount - openCount;
+
   return (
     <div className={cn(
-      'flex items-center gap-3 px-3 py-1.5 bg-muted/30 border-b border-border/40',
+      'flex items-center gap-2 px-3 py-[5px] bg-muted/25 border-b border-border/40',
       className,
     )}>
       {/* Period hours — primary metric */}
-      <div className="flex items-center gap-1">
-        <Clock className="h-3 w-3 text-primary/60 flex-shrink-0" />
-        <span className="text-[12px] font-bold tabular-nums text-primary font-mono leading-none">
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Clock className="h-3 w-3 text-primary/70 flex-shrink-0" />
+        <span className="text-[13px] font-extrabold tabular-nums text-primary font-mono leading-none">
           {maskHours(periodHours, hideTotals)}h
         </span>
       </div>
 
-      <div className="h-3 w-px bg-border/50" />
+      <Separator />
 
-      {/* Open/unpaid count */}
-      <div className="flex items-center gap-1">
-        <AlertCircle className="h-3 w-3 text-amber-500/70 flex-shrink-0" />
-        <span className={cn(
-          'text-[11px] font-semibold tabular-nums leading-none',
-          openCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground/60',
-        )}>
-          {openCount}
+      {/* Paid / Open counts */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span className="flex items-center gap-[3px]">
+          <CheckCircle2 className="h-2.5 w-2.5 text-[hsl(var(--status-warranty))]/70" />
+          <span className="text-[10px] font-bold tabular-nums text-muted-foreground/80 leading-none">{paidCount}</span>
         </span>
-        <span className="text-[9px] uppercase tracking-[0.06em] text-muted-foreground/50 font-medium">open</span>
+        <span className="flex items-center gap-[3px]">
+          <AlertCircle className="h-2.5 w-2.5 text-amber-500/70" />
+          <span className={cn(
+            'text-[10px] font-bold tabular-nums leading-none',
+            openCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground/50',
+          )}>
+            {openCount}
+          </span>
+        </span>
       </div>
 
-      {/* Flags count */}
+      {/* Flags count — only when nonzero */}
       {flaggedCount > 0 && (
         <>
-          <div className="h-3 w-px bg-border/50" />
-          <div className="flex items-center gap-1">
-            <Flag className="h-3 w-3 text-orange-500/70 flex-shrink-0" />
-            <span className="text-[11px] font-semibold tabular-nums text-orange-600 dark:text-orange-400 leading-none">
+          <Separator />
+          <div className="flex items-center gap-[3px] flex-shrink-0">
+            <Flag className="h-2.5 w-2.5 text-orange-500/70" />
+            <span className="text-[10px] font-bold tabular-nums text-orange-600 dark:text-orange-400 leading-none">
               {flaggedCount}
             </span>
           </div>
@@ -72,16 +81,20 @@ export function MobileStatusStrip({
 
       {/* Offline / sync indicator */}
       {isOffline && (
-        <div className="flex items-center gap-1 text-muted-foreground/60">
+        <div className="flex items-center gap-1 text-muted-foreground/60 flex-shrink-0">
           <WifiOff className="h-3 w-3" />
           {pendingCount > 0 && (
-            <span className="text-[9px] font-semibold tabular-nums">{pendingCount}</span>
+            <span className="text-[9px] font-bold tabular-nums">{pendingCount}</span>
           )}
         </div>
       )}
       {!isOffline && isSyncing && (
-        <Loader2 className="h-3 w-3 text-primary/50 animate-spin" />
+        <Loader2 className="h-3 w-3 text-primary/50 animate-spin flex-shrink-0" />
       )}
     </div>
   );
+}
+
+function Separator() {
+  return <div className="h-3 w-px bg-border/50 flex-shrink-0" />;
 }
