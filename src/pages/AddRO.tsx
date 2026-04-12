@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { goBackOrFallback } from '@/lib/navigation';
 import { Camera, Plus, Loader2, User, FileText, Crown, Search } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
