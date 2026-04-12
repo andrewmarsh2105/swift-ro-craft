@@ -38,7 +38,6 @@ export function OfflineStatusBar() {
   // Conditions that require the bar to be visible.
   const showOfflineBanner = !isOnline;
   const showServerErrorBanner = isOnline && fetchError && dataSource !== 'live';
-  const showSyncing = isOnline && !syncing && conflicts.length === 0 && pendingCount === 0 && historyIncomplete && !hasFullHistory;
   const showIncompleteHistory = isOnline && !syncing && conflicts.length === 0 && pendingCount === 0 && historyIncomplete;
   const showSyncingSpinner = isOnline && syncing;
   const showConflicts = isOnline && !syncing && conflicts.length > 0;
