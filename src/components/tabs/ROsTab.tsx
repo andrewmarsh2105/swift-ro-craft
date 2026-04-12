@@ -19,6 +19,8 @@ import { CarryoverIndicator } from '@/components/shared/CarryoverIndicator';
 import { FlagInbox } from '@/components/flags/FlagInbox';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { EmptyState } from '@/components/states/EmptyState';
+import { MobileStatusStrip } from '@/components/shared/MobileStatusStrip';
+import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
 import type { ReviewIssue } from '@/lib/reviewRules';
