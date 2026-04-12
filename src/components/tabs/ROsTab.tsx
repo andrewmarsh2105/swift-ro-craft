@@ -523,8 +523,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* ── Sticky header ───────────────────────────── */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-b border-border/50">
 
-        {/* Top bar: title, period context, and totals */}
-        <div className="px-3 pt-2.5 pb-2 border-b border-border/40">
+        {/* Top bar: title, period context, totals, and status strip */}
+        <div className="px-3 pt-2 pb-0 border-b border-border/40">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h2 className="text-[13px] font-semibold text-foreground/90 truncate leading-none">
@@ -546,6 +546,18 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               </div>
             )}
           </div>
+          {viewMode !== 'spreadsheet' && (
+            <MobileStatusStrip
+              periodHours={totalHours}
+              openCount={openCount}
+              flaggedCount={activeFlagsCount}
+              hideTotals={userSettings.hideTotals ?? false}
+              isOffline={!isOnline}
+              isSyncing={syncing}
+              pendingCount={pendingCount}
+              className="mx--3 mt-1.5 border-t border-b-0 border-x-0"
+            />
+          )}
         </div>
 
         <div className="flex items-center h-10 px-3 gap-2">
