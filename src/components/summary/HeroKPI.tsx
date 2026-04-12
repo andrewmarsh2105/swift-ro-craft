@@ -2,13 +2,14 @@ import { Flag } from 'lucide-react';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { maskHours } from '@/lib/maskHours';
 import { cn } from '@/lib/utils';
+import type { LaborType } from '@/types/ro';
 
 interface HeroKPIProps {
   totalHours: number;
   totalROs: number;
   totalLines: number;
   avgPerRO: number;
-  byLaborType: { laborType: string; totalHours: number }[];
+  byLaborType: { laborType: LaborType; totalHours: number }[];
   flaggedCount: number;
   hideTotals: boolean;
   compact?: boolean;
