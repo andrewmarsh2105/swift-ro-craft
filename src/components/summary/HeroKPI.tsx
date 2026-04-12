@@ -60,7 +60,7 @@ export function HeroKPI({ totalHours, totalROs, totalLines, avgPerRO, byLaborTyp
       <div className="border-t px-4 py-2.5 flex items-center gap-2 flex-wrap" style={{ borderColor: 'hsl(var(--primary) / 0.12)', background: 'hsl(var(--primary) / 0.045)' }}>
         {byLaborType.length > 0 ? byLaborType.map(lt => (
           <div key={lt.laborType} className="inline-flex h-7 items-center justify-center rounded-full border border-border/50 bg-card/70 px-2">
-            <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" className="h-5 items-center justify-center px-2.5 py-0 leading-none font-mono tabular-nums tracking-normal" />
+            <StatusPill type={lt.laborType as import('@/types/ro').LaborType} hours={lt.totalHours} size="sm" className="h-5 items-center justify-center px-2.5 py-0 leading-none font-mono tabular-nums tracking-normal" />
           </div>
         )) : (
           <span className="text-[10px] text-muted-foreground/40">No type data</span>

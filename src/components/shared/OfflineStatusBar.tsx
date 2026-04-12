@@ -30,17 +30,19 @@ export function OfflineStatusBar() {
   const cachedAt = roStore?.cachedAt ?? null;
   const fetchError = roStore?.fetchError ?? false;
   const fetchErrorMessage = roStore?.fetchErrorMessage ?? null;
+  const historyIncomplete = roStore?.historyIncomplete ?? false;
 
   const [conflictOpen, setConflictOpen] = useState(false);
 
   // Conditions that require the bar to be visible.
   const showOfflineBanner = !isOnline;
   const showServerErrorBanner = isOnline && fetchError && dataSource !== 'live';
-  const showSyncing = isOnline && syncing;
+  const showIncompleteHistory = isOnline && !syncing && conflicts.length === 0 && pendingCount === 0 && historyIncomplete;
+  const showSyncingSpinner = isOnline && syncing;
   const showConflicts = isOnline && !syncing && conflicts.length > 0;
   const showPending = isOnline && !syncing && conflicts.length === 0 && pendingCount > 0;
 
-  if (!showOfflineBanner && !showServerErrorBanner && !showSyncing && !showConflicts && !showPending) {
+  if (!showOfflineBanner && !showServerErrorBanner && !showSyncingSpinner && !showConflicts && !showPending && !showIncompleteHistory) {
     return null;
   }
 
@@ -53,11 +55,13 @@ export function OfflineStatusBar() {
             ? 'bg-destructive/10 text-destructive border-b border-destructive/20'
             : showServerErrorBanner
               ? 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-b border-orange-500/20'
-              : showSyncing
+              : showSyncingSpinner
                 ? 'bg-primary/10 text-primary border-b border-primary/20'
                 : showConflicts
                   ? 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-b border-orange-500/20'
-                  : 'bg-muted text-muted-foreground border-b border-border',
+                  : showIncompleteHistory
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-b border-amber-500/20'
+                    : 'bg-muted text-muted-foreground border-b border-border',
         )}
       >
         {showOfflineBanner ? (
@@ -101,10 +105,15 @@ export function OfflineStatusBar() {
               <RefreshCw className="h-3 w-3" />
             </button>
           </>
-        ) : showSyncing ? (
+        ) : showSyncingSpinner ? (
           <>
             <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin" />
             <span>Syncing {pendingCount > 0 ? `${pendingCount} change${pendingCount > 1 ? 's' : ''}` : ''}…</span>
+          </>
+        ) : showIncompleteHistory ? (
+          <>
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>Older history may be incomplete</span>
           </>
         ) : showConflicts ? (
           <>
