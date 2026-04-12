@@ -8,7 +8,9 @@ import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
-const LANDING_WHITE_LOGO_SRC = '/logo-navigator-landing-white.png';
+const LANDING_WHITE_LOGO_SRC = '/brand/logo-white.webp';
+const LOGO_WHITE_W = 600;
+const LOGO_WHITE_H = 403;
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -112,18 +114,16 @@ export default function Landing() {
             className="inline-flex items-center"
             aria-label="RO Navigator home"
           >
-            {/* Clipping wrapper strips the transparent PNG padding */}
-            <div style={{ height: 48, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
-              <img
-                src={LANDING_WHITE_LOGO_SRC}
-                alt="RO Navigator"
-                loading="eager"
-                decoding="async"
-                draggable={false}
-                style={{ height: 144, width: 'auto' }}
-                className="block shrink-0 select-none object-contain"
-              />
-            </div>
+            <img
+              src={LANDING_WHITE_LOGO_SRC}
+              alt="RO Navigator"
+              width={Math.round((48 / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={48}
+              loading="eager"
+              decoding="async"
+              draggable={false}
+              className="block h-[48px] w-auto shrink-0 select-none"
+            />
           </Link>
           <nav className="flex items-center gap-1.5">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">
@@ -757,10 +757,12 @@ export default function Landing() {
             <img
               src={LANDING_WHITE_LOGO_SRC}
               alt="RO Navigator"
+              width={Math.round((28 / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={28}
               loading="lazy"
               decoding="async"
               draggable={false}
-              className="block h-[28px] w-auto max-w-[160px] shrink-0 select-none object-contain"
+              className="block h-[28px] w-auto shrink-0 select-none"
             />
             <span className="text-xs text-slate-600">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
