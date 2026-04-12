@@ -30,17 +30,21 @@ export function OfflineStatusBar() {
   const cachedAt = roStore?.cachedAt ?? null;
   const fetchError = roStore?.fetchError ?? false;
   const fetchErrorMessage = roStore?.fetchErrorMessage ?? null;
+  const historyIncomplete = roStore?.historyIncomplete ?? false;
+  const hasFullHistory = roStore?.hasFullHistory ?? false;
 
   const [conflictOpen, setConflictOpen] = useState(false);
 
   // Conditions that require the bar to be visible.
   const showOfflineBanner = !isOnline;
   const showServerErrorBanner = isOnline && fetchError && dataSource !== 'live';
-  const showSyncing = isOnline && syncing;
+  const showSyncing = isOnline && !syncing && conflicts.length === 0 && pendingCount === 0 && historyIncomplete && !hasFullHistory;
+  const showIncompleteHistory = isOnline && !syncing && conflicts.length === 0 && pendingCount === 0 && historyIncomplete;
+  const showSyncingSpinner = isOnline && syncing;
   const showConflicts = isOnline && !syncing && conflicts.length > 0;
   const showPending = isOnline && !syncing && conflicts.length === 0 && pendingCount > 0;
 
-  if (!showOfflineBanner && !showServerErrorBanner && !showSyncing && !showConflicts && !showPending) {
+  if (!showOfflineBanner && !showServerErrorBanner && !showSyncingSpinner && !showConflicts && !showPending && !showIncompleteHistory) {
     return null;
   }
 
