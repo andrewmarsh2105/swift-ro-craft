@@ -454,6 +454,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   }, [visibleROs, roNumberCounts, ros]);
 
   const totalHours = useMemo(() => filteredROs.filter(ro => !!ro.paidDate).reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
+  const openCount = useMemo(() => filteredROs.filter(ro => !ro.paidDate).length, [filteredROs]);
+  const activeFlagsCount = useMemo(() => flags.filter(f => !f.clearedAt).length, [flags]);
 
   // Monthly RO usage for free-tier cap indicator
   const monthlyROCount = useMemo(() => {
