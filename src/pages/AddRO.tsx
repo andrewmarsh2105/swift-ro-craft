@@ -358,8 +358,7 @@ export default function AddRO() {
         const success = await updateRO(editingRO.id, roData);
         if (!success) return;
         toast.success('RO updated');
-        if (window.history.length > 1) navigate(-1);
-        else navigate('/');
+        goBackOrFallback(navigate);
       } else {
         const saved = await addRO(roData);
         if (!saved) return;
@@ -374,8 +373,7 @@ export default function AddRO() {
               setLines([createEmptyLine(1)]);
               initialSnapshotRef.current = null; // will be set on next render
             } else {
-              if (window.history.length > 1) navigate(-1);
-              else navigate('/');
+              goBackOrFallback(navigate);
             }
           },
         });
@@ -400,13 +398,13 @@ export default function AddRO() {
   if (editingROId && !editingRO && !loadingROs) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
-        <PageHeader title="Edit RO" onBack={() => navigate(-1)} />
+        <PageHeader title="Edit RO" onBack={() => goBackOrFallback(navigate)} />
         <EmptyState
           icon={FileText}
           title="RO not found"
           description="RO not found — it may have been deleted."
           actions={
-            <button onClick={() => navigate(-1)} className="text-sm font-medium text-primary">Go back</button>
+            <button onClick={() => goBackOrFallback(navigate)} className="text-sm font-medium text-primary">Go back</button>
           }
         />
       </div>
@@ -417,7 +415,7 @@ export default function AddRO() {
   if (editingROId && loadingROs) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
-        <PageHeader title="Loading..." onBack={() => navigate(-1)} />
+        <PageHeader title="Loading..." onBack={() => goBackOrFallback(navigate)} />
         <div className="flex-1 p-4 space-y-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -435,7 +433,7 @@ export default function AddRO() {
       <PageHeader
         title={editingRO ? `Edit RO #${editingRO.roNumber}` : (userSettings.shopName || 'New Repair Order')}
         subtitle={`${totalHours.toFixed(1)}h · ${lines.length} lines`}
-        onBack={() => navigate(-1)}
+        onBack={() => goBackOrFallback(navigate)}
         rightActions={isPro ? (
           <button
             type="button"
