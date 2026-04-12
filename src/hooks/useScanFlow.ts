@@ -211,7 +211,8 @@ export function useScanFlow() {
         const safeHours = Number.isFinite(numericHours)
           ? Math.max(0, Math.min(numericHours, MAX_HOURS_PER_LINE))
           : 0;
-        const lineLaborType = VALID_LABOR_TYPES.includes(line?.laborType as string) ? (line.laborType as ExtractedLine['laborType']) : 'customer-pay';
+        const rawLaborType = typeof line?.laborType === 'string' ? line.laborType : '';
+        const lineLaborType: ExtractedLine['laborType'] = VALID_LABOR_TYPES.includes(rawLaborType) ? (rawLaborType as ExtractedLine['laborType']) : 'customer-pay';
         const numericConfidence = Number(line?.confidence);
         const safeConfidence = Number.isFinite(numericConfidence)
           ? Math.max(0, Math.min(numericConfidence, 1))
