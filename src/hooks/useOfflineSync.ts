@@ -99,9 +99,9 @@ export function useOfflineSync() {
               updates.lines,
               updates.laborType || 'customer-pay',
             );
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC expects Json; mapper returns compatible plain objects
             const { error: rpcErr } = await supabase.rpc('replace_ro_lines', {
               _ro_id: id,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC expects Json; mapper returns compatible plain objects
               _lines: linesJsonb as any,
             });
             if (rpcErr) throw rpcErr;
