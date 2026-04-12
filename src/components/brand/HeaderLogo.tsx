@@ -3,35 +3,29 @@ import { cn } from '@/lib/utils';
 interface HeaderLogoProps {
   className?: string;
   priority?: boolean;
-  /**
-   * Visible height of the logo in px.
-   * The PNG has large transparent padding, so internally the image is rendered
-   * at 3× this height inside an overflow-hidden wrapper — the padding overflows
-   * and gets clipped, leaving only the actual wordmark content visible.
-   */
+  /** Visible height of the logo in px. Defaults to Tailwind class sizing. */
   height?: number;
 }
 
-const LOGO_SRC = '/brand/logo-ronavigator-app-dark.png';
+const LOGO_SRC = '/brand/logo-dark.webp';
+/** Intrinsic dimensions of the optimized asset (600 × 411). */
+const INTRINSIC_W = 600;
+const INTRINSIC_H = 411;
 
 export function HeaderLogo({ className, priority = false, height }: HeaderLogoProps) {
   if (height) {
+    const width = Math.round((height / INTRINSIC_H) * INTRINSIC_W);
     return (
-      <div
-        aria-label="RO Navigator"
-        style={{ height, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center' }}
-        className={className}
-      >
-        <img
-          src={LOGO_SRC}
-          alt="RO Navigator"
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-          draggable={false}
-          style={{ height: height * 3, width: 'auto' }}
-          className="block select-none object-contain"
-        />
-      </div>
+      <img
+        src={LOGO_SRC}
+        alt="RO Navigator"
+        width={width}
+        height={height}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        draggable={false}
+        className={cn('block shrink-0 select-none', className)}
+      />
     );
   }
 
@@ -39,10 +33,12 @@ export function HeaderLogo({ className, priority = false, height }: HeaderLogoPr
     <img
       src={LOGO_SRC}
       alt="RO Navigator"
+      width={INTRINSIC_W}
+      height={INTRINSIC_H}
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
       draggable={false}
-      className={cn('block h-9 w-auto shrink-0 select-none object-contain sm:h-10', className)}
+      className={cn('block h-9 w-auto shrink-0 select-none sm:h-10', className)}
     />
   );
 }

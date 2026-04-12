@@ -8,7 +8,9 @@ import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
-const LANDING_WHITE_LOGO_SRC = '/logo-navigator-landing-white.png';
+const LANDING_WHITE_LOGO_SRC = '/brand/logo-white.webp';
+const LOGO_WHITE_W = 600;
+const LOGO_WHITE_H = 403;
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
