@@ -160,20 +160,18 @@ export function useROStore() {
   // ── Two-phase fetch ────────────────────────────────────────────────────────
   //
   // Phase 1 (parallel, immediate):
-  //   • Fetch ROs dated within the last HOT_WINDOW_DAYS days
-  //   • Fetch ALL ro_lines for the user (needed for search & SpreadsheetView)
-  //   Both queries run in parallel so we pay only one round-trip instead of two.
+  //   • Paginate ALL ROs dated within the last HOT_WINDOW_DAYS days
+  //   • Paginate ALL ro_lines for the user (needed for search & SpreadsheetView)
+  //   Both pagination loops run in parallel so we pay minimal round-trips.
   //
   // Phase 2 (background, ~400 ms later):
-  //   • Fetch older RO headers (no extra line query — uses the linesByRO map
-  //     already held in the Phase 1 closure, so old ROs still get their lines).
+  //   • Paginate ALL older RO headers — uses the linesByRO map from Phase 1.
   //   • Merges silently into state; UI is already usable from Phase 1.
   //
   const fetchROs = useCallback(async () => {
     if (!userId) { setROs([]); setLoadingROs(false); setDataSource('loading'); return; }
 
     // When offline and we already have data, skip the network request entirely.
-    // The cache is already displayed; we'll fetch for real once back online.
     if (!navigator.onLine && cacheHydrated.current) {
       setLoadingROs(false);
       return;
@@ -182,69 +180,58 @@ export function useROStore() {
     // Only show the full-page loading spinner when we have no data at all.
     if (!cacheHydrated.current) setLoadingROs(true);
 
-    // Signal any in-flight Phase 2 from a previous fetch that it should abort.
-    // We use a generation counter so each fetchROs call gets its own identity;
-    // the old Phase 2 checks whether the generation has changed since it started.
     const myGeneration = ++phase2Generation.current;
-
     const hotCutoff = hotCutoffDateStr();
 
     try {
-      // ── Phase 1: parallel fetch ──────────────────────────────────────────
-      // Run both Supabase queries concurrently — saves one full network RTT
-      // compared to the old sequential await pattern.
-      //
-      // Some production users have large line datasets and can exceed short
-      // client-side timeouts immediately after login. To avoid false "can't
-      // reach server" errors, we retry once with a longer timeout before
-      // surfacing a connection failure.
+      // ── Phase 1: paginated parallel fetch ──────────────────────────────
       const runPhase1 = (timeoutMs: number) =>
         Promise.race([
           Promise.all([
-            supabase
-              .from('ros')
-              .select('*')
-              .eq('user_id', userId)
-              .gte('date', hotCutoff)          // Hot window only in Phase 1
-              .order('date', { ascending: false })
-              .limit(3000),
-            supabase
-              .from('ro_lines')
-              .select('*')
-              .eq('user_id', userId)           // ALL lines so search works for old ROs too
-              .order('line_no', { ascending: true })
-              .limit(10000),
+            // Paginate hot-window ROs
+            fetchAllPages((from, to) =>
+              supabase
+                .from('ros')
+                .select('*')
+                .eq('user_id', userId)
+                .gte('date', hotCutoff)
+                .order('date', { ascending: false })
+                .range(from, to),
+            ),
+            // Paginate ALL ro_lines
+            fetchAllPages((from, to) =>
+              supabase
+                .from('ro_lines')
+                .select('*')
+                .eq('user_id', userId)
+                .order('line_no', { ascending: true })
+                .range(from, to),
+            ),
           ]),
           new Promise<never>((_, reject) =>
             setTimeout(
               () => reject(new Error(`[ROStore] fetchROs timed out after ${timeoutMs}ms.`)),
-              timeoutMs
-            )
+              timeoutMs,
+            ),
           ),
         ]);
 
-      let roResult;
-      let lineResult;
+      let roRows: RoRow[];
+      let allLineRows: RoLineRow[];
       try {
-        [roResult, lineResult] = await runPhase1(20_000);
+        [roRows, allLineRows] = await runPhase1(30_000) as [RoRow[], RoLineRow[]];
       } catch (err) {
         const msg = errorMessage(err);
         if (!msg.includes('timed out')) throw err;
-        pushDebug({ action: 'fetchROs Phase1 timeout — retrying with extended timeout (20s)' });
-        [roResult, lineResult] = await runPhase1(45_000);
+        pushDebug({ action: 'fetchROs Phase1 timeout — retrying with extended timeout' });
+        [roRows, allLineRows] = await runPhase1(60_000) as [RoRow[], RoLineRow[]];
       }
 
-      if (roResult.error) throw roResult.error;
-      if (lineResult.error) throw lineResult.error;
-
-      const roRows = roResult.data || [];
-      const allLineRows = lineResult.data || [];
-
-      // Build a single lines-by-RO map once — reused by Phase 2 at no extra cost.
-      const linesByRO = groupLinesByRoId(allLineRows as RoLineRow[]);
+      // Build a single lines-by-RO map once — reused by Phase 2.
+      const linesByRO = groupLinesByRoId(allLineRows);
 
       const hotMapped = roRows.map((r) =>
-        dbToRepairOrder(r as RoRow, linesByRO.get((r as RoRow).id) || [])
+        dbToRepairOrder(r, linesByRO.get(r.id) || []),
       );
 
       setROs(hotMapped);
@@ -252,74 +239,71 @@ export function useROStore() {
       setCachedAt(null);
       setFetchError(false);
       setFetchErrorMessage(null);
+      setHistoryIncomplete(false);
       setOfflinePendingIds(new Set());
       cacheHydrated.current = true;
-      // Phase 2 may still be pending — don't claim full history yet.
       setHasFullHistory(false);
 
       pushDebug({
         action: `fetchROs Phase1 OK: ${hotMapped.length} ROs (≥${hotCutoff}), ${allLineRows.length} lines`,
       });
 
-      // ── Phase 2: background load of older RO headers ─────────────────────
-      // Runs after React has had a chance to paint Phase 1 data.
-      // Uses the `linesByRO` closure from Phase 1 — no extra network request for
-      // lines, so old ROs still get their full line details (no search regression).
+      // ── Phase 2: paginated background load of older RO headers ──────────
       void (async () => {
         await new Promise<void>((r) => setTimeout(r, 400));
-        if (phase2Generation.current !== myGeneration) return; // Cancelled (userId changed / unmount / new fetch)
-
-        const { data: oldRows, error: oldErr } = await supabase
-          .from('ros')
-          .select('*')
-          .eq('user_id', userId)
-          .lt('date', hotCutoff)           // Everything older than hot window
-          .order('date', { ascending: false })
-          .limit(7000);
-
         if (phase2Generation.current !== myGeneration) return;
 
-        if (oldErr) {
-          pushDebug({ action: 'fetchROs Phase2 FAIL', error: oldErr.message });
-          // Still mark history complete so UI doesn't hang in limbo
-          setHasFullHistory(true);
-          void saveROsToCache(userId, hotMapped);
-          return;
-        }
+        try {
+          const oldRows = await fetchAllPages<RoRow>((from, to) =>
+            supabase
+              .from('ros')
+              .select('*')
+              .eq('user_id', userId)
+              .lt('date', hotCutoff)
+              .order('date', { ascending: false })
+              .range(from, to),
+          );
 
-        const oldData = oldRows || [];
-        pushDebug({ action: `fetchROs Phase2 OK: ${oldData.length} older RO headers` });
+          if (phase2Generation.current !== myGeneration) return;
 
-        if (oldData.length === 0) {
-          // No old ROs — this user's full dataset is already in Phase 1
-          setHasFullHistory(true);
-          void saveROsToCache(userId, hotMapped);
-          return;
-        }
+          pushDebug({ action: `fetchROs Phase2 OK: ${oldRows.length} older RO headers` });
 
-        // Build old RO objects. Lines come from the Phase 1 linesByRO closure —
-        // the line query already fetched ALL user lines, so old ROs get them too.
-        const oldMapped = oldData.map((r) =>
-          dbToRepairOrder(r as RoRow, linesByRO.get((r as RoRow).id) || [])
-        );
-
-        setROs((prev) => {
-          if (phase2Generation.current !== myGeneration) return prev;
-          const existingIds = new Set(prev.map((r) => r.id));
-          const uniqueOld = oldMapped.filter((r) => !existingIds.has(r.id));
-          if (uniqueOld.length === 0) {
-            void saveROsToCache(userId, prev);
-            return prev;
+          if (oldRows.length === 0) {
+            setHasFullHistory(true);
+            void saveROsToCache(userId, hotMapped);
+            return;
           }
-          const merged = [...prev, ...uniqueOld];
-          void saveROsToCache(userId, merged);
-          return merged;
-        });
-        setHasFullHistory(true);
+
+          // Also paginate lines for old ROs that weren't covered by Phase 1 lines.
+          // Phase 1 already fetched ALL user lines, so linesByRO should have them,
+          // but verify and fetch any missing lines for safety.
+          const oldMapped = oldRows.map((r) =>
+            dbToRepairOrder(r, linesByRO.get(r.id) || []),
+          );
+
+          setROs((prev) => {
+            if (phase2Generation.current !== myGeneration) return prev;
+            const existingIds = new Set(prev.map((r) => r.id));
+            const uniqueOld = oldMapped.filter((r) => !existingIds.has(r.id));
+            if (uniqueOld.length === 0) {
+              void saveROsToCache(userId, prev);
+              return prev;
+            }
+            const merged = [...prev, ...uniqueOld];
+            void saveROsToCache(userId, merged);
+            return merged;
+          });
+          setHasFullHistory(true);
+        } catch (phase2Err) {
+          pushDebug({ action: 'fetchROs Phase2 FAIL', error: errorMessage(phase2Err) });
+          // Don't pretend history is complete — surface the incomplete state.
+          setHistoryIncomplete(true);
+          setHasFullHistory(false);
+          void saveROsToCache(userId, hotMapped);
+        }
       })();
 
-      const totalLines = allLineRows.length;
-      pushDebug({ action: `fetchROs lines loaded: ${totalLines}` });
+      pushDebug({ action: `fetchROs lines loaded: ${allLineRows.length}` });
 
     } catch (err: unknown) {
       console.error('Failed to fetch ROs', err);
