@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Plus, Trash2, ChevronDown, ChevronUp, Crown, Star, Mail, Loader2, User, Building2, DollarSign, Target, Shield, LogOut, Bell } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Crown, Star, Mail, Loader2, User, Building2, DollarSign, Target, Shield, LogOut, Bell, Camera, ArrowLeft } from 'lucide-react';
 import { useGoalNotifications } from '@/hooks/useGoalNotifications';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
@@ -63,6 +63,8 @@ export function SettingsTab() {
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const [settingsView, setSettingsView] = useLocalStorageState<'settings' | 'profile'>('ui.settings.view.v2', 'settings');
+  const [profileImage, setProfileImage] = useLocalStorageState<string | null>('ui.settings.profile.image.v1', null);
+  const profileImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [localDailyGoal, setLocalDailyGoal] = useState('');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState('');
@@ -248,6 +250,49 @@ export function SettingsTab() {
   };
 
   const avatarInitial = (syncedSettings.displayName || user?.email || '?').charAt(0).toUpperCase();
+  const totalLaborHours = ros.reduce((sum, ro) => (
+    sum + ro.lines.reduce((lineSum, line) => lineSum + (line.hoursPaid || 0), 0)
+  ), 0);
+  const averageROTotal = ros.length > 0 ? totalLaborHours / ros.length : 0;
+  const advisorTotals = ros.reduce<Record<string, { count: number; hours: number }>>((acc, ro) => {
+    const advisorKey = (ro.advisor || 'Unassigned').trim() || 'Unassigned';
+    const roHours = ro.lines.reduce((lineSum, line) => lineSum + (line.hoursPaid || 0), 0);
+    const existing = acc[advisorKey] || { count: 0, hours: 0 };
+    acc[advisorKey] = {
+      count: existing.count + 1,
+      hours: existing.hours + roHours,
+    };
+    return acc;
+  }, {});
+  const averagePerAdvisor = Object.keys(advisorTotals).length > 0
+    ? Object.values(advisorTotals).reduce((sum, advisor) => sum + (advisor.hours / advisor.count), 0) / Object.keys(advisorTotals).length
+    : 0;
+  const dayTotals = ros.reduce<Record<string, number>>((acc, ro) => {
+    if (!ro.date) return acc;
+    const roHours = ro.lines.reduce((lineSum, line) => lineSum + (line.hoursPaid || 0), 0);
+    acc[ro.date] = (acc[ro.date] || 0) + roHours;
+    return acc;
+  }, {});
+  const averageDailyLaborTotal = Object.keys(dayTotals).length > 0
+    ? Object.values(dayTotals).reduce((sum, dayTotal) => sum + dayTotal, 0) / Object.keys(dayTotals).length
+    : 0;
+  const weekTotals = ros.reduce<Record<string, number>>((acc, ro) => {
+    if (!ro.date) return acc;
+    const parsedDate = new Date(`${ro.date}T00:00:00`);
+    if (Number.isNaN(parsedDate.getTime())) return acc;
+    const dayOfWeek = parsedDate.getDay();
+    const start = new Date(parsedDate);
+    start.setDate(parsedDate.getDate() - dayOfWeek);
+    const weekKey = start.toISOString().slice(0, 10);
+    const roHours = ro.lines.reduce((lineSum, line) => lineSum + (line.hoursPaid || 0), 0);
+    acc[weekKey] = (acc[weekKey] || 0) + roHours;
+    return acc;
+  }, {});
+  const averageWeeklyTotal = Object.keys(weekTotals).length > 0
+    ? Object.values(weekTotals).reduce((sum, weekTotal) => sum + weekTotal, 0) / Object.keys(weekTotals).length
+    : 0;
+
+  const formatHours = (value: number) => `${value.toFixed(2)} hrs`;
 
   const parseNonNegative = (value: string) => {
     const parsed = parseFloat(value);
@@ -574,10 +619,6 @@ export function SettingsTab() {
               <p className="text-xs text-muted-foreground">support@ronavigator.com</p>
             </div>
           </button>
-          <div className="px-4 py-3 border-t border-border/40">
-            <p className="text-sm font-medium">RO Navigator</p>
-            <p className="text-xs text-muted-foreground">Product settings and profile are now separated for clearer management.</p>
-          </div>
         </SettingsGroup>
       </SettingsSection>
     </div>
@@ -591,8 +632,42 @@ export function SettingsTab() {
       >
         <SettingsGroup title="Account overview">
           <div className="px-4 py-4 flex items-start gap-3">
-            <div className="h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
-              {avatarInitial}
+            <div className="relative">
+              <button
+                className="h-12 w-12 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary"
+                onClick={() => profileImageInputRef.current?.click()}
+                title="Change profile photo"
+              >
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
+                ) : avatarInitial}
+              </button>
+              <button
+                className="absolute -right-1 -bottom-1 h-5 w-5 rounded-full bg-background border border-border flex items-center justify-center"
+                onClick={() => profileImageInputRef.current?.click()}
+                title="Upload photo"
+              >
+                <Camera className="h-3 w-3 text-muted-foreground" />
+              </button>
+              <input
+                ref={profileImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    if (typeof reader.result === 'string') {
+                      setProfileImage(reader.result);
+                      toast.success('Profile image updated');
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                  event.target.value = '';
+                }}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold truncate">{syncedSettings.displayName || 'Set your name'}</p>
@@ -623,6 +698,20 @@ export function SettingsTab() {
           )}
 
           <div className="border-t border-border/40 px-4 py-4 space-y-3.5">
+            <div className={cn('grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
+              {[
+                { label: 'Average RO totals', value: formatHours(averageROTotal) },
+                { label: 'Average per advisor', value: formatHours(averagePerAdvisor) },
+                { label: 'Average day labor totals', value: formatHours(averageDailyLaborTotal) },
+                { label: 'Average week totals', value: formatHours(averageWeeklyTotal) },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-md border border-border/50 px-3 py-2.5 bg-muted/[0.2]">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">{stat.label}</p>
+                  <p className="text-sm font-semibold mt-1">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+
             <div className={cn('grid gap-4', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
               <DesktopInlineField
                 icon={<User className="h-3.5 w-3.5" />}
@@ -704,27 +793,27 @@ export function SettingsTab() {
             <h1 className="text-[18px] font-bold tracking-tight">Settings</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Professional, organized controls for your workspace and account.</p>
           </div>
-          <div className="inline-flex items-center rounded-lg border border-border/70 bg-muted/40 p-1">
-            {[
-              { value: 'settings', label: 'Settings' },
-              { value: 'profile', label: 'Profile' },
-            ].map((tab) => {
-              const active = settingsView === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  onClick={() => setSettingsView(tab.value as 'settings' | 'profile')}
-                  className={cn(
-                    'h-8 px-4 rounded-md text-xs font-semibold transition-all',
-                    active
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
-                  )}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            {settingsView === 'profile' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setSettingsView('settings')}
+              >
+                <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                Settings
+              </Button>
+            )}
+            <button
+              onClick={() => setSettingsView('profile')}
+              className="h-10 w-10 rounded-full overflow-hidden border border-border/70 bg-muted/40 flex items-center justify-center text-xs font-bold"
+              title="Open profile"
+            >
+              {profileImage ? (
+                <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
+              ) : avatarInitial}
+            </button>
           </div>
         </div>
       </div>
