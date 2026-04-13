@@ -346,7 +346,7 @@ export function DesktopWorkspace() {
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
         <div className="flex items-center min-w-0 gap-2.5">
-          <HeaderLogo height={52} />
+          <HeaderLogo height={58} />
         </div>
 
         {/* Right-side toolbar — utility items only; nav moved to NavTabBar */}
