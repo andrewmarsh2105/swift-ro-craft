@@ -168,7 +168,7 @@ export function DetailsCollapsible({
                   type="text"
                   value={customerName}
                   onChange={(e) => onCustomerNameChange(e.target.value)}
-                  placeholder="Customer name (optional)"
+                  placeholder="Customer name"
                   className="h-8 min-w-0 flex-1 basis-[260px] px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -219,7 +219,7 @@ export function DetailsCollapsible({
                   type="text"
                   value={vehicle.vin || ''}
                   onChange={(e) => onVehicleChange({ ...vehicle, vin: e.target.value.toUpperCase() })}
-                  placeholder="VIN (optional)"
+                  placeholder="VIN"
                   maxLength={17}
                   className="h-8 min-w-[220px] flex-1 px-2 bg-muted rounded font-mono text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -231,7 +231,7 @@ export function DetailsCollapsible({
                   inputMode="numeric"
                   value={mileage}
                   onChange={(e) => onMileageChange(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Mileage (optional)"
+                  placeholder="Mileage"
                   className="h-8 w-28 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -285,7 +285,7 @@ export function DetailsCollapsible({
                   type="text"
                   value={customerName}
                   onChange={(e) => onCustomerNameChange(e.target.value)}
-                  placeholder="Name (optional)"
+                  placeholder="Name"
                   className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -335,7 +335,7 @@ export function DetailsCollapsible({
                   type="text"
                   value={vehicle.vin || ''}
                   onChange={(e) => onVehicleChange({ ...vehicle, vin: e.target.value.toUpperCase() })}
-                  placeholder="VIN (optional)"
+                  placeholder="VIN"
                   maxLength={17}
                   className="flex-1 h-8 px-2 bg-muted rounded text-xs font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -347,7 +347,7 @@ export function DetailsCollapsible({
                   inputMode="numeric"
                   value={mileage}
                   onChange={(e) => onMileageChange(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Optional"
+                  placeholder="Mileage"
                   className="w-24 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
