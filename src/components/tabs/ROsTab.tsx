@@ -144,8 +144,8 @@ const ROCard = memo(function ROCard({
         isSelected
           ? 'list-row-selected bg-primary/[0.2] border-primary/65 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.5),0_2px_8px_hsl(var(--primary)/0.14)]'
           : rowTone === 'alt'
-            ? 'bg-primary/[0.06] border-primary/20'
-            : 'bg-background border-border/70',
+            ? 'bg-primary/[0.14] border-primary/35 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]'
+            : 'bg-white border-border/80 shadow-[inset_0_0_0_1px_hsl(var(--border)/0.45)] dark:bg-card',
       )}
       style={{ borderLeftColor: accentColor, borderLeftWidth: '3px' }}
     >
@@ -153,8 +153,8 @@ const ROCard = memo(function ROCard({
         className={cn(
           "flex items-stretch gap-0 cursor-pointer transition-colors duration-100",
           isSelected
-            ? "hover:bg-primary/[0.24] active:bg-primary/[0.28]"
-            : "hover:bg-primary/[0.14] active:bg-primary/[0.2]",
+            ? "hover:bg-amber-200/70 active:bg-amber-300/70"
+            : "hover:bg-amber-100/80 active:bg-amber-200/75",
         )}
         onClick={() => onViewDetails(ro)}
       >

@@ -80,10 +80,10 @@ const LineRow = memo(function LineRow({
         line.isCarryover && 'opacity-60',
         line.lineNo === 1 && 'border-t border-border/40',
         isSelected
-          ? 'bg-primary/[0.13] hover:bg-primary/[0.18] border-l-[3px] border-l-primary'
+          ? 'bg-primary/[0.18] hover:bg-amber-200/70 border-l-[3px] border-l-primary'
           : cn(
               line.isCarryover ? 'bg-muted/20 hover:bg-muted/30' : rowBg,
-              'hover:bg-primary/[0.12] border-l-[3px]',
+              'hover:bg-amber-100/80 border-l-[3px]',
               line.isCarryover ? 'border-l-border border-l-dashed' : borderColorClass,
             ),
       )}
@@ -159,8 +159,8 @@ const MobileLineCard = memo(function MobileLineCard({
         line.isCarryover
           ? 'opacity-60 bg-muted/[0.14]'
           : (isSelected
-            ? 'bg-primary/[0.13]'
-            : (rowTone === 'alt' ? 'bg-muted/[0.28]' : 'bg-card/95')),
+            ? 'bg-primary/[0.18]'
+            : (rowTone === 'alt' ? 'bg-primary/[0.14]' : 'bg-white dark:bg-card')),
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
@@ -832,7 +832,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Helpers ─── */
   const getRowBg = (groupIndex: number) =>
-    groupIndex % 2 === 1 ? 'bg-primary/[0.055]' : 'bg-card/95';
+    groupIndex % 2 === 1
+      ? 'bg-primary/[0.14]'
+      : 'bg-white dark:bg-card shadow-[inset_0_0_0_1px_hsl(var(--border)/0.32)]';
 
   const showCheckbox = selectionMode || selectedROIds.size > 0;
 
