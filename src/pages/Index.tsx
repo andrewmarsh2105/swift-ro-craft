@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 
@@ -20,6 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";
 import { useFlagContext } from "@/contexts/FlagContext";
+import { useRO } from "@/contexts/ROContext";
 import type { RepairOrder } from "@/types/ro";
 
 const SummaryTab = lazy(() =>
@@ -45,6 +46,11 @@ function TabFallback() {
 function MobileApp() {
   const navigate = useNavigate();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pullStartY = useRef<number | null>(null);
+  const isPullTracking = useRef(false);
+  const mainRef = useRef<HTMLElement | null>(null);
 
   const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "settings">(
     "ui.mobile.activeTab.v1",
@@ -56,9 +62,11 @@ function MobileApp() {
   );
 
   useGoalNotifications();
+  const { refreshROs } = useRO();
 
   const { userSettings } = useFlagContext();
   const avatarInitial = (userSettings.displayName || '').trim().charAt(0).toUpperCase() || '?';
+  const PULL_REFRESH_THRESHOLD = 180;
 
   const handleEditRO = (ro: RepairOrder) => {
     navigate("/add-ro", { state: { editingROId: ro.id } });
@@ -79,6 +87,40 @@ function MobileApp() {
     setActiveTab('settings');
   };
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    if (event.touches.length !== 1 || isRefreshing) return;
+    if ((mainRef.current?.scrollTop || 0) > 0) return;
+    pullStartY.current = event.touches[0].clientY;
+    isPullTracking.current = true;
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLElement>) => {
+    if (!isPullTracking.current || pullStartY.current === null) return;
+    const deltaY = event.touches[0].clientY - pullStartY.current;
+    if (deltaY <= 0) {
+      setPullDistance(0);
+      return;
+    }
+
+    const damped = Math.min(deltaY * 0.45, 220);
+    setPullDistance(damped);
+  };
+
+  const handleTouchEnd = async () => {
+    const shouldRefresh = pullDistance >= PULL_REFRESH_THRESHOLD;
+    isPullTracking.current = false;
+    pullStartY.current = null;
+    setPullDistance(0);
+
+    if (!shouldRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refreshROs();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <TrialCountdownBanner />
@@ -94,7 +136,26 @@ function MobileApp() {
           {avatarInitial}
         </button>
       </header>
-      <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(var(--tab-bar-height) + var(--safe-area-inset-bottom))' }}>
+      <main
+        ref={mainRef}
+        className="flex-1 overflow-auto"
+        style={{ paddingBottom: 'calc(var(--tab-bar-height) + var(--safe-area-inset-bottom))' }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+      >
+        {(pullDistance > 0 || isRefreshing) && (
+          <div className="sticky top-0 z-10 flex justify-center pointer-events-none">
+            <div className="mt-2 rounded-full border border-border/60 bg-background/95 px-3 py-1 text-xs text-muted-foreground shadow-sm">
+              {isRefreshing
+                ? "Refreshing ROs…"
+                : pullDistance >= PULL_REFRESH_THRESHOLD
+                  ? "Release to refresh"
+                  : "Pull down hard to refresh"}
+            </div>
+          </div>
+        )}
         {activeTab === "ros" && (
           <PanelErrorBoundary label="ROs">
             <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />
