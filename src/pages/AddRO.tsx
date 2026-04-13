@@ -335,6 +335,10 @@ export default function AddRO() {
     }, 400);
   }, [addPresetLine]);
 
+  const returnToDashboard = useCallback(() => {
+    navigate('/', { replace: true });
+  }, [navigate]);
+
   const handleSave = async (addAnother: boolean = false) => {
     if (isSaving || postSaveStatusPrompt.isSavingChoice) return;
     if (!roNumber.trim()) { toast.error('RO number is required'); return; }
@@ -376,7 +380,7 @@ export default function AddRO() {
               setLines([createEmptyLine(1)]);
               initialSnapshotRef.current = null; // will be set on next render
             } else {
-              goBackOrFallback(navigate);
+              returnToDashboard();
             }
           },
         });
