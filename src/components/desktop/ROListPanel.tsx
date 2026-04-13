@@ -555,11 +555,11 @@ export const ROListPanel = memo(function ROListPanel({
                         rowPy,
                         gridCols,
                         selected
-                          ? "list-row-selected bg-primary/[0.2] hover:bg-primary/[0.24] border-primary/60 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.55),0_2px_8px_hsl(var(--primary)/0.12)]"
+                          ? "list-row-selected bg-primary/[0.2] hover:bg-amber-200/70 border-primary/60 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.55),0_2px_8px_hsl(var(--primary)/0.12)]"
                           : cn(
                             index % 2 === 0
-                              ? "bg-background border-border/60 hover:bg-primary/[0.14] hover:border-primary/45"
-                              : "bg-primary/[0.06] border-primary/20 hover:bg-primary/[0.14] hover:border-primary/45",
+                              ? "bg-white border-border/70 hover:bg-amber-100/80 hover:border-amber-300/60 dark:bg-card"
+                              : "bg-primary/[0.14] border-primary/35 hover:bg-amber-100/80 hover:border-amber-300/60",
                           ),
                       )}
                       style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}
