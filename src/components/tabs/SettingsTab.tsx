@@ -9,7 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { useNavigate } from 'react-router-dom';
-import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { Preset, LaborType, Advisor } from '@/types/ro';
@@ -30,10 +29,10 @@ const _adminCache = new Map<string, boolean>();
 
 function SettingsSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-3">
-      <div className="space-y-1">
-        <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+    <section className="space-y-4">
+      <div className="space-y-1.5">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground/95">{title}</h2>
+        {description ? <p className="text-xs text-muted-foreground leading-relaxed">{description}</p> : null}
       </div>
       {children}
     </section>
@@ -115,9 +114,12 @@ export function SettingsTab() {
 
   useEffect(() => {
     return () => {
-      if (goalSavedTimerRef.current) clearTimeout(goalSavedTimerRef.current);
-      if (nameTimerRef.current) clearTimeout(nameTimerRef.current);
-      if (shopTimerRef.current) clearTimeout(shopTimerRef.current);
+      const goalTimer = goalSavedTimerRef.current;
+      const nameTimer = nameTimerRef.current;
+      const shopTimer = shopTimerRef.current;
+      if (goalTimer) clearTimeout(goalTimer);
+      if (nameTimer) clearTimeout(nameTimer);
+      if (shopTimer) clearTimeout(shopTimer);
     };
   }, []);
 
@@ -380,7 +382,7 @@ export function SettingsTab() {
   );
 
   const renderSettings = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SettingsSection
         title="Display & Workflow"
         description="Control appearance and repair-order behavior across desktop and mobile."
@@ -507,12 +509,12 @@ export function SettingsTab() {
 
       <SettingsSection
         title="Data & Support"
-        description="Export data, handle destructive actions, and contact support."
+        description="Back up your data, manage resets safely, and reach support quickly."
       >
-        <SettingsGroup title="Backup & reset">
+        <SettingsGroup title="Backup">
           <SettingsRow
             label="Download backup"
-            description="Export all ROs as JSON"
+            description="Export all repair orders as a JSON backup file"
             onClick={() => {
               if (ros.length === 0) { toast.info('No ROs to export'); return; }
               const exportData = ros.map(ro => ({
@@ -534,11 +536,14 @@ export function SettingsTab() {
               toast.success(`Exported ${ros.length} ROs`);
             }}
           />
-          <div className="w-full px-4 py-3 flex items-center justify-between bg-destructive/[0.03] border-t border-border/40">
+        </SettingsGroup>
+
+        <SettingsGroup title="Danger zone">
+          <div className="w-full px-4 py-3.5 flex items-center justify-between bg-destructive/[0.04]">
             <div>
-              <span className="text-sm font-medium text-destructive">Clear all ROs</span>
+              <span className="text-sm font-medium text-destructive">Clear all repair orders</span>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
+                Permanently deletes {ros.length} RO{ros.length !== 1 ? 's' : ''} from this workspace
               </p>
             </div>
             <Button
@@ -546,7 +551,7 @@ export function SettingsTab() {
               size="sm"
               onClick={handleClearAllClick}
               disabled={ros.length === 0}
-              className="h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+              className="h-8 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" />
               Clear
@@ -579,7 +584,7 @@ export function SettingsTab() {
   );
 
   const renderProfile = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SettingsSection
         title="Profile"
         description="Manage your identity, subscription status, and account access."
@@ -617,7 +622,7 @@ export function SettingsTab() {
             </div>
           )}
 
-          <div className="border-t border-border/40 px-4 py-4 space-y-3">
+          <div className="border-t border-border/40 px-4 py-4 space-y-3.5">
             <div className={cn('grid gap-4', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
               <DesktopInlineField
                 icon={<User className="h-3.5 w-3.5" />}
@@ -643,12 +648,14 @@ export function SettingsTab() {
               />
             </div>
 
-            <div className="rounded-md border border-border/50 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Email</p>
+            <div className="rounded-md border border-border/50 px-3 py-2.5 bg-muted/[0.25]">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Email address</p>
               <p className="text-sm">{user?.email || 'No email available'}</p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="space-y-2.5 pt-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">Account actions</p>
+              <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant={isPro ? 'outline' : 'default'}
                 size="sm"
@@ -681,6 +688,7 @@ export function SettingsTab() {
                 <LogOut className="h-3.5 w-3.5 mr-1" />
                 Sign out
               </Button>
+              </div>
             </div>
           </div>
         </SettingsGroup>
@@ -696,18 +704,32 @@ export function SettingsTab() {
             <h1 className="text-[18px] font-bold tracking-tight">Settings</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Professional, organized controls for your workspace and account.</p>
           </div>
-          <SegmentedControl
-            options={[
+          <div className="inline-flex items-center rounded-lg border border-border/70 bg-muted/40 p-1">
+            {[
               { value: 'settings', label: 'Settings' },
               { value: 'profile', label: 'Profile' },
-            ]}
-            value={settingsView}
-            onChange={(v) => setSettingsView(v as 'settings' | 'profile')}
-          />
+            ].map((tab) => {
+              const active = settingsView === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setSettingsView(tab.value as 'settings' | 'profile')}
+                  className={cn(
+                    'h-8 px-4 rounded-md text-xs font-semibold transition-all',
+                    active
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className={cn('max-w-5xl mx-auto w-full', isMobile ? 'p-4 pb-32' : 'p-5')}>
+      <div className={cn('max-w-5xl mx-auto w-full', isMobile ? 'p-4 pb-32' : 'p-6')}>
         {settingsView === 'settings' ? renderSettings() : renderProfile()}
       </div>
 
