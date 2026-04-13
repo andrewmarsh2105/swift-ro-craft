@@ -117,12 +117,12 @@ export default function Landing() {
             <img
               src={LANDING_WHITE_LOGO_SRC}
               alt="RO Navigator"
-              width={Math.round((48 / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={48}
+              width={Math.round((56 / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={56}
               loading="eager"
               decoding="async"
               draggable={false}
-              className="block h-[48px] w-auto shrink-0 select-none"
+              className="block h-[56px] w-auto shrink-0 select-none"
             />
           </Link>
           <nav className="flex items-center gap-1.5">
