@@ -1105,13 +1105,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 <div
                   key={`rosub-${i}`}
                   className={cn(
-                    'flex items-center justify-between px-3 py-2.5 border-x border-b border-border/40 border-t border-border/30 rounded-b-md mb-3',
+                    'flex items-center justify-between px-3 py-2.5 border-x border-b border-border/45 border-t border-border/40 rounded-b-md mb-3 shadow-[0_2px_8px_-6px_hsl(var(--foreground)/0.35)]',
                     tone === 'alt' ? 'bg-muted/[0.34]' : 'bg-accent/25',
                   )}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">Total</span>
                     <span className="text-[11px] font-semibold text-muted-foreground">{sub.label}</span>
+                    {sub.lineCount != null && (
+                      <span className="text-[10px] text-muted-foreground/80">• {sub.lineCount} lines paid</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {(sub.cpHours! > 0 || sub.wHours! > 0 || sub.iHours! > 0) && (
@@ -1244,9 +1247,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   }
 
                   return (
-                    <tr key={`rosub-${i}`} className="bg-accent/20 border-y border-border/40">
+                    <tr key={`rosub-${i}`} className="bg-accent/25 border-y border-border/50 shadow-[inset_0_1px_0_hsl(var(--background)/0.7)]">
                       <td colSpan={spanCols} className={cn(cellPx, 'py-[3px]', 'font-semibold text-muted-foreground text-[10px] text-right tracking-wide')}>
-                        {sub.label}
+                        <span>{sub.label}</span>
+                        {sub.lineCount != null && (
+                          <span className="ml-2 text-[9px] font-medium text-muted-foreground/80 normal-case tracking-normal">
+                            {sub.lineCount} lines paid
+                          </span>
+                        )}
                       </td>
                       <td className={cn(cellPx, 'py-[3px]', 'text-right tabular-nums font-bold text-primary text-xs')}>
                         {maskHours(sub.hours, hideTotals)}h

@@ -40,6 +40,7 @@ export interface SpreadsheetSubtotalRow {
   groupIndex: number;
   label: string;
   hours: number;
+  lineCount?: number;
   cpHours?: number;
   wHours?: number;
   iHours?: number;
@@ -86,9 +87,10 @@ function emitROLines(
   rows: SpreadsheetRow[],
   groupIndex: number,
   isOpen: boolean,
-): { total: number; cp: number; w: number; i: number } {
+): { total: number; cp: number; w: number; i: number; lineCount: number } {
   let roTotal = 0, roCP = 0, roW = 0, roI = 0;
   const hasLines = ro.lines?.length > 0;
+  const lineCount = hasLines ? ro.lines.length : 1;
   // Open ROs use ro.date; paid ROs show paidDate as the effective date.
   const displayDate = normalizePaidDate(ro.paidDate) ?? ro.date;
 
@@ -136,7 +138,7 @@ function emitROLines(
     });
   }
 
-  return { total: roTotal, cp: roCP, w: roW, i: roI };
+  return { total: roTotal, cp: roCP, w: roW, i: roI, lineCount };
 }
 
 function pushPeriodSubtotal(rows: SpreadsheetRow[], periodLabel: string | undefined, hours: number, cp: number, w: number, i: number) {
@@ -163,7 +165,7 @@ function buildOpenSection(openROs: RepairOrder[], rows: SpreadsheetRow[], startG
     rows.push({
       rowType: 'roSubtotal', groupIndex,
       label: `RO #${ro.roNumber} (open)`,
-      hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i,
+      hours: t.total, lineCount: t.lineCount, cpHours: t.cp, wHours: t.w, iHours: t.i,
       isCarryover: true,
     });
     groupIndex++;
@@ -197,7 +199,7 @@ function buildGroupedByDate(paidROs: RepairOrder[], openROs: RepairOrder[], peri
 
     for (const ro of dateROs) {
       const t = emitROLines(ro, rows, groupIndex, false);
-      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, lineCount: t.lineCount, cpHours: t.cp, wHours: t.w, iHours: t.i });
       dT += t.total; dCP += t.cp; dW += t.w; dI += t.i;
       groupIndex++;
     }
@@ -222,7 +224,7 @@ function buildGroupedByRO(paidROs: RepairOrder[], openROs: RepairOrder[], period
 
   for (const ro of sorted) {
     const t = emitROLines(ro, rows, groupIndex, false);
-    rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+    rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, lineCount: t.lineCount, cpHours: t.cp, wHours: t.w, iHours: t.i });
     pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
     groupIndex++;
   }
@@ -256,7 +258,7 @@ function buildGroupedByAdvisor(paidROs: RepairOrder[], openROs: RepairOrder[], p
 
     for (const ro of advROs) {
       const t = emitROLines(ro, rows, groupIndex, false);
-      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, cpHours: t.cp, wHours: t.w, iHours: t.i });
+      rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, lineCount: t.lineCount, cpHours: t.cp, wHours: t.w, iHours: t.i });
       aT += t.total; aCP += t.cp; aW += t.w; aI += t.i;
       groupIndex++;
     }
@@ -286,6 +288,7 @@ function buildFlat(paidROs: RepairOrder[], openROs: RepairOrder[], periodLabel?:
 
   for (const ro of sorted) {
     const t = emitROLines(ro, rows, groupIndex, false);
+    rows.push({ rowType: 'roSubtotal', groupIndex, label: `RO #${ro.roNumber} total`, hours: t.total, lineCount: t.lineCount, cpHours: t.cp, wHours: t.w, iHours: t.i });
     pT += t.total; pCP += t.cp; pW += t.w; pI += t.i;
     groupIndex++;
   }
@@ -358,6 +361,7 @@ export function buildSpreadsheetRowsFromSnapshot(
         groupIndex,
         label: `RO #${ro.roNumber} total`,
         hours: roTotal,
+        lineCount: ro.lines.length || 1,
         cpHours: roCP,
         wHours: roW,
         iHours: roI,
