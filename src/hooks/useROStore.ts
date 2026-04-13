@@ -994,6 +994,10 @@ export function useROStore() {
     }
   }, [userId]);
 
+  const refreshROs = useCallback(async () => {
+    await fetchROs();
+  }, [fetchROs]);
+
   return {
     ros,
     settings,
@@ -1032,5 +1036,6 @@ export function useROStore() {
     getAdvisorSummaries,
     getWeekTotal,
     seedSampleData,
+    refreshROs,
   };
 }
