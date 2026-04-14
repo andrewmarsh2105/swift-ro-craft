@@ -115,10 +115,11 @@ export function SettingsTab() {
   }, [user]);
 
   useEffect(() => {
+    const goalTimer = goalSavedTimerRef.current;
+    const nameTimer = nameTimerRef.current;
+    const shopTimer = shopTimerRef.current;
+
     return () => {
-      const goalTimer = goalSavedTimerRef.current;
-      const nameTimer = nameTimerRef.current;
-      const shopTimer = shopTimerRef.current;
       if (goalTimer) clearTimeout(goalTimer);
       if (nameTimer) clearTimeout(nameTimer);
       if (shopTimer) clearTimeout(shopTimer);
