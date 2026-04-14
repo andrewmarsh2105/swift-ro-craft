@@ -142,7 +142,7 @@ const ROCard = memo(function ROCard({
       className={cn(
         "ro-row-card relative overflow-hidden group rounded-lg border shadow-[0_1px_0_hsl(var(--foreground)/0.03)]",
         isSelected
-          ? 'list-row-selected bg-primary/[0.2] border-primary/65 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.5),0_2px_8px_hsl(var(--primary)/0.14)]'
+          ? 'list-row-selected bg-amber-100/90 border-amber-500/80 ring-2 ring-amber-400/70 shadow-[inset_0_0_0_1px_hsl(var(--brand-amber)/0.45),0_3px_14px_hsl(var(--brand-amber)/0.2)] dark:bg-amber-950/30 dark:border-amber-400/70 dark:ring-amber-500/55'
           : rowTone === 'alt'
             ? 'bg-primary/[0.14] border-primary/35 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]'
             : 'bg-white border-border/80 shadow-[inset_0_0_0_1px_hsl(var(--border)/0.45)] dark:bg-card',
@@ -153,7 +153,7 @@ const ROCard = memo(function ROCard({
         className={cn(
           "flex items-stretch gap-0 cursor-pointer transition-colors duration-100",
           isSelected
-            ? "hover:bg-amber-200/70 active:bg-amber-300/70"
+            ? "hover:bg-amber-200/90 active:bg-amber-300/90 dark:hover:bg-amber-900/35 dark:active:bg-amber-900/50"
             : "hover:bg-amber-100/80 active:bg-amber-200/75",
         )}
         onClick={() => onViewDetails(ro)}

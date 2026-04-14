@@ -555,7 +555,7 @@ export const ROListPanel = memo(function ROListPanel({
                         rowPy,
                         gridCols,
                         selected
-                          ? "list-row-selected bg-primary/[0.2] hover:bg-amber-200/70 border-primary/60 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.55),0_2px_8px_hsl(var(--primary)/0.12)]"
+                          ? "list-row-selected bg-amber-100/90 hover:bg-amber-200/90 border-amber-500/80 ring-2 ring-amber-400/65 shadow-[inset_0_0_0_1px_hsl(var(--brand-amber)/0.45),0_3px_12px_hsl(var(--brand-amber)/0.2)] dark:bg-amber-950/30 dark:hover:bg-amber-900/35 dark:border-amber-400/70 dark:ring-amber-500/50"
                           : cn(
                             index % 2 === 0
                               ? "bg-white border-border/70 hover:bg-amber-100/80 hover:border-amber-300/60 dark:bg-card"
