@@ -20,10 +20,33 @@ interface PersistedState {
   customEnd?: string;
 }
 
+const VALID_DATE_FILTERS: DateFilterKey[] = ['all', 'today', 'last_week', 'week', 'month', 'pay_period', 'last_pay_period', 'custom'];
+
+function isDateFilterKey(value: unknown): value is DateFilterKey {
+  return typeof value === 'string' && VALID_DATE_FILTERS.includes(value as DateFilterKey);
+}
+
+function isISODate(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function normalizePersistedState(value: unknown): PersistedState | null {
+  if (!value || typeof value !== 'object') return null;
+  const parsed = value as Partial<PersistedState>;
+  if (!isDateFilterKey(parsed.dateFilter)) return null;
+
+  return {
+    dateFilter: parsed.dateFilter,
+    customStart: isISODate(parsed.customStart) ? parsed.customStart : undefined,
+    customEnd: isISODate(parsed.customEnd) ? parsed.customEnd : undefined,
+  };
+}
+
 function readLS(): PersistedState | null {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as PersistedState) : null;
+    if (!raw) return null;
+    return normalizePersistedState(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -65,7 +88,8 @@ export function useSharedDateRange(initial: DateFilterKey = 'week', ownerId?: st
     const handler = (e: StorageEvent) => {
       if (e.key !== LS_KEY || !e.newValue) return;
       try {
-        const next = JSON.parse(e.newValue) as PersistedState;
+        const next = normalizePersistedState(JSON.parse(e.newValue));
+        if (!next) return;
         const nextFilter = payPeriodSettings
           ? normalizeDateFilterForPayPeriod(next.dateFilter, payPeriodSettings)
           : next.dateFilter;
