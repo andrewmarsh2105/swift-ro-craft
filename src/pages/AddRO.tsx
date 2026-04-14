@@ -50,11 +50,17 @@ export default function AddRO() {
 
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   const [advisorSearch, setAdvisorSearch] = useState('');
-  const [showScanFlow, setShowScanFlow] = useState(() => !!openScanOnMount);
+  const [showScanFlow, setShowScanFlow] = useState(false);
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [showProUpgrade, setShowProUpgrade] = useState(false);
+
+  useEffect(() => {
+    if (openScanOnMount) {
+      setShowScanFlow(true);
+    }
+  }, [openScanOnMount, location.key]);
 
   // Long-press preset hours sheet
   const [longPressPreset, setLongPressPreset] = useState<Preset | null>(null);

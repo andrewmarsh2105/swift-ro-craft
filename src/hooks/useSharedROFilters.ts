@@ -19,6 +19,12 @@ const DEFAULT_FILTERS: SharedROFiltersState = {
   payStatus: 'all',
 };
 
+const VALID_LABOR_TYPES: LaborType[] = ['warranty', 'customer-pay', 'internal'];
+
+function isLaborType(value: unknown): value is LaborType {
+  return typeof value === 'string' && VALID_LABOR_TYPES.includes(value as LaborType);
+}
+
 function readLS(): SharedROFiltersState {
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -26,8 +32,10 @@ function readLS(): SharedROFiltersState {
     const parsed = JSON.parse(raw) as Partial<SharedROFiltersState>;
     return {
       searchQuery: typeof parsed.searchQuery === 'string' ? parsed.searchQuery : '',
-      advisors: Array.isArray(parsed.advisors) ? parsed.advisors : [],
-      laborTypes: Array.isArray(parsed.laborTypes) ? parsed.laborTypes as LaborType[] : [],
+      advisors: Array.isArray(parsed.advisors)
+        ? parsed.advisors.filter((advisor): advisor is string => typeof advisor === 'string')
+        : [],
+      laborTypes: Array.isArray(parsed.laborTypes) ? parsed.laborTypes.filter(isLaborType) : [],
       payStatus: (parsed.payStatus === 'paid' || parsed.payStatus === 'open') ? parsed.payStatus : 'all',
     };
   } catch {
