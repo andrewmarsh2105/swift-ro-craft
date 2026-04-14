@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Camera, Image, Upload, Loader2, AlertCircle, RefreshCw, FileText, ChevronDown, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -54,6 +54,8 @@ const resetViewportZoom = () => {
 
 export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, existingLineDescriptions = [] }: ScanFlowProps) {
   const isMobile = useIsMobile();
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const photosInputRef = useRef<HTMLInputElement | null>(null);
 
   // Detect landscape orientation so we can block scanning in that mode
   const [isLandscape, setIsLandscape] = useState(() => {
@@ -399,28 +401,38 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div className="flex gap-3 p-4">
-            <label className="flex-1 min-h-[56px] bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex-1 min-h-[56px] bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform"
+            >
               <Camera className="h-5 w-5" />
               Take Photo
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={onFileChange}
-                className="hidden"
-              />
-            </label>
-            <label className="min-h-[56px] px-6 bg-secondary text-secondary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform">
+            </button>
+            <button
+              type="button"
+              onClick={() => photosInputRef.current?.click()}
+              className="min-h-[56px] px-6 bg-secondary text-secondary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform"
+            >
               <Image className="h-5 w-5" />
               Photos
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onFileChange}
-                className="hidden"
-              />
-            </label>
+            </button>
           </div>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={onFileChange}
+            className="hidden"
+          />
+          <input
+            ref={photosInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onFileChange}
+            className="hidden"
+          />
         </div>
       )}
 
