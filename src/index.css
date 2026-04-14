@@ -415,7 +415,7 @@
   }
 
   .list-row-selected {
-    @apply bg-primary/[0.2] border-l-[3px] border-l-primary;
+    @apply border-l-[3px] border-l-amber-500;
   }
 
   .list-row-default {
