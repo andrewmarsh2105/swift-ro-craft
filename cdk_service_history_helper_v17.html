@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CDK Service History Helper V17</title>
+  <style>
+    :root {
+      --bg: #eef3f9;
+      --card: #ffffff;
+      --text: #17212f;
+      --muted: #627087;
+      --line: #d8e0eb;
+      --accent: #1d4ed8;
+      --good: #0f8a4b;
+      --good-bg: #edfdf3;
+      --warn: #b7791f;
+      --warn-bg: #fffaeb;
+      --bad: #c0362c;
+      --bad-bg: #fef3f2;
+      --neutral: #667085;
+      --neutral-bg: #f3f4f6;
+      --shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(29,78,216,0.06), transparent 24%),
+        linear-gradient(180deg, #f6f9fc 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+    .wrap { max-width: 1500px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 0 0 6px; font-size: 32px; letter-spacing: -0.02em; }
+    h2 { margin: 0 0 12px; font-size: 22px; letter-spacing: -0.01em; }
+    h3 { margin: 0; font-size: 18px; }
+    .sub { color: var(--muted); line-height: 1.5; margin-bottom: 18px; max-width: 1150px; }
+    .hero {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 16px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    label { display: block; font-weight: 700; margin: 12px 0 6px; }
+    textarea, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+    textarea:focus, input:focus {
+      border-color: #a7c0ff;
+      box-shadow: 0 0 0 4px rgba(29,78,216,0.08);
+    }
+    textarea {
+      min-height: 330px;
+      resize: vertical;
+      line-height: 1.38;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 680px) { .row { grid-template-columns: 1fr; } }
+    .btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(29,78,216,0.18);
+    }
+    button:hover { transform: translateY(-1px); }
+    button.secondary { background: #eaf0ff; color: #23428f; box-shadow: none; }
+    button.ghost { background: #eef2f6; color: #344054; box-shadow: none; }
+    .note, .foot { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    @media (max-width: 1200px) { .summary { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 700px) { .summary { grid-template-columns: repeat(2, 1fr); } }
+    .pillbox {
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .pillbox::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 4px;
+      background: linear-gradient(90deg, rgba(29,78,216,0.18), rgba(29,78,216,0));
+    }
+    .pillbox .num { font-size: 28px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.03em; }
+    .pillbox .lab { color: var(--muted); font-size: 13px; font-weight: 700; }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      margin-top: 16px;
+      align-items: start;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 16px;
+    }
+    @media (max-width: 980px) { .dashboard { grid-template-columns: 1fr; } }
+
+    .need-buckets { display: grid; gap: 14px; }
+    .bucket {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .bucket-head {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 800;
+      border-bottom: 1px solid var(--line);
+    }
+    .bucket-head.bad { background: linear-gradient(180deg, #fff4f2, #fff); color: var(--bad); }
+    .bucket-head.warn { background: linear-gradient(180deg, #fff9ea, #fff); color: var(--warn); }
+    .bucket-head.neutral { background: linear-gradient(180deg, #f7f8fa, #fff); color: var(--neutral); }
+    .bucket-count {
+      font-size: 12px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .compact-list { display: grid; gap: 10px; padding: 14px; }
+    .compact-item {
+      border-radius: 14px;
+      border-left: 6px solid var(--neutral);
+      background: var(--neutral-bg);
+      padding: 11px 12px;
+    }
+    .compact-item.bad { border-left-color: var(--bad); background: var(--bad-bg); }
+    .compact-item.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+    .compact-item.good { border-left-color: var(--good); background: var(--good-bg); }
+    .compact-item.neutral { border-left-color: var(--neutral); background: var(--neutral-bg); }
+
+    .compact-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .compact-name {
+      font-weight: 800;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .priority-chip, .confidence-chip {
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 4px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.84);
+      color: var(--muted);
+    }
+
+    .score-chip {
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 4px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.84);
+      color: var(--muted);
+    }
+
+    .priority-high { color: #8a2c0d; }
+    .priority-medium { color: #6b5a00; }
+    .priority-low { color: #4b5565; }
+
+    .confidence-high { color: #0f8a4b; }
+    .confidence-medium { color: #8a5a00; }
+    .confidence-low { color: #7a4a00; }
+    .confidence-none { color: #667085; }
+    .compact-status {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.82);
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    .compact-meta {
+      margin-top: 7px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 14px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: #fff;
+      margin: 14px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .section-title .small { font-size: 12px; color: var(--muted); font-weight: 700; }
+
+    .results-section { margin-top: 16px; }
+    .result {
+      border-radius: 18px;
+      padding: 16px;
+      margin-top: 12px;
+      border-left: 7px solid var(--neutral);
+      background: var(--neutral-bg);
+      box-shadow: var(--shadow);
+    }
+    .result.good { border-left-color: var(--good); background: var(--good-bg); }
+    .result.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+    .result.bad { border-left-color: var(--bad); background: var(--bad-bg); }
+    .result.neutral { border-left-color: var(--neutral); background: var(--neutral-bg); }
+
+    .tags { margin-top: 8px; margin-bottom: 8px; }
+    .tag {
+      display: inline-block;
+      margin-right: 8px;
+      margin-bottom: 6px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(0,0,0,.08);
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      margin: 10px 0;
+    }
+    @media (max-width: 1200px) { .meta { grid-template-columns: repeat(2, 1fr); } }
+    .meta div {
+      background: rgba(255,255,255,.76);
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 13px;
+    }
+    .meta strong {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    @media (max-width: 740px) { .split { grid-template-columns: 1fr; } }
+
+    .small-title {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+
+    .line {
+      background: rgba(255,255,255,.76);
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 10px;
+      padding: 9px;
+      margin-top: 8px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    details {
+      margin-top: 10px;
+      background: rgba(255,255,255,.76);
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    summary { cursor: pointer; font-weight: 700; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>CDK Service History Helper V17</h1>
+    <div class="sub">
+      Fine-tuned again around CDK export structure. This version uses opcodes, sold hours from detail lines, and dated History Detail blocks together, so completion detection is less dependent on exact wording.
+      Declined items only appear if they were <strong>not later completed</strong>.
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Paste History</h2>
+      <label for="historyText">CDK history / RO history</label>
+      <textarea id="historyText" placeholder="Paste history here..."></textarea>
+
+      <div class="row">
+        <div>
+          <label for="currentMileage">Current mileage</label>
+          <input id="currentMileage" type="text" placeholder="Example: 7,730" />
+        </div>
+        <div>
+          <label for="dealerMode">Display mode</label>
+          <input id="dealerMode" type="text" value="Dashboard view v11" readonly />
+        </div>
+      </div>
+
+      <div class="btns">
+        <button onclick="analyzeHistory()">Analyze history</button>
+        <button class="secondary" onclick="loadSample()">Load sample</button>
+        <button class="ghost" onclick="clearAll()">Clear</button>
+      </div>
+
+      <div class="note" style="margin-top: 14px;">
+        Confidence is based on how the parser matched the service. Time aging is calculated from the History Detail date to today.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Added in this version</h2>
+      <label>Confidence labels</label>
+      <div class="line" id="confidenceView"></div>
+
+      <label>Time-based aging</label>
+      <div class="line" id="agingView"></div>
+
+      <label>Declined maintenance logic</label>
+      <div class="line" id="declinedMaintView"></div>
+
+      <label>Declined repairs logic</label>
+      <div class="line" id="declinedView"></div>
+
+      <label>Repairs done logic</label>
+      <div class="line" id="repairsDoneView"></div>
+
+      <label>CDK structure tuning</label>
+      <div class="line" id="cdkTuneView"></div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="pillbox"><div class="num" id="sumDueNow">0</div><div class="lab">Due now</div></div>
+    <div class="pillbox"><div class="num" id="sumDueSoon">0</div><div class="lab">Due soon</div></div>
+    <div class="pillbox"><div class="num" id="sumNoRecord">0</div><div class="lab">No record found</div></div>
+    <div class="pillbox"><div class="num" id="sumOk">0</div><div class="lab">Up to date / done</div></div>
+    <div class="pillbox"><div class="num" id="sumRecommended">0</div><div class="lab">Recommended found</div></div>
+    <div class="pillbox"><div class="num" id="sumDeclinedMaint">0</div><div class="lab">Declined maintenance</div></div>
+    <div class="pillbox"><div class="num" id="sumDeclined">0</div><div class="lab">Declined repairs not done</div></div>
+    <div class="pillbox"><div class="num" id="sumRepairsDone">0</div><div class="lab">Repairs done</div></div>
+    <div class="pillbox"><div class="num" id="sumBlocks">0</div><div class="lab">History blocks</div></div>
+    <div class="pillbox"><div class="num" id="sumOps">0</div><div class="lab">Ops grouped</div></div>
+  </div>
+
+  
+<div class="dashboard">
+    <div class="need-buckets">
+      <div class="bucket">
+        <div class="bucket-head bad">
+          <div>Due Now</div>
+          <div class="bucket-count" id="countDueNow">0</div>
+        </div>
+        <div id="bucketDueNow" class="compact-list"></div>
+      </div>
+
+      <div class="bucket">
+        <div class="bucket-head warn">
+          <div>Due Soon</div>
+          <div class="bucket-count" id="countDueSoon">0</div>
+        </div>
+        <div id="bucketDueSoon" class="compact-list"></div>
+      </div>
+
+      <div class="bucket">
+        <div class="bucket-head neutral">
+          <div>No Record Found</div>
+          <div class="bucket-count" id="countNoRecord">0</div>
+        </div>
+        <div id="bucketNoRecord" class="compact-list"></div>
+      </div>
+    </div>
+
+    <div class="side-stack">
+      <div class="card">
+        <div class="section-title">
+          <h2>Completed services</h2>
+          <div class="small">Most recent maintenance items</div>
+        </div>
+        <div id="quickDone" class="compact-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <h2>Declined maintenance items</h2>
+          <div class="small">Maintenance items recommended/declined and not later completed</div>
+        </div>
+        <div id="declinedMaintenance" class="compact-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <h2>Repairs done</h2>
+          <div class="small">Non-maintenance repairs completed</div>
+        </div>
+        <div id="repairsDone" class="compact-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <h2>Declined repairs not done</h2>
+          <div class="small">Declined repairs with no later completion</div>
+        </div>
+        <div id="bucketDeclined" class="compact-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-section">
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Detailed results</h2>
+        <div class="small">Full breakdown by service</div>
+      </div>
+      <div id="results"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TODAY = new Date("2026-04-13T12:00:00");
+
+const SERVICE_RULES = [
+  { name: "Oil Change", interval: 5000, soonWindow: 1000, priority: "high", keywords: ["oil change","lifetime oil change","complimentary oil and filter change","oil and filter change","synthetic oil and filter change"], opcodes: ["ltlof","ltslof"], bundleHints: ["oil change"] },
+  { name: "Tire Rotation", interval: 5000, soonWindow: 1000, priority: "high", keywords: ["tire rotation","lifetime tire rotation","rotate tires"], opcodes: ["ltrot"], bundleHints: ["tire rotation"] },
+  { name: "Brake Fluid Flush", interval: 30000, soonWindow: 3000, priority: "high", keywords: ["brake fluid flush","brake flush","brake fluid exchange","brake fluid service","brake bleed","brake fluid"], opcodes: ["dgbr"], bundleHints: [] },
+  { name: "Coolant Flush", interval: 60000, soonWindow: 5000, priority: "high", keywords: ["coolant flush","coolant exchange","coolant fluid exchange","radiator flush","antifreeze service","coolant service","coolant"], opcodes: ["dgcool"], bundleHints: [] },
+  { name: "Cabin Air Filter", interval: 15000, soonWindow: 2000, priority: "medium", keywords: ["cabin air filter","cabin filter","microfilter","remove and replace cabin air filter"], opcodes: ["cabin"], bundleHints: ["cabin filter"] },
+  { name: "Engine Air Filter", interval: 15000, soonWindow: 2000, priority: "medium", keywords: ["engine air filter","air cleaner filter","air filter replacement","remove and replace air filter"], opcodes: ["air"], bundleHints: ["air filter"] },
+  { name: "Transmission / CVT Service", interval: 30000, soonWindow: 3000, priority: "high", keywords: ["cvt flush","cvt fluid exchange","cvt service","transmission flush","trans fluid exchange","transmission service","atf service","atf exchange","transmission fluid exchange","cvt fluid"], opcodes: ["dgcvt"], bundleHints: [] },
+  { name: "Spark Plugs", interval: 105000, soonWindow: 5000, priority: "medium", keywords: ["spark plugs","replace plugs","plug replacement","tune up","spark plug"], opcodes: [], bundleHints: [] },
+  { name: "Alignment", interval: 15000, soonWindow: 2000, priority: "medium", keywords: ["alignment","wheel alignment","4 wheel alignment","perform wheel alignment to specs"], opcodes: ["align"], bundleHints: ["4 wheel alignment","wheel alignment","alignment"] },
+  { name: "Brake Service", interval: 30000, soonWindow: 3000, priority: "high", keywords: ["front brakes","rear brakes","brake pads","pads and rotors","rotors","brake job","rear brake job","front brake job","resurface front rotors and replace front pads"], opcodes: ["rearbj","frontbj","frtbj"], bundleHints: ["rear brake job","front brake job"] },
+  { name: "Differential Service", interval: 50000, soonWindow: 5000, priority: "medium", keywords: ["differential service","diff service","front diff","rear diff","differential flush"], opcodes: [], bundleHints: [] },
+  { name: "Power Steering Flush", interval: 60000, soonWindow: 5000, priority: "low", keywords: ["power steering flush","power steering service","ps flush"], opcodes: [], bundleHints: [] },
+  { name: "HVAC Cleaning", interval: 15000, soonWindow: 2000, priority: "low", keywords: ["hvac cleaning","evaporator cleaning","a/c cleaning","ac cleaning","vent cleaning","hvac"], opcodes: [], bundleHints: [] },
+  { name: "Injector Service", interval: 25000, soonWindow: 2500, priority: "low", keywords: ["injector service","fuel injector service","injector clean","pressurized fuel injector cleaning"], opcodes: ["dgfuel"], bundleHints: [] },
+  { name: "GDI Service", interval: 30000, soonWindow: 3000, priority: "low", keywords: ["gdi service","wynn gdi","wynn's complete fuel system service","complete fuel system service","induction service","intake cleaning","de-carbon foam"], opcodes: ["wynngdi","wynnfoam"], bundleHints: [] }
+];
+
+const REPAIR_RULES = [
+  { name: "Valve Cover Gaskets", keywords: ["valve cover gasket","valve rocker cover gasket","valve rocker covers gaskets","valve cover"] },
+  { name: "Shocks / Struts", keywords: ["shock","strut","shocks","struts"] },
+  { name: "Control Arm / Bushing", keywords: ["control arm","bushing","bone mount bushing"] },
+  { name: "Drive Belt", keywords: ["drive belt"] },
+  { name: "Washer Reservoir", keywords: ["washer fluid reservoir"] },
+  { name: "Battery Replacement", keywords: ["replace battery","battery replacement","battrepl"] },
+  { name: "Window Regulator / Window Repair", keywords: ["window regulator","window motor","window switch","drivers window","driver window"] },
+  { name: "Suspension Repair", keywords: ["suspension","sway bar","ball joint"] },
+  { name: "Steering Repair", keywords: ["power steering leak","steering rack","rack and pinion"] }
+];
+
+const DECLINED_TERMS = [
+  "declined","recommend","recommended","suggest","suggested","estimate","estimated",
+  "not performed","did not perform","defer","deferred","future","pending",
+  "needs","need","advise","advised","not today","customer declined",
+  "customer refused","refused","no work performed","possible","monitor",
+  "attention","replace soon","service due","maintenance due","quote","due by time"
+];
+
+const SOFT_DECLINE_CONTEXT = [
+  "inspection found","see quote","quoted","quote","recommendation","advisor recommend","tech recommend"
+];
+
+const COMPLETED_TERMS = [
+  "performed","completed","done","replaced","replace","installed","flushed","serviced",
+  "exchanged","changed","rotated","mounted","balanced","machined","resurfaced","rpl "," rpl","r&r","r and r",
+  "repair completed","corrected","sold","customer requested","completed op",
+  "performed service","installed new","remove and replace","complimentary","exchange"
+];
+
+const IGNORED_NON_MAINT_OPS = [
+  "uci used car inspection",
+  "uci pre-inspect",
+  "ucd certified nissan inspection",
+  "ucdetail preowned vehicle full detail",
+  "pdi pre delivery inspection",
+  "ncdetail new car detail package",
+  "recall",
+  "elect diag electrical system",
+  "rental rental car",
+  "mpi complimentary multi-point inspection",
+  "ckbatt test battery and charging system",
+  "tireinsp perform tire inspection",
+  "55nizinsp complimentary multi point inspection",
+  "tint",
+  "dooreg install door edge guards"
+];
+
+const LOW_MILE_IGNORED_CODES = ["uci","ucd","ucdetail","pdi","ncdetail","tint","dooreg","recall"];
+const HEADER_RE = /\bhistory detail\b.*?\b((?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])\/(?:\d{2}|\d{4}))\s+(\d{1,6})\b/i;
+const TITLE_OP_RE = /^[A-Z]\s+[A-Z0-9*]+(?:\s|$)/;
+const DETAIL_OP_RE = /^\d+\s+\d+\s+[A-Z]\s+[A-Z]+\s+\d+(?:\.\d+)?\s+[A-Z0-9*]+(?:\s|$)/i;
+
+const SAFE_HOUR_COMPLETION_CODES = [
+  "ltlof","ltrot","air","cabin","dgbr","dgcool","dgcvt","dgfuel","wynngdi","wynnfoam",
+  "align","frontbj","rearbj","frtbj","battrepl"
+];
+
+function hasStrongRepairVerb(text) {
+  const t = text.toLowerCase();
+  return (
+    t.includes(" rpl ") ||
+    t.startsWith("rpl ") ||
+    t.includes(" replace ") ||
+    t.includes(" replaced ") ||
+    t.includes(" remove and replace ") ||
+    t.includes(" resurface ") ||
+    t.includes(" install ") ||
+    t.includes(" installed ")
+  );
+}
+
+function isSafeHourCompletion(opMeta = {}, text = "") {
+  const soldHours = opMeta?.soldHours ?? 0;
+  const code = String(opMeta?.code || "").toLowerCase();
+  if (!(soldHours > 0)) return false;
+  if (SAFE_HOUR_COMPLETION_CODES.includes(code)) return true;
+  if (hasStrongRepairVerb(text)) return true;
+  return false;
+}
+
+
+function formatNum(n) {
+  if (n === null || n === undefined || Number.isNaN(n)) return "-";
+  return Number(n).toLocaleString();
+}
+function normalizeText(text) { return text.toLowerCase().replace(/\r/g, ""); }
+function cleanLine(line) { return line.replace(/\s+/g, " ").trim(); }
+function containsAny(text, terms) { return terms.some(term => text.includes(term)); }
+function countHits(text, terms) { return terms.reduce((s, t) => s + (text.includes(t) ? 1 : 0), 0); }
+
+function parseUSDate(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) return null;
+  let [m, d, y] = parts.map(v => parseInt(v, 10));
+  if (y < 100) y += 2000;
+  const dt = new Date(y, m - 1, d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function monthsSince(dateStr) {
+  const dt = parseUSDate(dateStr);
+  if (!dt) return null;
+  let months = (TODAY.getFullYear() - dt.getFullYear()) * 12 + (TODAY.getMonth() - dt.getMonth());
+  if (TODAY.getDate() < dt.getDate()) months -= 1;
+  return Math.max(0, months);
+}
+
+function formatAge(dateStr) {
+  const months = monthsSince(dateStr);
+  if (months === null) return "-";
+  if (months < 12) return `${months} mo`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem === 0 ? `${years} yr` : `${years} yr ${rem} mo`;
+}
+
+function shouldIgnoreBoilerplate(line) {
+  const text = line.toLowerCase();
+  return text.startsWith("dsda ro h closed odometer") || text.startsWith("dsda document");
+}
+
+function getPriorityRank(priority) {
+  return { high: 0, medium: 1, low: 2 }[priority] ?? 9;
+}
+
+function parseHistoryBlocks(lines) {
+  const blocks = [];
+  let currentBlock = null;
+  let blockId = 0;
+
+  for (const raw of lines) {
+    const line = cleanLine(raw);
+    if (!line || shouldIgnoreBoilerplate(line)) continue;
+
+    const header = line.match(HEADER_RE);
+    if (header && line.includes("history detail")) {
+      currentBlock = {
+        id: ++blockId,
+        headerLine: line,
+        date: header[1],
+        mileage: parseInt(header[2], 10),
+        rawLines: [],
+        ops: []
+      };
+      blocks.push(currentBlock);
+      continue;
+    }
+
+    if (!currentBlock) {
+      currentBlock = {
+        id: ++blockId,
+        headerLine: "orphan pre-header text",
+        date: null,
+        mileage: null,
+        rawLines: [],
+        ops: []
+      };
+      blocks.push(currentBlock);
+    }
+
+    currentBlock.rawLines.push(line);
+  }
+
+  for (const block of blocks) {
+    block.ops = parseOpsFromBlock(block.rawLines);
+  }
+
+  return blocks;
+}
+
+
+function parseOpMeta(op) {
+  let soldHours = null;
+  let laborType = null;
+  let code = null;
+
+  for (const line of op.lines) {
+    const detail = line.match(/^\d+\s+\d+\s+[A-Z]\s+([A-Z]+)\s+(\d+(?:\.\d+)?)\s+([A-Z0-9*]+)\b/i);
+    if (detail) {
+      laborType = detail[1];
+      soldHours = parseFloat(detail[2]);
+      code = detail[3].toLowerCase();
+      break;
+    }
+  }
+
+  if (!code) {
+    for (const line of op.lines) {
+      const title = line.match(/^[A-Z]\s+([A-Z0-9*]+)\b/i);
+      if (title) {
+        code = title[1].toLowerCase();
+        break;
+      }
+    }
+  }
+
+  return { soldHours, laborType, code };
+}
+
+function parseOpsFromBlock(lines) {
+  const ops = [];
+  let current = null;
+  let opSeq = 0;
+
+  for (const line of lines) {
+    const startsOp = TITLE_OP_RE.test(line) || DETAIL_OP_RE.test(line);
+
+    if (startsOp) {
+      current = { opId: ++opSeq, lines: [line] };
+      ops.push(current);
+      continue;
+    }
+
+    if (!current) {
+      current = { opId: ++opSeq, lines: [line] };
+      ops.push(current);
+    } else {
+      current.lines.push(line);
+    }
+  }
+
+  return ops.map(op => {
+    const meta = parseOpMeta(op);
+    return { ...op, fullText: op.lines.join(" "), meta };
+  });
+}
+
+
+function isIgnoredNonMaintenanceOp(text, mileage) {
+  const t = text.toLowerCase();
+  if (IGNORED_NON_MAINT_OPS.some(term => t.includes(term))) return true;
+  if (mileage !== null && mileage < 25 && LOW_MILE_IGNORED_CODES.some(code => new RegExp(`\\b${code}\\b`).test(t))) return true;
+  return false;
+}
+
+function opMatchesService(opText, rule, mileage) {
+  const text = opText.toLowerCase();
+
+  if (isIgnoredNonMaintenanceOp(text, mileage)) {
+    const isExplicitBundle = (text.includes("inspection package") || /\buci\b/.test(text)) &&
+      rule.bundleHints && rule.bundleHints.some(h => text.includes(h));
+    if (!isExplicitBundle) return { matched: false, matchType: "ignored" };
+  }
+
+  if (rule.keywords.some(keyword => text.includes(keyword))) {
+    return { matched: true, matchType: "direct" };
+  }
+
+  if (rule.opcodes && rule.opcodes.some(code => new RegExp(`\\b${code}\\b`).test(text))) {
+    return { matched: true, matchType: "opcode" };
+  }
+
+  const bundleBase = (text.includes("inspection package") || /\buci\b/.test(text));
+  if (bundleBase && rule.bundleHints && rule.bundleHints.some(h => text.includes(h))) {
+    return { matched: true, matchType: "bundle" };
+  }
+
+  return { matched: false, matchType: "none" };
+}
+
+
+function classifyOp(fullText, mileage, opMeta = {}) {
+  const text = fullText.toLowerCase();
+
+  if (isIgnoredNonMaintenanceOp(text, mileage)) {
+    return { type: "ignored", confidence: "high", reason: "non-maintenance op" };
+  }
+
+  const completedHits = countHits(text, COMPLETED_TERMS);
+  const declinedHits = countHits(text, DECLINED_TERMS);
+  const softHits = countHits(text, SOFT_DECLINE_CONTEXT);
+
+  if (/^\s*[a-z]\s+decline\b/.test(text) || /\bdecline\s+0\.00\b/.test(text)) {
+    return { type: "declined", confidence: "high", reason: "standalone decline op" };
+  }
+
+  if (text.includes("no work performed")) {
+    return { type: "declined", confidence: "high", reason: "no work performed" };
+  }
+
+  if (declinedHits > 0 && completedHits === 0) {
+    return { type: "declined", confidence: "high", reason: "explicit decline/recommend wording" };
+  }
+
+  if (completedHits > 0 && declinedHits === 0) {
+    return { type: "completed", confidence: "high", reason: "explicit completed/performed wording" };
+  }
+
+  if (completedHits > declinedHits) {
+    return { type: "completed", confidence: "medium", reason: "completion wording outweighs decline wording" };
+  }
+
+  if (isSafeHourCompletion(opMeta, text) && declinedHits === 0) {
+    return { type: "completed", confidence: "medium", reason: "safe sold-hours completion signal" };
+  }
+
+  if (softHits > 0) {
+    return { type: "declined", confidence: "low", reason: "quote/recommendation context" };
+  }
+
+  return { type: "unknown", confidence: "low", reason: "ambiguous op text" };
+}
+
+
+function decideStatus(rule, lastCompletedMileage, currentMileage) {
+  if (lastCompletedMileage === null) return { status: "NO RECORD FOUND", css: "neutral", remaining: null };
+  if (currentMileage === null) return { status: "FOUND COMPLETED", css: "good", remaining: null };
+
+  const milesSince = currentMileage - lastCompletedMileage;
+  const remaining = rule.interval - milesSince;
+
+  if (remaining <= 0) return { status: "DUE NOW", css: "bad", remaining };
+  if (remaining <= rule.soonWindow) return { status: "DUE SOON", css: "warn", remaining };
+  return { status: "OK", css: "good", remaining };
+}
+
+function analyzeRule(rule, blocks, currentMileage) {
+  const completed = [];
+  const recommended = [];
+  const all = [];
+
+  for (const block of blocks) {
+    for (const op of block.ops) {
+      const match = opMatchesService(op.fullText, rule, block.mileage);
+      if (!match.matched) continue;
+
+      const classification = classifyOp(op.fullText, block.mileage, op.meta || {});
+      if (classification.type === "ignored") continue;
+
+      const entry = {
+        text: op.fullText,
+        mileage: block.mileage,
+        date: block.date,
+        blockId: block.id,
+        opId: op.opId,
+        headerLine: block.headerLine,
+        matchType: match.matchType,
+        soldHours: op.meta?.soldHours ?? null,
+        opCode: op.meta?.code ?? null,
+        kind: classification.type,
+        confidence: classification.confidence,
+        reason: classification.reason
+      };
+
+      all.push(entry);
+
+      if (classification.type === "completed") {
+        completed.push(entry);
+        continue;
+      }
+
+      if (classification.type === "declined") {
+        recommended.push(entry);
+        continue;
+      }
+
+      if (block.mileage !== null && match.matchType === "bundle") {
+        completed.push({
+          ...entry,
+          kind: "completed",
+          confidence: "medium",
+          reason: "bundle/package line explicitly lists this service"
+        });
+        continue;
+      }
+
+      if (block.mileage !== null && match.matchType === "opcode" && !containsAny(op.fullText.toLowerCase(), DECLINED_TERMS)) {
+        completed.push({
+          ...entry,
+          kind: "completed",
+          confidence: "medium",
+          reason: "known maintenance opcode inside dated block"
+        });
+      }
+    }
+  }
+
+  let bestCompleted = null;
+  if (completed.length) {
+    bestCompleted = [...completed].sort((a, b) => (b.mileage ?? -1) - (a.mileage ?? -1))[0];
+  }
+
+  let bestRecommended = null;
+  if (recommended.length) {
+    bestRecommended = [...recommended].sort((a, b) => (b.mileage ?? -1) - (a.mileage ?? -1))[0];
+  }
+
+  const decision = decideStatus(rule, bestCompleted ? bestCompleted.mileage : null, currentMileage);
+
+  return {
+    rule,
+    decision,
+    priority: rule.priority,
+    lastCompletedMileage: bestCompleted ? bestCompleted.mileage : null,
+    lastCompletedDate: bestCompleted ? bestCompleted.date : null,
+    lastCompletedAge: bestCompleted ? formatAge(bestCompleted.date) : "-",
+    lastRecommendedMileage: bestRecommended ? bestRecommended.mileage : null,
+    lastRecommendedDate: bestRecommended ? bestRecommended.date : null,
+    lastRecommendedAge: bestRecommended ? formatAge(bestRecommended.date) : "-",
+    completedConfidence: bestCompleted ? bestCompleted.confidence : "-",
+    completedReason: bestCompleted ? `${bestCompleted.reason} (${bestCompleted.matchType})` : "-",
+    countedOp: bestCompleted ? bestCompleted.text : null,
+    countedHeader: bestCompleted ? bestCompleted.headerLine : null,
+    recommendedOps: recommended.slice(0, 8),
+    allMatches: all
+  };
+}
+
+
+function analyzeDeclinedMaintenance(results) {
+  const items = [];
+
+  for (const item of results) {
+    if (item.lastRecommendedMileage === null) continue;
+    const recMiles = item.lastRecommendedMileage ?? -1;
+    const compMiles = item.lastCompletedMileage ?? -1;
+
+    if (compMiles >= recMiles && compMiles !== -1) continue;
+
+    items.push({
+      name: item.rule.name,
+      priority: item.priority,
+      mileage: item.lastRecommendedMileage,
+      date: item.lastRecommendedDate,
+      age: item.lastRecommendedAge,
+      confidence: item.recommendedOps.length ? item.recommendedOps[0].confidence : "low"
+    });
+  }
+
+  items.sort((a, b) => {
+    const pr = getPriorityRank(a.priority) - getPriorityRank(b.priority);
+    if (pr !== 0) return pr;
+    return (b.mileage ?? -1) - (a.mileage ?? -1);
+  });
+
+  return items;
+}
+
+function renderDeclinedMaintenance(item) {
+  return `
+    <div class="compact-item neutral">
+      <div class="compact-main">
+        <div class="compact-name">
+          ${escapeHtml(item.name)}
+          <span class="priority-chip ${priorityClass(item.priority)}">Priority ${escapeHtml(item.priority)}</span>
+          <span class="confidence-chip ${confidenceClass(item.confidence)}">Confidence ${escapeHtml(item.confidence)}</span>
+          <span class="score-chip">Score ${scoreFromConfidence(item.confidence)}</span>
+        </div>
+        <div class="compact-status">Declined</div>
+      </div>
+      <div class="compact-meta">
+        <span>Mileage: ${formatNum(item.mileage)}</span>
+        <span>Date: ${item.date ? escapeHtml(item.date) : "-"}</span>
+        <span>Age: ${escapeHtml(item.age)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function analyzeDeclinedRepairs(blocks) {
+  const completedByRepair = new Map();
+  const declinedByRepair = new Map();
+
+  for (const block of blocks) {
+    for (const op of block.ops) {
+      const text = op.fullText.toLowerCase();
+      const classification = classifyOp(op.fullText, block.mileage, op.meta || {});
+      if (classification.type === "ignored") continue;
+
+      for (const rule of REPAIR_RULES) {
+        const matched = rule.keywords.some(k => text.includes(k));
+        if (!matched) continue;
+
+        const safeHourDone = isSafeHourCompletion(op.meta || {}, text);
+        const entry = {
+          repair: rule.name,
+          text: op.fullText,
+          date: block.date,
+          mileage: block.mileage,
+          confidence: safeHourDone && classification.type !== "declined"
+            ? (classification.type === "completed" ? classification.confidence : "medium")
+            : classification.confidence,
+          reason: classification.reason
+        };
+
+        const looksLikeRepairCompletion =
+          classification.type === "completed" ||
+          safeHourDone ||
+          (classification.type === "unknown" && hasStrongRepairVerb(text));
+
+        if (looksLikeRepairCompletion) {
+          const prev = completedByRepair.get(rule.name);
+          if (!prev || (entry.mileage ?? -1) > (prev.mileage ?? -1)) completedByRepair.set(rule.name, entry);
+        } else if (classification.type === "declined") {
+          const prev = declinedByRepair.get(rule.name);
+          if (!prev || (entry.mileage ?? -1) > (prev.mileage ?? -1)) declinedByRepair.set(rule.name, entry);
+        }
+      }
+    }
+  }
+
+  const finalList = [];
+  for (const [repair, declined] of declinedByRepair.entries()) {
+    const completed = completedByRepair.get(repair);
+    if (completed && (completed.mileage ?? -1) >= (declined.mileage ?? -1)) continue;
+    finalList.push({
+      repair,
+      date: declined.date,
+      mileage: declined.mileage,
+      age: formatAge(declined.date),
+      text: declined.text,
+      confidence: declined.confidence
+    });
+  }
+
+  finalList.sort((a, b) => (b.mileage ?? -1) - (a.mileage ?? -1));
+  return finalList;
+}
+
+
+function analyzeRepairsDone(blocks) {
+  const completedByRepair = new Map();
+
+  for (const block of blocks) {
+    for (const op of block.ops) {
+      const text = op.fullText.toLowerCase();
+      const classification = classifyOp(op.fullText, block.mileage, op.meta || {});
+      if (classification.type === "ignored") continue;
+
+      for (const rule of REPAIR_RULES) {
+        const matched = rule.keywords.some(k => text.includes(k));
+        if (!matched) continue;
+
+        const safeHourDone = isSafeHourCompletion(op.meta || {}, text);
+        const looksLikeRepairCompletion =
+          classification.type === "completed" ||
+          safeHourDone ||
+          (classification.type === "unknown" && hasStrongRepairVerb(text));
+
+        if (!looksLikeRepairCompletion) continue;
+
+        const entry = {
+          repair: rule.name,
+          text: op.fullText,
+          date: block.date,
+          mileage: block.mileage,
+          age: formatAge(block.date),
+          confidence: classification.type === "completed"
+            ? classification.confidence
+            : (safeHourDone ? "medium" : "low")
+        };
+
+        const prev = completedByRepair.get(rule.name);
+        if (!prev || (entry.mileage ?? -1) > (prev.mileage ?? -1)) {
+          completedByRepair.set(rule.name, entry);
+        }
+      }
+    }
+  }
+
+  const finalList = [...completedByRepair.values()].sort((a, b) => (b.mileage ?? -1) - (a.mileage ?? -1));
+  return finalList;
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function confidenceClass(value) {
+  const v = String(value || "none").toLowerCase();
+  if (v === "high") return "confidence-high";
+  if (v === "medium") return "confidence-medium";
+  if (v === "low") return "confidence-low";
+  return "confidence-none";
+}
+
+function priorityClass(value) {
+  const v = String(value || "low").toLowerCase();
+  if (v === "high") return "priority-high";
+  if (v === "medium") return "priority-medium";
+  return "priority-low";
+}
+
+function scoreFromConfidence(value) {
+  const v = String(value || "none").toLowerCase();
+  if (v === "high") return "3/3";
+  if (v === "medium") return "2/3";
+  if (v === "low") return "1/3";
+  return "0/3";
+}
+
+function renderCompactNeed(item) {
+  const conf = item.completedConfidence === "-" ? "none" : item.completedConfidence;
+  return `
+    <div class="compact-item ${item.decision.css}">
+      <div class="compact-main">
+        <div class="compact-name">
+          ${escapeHtml(item.rule.name)}
+          <span class="priority-chip ${priorityClass(item.priority)}">Priority ${escapeHtml(item.priority)}</span>
+          <span class="confidence-chip ${confidenceClass(conf)}">Confidence ${escapeHtml(conf)}</span>
+          <span class="score-chip">Score ${scoreFromConfidence(conf)}</span>
+        </div>
+        <div class="compact-status">${escapeHtml(item.decision.status)}</div>
+      </div>
+      <div class="compact-meta">
+        <span>Last done: ${formatNum(item.lastCompletedMileage)}</span>
+        <span>Age: ${escapeHtml(item.lastCompletedAge)}</span>
+        <span>Last rec: ${formatNum(item.lastRecommendedMileage)}</span>
+        <span>Rec age: ${escapeHtml(item.lastRecommendedAge)}</span>
+        <span>Remaining: ${item.decision.remaining === null ? "-" : formatNum(item.decision.remaining)} mi</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderCompactDone(item) {
+  const conf = item.completedConfidence === "-" ? "none" : item.completedConfidence;
+  return `
+    <div class="compact-item good">
+      <div class="compact-main">
+        <div class="compact-name">
+          ${escapeHtml(item.rule.name)}
+          <span class="priority-chip ${priorityClass(item.priority)}">Priority ${escapeHtml(item.priority)}</span>
+          <span class="confidence-chip ${confidenceClass(conf)}">Confidence ${escapeHtml(conf)}</span>
+          <span class="score-chip">Score ${scoreFromConfidence(conf)}</span>
+        </div>
+        <div class="compact-status">${escapeHtml(item.decision.status)}</div>
+      </div>
+      <div class="compact-meta">
+        <span>Last done: ${formatNum(item.lastCompletedMileage)}</span>
+        <span>Date: ${item.lastCompletedDate ? escapeHtml(item.lastCompletedDate) : "-"}</span>
+        <span>Age: ${escapeHtml(item.lastCompletedAge)}</span>
+      </div>
+    </div>
+  `;
+}
+
+
+function renderRepairDone(item) {
+  return `
+    <div class="compact-item good">
+      <div class="compact-main">
+        <div class="compact-name">
+          ${escapeHtml(item.repair)}
+          <span class="confidence-chip ${confidenceClass(item.confidence)}">Confidence ${escapeHtml(item.confidence)}</span>
+          <span class="score-chip">Score ${scoreFromConfidence(item.confidence)}</span>
+        </div>
+        <div class="compact-status">Done</div>
+      </div>
+      <div class="compact-meta">
+        <span>Mileage: ${formatNum(item.mileage)}</span>
+        <span>Date: ${item.date ? escapeHtml(item.date) : "-"}</span>
+        <span>Age: ${escapeHtml(item.age)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderDeclinedRepair(item) {
+  return `
+    <div class="compact-item neutral">
+      <div class="compact-main">
+        <div class="compact-name">
+          ${escapeHtml(item.repair)}
+          <span class="confidence-chip ${confidenceClass(item.confidence)}">Confidence ${escapeHtml(item.confidence)}</span>
+          <span class="score-chip">Score ${scoreFromConfidence(item.confidence)}</span>
+        </div>
+        <div class="compact-status">Declined</div>
+      </div>
+      <div class="compact-meta">
+        <span>Mileage: ${formatNum(item.mileage)}</span>
+        <span>Date: ${item.date ? escapeHtml(item.date) : "-"}</span>
+        <span>Age: ${escapeHtml(item.age)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderResult(item) {
+  const tags = `
+    <div class="tags">
+      <span class="tag">Priority: ${escapeHtml(item.priority)}</span>
+      <span class="tag">Status: ${escapeHtml(item.decision.status)}</span>
+      <span class="tag">Confidence: ${escapeHtml(item.completedConfidence === "-" ? "none" : item.completedConfidence)}</span>
+      <span class="tag">Score: ${scoreFromConfidence(item.completedConfidence === "-" ? "none" : item.completedConfidence)}</span>
+      <span class="tag">Interval: ${formatNum(item.rule.interval)} mi</span>
+    </div>
+  `;
+
+  const meta = `
+    <div class="meta">
+      <div><strong>Last completed mileage</strong>${formatNum(item.lastCompletedMileage)}</div>
+      <div><strong>Last completed date</strong>${item.lastCompletedDate ? escapeHtml(item.lastCompletedDate) : "-"}</div>
+      <div><strong>Completed age</strong>${escapeHtml(item.lastCompletedAge)}</div>
+      <div><strong>Last recommended mileage</strong>${formatNum(item.lastRecommendedMileage)}</div>
+      <div><strong>Last recommended date</strong>${item.lastRecommendedDate ? escapeHtml(item.lastRecommendedDate) : "-"}</div>
+      <div><strong>Recommended age</strong>${escapeHtml(item.lastRecommendedAge)}</div>
+      <div><strong>Miles remaining</strong>${item.decision.remaining === null ? "-" : formatNum(item.decision.remaining)}</div>
+      <div><strong>Recommendation matches</strong>${item.recommendedOps.length}</div>
+    </div>
+  `;
+
+  const countedOpHtml = item.countedOp
+    ? `<div class="line">${escapeHtml(item.countedOp)}</div>`
+    : `<div class="line">No completed op was proven from the pasted history.</div>`;
+
+  const countedHeaderHtml = item.countedHeader
+    ? `<div class="line">${escapeHtml(item.countedHeader)}</div>`
+    : `<div class="line">No History Detail header was tied to a completed op.</div>`;
+
+  const recommendedHtml = item.recommendedOps.length
+    ? item.recommendedOps.map(d => `
+      <div class="line">
+        <strong>${escapeHtml(d.kind.toUpperCase())}</strong> · ${escapeHtml(d.confidence)} · ${escapeHtml(d.reason)} · code ${d.opCode ? escapeHtml(String(d.opCode).toUpperCase()) : "-"} · hrs ${d.soldHours === null ? "-" : escapeHtml(String(d.soldHours))} · block ${escapeHtml(String(d.blockId))} · op ${escapeHtml(String(d.opId))} · ${d.date ? escapeHtml(d.date) : "-"} · ${d.mileage === null ? "-" : escapeHtml(String(d.mileage))}<br>
+        ${escapeHtml(d.text)}
+      </div>
+    `).join("")
+    : `<div class="line">No recommendation/decline matches found.</div>`;
+
+  const allMatchesHtml = item.allMatches.length
+    ? item.allMatches.map(m => `
+      <div class="line">
+        <strong>${escapeHtml(m.kind.toUpperCase())}</strong> · ${escapeHtml(m.confidence)} · ${escapeHtml(m.matchType)} · code ${m.opCode ? escapeHtml(String(m.opCode).toUpperCase()) : "-"} · hrs ${m.soldHours === null ? "-" : escapeHtml(String(m.soldHours))} · block ${escapeHtml(String(m.blockId))} · op ${escapeHtml(String(m.opId))} · ${m.date ? escapeHtml(m.date) : "-"} · mileage ${m.mileage === null ? "-" : escapeHtml(String(m.mileage))}<br>
+        ${escapeHtml(m.text)}
+      </div>
+    `).join("")
+    : `<div class="line">No matching ops found for this service.</div>`;
+
+  return `
+    <div class="result ${item.decision.css}">
+      <h3>${escapeHtml(item.rule.name)}</h3>
+      ${tags}
+      ${meta}
+      <div class="split">
+        <div>
+          <div class="small-title">Counted completed op</div>
+          ${countedOpHtml}
+          <div class="small-title" style="margin-top: 10px;">Owning History Detail header</div>
+          ${countedHeaderHtml}
+          <div class="note" style="margin-top: 8px;">Reason: ${escapeHtml(item.completedReason)}</div>
+        </div>
+        <div>
+          <div class="small-title">Recommendation / decline matches</div>
+          ${recommendedHtml}
+        </div>
+      </div>
+      <details>
+        <summary>Show all matched ops</summary>
+        ${allMatchesHtml}
+      </details>
+    </div>
+  `;
+}
+
+function renderBucket(containerId, items, emptyText) {
+  document.getElementById(containerId).innerHTML = items.length
+    ? items.map(renderCompactNeed).join("")
+    : `<div class="empty-state">${escapeHtml(emptyText)}</div>`;
+}
+
+function analyzeHistory() {
+  const rawHistory = document.getElementById("historyText").value.trim();
+  const mileageRaw = document.getElementById("currentMileage").value.trim().replace(/,/g, "");
+  const currentMileage = mileageRaw ? parseInt(mileageRaw, 10) : null;
+
+  const lines = normalizeText(rawHistory).split("\n").map(cleanLine).filter(Boolean);
+  const blocks = parseHistoryBlocks(lines);
+  const totalOps = blocks.reduce((sum, b) => sum + b.ops.length, 0);
+
+  document.getElementById("sumBlocks").textContent = String(blocks.length);
+  document.getElementById("sumOps").textContent = String(totalOps);
+
+  const results = SERVICE_RULES.map(rule => analyzeRule(rule, blocks, currentMileage));
+  const declinedMaintenance = analyzeDeclinedMaintenance(results);
+  const repairsDone = analyzeRepairsDone(blocks);
+  const declinedRepairs = analyzeDeclinedRepairs(blocks);
+
+  const dueNow = results.filter(r => r.decision.status === "DUE NOW");
+  const dueSoon = results.filter(r => r.decision.status === "DUE SOON");
+  const noRecord = results.filter(r => r.decision.status === "NO RECORD FOUND");
+  const done = results.filter(r => r.decision.status === "OK" || r.decision.status === "FOUND COMPLETED");
+
+  const recommended = results.filter(r => r.lastRecommendedMileage !== null).length;
+
+  document.getElementById("sumDueNow").textContent = String(dueNow.length);
+  document.getElementById("sumDueSoon").textContent = String(dueSoon.length);
+  document.getElementById("sumNoRecord").textContent = String(noRecord.length);
+  document.getElementById("sumOk").textContent = String(done.length);
+  document.getElementById("sumRecommended").textContent = String(recommended);
+  document.getElementById("sumDeclinedMaint").textContent = String(declinedMaintenance.length);
+  document.getElementById("sumDeclined").textContent = String(declinedRepairs.length);
+  document.getElementById("sumRepairsDone").textContent = String(repairsDone.length);
+
+  const byPriorityAndMileage = (a, b) => {
+    const pr = getPriorityRank(a.priority) - getPriorityRank(b.priority);
+    if (pr !== 0) return pr;
+    return (b.lastRecommendedMileage ?? b.lastCompletedMileage ?? -1) - (a.lastRecommendedMileage ?? a.lastCompletedMileage ?? -1);
+  };
+
+  dueNow.sort(byPriorityAndMileage);
+  dueSoon.sort(byPriorityAndMileage);
+  noRecord.sort(byPriorityAndMileage);
+  done.sort((a, b) => {
+    const pr = getPriorityRank(a.priority) - getPriorityRank(b.priority);
+    if (pr !== 0) return pr;
+    return (b.lastCompletedMileage ?? -1) - (a.lastCompletedMileage ?? -1);
+  });
+
+  document.getElementById("countDueNow").textContent = String(dueNow.length);
+  document.getElementById("countDueSoon").textContent = String(dueSoon.length);
+  document.getElementById("countNoRecord").textContent = String(noRecord.length);
+  renderBucket("bucketDueNow", dueNow, "No services are currently flagged due now.");
+  renderBucket("bucketDueSoon", dueSoon, "No services are currently flagged due soon.");
+  renderBucket("bucketNoRecord", noRecord, "Every tracked service has at least some completion history.");
+
+  document.getElementById("repairsDone").innerHTML = repairsDone.length
+    ? repairsDone.map(renderRepairDone).join("")
+    : `<div class="empty-state">No completed non-maintenance repairs were found in the pasted history.</div>`;
+
+  document.getElementById("bucketDeclined").innerHTML = declinedRepairs.length
+    ? declinedRepairs.map(renderDeclinedRepair).join("")
+    : `<div class="empty-state">No declined repairs are currently still outstanding from the pasted history.</div>`;
+
+  document.getElementById("quickDone").innerHTML = done.length
+    ? done.map(renderCompactDone).join("")
+    : `<div class="empty-state">No completed services were proven from the pasted history.</div>`;
+
+  const statusRank = { "DUE NOW": 0, "DUE SOON": 1, "NO RECORD FOUND": 2, "OK": 3, "FOUND COMPLETED": 4 };
+  const allSorted = [...results].sort((a, b) => {
+    const sr = (statusRank[a.decision.status] ?? 99) - (statusRank[b.decision.status] ?? 99);
+    if (sr !== 0) return sr;
+    const pr = getPriorityRank(a.priority) - getPriorityRank(b.priority);
+    if (pr !== 0) return pr;
+    return (b.lastCompletedMileage ?? -1) - (a.lastCompletedMileage ?? -1);
+  });
+
+  document.getElementById("results").innerHTML = allSorted.map(renderResult).join("");
+}
+
+function clearAll() {
+  document.getElementById("historyText").value = "";
+  document.getElementById("currentMileage").value = "";
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("bucketDueNow").innerHTML = "";
+  document.getElementById("bucketDueSoon").innerHTML = "";
+  document.getElementById("bucketNoRecord").innerHTML = "";
+  document.getElementById("bucketDeclined").innerHTML = "";
+  document.getElementById("declinedMaintenance").innerHTML = "";
+  document.getElementById("repairsDone").innerHTML = "";
+  document.getElementById("quickDone").innerHTML = "";
+  document.getElementById("sumDueNow").textContent = "0";
+  document.getElementById("sumDueSoon").textContent = "0";
+  document.getElementById("sumNoRecord").textContent = "0";
+  document.getElementById("sumOk").textContent = "0";
+  document.getElementById("sumRecommended").textContent = "0";
+  document.getElementById("sumDeclinedMaint").textContent = "0";
+  document.getElementById("sumDeclined").textContent = "0";
+  document.getElementById("sumRepairsDone").textContent = "0";
+  document.getElementById("sumBlocks").textContent = "0";
+  document.getElementById("sumOps").textContent = "0";
+  document.getElementById("countDueNow").textContent = "0";
+  document.getElementById("countDueSoon").textContent = "0";
+  document.getElementById("countNoRecord").textContent = "0";
+}
+
+function loadSample() {
+  document.getElementById("currentMileage").value = "71,148";
+  document.getElementById("historyText").value = `14171 History Detail 04/13/2026 71148
+A ENGINE C/S: CUSTOMER STATES VEHICLE HAS AN OIL LEAK, CHECK AND ADVISE
+762 819 A W 1.80 AP50AA RPL BOTH VALVE ROCKER COVERS GASKETS 0.00
+
+14078 History Detail 04/08/2026 71018
+A LTLOF C/S: LIFETIME OIL CHANGE
+949 819 A CPC 0.30 LTLOF LIFETIME OIL CHANGE 41.60
+B LTROT C/S: LIFETIME TIRE ROTATION
+949 819 B CPC 0.30 LTROT LIFETIME TIRE ROTATION 10.60
+F DECLINE THE FOLLOWING REPAIRS OR MAINTENANCE HAVE BEEN RECOMMENDED AND DECLINED AT THIS TIME. Valve Cover Gasket Replacement: leaking - recommend replacing both sides*Engine Air Filter Replacement: REMOVE AND REPLACE AIR FILTER - - *Brake Flush: PERFORM BRAKE FLUID EXCHANGE - - Wiper Blade Replacement: REPLACE WIPER BLADES
+949 819 F CPC 0.00 DECLINE THE FOLLOWING REPAIRS OR MAINTENANCE HAVE BEEN RECOMMENDED AND DECLINED AT THIS TIME 0.00
+
+1132696 History Detail 10/14/2025 65986
+A AIR
+8182 828 A C 0.20 AIR REMOVE AND REPLACE AIR FILTER - - - 40.00`;
+  analyzeHistory();
+}
+
+function initViews() {
+  document.getElementById("confidenceView").textContent = "High confidence = explicit performed wording. Medium confidence = known opcode or explicit bundle listing. Low confidence = weak match or recommendation-only context.";
+  document.getElementById("agingView").textContent = "Each service now shows age from its History Detail date to today, both for last completed and last recommended history.";
+  document.getElementById("declinedView").textContent = "Declined repairs are tracked separately. If the same repair is later completed at the same or higher mileage, it is removed from the declined list.";
+  document.getElementById("repairsDoneView").textContent = "Repairs done are shown separately from maintenance items. Abbreviated repair wording like RPL / replace / remove and replace is now treated as a completed repair signal so later repairs suppress earlier declines.";
+}
+
+initViews();
+</script>
+</body>
+</html>
