@@ -74,6 +74,8 @@ export function ScanReviewScreen({
   onCancelPendingPage,
 }: ScanReviewScreenProps) {
   const isMobile = useIsMobile();
+  const mobileCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const mobilePhotosInputRef = useRef<HTMLInputElement | null>(null);
   const mobileReadableInputClass = isMobile ? 'text-base' : 'text-sm';
   const [showApplyPrompt, setShowApplyPrompt] = useState(false);
   const [showDateCandidates, setShowDateCandidates] = useState(false);
@@ -89,9 +91,6 @@ export function ScanReviewScreen({
   const [manualNewLineId, setManualNewLineId] = useState<string | null>(null);
   /** Full-screen lightbox image URL */
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const addPageCameraRef = useRef<HTMLInputElement>(null);
-  const addPagePhotoRef = useRef<HTMLInputElement>(null);
-  const addPageDesktopRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const pageCount = pages.length;
@@ -712,35 +711,47 @@ export function ScanReviewScreen({
         <div className="px-4 pt-3 pb-2">
           {isMobile ? (
             <div className="flex gap-2">
-              <label className={cn(
-                'flex-1 min-h-[44px] border border-primary text-primary rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform text-sm',
-                isAddingPage && 'opacity-50 pointer-events-none'
-              )}>
+              <button
+                type="button"
+                onClick={() => mobileCameraInputRef.current?.click()}
+                className={cn(
+                  'flex-1 min-h-[44px] border border-primary text-primary rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform text-sm',
+                  isAddingPage && 'opacity-50 pointer-events-none'
+                )}
+                disabled={isAddingPage}
+              >
                 <Camera className="h-4 w-4" />
                 Scan More
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
-                  className="hidden"
-                  disabled={isAddingPage}
-                />
-              </label>
-              <label className={cn(
-                'flex-1 min-h-[44px] border border-border bg-muted/40 rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform text-sm',
-                isAddingPage && 'opacity-50 pointer-events-none'
-              )}>
+              </button>
+              <button
+                type="button"
+                onClick={() => mobilePhotosInputRef.current?.click()}
+                className={cn(
+                  'flex-1 min-h-[44px] border border-border bg-muted/40 rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform text-sm',
+                  isAddingPage && 'opacity-50 pointer-events-none'
+                )}
+                disabled={isAddingPage}
+              >
                 <Image className="h-4 w-4" />
                 Photos
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
-                  className="hidden"
-                  disabled={isAddingPage}
-                />
-              </label>
+              </button>
+              <input
+                ref={mobileCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
+                className="hidden"
+                disabled={isAddingPage}
+              />
+              <input
+                ref={mobilePhotosInputRef}
+                type="file"
+                accept="image/*"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPageFile(f); e.target.value = ''; }}
+                className="hidden"
+                disabled={isAddingPage}
+              />
             </div>
           ) : (
             <label className={cn(
