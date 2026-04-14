@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maintenance Notes</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --bg-2:#111827;
+      --panel:#ffffff;
+      --card:#f8fafc;
+      --card-2:#eef2ff;
+      --border:#dbe3ef;
+      --border-strong:#b7c5da;
+      --text:#0f172a;
+      --muted:#64748b;
+      --blue:#2563eb;
+      --blue-2:#1d4ed8;
+      --blue-soft:#dbeafe;
+      --shadow:0 10px 26px rgba(15,23,42,.08);
+      --radius:16px;
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg,#eff6ff 0%, #f8fafc 100%);
+    }
+    button,input,textarea,select{font:inherit;}
+    .app{
+      width:min(1920px, calc(100% - 16px));
+      margin:0 auto;
+      padding:14px 0 22px;
+    }
+    .shell{
+      display:grid;
+      grid-template-columns:minmax(0,2.35fr) minmax(300px,380px);
+      gap:14px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-width:0;
+    }
+    .header{
+      padding:16px 16px 12px;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
+    }
+    h1{
+      margin:0;
+      font-size:1.5rem;
+      line-height:1.1;
+    }
+    .sub{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:.95rem;
+    }
+    .toolbar{
+      display:grid;
+      grid-template-columns:minmax(220px,1fr) 180px auto auto auto;
+      gap:10px;
+      padding:14px 16px;
+      border-bottom:1px solid var(--border);
+      background:#fbfdff;
+    }
+    .stats{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      padding:0 16px 14px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:#f8fafc;
+      color:var(--muted);
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:.84rem;
+    }
+    input[type="text"], textarea, select{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#fff;
+      color:var(--text);
+      padding:10px 12px;
+      outline:none;
+    }
+    input[type="text"]:focus, textarea:focus, select:focus{
+      border-color:#93c5fd;
+      box-shadow:0 0 0 4px rgba(59,130,246,.12);
+    }
+    textarea{
+      min-height:210px;
+      resize:vertical;
+      line-height:1.45;
+    }
+    .btn{
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.15s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-1px);}
+    .btn-primary{
+      background:var(--blue);
+      color:#fff;
+      border-color:var(--blue);
+    }
+    .btn-primary:hover{background:var(--blue-2);}
+    .btn-soft{
+      background:#eff6ff;
+      border-color:#bfdbfe;
+      color:var(--blue-2);
+    }
+    .btn-danger{
+      background:#fff1f2;
+      border-color:#fecdd3;
+      color:#be123c;
+    }
+    .left-head{
+      padding:12px 16px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      color:var(--muted);
+      font-size:.92rem;
+      border-bottom:1px solid var(--border);
+      background:#fcfdff;
+    }
+    .grid-wrap{
+      padding:14px;
+      overflow:visible;
+    }
+    .pages-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));
+      gap:12px;
+      align-items:stretch;
+    }
+    .card{
+      min-width:0;
+      display:grid;
+      grid-template-rows:auto auto auto minmax(108px, 1fr) auto;
+      gap:10px;
+      padding:12px;
+      background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
+      border:1px solid var(--border);
+      border-radius:16px;
+      overflow:visible;
+      position:relative;
+    }
+    .card.active{
+      border-color:#93c5fd;
+      box-shadow:0 0 0 4px rgba(59,130,246,.10);
+    }
+    .card-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      min-width:0;
+    }
+    .title-wrap{
+      min-width:0;
+    }
+    .card-title{
+      margin:0;
+      font-size:1rem;
+      line-height:1.25;
+      overflow-wrap:anywhere;
+    }
+    .badge{
+      display:inline-flex;
+      max-width:100%;
+      margin-top:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:#f8fafc;
+      border:1px solid var(--border);
+      color:var(--muted);
+      font-size:.76rem;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .active-version-bar{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#f8fafc;
+      color:var(--muted);
+      font-size:.8rem;
+      line-height:1.2;
+    }
+    .active-version-bar strong{
+      color:#334155;
+      font-size:.82rem;
+      font-weight:700;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      display:block;
+      min-width:0;
+    }
+    .active-version-label{
+      flex:0 0 auto;
+      opacity:.8;
+    }
+    .icon-btn{
+      width:34px;
+      height:34px;
+      min-width:34px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      border-radius:10px;
+      font-size:1.15rem;
+      line-height:1;
+    }
+    .version-row{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 34px;
+      gap:8px;
+      align-items:start;
+      min-width:0;
+      overflow:visible;
+    }
+    .version-list{
+      display:flex;
+      gap:6px;
+      min-width:0;
+      overflow:visible;
+      align-items:stretch;
+      flex-wrap:nowrap;
+    }
+    .version-chip{
+      min-width:0;
+      max-width:220px;
+      min-height:36px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--muted);
+      cursor:pointer;
+      font-size:.81rem;
+      line-height:1.15;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:block;
+      text-align:left;
+    }
+    .version-chip.active{
+      background:var(--blue-soft);
+      color:var(--blue-2);
+      border-color:#93c5fd;
+      font-weight:700;
+    }
+    
+    .more-wrap{
+      position:relative;
+      min-width:0;
+      max-width:340px;
+      flex:0 1 260px;
+    }
+    .more-btn{
+      width:100%;
+      min-width:0;
+      max-width:340px;
+      min-height:40px;
+      padding:7px 28px 7px 10px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--muted);
+      cursor:pointer;
+      font-size:.81rem;
+      line-height:1.15;
+      white-space:normal;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      text-align:left;
+      position:relative;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+    }
+    .more-btn::after{
+      content:"▾";
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      font-size:.72rem;
+      opacity:.7;
+    }
+    .more-wrap.open{
+      z-index:12;
+    }
+    .more-wrap.open .more-btn{
+      background:#f8fafc;
+      border-color:#93c5fd;
+      color:#334155;
+    }
+    .more-menu{
+      position:absolute;
+      top:calc(100% + 6px);
+      left:0;
+      min-width:320px;
+      width:max-content;
+      max-width:460px;
+      z-index:8;
+      display:none;
+      max-height:240px;
+      overflow:auto;
+      padding:6px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#fff;
+      box-shadow:0 12px 24px rgba(15,23,42,.10);
+    }
+    .more-wrap.open .more-menu{
+      display:grid;
+      gap:6px;
+    }
+    .more-option{
+      width:100%;
+      min-width:280px;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid transparent;
+      background:#fff;
+      color:var(--text);
+      cursor:pointer;
+      font-size:.82rem;
+      text-align:left;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .more-option:hover{
+      background:#f8fafc;
+      border-color:var(--border);
+    }
+    .more-option.active{
+      background:var(--blue-soft);
+      border-color:#93c5fd;
+      color:var(--blue-2);
+      font-weight:700;
+    }
+
+    .preview{
+      min-width:0;
+      overflow:auto;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:var(--card);
+      padding:10px;
+      color:#1e293b;
+      font-size:.92rem;
+      line-height:1.42;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+      max-height:170px;
+    }
+    .actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .side{
+      position:sticky;
+      top:14px;
+    }
+    .side-head{
+      padding:14px 16px 10px;
+      border-bottom:1px solid var(--border);
+      background:#fbfdff;
+    }
+    .side-title{
+      margin:0;
+      font-size:1.05rem;
+    }
+    .side-sub{
+      margin:5px 0 0;
+      color:var(--muted);
+      font-size:.9rem;
+    }
+    .editor{
+      display:grid;
+      gap:12px;
+      padding:14px 16px 16px;
+    }
+    .field{
+      display:grid;
+      gap:6px;
+    }
+    .field label{
+      font-size:.82rem;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.01em;
+    }
+    .split{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .editor-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .small-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+    }
+    .tools{
+      border-top:1px solid var(--border);
+      padding-top:12px;
+      display:grid;
+      gap:8px;
+    }
+    .hint{
+      color:var(--muted);
+      font-size:.84rem;
+      line-height:1.35;
+    }
+    .empty{
+      padding:28px 16px;
+      text-align:center;
+      color:var(--muted);
+      border:1px dashed var(--border-strong);
+      border-radius:16px;
+      background:#fbfdff;
+    }
+    .toast{
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      background:#0f172a;
+      color:#fff;
+      padding:10px 14px;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      opacity:0;
+      transform:translateY(8px);
+      transition:.2s ease;
+      pointer-events:none;
+      z-index:20;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translateY(0);
+    }
+    @media (max-width: 1100px){
+      .shell{grid-template-columns:1fr;}
+      .side{position:static;}
+    }
+    @media (max-width: 760px){
+      .toolbar{
+        grid-template-columns:1fr 1fr;
+      }
+      .toolbar .full{grid-column:1 / -1;}
+      .split,.small-actions,.editor-actions,.actions{
+        grid-template-columns:1fr;
+      }
+      .pages-grid{
+        grid-template-columns:1fr;
+      }
+      .version-chip,
+      .more-btn{
+        max-width:100%;
+      }
+      .app{
+        width:min(100%, calc(100% - 14px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <section class="panel">
+        <div class="header">
+          <h1>Maintenance Notes</h1>
+          <p class="sub">Fast searchable service notes with grouped versions, simple editing, and offline saving.</p>
+        </div>
+
+        <div class="toolbar">
+          <input id="searchInput" class="full" type="text" placeholder="Search keyword, service, version, or note text" />
+          <select id="categoryFilter">
+            <option value="all">All categories</option>
+          </select>
+          <button id="newPageBtn" class="btn btn-primary">New note</button>
+          <button id="exportBtn" class="btn">Export</button>
+          <label class="btn" for="importInput" style="text-align:center;">Import</label>
+          <input id="importInput" type="file" accept=".json" hidden />
+        </div>
+
+        <div class="stats">
+          <span class="pill"><strong id="pageCount">0</strong> pages</span>
+          <span class="pill"><strong id="versionCount">0</strong> versions</span>
+          <span class="pill">Simple search only</span>
+        </div>
+
+        <div class="left-head">
+          <span id="resultsText">Showing all notes</span>
+          <span>Cards stay fixed. Extra versions move into a dropdown.</span>
+        </div>
+
+        <div class="grid-wrap">
+          <div id="pagesGrid" class="pages-grid"></div>
+        </div>
+      </section>
+
+      <aside class="panel side">
+        <div class="side-head">
+          <h2 class="side-title">Edit or create note</h2>
+          <p class="side-sub">Use a page for the service. Use versions for front, rear, 1 tire, 2 tires, and similar variants.</p>
+        </div>
+
+        <div class="editor">
+          <div class="field">
+            <label for="pageName">Service page</label>
+            <input id="pageName" type="text" placeholder="Brake Pad Replacement" />
+          </div>
+
+          <div class="split">
+            <div class="field">
+              <label for="categoryName">Category</label>
+              <input id="categoryName" list="categoryList" type="text" placeholder="Brakes" />
+              <datalist id="categoryList"></datalist>
+            </div>
+            <div class="field">
+              <label for="versionName">Version</label>
+              <input id="versionName" type="text" placeholder="Front Brakes" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="keywords">Keywords</label>
+            <input id="keywords" type="text" placeholder="pads, front brakes, rotor recommendation" />
+          </div>
+
+          <div class="field">
+            <label for="noteText">Note</label>
+            <textarea id="noteText" placeholder="Write or edit your note here"></textarea>
+          </div>
+
+          <div class="editor-actions">
+            <button id="saveBtn" class="btn btn-primary">Save note</button>
+            <button id="copyBtn" class="btn btn-soft">Copy note</button>
+          </div>
+
+          <div class="small-actions">
+            <button id="duplicateBtn" class="btn">Duplicate</button>
+            <button id="clearBtn" class="btn">Clear</button>
+            <button id="deleteBtn" class="btn btn-danger">Delete</button>
+          </div>
+
+          <div class="tools">
+            <div class="hint">Saving to an existing page with a new version adds that version under the same service page. Saving with the same page and version updates it.</div>
+            <button id="resetBtn" class="btn">Reset built-in presets</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'maintenanceNotesGrouped_v5';
+
+    const builtInPages = [
+      { title:'Oil Change Service', category:'Maintenance', versions:[{ name:'Standard', keywords:['oil','filter','lube','maintenance'], note:'Engine oil and filter service is due at this time. Recommend replacing engine oil and filter and performing routine maintenance inspection.' }]},
+      { title:'Tire Rotation', category:'Tires', versions:[{ name:'Standard', keywords:['rotation','tires','rotate'], note:'Tire rotation is due at this time to promote even tire wear and extend tire life. Recommend rotating all four tires and adjusting pressures as needed.' }]},
+      { title:'Alignment', category:'Tires', versions:[{ name:'Standard', keywords:['alignment','wear','pull'], note:'Vehicle would benefit from a wheel alignment at this time. Recommend alignment to help correct tire wear and maintain proper driving stability.' }]},
+      { title:'Brake Fluid Service', category:'Fluids', versions:[{ name:'Standard', keywords:['brake fluid','flush','fluid exchange'], note:'Brake fluid service is due at this time. Recommend brake fluid exchange to remove moisture and help protect internal brake system components.' }]},
+      { title:'Coolant Flush', category:'Fluids', versions:[{ name:'Standard', keywords:['coolant','flush','antifreeze'], note:'Cooling system service is due at this time. Recommend coolant exchange to maintain proper cooling system protection and performance.' }]},
+      { title:'CVT Service', category:'Transmission', versions:[{ name:'Standard', keywords:['cvt','transmission','fluid'], note:'CVT fluid service is due at this time. Recommend CVT fluid exchange to help maintain transmission performance and longevity.' }]},
+      { title:'Automatic Transmission Service', category:'Transmission', versions:[{ name:'Standard', keywords:['automatic transmission','atf','fluid'], note:'Automatic transmission fluid service is due at this time. Recommend transmission fluid exchange to help maintain shift quality and internal component protection.' }]},
+      { title:'Front Differential Service', category:'Driveline', versions:[{ name:'Standard', keywords:['front differential','diff service'], note:'Front differential fluid service is due at this time. Recommend replacing differential fluid to help protect gears and bearings.' }]},
+      { title:'Rear Differential Service', category:'Driveline', versions:[{ name:'Standard', keywords:['rear differential','diff service'], note:'Rear differential fluid service is due at this time. Recommend replacing differential fluid to help protect gears and bearings.' }]},
+      { title:'Transfer Case Service', category:'Driveline', versions:[{ name:'Standard', keywords:['transfer case','fluid'], note:'Transfer case fluid service is due at this time. Recommend replacing transfer case fluid to maintain proper drivetrain protection.' }]},
+      { title:'Power Steering Fluid Service', category:'Fluids', versions:[{ name:'Standard', keywords:['power steering','fluid'], note:'Power steering fluid service is due at this time. Recommend fluid exchange to help protect steering system components and maintain smooth operation.' }]},
+      { title:'Cabin Air Filter', category:'Filters', versions:[{ name:'Replace', keywords:['cabin filter','air filter','hvac'], note:'Cabin air filter is dirty at this time. Recommend replacing cabin air filter to help restore proper airflow and interior air quality.' }]},
+      { title:'Engine Air Filter', category:'Filters', versions:[{ name:'Replace', keywords:['engine air filter','filter'], note:'Engine air filter is dirty at this time. Recommend replacing engine air filter to maintain proper engine airflow and performance.' }]},
+      { title:'HVAC Cleaning Service', category:'HVAC', versions:[{ name:'Standard', keywords:['hvac','evaporator','odor','cleaning'], note:'HVAC cleaning service is recommended at this time. Recommend cleaning the HVAC system to help reduce odor buildup and improve air quality.' }]},
+      { title:'Fuel Injection Service', category:'Fuel System', versions:[{ name:'Standard', keywords:['injector service','fuel injection','fuel system'], note:'Fuel injection service is recommended at this time. Recommend fuel system cleaning to help maintain injector performance and engine efficiency.' }]},
+      { title:'Wynn GDI Service', category:'Fuel System', versions:[{ name:'Standard', keywords:['wynn gdi','gdi service'], note:'GDI service is due at this time. Recommend induction and fuel system cleaning service to help reduce carbon buildup and maintain performance.' }]},
+      { title:'Wynn Foam Service', category:'Fuel System', versions:[{ name:'Standard', keywords:['foam service','wynn foam'], note:'Foam induction service is due at this time. Recommend intake system cleaning to help reduce deposits and maintain performance.' }]},
+      { title:'Spark Plug Service', category:'Ignition', versions:[{ name:'Standard', keywords:['spark plugs','tune up'], note:'Spark plug replacement is due at this time. Recommend replacing spark plugs to maintain proper ignition performance and fuel efficiency.' }]},
+      { title:'Battery Service', category:'Electrical', versions:[
+        { name:'Replace Battery', keywords:['battery','failed battery','starting'], note:'Battery tested weak/failed at this time. Recommend battery replacement and terminal service as needed to help prevent no-start concerns.' },
+        { name:'Terminal Service', keywords:['battery terminals','corrosion'], note:'Battery terminals show corrosion at this time. Recommend cleaning and protecting battery terminals to ensure proper electrical contact.' }
+      ]},
+      { title:'Wiper Blades', category:'Visibility', versions:[
+        { name:'Front Wipers', keywords:['wiper blades','front wipers'], note:'Front wiper blades are worn at this time. Recommend replacing front wiper blades for proper windshield clearing.' },
+        { name:'Rear Wiper', keywords:['rear wiper'], note:'Rear wiper blade is worn at this time. Recommend replacing rear wiper blade for proper windshield clearing.' }
+      ]},
+      { title:'Tire Replacement', category:'Tires', versions:[
+        { name:'1 Tire', keywords:['1 tire','single tire'], note:'One tire is worn and requires replacement at this time. Recommend replacing the affected tire and matching remaining tire condition as needed.' },
+        { name:'2 Tires', keywords:['2 tires','pair'], note:'Two tires are worn and require replacement at this time. Recommend replacing the worn pair and checking alignment if uneven wear is present.' },
+        { name:'4 Tires', keywords:['4 tires','set of tires'], note:'All four tires are worn and require replacement at this time. Recommend replacing all four tires and performing alignment to help protect the new set.' }
+      ]},
+      { title:'Brake Pad Replacement', category:'Brakes', versions:[
+        { name:'Front Brakes', keywords:['front brakes','pads','rotors'], note:'Front brake pads are worn at this time. Recommend replacing front brake pads and servicing or replacing rotors as needed.' },
+        { name:'Rear Brakes', keywords:['rear brakes','pads','rotors'], note:'Rear brake pads are worn at this time. Recommend replacing rear brake pads and servicing or replacing rotors as needed.' },
+        { name:'Front and Rear Brakes', keywords:['front and rear brakes','all brakes'], note:'Front and rear brake pads are worn at this time. Recommend replacing front and rear brake pads and servicing or replacing rotors as needed.' }
+      ]}
+    ];
+
+    let pages = loadPages();
+    let selected = null;
+
+    const els = {
+      searchInput: document.getElementById('searchInput'),
+      categoryFilter: document.getElementById('categoryFilter'),
+      pagesGrid: document.getElementById('pagesGrid'),
+      pageCount: document.getElementById('pageCount'),
+      versionCount: document.getElementById('versionCount'),
+      resultsText: document.getElementById('resultsText'),
+      pageName: document.getElementById('pageName'),
+      categoryName: document.getElementById('categoryName'),
+      versionName: document.getElementById('versionName'),
+      keywords: document.getElementById('keywords'),
+      noteText: document.getElementById('noteText'),
+      saveBtn: document.getElementById('saveBtn'),
+      copyBtn: document.getElementById('copyBtn'),
+      duplicateBtn: document.getElementById('duplicateBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      deleteBtn: document.getElementById('deleteBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      newPageBtn: document.getElementById('newPageBtn'),
+      exportBtn: document.getElementById('exportBtn'),
+      importInput: document.getElementById('importInput'),
+      categoryList: document.getElementById('categoryList'),
+      toast: document.getElementById('toast')
+    };
+
+    function cloneBuiltIn(){ return JSON.parse(JSON.stringify(builtInPages)); }
+
+    function normalizePages(data){
+      return (Array.isArray(data) ? data : []).map(page => ({
+        id: page.id || crypto.randomUUID(),
+        title: (page.title || '').trim(),
+        category: (page.category || 'General').trim(),
+        versions: (Array.isArray(page.versions) ? page.versions : []).map(v => ({
+          id: v.id || crypto.randomUUID(),
+          name: (v.name || 'Standard').trim(),
+          keywords: Array.isArray(v.keywords) ? v.keywords : String(v.keywords || '').split(',').map(s=>s.trim()).filter(Boolean),
+          note: (v.note || '').trim()
+        })).filter(v => v.name && v.note)
+      })).filter(page => page.title && page.versions.length);
+    }
+
+    function loadPages(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return normalizePages(cloneBuiltIn());
+        const parsed = JSON.parse(raw);
+        const normalized = normalizePages(parsed);
+        return normalized.length ? normalized : normalizePages(cloneBuiltIn());
+      }catch(e){
+        return normalizePages(cloneBuiltIn());
+      }
+    }
+
+    function savePages(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(pages)); }
+    function totalVersions(){ return pages.reduce((sum, page) => sum + page.versions.length, 0); }
+
+    function ensureSelected(){
+      if(selected){
+        const page = pages.find(p => p.id === selected.pageId);
+        const version = page?.versions.find(v => v.id === selected.versionId);
+        if(page && version) return;
+      }
+      const firstPage = pages[0];
+      const firstVersion = firstPage?.versions[0];
+      selected = firstPage && firstVersion ? {pageId:firstPage.id, versionId:firstVersion.id} : null;
+    }
+
+    function getSelected(){
+      if(!selected) return {};
+      const page = pages.find(p => p.id === selected.pageId);
+      const version = page?.versions.find(v => v.id === selected.versionId);
+      return {page, version};
+    }
+
+    function filterPages(){
+      const term = els.searchInput.value.trim().toLowerCase();
+      const category = els.categoryFilter.value;
+      return pages.map(page => {
+        const matchingVersions = page.versions.filter(v => {
+          const blob = [page.title, page.category, v.name, v.note, ...(v.keywords || [])].join(' ').toLowerCase();
+          return !term || blob.includes(term);
+        });
+        const categoryPass = category === 'all' || page.category === category;
+        if(!categoryPass) return null;
+        if(!term) return page;
+        if(matchingVersions.length) return {...page, versions: matchingVersions};
+        return null;
+      }).filter(Boolean);
+    }
+
+    function renderFilters(){
+      const categories = Array.from(new Set(pages.map(p => p.category).filter(Boolean))).sort((a,b) => a.localeCompare(b));
+      const current = els.categoryFilter.value || 'all';
+      els.categoryFilter.innerHTML = '<option value="all">All categories</option>' + categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      els.categoryFilter.value = categories.includes(current) ? current : 'all';
+      els.categoryList.innerHTML = categories.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+    }
+
+    function render(){
+      ensureSelected();
+      renderFilters();
+      const filtered = filterPages();
+      els.pageCount.textContent = String(pages.length);
+      els.versionCount.textContent = String(totalVersions());
+      els.resultsText.textContent = els.searchInput.value.trim()
+        ? `Showing ${filtered.length} matching page${filtered.length === 1 ? '' : 's'}`
+        : 'Showing all notes';
+
+      if(!filtered.length){
+        els.pagesGrid.innerHTML = '<div class="empty">No notes match that search.</div>';
+      }else{
+        els.pagesGrid.innerHTML = filtered.map(page => renderCard(page)).join('');
+      }
+      wireCardEvents();
+      fillEditor();
+    }
+
+    function renderCard(page){
+      const actualPage = pages.find(p => p.id === page.id) || page;
+      const selectedVersionId = selected?.pageId === actualPage.id ? selected.versionId : (actualPage.versions[0]?.id || null);
+      const visible = actualPage.versions.slice(0,3);
+      const overflow = actualPage.versions.slice(3);
+      const currentVersion = actualPage.versions.find(v => v.id === selectedVersionId) || actualPage.versions[0];
+      const preview = currentVersion?.note || '';
+
+      return `
+        <article class="card ${selected?.pageId === actualPage.id ? 'active' : ''}" data-page-id="${actualPage.id}">
+          <div class="card-top">
+            <div class="title-wrap">
+              <h3 class="card-title">${escapeHtml(actualPage.title)}</h3>
+              <span class="badge">${escapeHtml(actualPage.category)}</span>
+            </div>
+          </div>
+
+          <div class="active-version-bar" title="${escapeHtml(currentVersion?.name || '')}">
+            <span class="active-version-label">Version</span>
+            <strong>${escapeHtml(currentVersion?.name || 'Standard')}</strong>
+          </div>
+
+          <div class="version-row">
+            <div class="version-list">
+              ${visible.map(v => `
+                <button class="version-chip ${v.id === selectedVersionId ? 'active' : ''}" data-page-id="${actualPage.id}" data-version-id="${v.id}" title="${escapeHtml(v.name)}">
+                  ${escapeHtml(v.name)}
+                </button>
+              `).join('')}
+              ${overflow.length ? `
+                <div class="more-wrap" data-more-wrap="${actualPage.id}">
+                  <button class="more-btn" type="button" data-more-toggle="${actualPage.id}" title="More versions">
+                    More (${overflow.length})
+                  </button>
+                  <div class="more-menu" data-more-menu="${actualPage.id}">
+                    ${overflow.map(v => `
+                      <button class="more-option ${v.id === selectedVersionId ? 'active' : ''}" type="button" data-page-id="${actualPage.id}" data-version-id="${v.id}" title="${escapeHtml(v.name)}">
+                        ${escapeHtml(v.name)}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+            <button class="btn btn-soft icon-btn add-version-btn" data-add-to-page="${actualPage.id}" title="Add version">+</button>
+          </div>
+
+          <div class="preview">${escapeHtml(preview)}</div>
+
+          <div class="actions">
+            <button class="btn copy-card-btn" data-copy-page="${actualPage.id}" data-copy-version="${currentVersion?.id || ''}">Copy</button>
+            <button class="btn btn-soft edit-card-btn" data-edit-page="${actualPage.id}" data-edit-version="${currentVersion?.id || ''}">Edit</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function wireCardEvents(){
+      document.querySelectorAll('.version-chip').forEach(btn => {
+        btn.addEventListener('click', () => { selected = {pageId: btn.dataset.pageId, versionId: btn.dataset.versionId}; render(); });
+      });
+      document.querySelectorAll('[data-more-toggle]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const wrap = btn.closest('.more-wrap');
+          document.querySelectorAll('.more-wrap.open').forEach(el => {
+            if(el !== wrap) el.classList.remove('open');
+          });
+          wrap.classList.toggle('open');
+        });
+      });
+      document.querySelectorAll('.more-option').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selected = {pageId: btn.dataset.pageId, versionId: btn.dataset.versionId};
+          render();
+        });
+      });
+      document.querySelectorAll('.copy-card-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const page = pages.find(p => p.id === btn.dataset.copyPage);
+          const version = page?.versions.find(v => v.id === btn.dataset.copyVersion);
+          if(version) copyText(version.note);
+        });
+      });
+      document.querySelectorAll('.edit-card-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selected = {pageId: btn.dataset.editPage, versionId: btn.dataset.editVersion};
+          fillEditor();
+          render();
+          window.scrollTo({top:0, behavior:'smooth'});
+        });
+      });
+      document.querySelectorAll('.add-version-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const page = pages.find(p => p.id === btn.dataset.addToPage);
+          els.pageName.value = page?.title || '';
+          els.categoryName.value = page?.category || '';
+          els.versionName.value = '';
+          els.keywords.value = '';
+          els.noteText.value = '';
+          els.versionName.focus();
+        });
+      });
+    }
+
+    function fillEditor(){
+      const {page, version} = getSelected();
+      if(!page || !version){ clearEditor(); return; }
+      els.pageName.value = page.title;
+      els.categoryName.value = page.category;
+      els.versionName.value = version.name;
+      els.keywords.value = (version.keywords || []).join(', ');
+      els.noteText.value = version.note;
+    }
+
+    function clearEditor(){
+      els.pageName.value = '';
+      els.categoryName.value = '';
+      els.versionName.value = '';
+      els.keywords.value = '';
+      els.noteText.value = '';
+    }
+
+    function saveCurrent(){
+      const pageTitle = els.pageName.value.trim();
+      const category = els.categoryName.value.trim() || 'General';
+      const versionName = els.versionName.value.trim() || 'Standard';
+      const note = els.noteText.value.trim();
+      const keywords = els.keywords.value.split(',').map(s => s.trim()).filter(Boolean);
+      if(!pageTitle || !note){ showToast('Service page and note are required.'); return; }
+
+      let page = pages.find(p => p.title.toLowerCase() === pageTitle.toLowerCase());
+      if(!page){
+        page = { id: crypto.randomUUID(), title: pageTitle, category, versions: [] };
+        pages.unshift(page);
+      }else{
+        page.title = pageTitle;
+        page.category = category;
+      }
+
+      let version = page.versions.find(v => v.name.toLowerCase() === versionName.toLowerCase());
+      if(selected?.pageId === page.id && selected?.versionId){
+        const selectedVersion = page.versions.find(v => v.id === selected.versionId);
+        if(selectedVersion && selectedVersion.name.toLowerCase() === versionName.toLowerCase()) version = selectedVersion;
+      }
+
+      if(!version){
+        version = { id: crypto.randomUUID(), name: versionName, keywords: [], note: '' };
+        page.versions.push(version);
+      }
+
+      version.name = versionName;
+      version.keywords = keywords;
+      version.note = note;
+
+      page.versions.sort((a,b) => a.name.localeCompare(b.name));
+      pages.sort((a,b) => a.title.localeCompare(b.title));
+      selected = {pageId: page.id, versionId: version.id};
+      savePages();
+      render();
+      showToast('Note saved.');
+    }
+
+    function duplicateCurrent(){
+      const {page, version} = getSelected();
+      if(!page || !version) return;
+      const copy = { id: crypto.randomUUID(), name: version.name + ' Copy', keywords: [...(version.keywords || [])], note: version.note };
+      page.versions.push(copy);
+      selected = {pageId: page.id, versionId: copy.id};
+      savePages();
+      render();
+      showToast('Version duplicated.');
+    }
+
+    function deleteCurrent(){
+      const {page, version} = getSelected();
+      if(!page || !version) return;
+      page.versions = page.versions.filter(v => v.id !== version.id);
+      if(!page.versions.length) pages = pages.filter(p => p.id !== page.id);
+      savePages();
+      ensureSelected();
+      render();
+      showToast('Note deleted.');
+    }
+
+    function exportData(){
+      const blob = new Blob([JSON.stringify(pages, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'maintenance-notes-backup.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const parsed = JSON.parse(reader.result);
+          const normalized = normalizePages(parsed);
+          if(!normalized.length) throw new Error('No valid notes found');
+          pages = normalized;
+          savePages();
+          ensureSelected();
+          render();
+          showToast('Notes imported.');
+        }catch(e){ showToast('Import failed.'); }
+      };
+      reader.readAsText(file);
+    }
+
+    async function copyText(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        showToast('Copied.');
+      }catch(e){
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        temp.remove();
+        showToast('Copied.');
+      }
+    }
+
+    function showToast(message){
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 1600);
+    }
+
+    function escapeHtml(value){
+      return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;");
+    }
+
+    els.searchInput.addEventListener('input', render);
+    els.categoryFilter.addEventListener('change', render);
+    els.saveBtn.addEventListener('click', saveCurrent);
+    els.copyBtn.addEventListener('click', () => copyText(els.noteText.value.trim()));
+    els.duplicateBtn.addEventListener('click', duplicateCurrent);
+    els.clearBtn.addEventListener('click', () => { clearEditor(); els.pageName.focus(); });
+    els.deleteBtn.addEventListener('click', deleteCurrent);
+    els.newPageBtn.addEventListener('click', () => { clearEditor(); els.pageName.focus(); });
+    els.exportBtn.addEventListener('click', exportData);
+    els.importInput.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if(file) importData(file);
+      e.target.value = '';
+    });
+    els.resetBtn.addEventListener('click', () => {
+      pages = normalizePages(cloneBuiltIn());
+      savePages();
+      ensureSelected();
+      render();
+      showToast('Built-in presets restored.');
+    });
+
+    document.addEventListener('click', (e) => {
+      if(!e.target.closest('.more-wrap')){
+        document.querySelectorAll('.more-wrap.open').forEach(el => el.classList.remove('open'));
+      }
+    });
+
+    ensureSelected();
+    render();
+  </script>
+</body>
+</html>
