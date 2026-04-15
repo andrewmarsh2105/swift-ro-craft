@@ -460,7 +460,7 @@
 
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
-    @apply flex-shrink-0 py-1 flex items-center justify-between px-4 bg-background;
+    @apply flex-shrink-0 py-1 flex items-center justify-end px-4 bg-background;
     border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
 
