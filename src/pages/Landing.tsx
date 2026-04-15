@@ -757,12 +757,12 @@ export default function Landing() {
             <img
               src={LANDING_WHITE_LOGO_SRC}
               alt="RO Navigator"
-              width={Math.round((28 / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={28}
+              width={Math.round((32 / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={32}
               loading="lazy"
               decoding="async"
               draggable={false}
-              className="block h-[28px] w-auto shrink-0 select-none"
+              className="block h-[32px] w-auto shrink-0 select-none"
             />
             <span className="text-xs text-slate-600">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
