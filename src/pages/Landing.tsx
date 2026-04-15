@@ -5,6 +5,10 @@ import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
 import multiperiodPreview from '@/assets/pro-multiperiod-preview.png';
 import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
+import {
+  landingFooter as landingFooterLogoHeightPx,
+  landingTopNav as landingTopNavLogoHeightPx,
+} from '@/components/brand/logoSizing';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
@@ -117,12 +121,13 @@ export default function Landing() {
             <img
               src={LANDING_WHITE_LOGO_SRC}
               alt="RO Navigator"
-              width={Math.round((56 / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={56}
+              width={Math.round((landingTopNavLogoHeightPx / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={landingTopNavLogoHeightPx}
               loading="eager"
               decoding="async"
               draggable={false}
-              className="block h-[56px] w-auto shrink-0 select-none"
+              className="block w-auto shrink-0 select-none"
+              style={{ height: `${landingTopNavLogoHeightPx}px` }}
             />
           </Link>
           <nav className="flex items-center gap-1.5">
@@ -757,12 +762,13 @@ export default function Landing() {
             <img
               src={LANDING_WHITE_LOGO_SRC}
               alt="RO Navigator"
-              width={Math.round((28 / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={28}
+              width={Math.round((landingFooterLogoHeightPx / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={landingFooterLogoHeightPx}
               loading="lazy"
               decoding="async"
               draggable={false}
-              className="block h-[28px] w-auto shrink-0 select-none"
+              className="block w-auto shrink-0 select-none"
+              style={{ height: `${landingFooterLogoHeightPx}px` }}
             />
             <span className="text-xs text-slate-600">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
