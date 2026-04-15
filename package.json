@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "ci:guard-logo-assets": "bash scripts/check-brand-assets.sh"
   },
   "dependencies": {
     "@lovable.dev/cloud-auth-js": "^1.0.0",
