@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
 import { HeaderLogo } from "@/components/brand";
+import { DASHBOARD_MOBILE_LOGO_HEIGHT } from "@/components/brand/logoSizing";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
@@ -127,7 +128,7 @@ function MobileApp() {
       <OfflineStatusBar />
       {/* Branded mobile app header */}
       <header className="flex-shrink-0 flex items-center justify-between px-3 h-12 border-b border-border/40 bg-background">
-        <HeaderLogo height={45} />
+        <HeaderLogo height={DASHBOARD_MOBILE_LOGO_HEIGHT} />
         <button
           onClick={handleOpenProfile}
           className="h-8 w-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none tap-target active:opacity-80 transition-opacity"
