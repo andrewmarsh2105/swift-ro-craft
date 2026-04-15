@@ -5,6 +5,7 @@ import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
 import multiperiodPreview from '@/assets/pro-multiperiod-preview.png';
 import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
+import { LANDING_FOOTER_LOGO_HEIGHT, LANDING_NAV_LOGO_HEIGHT } from '@/components/brand/logoSizing';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
@@ -117,12 +118,13 @@ export default function Landing() {
             <img
               src={LANDING_WHITE_LOGO_SRC}
               alt="RO Navigator"
-              width={Math.round((58 / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={58}
+              width={Math.round((LANDING_NAV_LOGO_HEIGHT / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={LANDING_NAV_LOGO_HEIGHT}
               loading="eager"
               decoding="async"
               draggable={false}
-              className="block h-[58px] w-auto shrink-0 select-none"
+              className="block w-auto shrink-0 select-none"
+              style={{ height: `${LANDING_NAV_LOGO_HEIGHT}px` }}
             />
           </Link>
           <nav className="flex items-center gap-1.5">
@@ -757,12 +759,13 @@ export default function Landing() {
             <img
               src={LANDING_WHITE_LOGO_SRC}
               alt="RO Navigator"
-              width={Math.round((32 / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={32}
+              width={Math.round((LANDING_FOOTER_LOGO_HEIGHT / LOGO_WHITE_H) * LOGO_WHITE_W)}
+              height={LANDING_FOOTER_LOGO_HEIGHT}
               loading="lazy"
               decoding="async"
               draggable={false}
-              className="block h-[32px] w-auto shrink-0 select-none"
+              className="block w-auto shrink-0 select-none"
+              style={{ height: `${LANDING_FOOTER_LOGO_HEIGHT}px` }}
             />
             <span className="text-xs text-slate-600">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.

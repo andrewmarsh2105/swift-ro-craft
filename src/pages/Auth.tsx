@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { trackSignupCompleted } from '@/lib/analytics';
 import { Loader2, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, Shield, Wifi } from 'lucide-react';
 import { HeaderLogo } from '@/components/brand';
+import { AUTH_DESKTOP_LOGO_HEIGHT, AUTH_MOBILE_LOGO_HEIGHT } from '@/components/brand/logoSizing';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -114,7 +115,7 @@ export default function Auth() {
 
         <div className="relative flex flex-col h-full p-10">
           {/* Logo */}
-          <HeaderLogo priority height={66} />
+          <HeaderLogo priority height={AUTH_DESKTOP_LOGO_HEIGHT} />
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
@@ -181,7 +182,7 @@ export default function Auth() {
           >
             {/* Mobile-only branding */}
             <div className="flex items-center justify-center md:hidden">
-              <HeaderLogo priority height={52} />
+              <HeaderLogo priority height={AUTH_MOBILE_LOGO_HEIGHT} />
             </div>
 
             {/* Desktop heading */}
