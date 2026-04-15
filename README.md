@@ -63,6 +63,24 @@ npm run dev
 | `npm run test:watch` | Watch mode |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript type check (no emit) |
+| `npm run ci:guard-logo-assets` | Fails when `public/brand/` changes are not explicitly approved |
+
+## Brand Asset Change Policy
+
+Logo files in `public/brand/` are protected by a CI guard to prevent accidental edits.
+
+If you intentionally modify anything under `public/brand/`, you must use **one** of the approval paths in the same change set:
+
+1. Include the tag `[logo-change]` in the commit message.
+2. Touch `.logo-change-allowlist` and add a short note for reviewers.
+
+Run this check locally before pushing:
+
+```sh
+npm run ci:guard-logo-assets
+```
+
+The guard script is `scripts/check-brand-assets.sh` and is designed for CI usage as well.
 
 ## Environment Variables
 

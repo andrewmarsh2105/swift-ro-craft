@@ -1,0 +1,3 @@
+# Touch this file in a commit to explicitly allow intentional brand logo updates.
+# The CI logo guard checks for this file when assets under public/brand/ are modified.
+# Include a short note below about the reason for the change.
