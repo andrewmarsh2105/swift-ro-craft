@@ -115,7 +115,7 @@ export default function Auth() {
 
         <div className="relative flex flex-col h-full p-10">
           {/* Logo */}
-          <HeaderLogo priority height={AUTH_DESKTOP_LOGO_HEIGHT} />
+          <HeaderLogo priority height={AUTH_DESKTOP_LOGO_HEIGHT + 6} />
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
@@ -182,7 +182,7 @@ export default function Auth() {
           >
             {/* Mobile-only branding */}
             <div className="flex items-center justify-center md:hidden">
-              <HeaderLogo priority height={AUTH_MOBILE_LOGO_HEIGHT} />
+              <HeaderLogo priority height={AUTH_MOBILE_LOGO_HEIGHT + 4} />
             </div>
 
             {/* Desktop heading */}
