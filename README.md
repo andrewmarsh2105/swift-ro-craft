@@ -62,6 +62,7 @@ npm run dev
 | `npm run test` | Run Vitest test suite |
 | `npm run test:watch` | Watch mode |
 | `npm run lint` | ESLint |
+| `npm run ci:guard:brand-assets` | Fails CI if `/public/brand/*` changed without explicit logo-change override |
 | `npm run typecheck` | TypeScript type check (no emit) |
 
 ## Environment Variables
@@ -137,6 +138,14 @@ Tests live alongside source files as `*.test.ts` / `*.test.tsx`. Current coverag
 - `src/hooks/useCloseouts.test.ts` — closeout hook
 - `src/features/ro/domain/buildRoPayload.test.ts` — RO payload construction
 - `src/components/mobile/StatusPill.test.tsx` — status pill rendering
+
+## Brand asset change policy
+
+- If not a logo task, do not modify `/public/brand/*` or logo size tokens.
+- CI enforces this via `npm run ci:guard:brand-assets`.
+- To intentionally allow logo asset changes, either:
+  - include `[logo-change]` in the commit message, or
+  - touch `.logo-change-allowlist` in the same commit.
 
 ## Deployment
 
