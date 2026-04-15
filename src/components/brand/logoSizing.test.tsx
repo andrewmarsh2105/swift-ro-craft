@@ -2,10 +2,10 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  AUTH_DESKTOP_LOGO_HEIGHT,
-  AUTH_MOBILE_LOGO_HEIGHT,
-  DASHBOARD_DESKTOP_LOGO_HEIGHT,
-  DASHBOARD_MOBILE_LOGO_HEIGHT,
+  MAIN_DESKTOP_LOGO_HEIGHT,
+  MAIN_MOBILE_LOGO_HEIGHT,
+  SIGN_IN_DESKTOP_LOGO_HEIGHT,
+  SIGN_IN_MOBILE_LOGO_HEIGHT,
   LANDING_FOOTER_LOGO_HEIGHT,
   LANDING_NAV_LOGO_HEIGHT,
 } from '@/components/brand/logoSizing';
@@ -112,7 +112,7 @@ describe('logo sizing', () => {
 
     expect(screen.getByAltText('RO Navigator')).toHaveAttribute(
       'height',
-      (DASHBOARD_DESKTOP_LOGO_HEIGHT + 6).toString(),
+      MAIN_DESKTOP_LOGO_HEIGHT.toString(),
     );
   });
 
@@ -125,7 +125,7 @@ describe('logo sizing', () => {
 
     expect(screen.getByAltText('RO Navigator')).toHaveAttribute(
       'height',
-      (DASHBOARD_MOBILE_LOGO_HEIGHT + 4).toString(),
+      MAIN_MOBILE_LOGO_HEIGHT.toString(),
     );
   });
 
@@ -139,8 +139,8 @@ describe('logo sizing', () => {
     const authLogos = screen.getAllByAltText('RO Navigator');
     expect(authLogos).toHaveLength(2);
 
-    expect(authLogos[0]).toHaveAttribute('height', (AUTH_DESKTOP_LOGO_HEIGHT + 6).toString());
-    expect(authLogos[1]).toHaveAttribute('height', (AUTH_MOBILE_LOGO_HEIGHT + 4).toString());
+    expect(authLogos[0]).toHaveAttribute('height', SIGN_IN_DESKTOP_LOGO_HEIGHT.toString());
+    expect(authLogos[1]).toHaveAttribute('height', SIGN_IN_MOBILE_LOGO_HEIGHT.toString());
   });
 
   it('keeps landing nav and footer logo heights pinned', () => {

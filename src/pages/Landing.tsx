@@ -6,13 +6,12 @@ import heroMockup from '@/assets/hero-mockup.png';
 import multiperiodPreview from '@/assets/pro-multiperiod-preview.png';
 import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
 import { HeaderLogo } from '@/components/brand';
-import { LANDING_FOOTER_LOGO_HEIGHT } from '@/components/brand/logoSizing';
+import { LANDING_FOOTER_LOGO_HEIGHT, LANDING_NAV_LOGO_HEIGHT } from '@/components/brand/logoSizing';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
 const LOGO_WHITE_W = 600;
 const LOGO_WHITE_H = 403;
-const LANDING_NAV_LOGO_HEIGHT = 55;
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
@@ -123,7 +122,7 @@ export default function Landing() {
               loading="eager"
               decoding="async"
               draggable={false}
-              className={`block w-auto h-[${LANDING_NAV_LOGO_HEIGHT}px] shrink-0 select-none`}
+              className="block w-auto shrink-0 select-none"
             />
           </Link>
           <nav className="flex items-center gap-1.5">
