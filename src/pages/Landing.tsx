@@ -5,14 +5,11 @@ import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
 import multiperiodPreview from '@/assets/pro-multiperiod-preview.png';
 import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
+import { HeaderLogo } from '@/components/brand';
 import { LANDING_FOOTER_LOGO_HEIGHT, LANDING_NAV_LOGO_HEIGHT } from '@/components/brand/logoSizing';
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
-const LANDING_WHITE_LOGO_SRC = '/brand/logo-white.webp';
-const LOGO_WHITE_W = 600;
-const LOGO_WHITE_H = 403;
-
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
@@ -115,16 +112,11 @@ export default function Landing() {
             className="inline-flex items-center"
             aria-label="RO Navigator home"
           >
-            <img
-              src={LANDING_WHITE_LOGO_SRC}
-              alt="RO Navigator"
-              width={Math.round((LANDING_NAV_LOGO_HEIGHT / LOGO_WHITE_H) * LOGO_WHITE_W)}
+            <HeaderLogo
+              scheme="dark"
+              priority
               height={LANDING_NAV_LOGO_HEIGHT}
-              loading="eager"
-              decoding="async"
-              draggable={false}
-              className="block w-auto shrink-0 select-none"
-              style={{ height: `${LANDING_NAV_LOGO_HEIGHT}px` }}
+              className="w-auto"
             />
           </Link>
           <nav className="flex items-center gap-1.5">
@@ -756,17 +748,7 @@ export default function Landing() {
       >
         <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img
-              src={LANDING_WHITE_LOGO_SRC}
-              alt="RO Navigator"
-              width={Math.round((LANDING_FOOTER_LOGO_HEIGHT / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={LANDING_FOOTER_LOGO_HEIGHT}
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-              className="block w-auto shrink-0 select-none"
-              style={{ height: `${LANDING_FOOTER_LOGO_HEIGHT}px` }}
-            />
+            <HeaderLogo scheme="dark" height={LANDING_FOOTER_LOGO_HEIGHT} className="w-auto" />
             <span className="text-xs text-slate-600">
               © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
             </span>
