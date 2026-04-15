@@ -10,6 +10,7 @@ import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
 import { HeaderLogo } from "@/components/brand";
+import { dashboardDesktopHeader as dashboardDesktopHeaderLogoHeightPx } from "@/components/brand/logoSizing";
 import { ScorecardSheet } from "@/components/stats/ScorecardSheet";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
@@ -346,7 +347,7 @@ export function DesktopWorkspace() {
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
         <div className="flex items-center min-w-0 gap-2.5">
-          <HeaderLogo height={58} />
+          <HeaderLogo height={dashboardDesktopHeaderLogoHeightPx} />
         </div>
 
         {/* Right-side toolbar — utility items only; nav moved to NavTabBar */}
