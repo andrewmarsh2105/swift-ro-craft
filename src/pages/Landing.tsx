@@ -10,8 +10,6 @@ import { LANDING_FOOTER_LOGO_HEIGHT, LANDING_NAV_LOGO_HEIGHT } from '@/component
 
 const NAVY = '#0C1829';
 const AMBER = 'hsl(37, 86%, 44%)';
-const LOGO_WHITE_W = 600;
-const LOGO_WHITE_H = 403;
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
@@ -114,16 +112,7 @@ export default function Landing() {
             className="inline-flex items-center"
             aria-label="RO Navigator home"
           >
-            <img
-              src="/brand/logo-white.webp"
-              alt="RO Navigator"
-              width={Math.round((LANDING_NAV_LOGO_HEIGHT / LOGO_WHITE_H) * LOGO_WHITE_W)}
-              height={LANDING_NAV_LOGO_HEIGHT}
-              loading="eager"
-              decoding="async"
-              draggable={false}
-              className="block w-auto shrink-0 select-none"
-            />
+            <HeaderLogo scheme="dark" priority height={LANDING_NAV_LOGO_HEIGHT} />
           </Link>
           <nav className="flex items-center gap-1.5">
             <a href="#how-it-works" className="text-sm text-slate-400 hover:text-white hidden md:inline px-3 py-1.5 transition-colors">

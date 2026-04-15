@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { getLogoRenderMetrics } from './logoSizing';
 
 type LogoVariant = 'full' | 'monogram' | 'mark' | 'wordmark';
 type LogoScheme = 'light' | 'dark' | 'amber' | 'auto';
@@ -20,32 +21,29 @@ const HEIGHT_MAP: Record<LogoSize, number> = {
   '2xl': 58,
 };
 
-const ASSET_BY_SCHEME: Record<Exclude<LogoScheme, 'auto' | 'amber'>, { src: string; w: number; h: number }> = {
-  light: { src: '/brand/logo-dark.webp', w: 600, h: 411 },
-  dark: { src: '/brand/logo-white.webp', w: 600, h: 403 },
-};
-
 export function Logo({
   variant: _variant = 'full',
   scheme = 'light',
   size = 'md',
   className,
 }: LogoProps) {
-  const h = HEIGHT_MAP[size];
-  const asset = scheme === 'dark' ? ASSET_BY_SCHEME.dark : ASSET_BY_SCHEME.light;
-  const w = Math.round((h / asset.h) * asset.w);
+  const visibleHeight = HEIGHT_MAP[size];
+  const normalizedScheme = scheme === 'dark' ? 'dark' : 'light';
+  const metrics = getLogoRenderMetrics(normalizedScheme, visibleHeight);
 
   return (
-    <img
-      src={asset.src}
-      alt="RO Navigator"
-      width={w}
-      height={h}
-      loading="lazy"
-      decoding="async"
-      draggable={false}
-      className={cn('block w-auto shrink-0 select-none', className)}
-      style={{ height: h }}
-    />
+    <span className={cn('inline-flex shrink-0 overflow-hidden select-none', className)} style={{ height: metrics.visibleHeight }}>
+      <img
+        src={metrics.src}
+        alt="RO Navigator"
+        width={metrics.renderedWidth}
+        height={metrics.renderedHeight}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+        className="block w-auto shrink-0"
+        style={{ marginTop: -metrics.offsetY }}
+      />
+    </span>
   );
 }

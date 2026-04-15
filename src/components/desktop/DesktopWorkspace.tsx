@@ -345,7 +345,7 @@ export function DesktopWorkspace() {
       <OfflineStatusBar />
 
       {/* ── App Bar ──────────────────────────────────── */}
-      <div className="app-bar">
+      <div className="app-bar" style={{ ['--app-bar-logo-height' as const]: `${MAIN_DESKTOP_LOGO_HEIGHT}px` }}>
         <div className="flex items-center min-w-0 gap-2.5">
           <HeaderLogo height={MAIN_DESKTOP_LOGO_HEIGHT} />
         </div>
