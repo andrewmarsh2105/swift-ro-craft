@@ -106,30 +106,30 @@ vi.mock('@/components/OnboardingModal', () => ({
   OnboardingModal: () => null,
 }));
 
+const getVisibleHeight = (img: HTMLElement) => img.parentElement?.getAttribute('data-logo-visible-height');
+
 describe('logo sizing', () => {
-  it('keeps dashboard desktop app bar logo height pinned', () => {
+  it('keeps dashboard desktop app bar logo visible height pinned', () => {
     render(<DesktopWorkspace />);
 
-    expect(screen.getByAltText('RO Navigator')).toHaveAttribute(
-      'height',
+    expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
       MAIN_DESKTOP_LOGO_HEIGHT.toString(),
     );
   });
 
-  it('keeps dashboard mobile header logo height pinned', () => {
+  it('keeps dashboard mobile header logo visible height pinned', () => {
     render(
       <MemoryRouter>
         <Index />
       </MemoryRouter>,
     );
 
-    expect(screen.getByAltText('RO Navigator')).toHaveAttribute(
-      'height',
+    expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
       MAIN_MOBILE_LOGO_HEIGHT.toString(),
     );
   });
 
-  it('keeps auth desktop and mobile branding logo heights pinned', () => {
+  it('keeps auth desktop and mobile branding logo visible heights pinned', () => {
     render(
       <MemoryRouter>
         <Auth />
@@ -139,11 +139,11 @@ describe('logo sizing', () => {
     const authLogos = screen.getAllByAltText('RO Navigator');
     expect(authLogos).toHaveLength(2);
 
-    expect(authLogos[0]).toHaveAttribute('height', SIGN_IN_DESKTOP_LOGO_HEIGHT.toString());
-    expect(authLogos[1]).toHaveAttribute('height', SIGN_IN_MOBILE_LOGO_HEIGHT.toString());
+    expect(getVisibleHeight(authLogos[0])).toBe(SIGN_IN_DESKTOP_LOGO_HEIGHT.toString());
+    expect(getVisibleHeight(authLogos[1])).toBe(SIGN_IN_MOBILE_LOGO_HEIGHT.toString());
   });
 
-  it('keeps landing nav and footer logo heights pinned', () => {
+  it('keeps landing nav and footer logo visible heights pinned via shared header logo', () => {
     render(
       <MemoryRouter>
         <Landing />
@@ -151,7 +151,10 @@ describe('logo sizing', () => {
     );
 
     const landingLogos = screen.getAllByAltText('RO Navigator');
-    expect(landingLogos[0]).toHaveAttribute('height', LANDING_NAV_LOGO_HEIGHT.toString());
-    expect(landingLogos.at(-1)).toHaveAttribute('height', LANDING_FOOTER_LOGO_HEIGHT.toString());
+    expect(getVisibleHeight(landingLogos[0])).toBe(LANDING_NAV_LOGO_HEIGHT.toString());
+    expect(getVisibleHeight(landingLogos.at(-1) as HTMLElement)).toBe(LANDING_FOOTER_LOGO_HEIGHT.toString());
+
+    expect(landingLogos[0]).toHaveAttribute('src', '/brand/logo-white.webp');
+    expect(landingLogos.at(-1)).toHaveAttribute('src', '/brand/logo-white.webp');
   });
 });
