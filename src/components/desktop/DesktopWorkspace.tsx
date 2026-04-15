@@ -9,8 +9,7 @@ import { RODetailsPanel } from "./RODetailsPanel";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
-import { HeaderLogo } from "@/components/brand";
-import { MAIN_DESKTOP_APP_BAR_HEIGHT, MAIN_DESKTOP_LOGO_HEIGHT } from "@/components/brand/logoSizing";
+import { MAIN_DESKTOP_APP_BAR_HEIGHT } from "@/components/brand/logoSizing";
 import { ScorecardSheet } from "@/components/stats/ScorecardSheet";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
@@ -346,10 +345,6 @@ export function DesktopWorkspace() {
 
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar" style={{ minHeight: MAIN_DESKTOP_APP_BAR_HEIGHT }}>
-        <div className="flex items-center min-w-0 gap-2.5">
-          <HeaderLogo height={MAIN_DESKTOP_LOGO_HEIGHT} />
-        </div>
-
         {/* Right-side toolbar — utility items only; nav moved to NavTabBar */}
         <div className="flex items-center gap-1">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} triggerClassName="text-muted-foreground hover:text-foreground hover:bg-muted/60" />

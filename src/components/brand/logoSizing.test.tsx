@@ -3,9 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import {
   MAIN_DESKTOP_APP_BAR_HEIGHT,
-  MAIN_DESKTOP_LOGO_HEIGHT,
   MAIN_MOBILE_HEADER_HEIGHT,
-  MAIN_MOBILE_LOGO_HEIGHT,
   SIGN_IN_DESKTOP_LOGO_HEIGHT,
   SIGN_IN_MOBILE_LOGO_HEIGHT,
   LANDING_FOOTER_LOGO_HEIGHT,
@@ -115,34 +113,30 @@ describe('logo sizing', () => {
     expect(LANDING_NAV_LOGO_HEIGHT).toBe(52);
   });
 
-  it('keeps dashboard desktop app bar logo visible height pinned', () => {
+  it('keeps dashboard desktop app bar height pinned and does not render a logo', () => {
     render(<DesktopWorkspace />);
 
-    expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
-      MAIN_DESKTOP_LOGO_HEIGHT.toString(),
-    );
+    expect(screen.queryByAltText('RO Navigator')).not.toBeInTheDocument();
 
     const appBar = document.querySelector('.app-bar');
     expect(appBar).toHaveStyle({ minHeight: `${MAIN_DESKTOP_APP_BAR_HEIGHT}px` });
   });
 
-  it('keeps dashboard mobile header logo visible height pinned', () => {
+  it('keeps dashboard mobile header height pinned and does not render a logo', () => {
     render(
       <MemoryRouter>
         <Index />
       </MemoryRouter>,
     );
 
-    expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
-      MAIN_MOBILE_LOGO_HEIGHT.toString(),
-    );
-
-    expect(screen.getByAltText('RO Navigator').closest('header')).toHaveStyle({
+    const header = document.querySelector('header');
+    expect(screen.queryByAltText('RO Navigator')).not.toBeInTheDocument();
+    expect(header).toHaveStyle({
       minHeight: `${MAIN_MOBILE_HEADER_HEIGHT}px`,
     });
   });
 
-  it('keeps auth desktop and mobile branding logo visible heights pinned', () => {
+  it('keeps auth desktop and mobile branding logo visible heights pinned using shared asset path', () => {
     render(
       <MemoryRouter>
         <Auth />
@@ -154,6 +148,8 @@ describe('logo sizing', () => {
 
     expect(getVisibleHeight(authLogos[0])).toBe(SIGN_IN_DESKTOP_LOGO_HEIGHT.toString());
     expect(getVisibleHeight(authLogos[1])).toBe(SIGN_IN_MOBILE_LOGO_HEIGHT.toString());
+    expect(authLogos[0]).toHaveAttribute('src', '/brand/logo-dark.webp');
+    expect(authLogos[1]).toHaveAttribute('src', '/brand/logo-dark.webp');
   });
 
   it('keeps landing nav and footer logo visible heights pinned via shared header logo', () => {
