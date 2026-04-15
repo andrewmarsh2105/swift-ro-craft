@@ -2,8 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  MAIN_DESKTOP_LOGO_HEIGHT,
-  MAIN_MOBILE_LOGO_HEIGHT,
   SIGN_IN_DESKTOP_LOGO_HEIGHT,
   SIGN_IN_MOBILE_LOGO_HEIGHT,
   LANDING_FOOTER_LOGO_HEIGHT,
@@ -109,27 +107,23 @@ vi.mock('@/components/OnboardingModal', () => ({
 const getVisibleHeight = (img: HTMLElement) => img.parentElement?.getAttribute('data-logo-visible-height');
 
 describe('logo sizing', () => {
-  it('keeps dashboard desktop app bar logo visible height pinned', () => {
+  it('removes dashboard desktop app bar logo', () => {
     render(<DesktopWorkspace />);
 
-    expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
-      MAIN_DESKTOP_LOGO_HEIGHT.toString(),
-    );
+    expect(screen.queryByAltText('RO Navigator')).not.toBeInTheDocument();
   });
 
-  it('keeps dashboard mobile header logo visible height pinned', () => {
+  it('removes dashboard mobile header logo', () => {
     render(
       <MemoryRouter>
         <Index />
       </MemoryRouter>,
     );
 
-    expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
-      MAIN_MOBILE_LOGO_HEIGHT.toString(),
-    );
+    expect(screen.queryByAltText('RO Navigator')).not.toBeInTheDocument();
   });
 
-  it('keeps auth desktop and mobile branding logo visible heights pinned', () => {
+  it('keeps auth desktop and mobile branding logo visible heights pinned with shared asset behavior', () => {
     render(
       <MemoryRouter>
         <Auth />
@@ -141,6 +135,10 @@ describe('logo sizing', () => {
 
     expect(getVisibleHeight(authLogos[0])).toBe(SIGN_IN_DESKTOP_LOGO_HEIGHT.toString());
     expect(getVisibleHeight(authLogos[1])).toBe(SIGN_IN_MOBILE_LOGO_HEIGHT.toString());
+    expect(authLogos[0]).toHaveAttribute('src', '/brand/logo-dark.webp');
+    expect(authLogos[1]).toHaveAttribute('src', '/brand/logo-dark.webp');
+    expect(authLogos[0].parentElement).toHaveAttribute('data-logo-scheme', 'light');
+    expect(authLogos[1].parentElement).toHaveAttribute('data-logo-scheme', 'light');
   });
 
   it('keeps landing nav and footer logo visible heights pinned via shared header logo', () => {

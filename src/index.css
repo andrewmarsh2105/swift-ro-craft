@@ -460,8 +460,8 @@
 
   /* ── Desktop app bar ──────────────────────────────── */
   .app-bar {
-    @apply flex-shrink-0 py-2 flex items-center justify-between px-4 bg-background;
-    min-height: calc(var(--app-bar-logo-height, 64px) + 16px);
+    @apply flex-shrink-0 py-2 flex items-center justify-end px-4 bg-background;
+    min-height: 3rem;
     border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
 
