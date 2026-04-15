@@ -2,7 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  MAIN_DESKTOP_APP_BAR_HEIGHT,
   MAIN_DESKTOP_LOGO_HEIGHT,
+  MAIN_MOBILE_HEADER_HEIGHT,
   MAIN_MOBILE_LOGO_HEIGHT,
   SIGN_IN_DESKTOP_LOGO_HEIGHT,
   SIGN_IN_MOBILE_LOGO_HEIGHT,
@@ -109,12 +111,19 @@ vi.mock('@/components/OnboardingModal', () => ({
 const getVisibleHeight = (img: HTMLElement) => img.parentElement?.getAttribute('data-logo-visible-height');
 
 describe('logo sizing', () => {
+  it('uses the updated landing nav logo token for a slightly larger top-nav logo', () => {
+    expect(LANDING_NAV_LOGO_HEIGHT).toBe(52);
+  });
+
   it('keeps dashboard desktop app bar logo visible height pinned', () => {
     render(<DesktopWorkspace />);
 
     expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
       MAIN_DESKTOP_LOGO_HEIGHT.toString(),
     );
+
+    const appBar = document.querySelector('.app-bar');
+    expect(appBar).toHaveStyle({ minHeight: `${MAIN_DESKTOP_APP_BAR_HEIGHT}px` });
   });
 
   it('keeps dashboard mobile header logo visible height pinned', () => {
@@ -127,6 +136,10 @@ describe('logo sizing', () => {
     expect(getVisibleHeight(screen.getByAltText('RO Navigator'))).toBe(
       MAIN_MOBILE_LOGO_HEIGHT.toString(),
     );
+
+    expect(screen.getByAltText('RO Navigator').closest('header')).toHaveStyle({
+      minHeight: `${MAIN_MOBILE_HEADER_HEIGHT}px`,
+    });
   });
 
   it('keeps auth desktop and mobile branding logo visible heights pinned', () => {
