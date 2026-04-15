@@ -128,7 +128,7 @@ function MobileApp() {
       <OfflineStatusBar />
       {/* Branded mobile app header */}
       <header className="flex-shrink-0 flex items-center justify-between px-3 h-12 border-b border-border/40 bg-background">
-        <HeaderLogo height={DASHBOARD_MOBILE_LOGO_HEIGHT} />
+        <HeaderLogo height={DASHBOARD_MOBILE_LOGO_HEIGHT + 4} />
         <button
           onClick={handleOpenProfile}
           className="h-8 w-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none tap-target active:opacity-80 transition-opacity"

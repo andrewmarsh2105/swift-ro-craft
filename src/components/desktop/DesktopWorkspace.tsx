@@ -347,7 +347,7 @@ export function DesktopWorkspace() {
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar">
         <div className="flex items-center min-w-0 gap-2.5">
-          <HeaderLogo height={DASHBOARD_DESKTOP_LOGO_HEIGHT} />
+          <HeaderLogo height={DASHBOARD_DESKTOP_LOGO_HEIGHT + 6} />
         </div>
 
         {/* Right-side toolbar — utility items only; nav moved to NavTabBar */}
