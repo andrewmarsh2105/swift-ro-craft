@@ -5,19 +5,23 @@ interface HeaderLogoProps {
   priority?: boolean;
   /** Visible height of the logo in px. Defaults to Tailwind class sizing. */
   height?: number;
+  /** light = dark logo for light backgrounds, dark = white logo for dark backgrounds. */
+  scheme?: 'light' | 'dark';
 }
 
-const LOGO_SRC = '/brand/logo-dark.webp';
-/** Intrinsic dimensions of the optimized asset (600 × 411). */
-const INTRINSIC_W = 600;
-const INTRINSIC_H = 411;
+const ASSETS = {
+  light: { src: '/brand/logo-dark.webp', width: 600, height: 411 },
+  dark: { src: '/brand/logo-white.webp', width: 600, height: 403 },
+} as const;
 
-export function HeaderLogo({ className, priority = false, height }: HeaderLogoProps) {
+export function HeaderLogo({ className, priority = false, height, scheme = 'light' }: HeaderLogoProps) {
+  const asset = ASSETS[scheme];
+
   if (height) {
-    const width = Math.round((height / INTRINSIC_H) * INTRINSIC_W);
+    const width = Math.round((height / asset.height) * asset.width);
     return (
       <img
-        src={LOGO_SRC}
+        src={asset.src}
         alt="RO Navigator"
         width={width}
         height={height}
@@ -31,10 +35,10 @@ export function HeaderLogo({ className, priority = false, height }: HeaderLogoPr
 
   return (
     <img
-      src={LOGO_SRC}
+      src={asset.src}
       alt="RO Navigator"
-      width={INTRINSIC_W}
-      height={INTRINSIC_H}
+      width={asset.width}
+      height={asset.height}
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
       draggable={false}
