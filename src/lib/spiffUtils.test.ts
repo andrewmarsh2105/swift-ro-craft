@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildSpiffReport, normalizeSpiffManualEntries, normalizeSpiffRules } from '@/lib/spiffUtils';
+import {
+  buildSpiffReport,
+  normalizeSpiffManualEntries,
+  normalizeSpiffRules,
+  sanitizeSpiffManualEntriesForStorage,
+  sanitizeSpiffRulesForStorage,
+} from '@/lib/spiffUtils';
 import type { RepairOrder } from '@/types/ro';
 
 const ro: RepairOrder = {
@@ -40,5 +46,47 @@ describe('spiffUtils', () => {
     expect(report.totalCount).toBe(5);
     expect(report.totalPay).toBe(49);
     expect(report.byRule.find((r) => r.ruleId === 'r1')?.totalCount).toBe(2);
+  });
+
+  it('sanitizes rules for storage-safe payloads', () => {
+    const rules = sanitizeSpiffRulesForStorage([
+      {
+        id: 'r1',
+        name: '   Cabin   ',
+        matchText: ' filter ',
+        unitPay: Number.POSITIVE_INFINITY,
+        scheduleType: 'weekly',
+        activeFrom: '2026-04-20',
+        activeTo: '2026-04-01',
+      },
+    ]);
+
+    expect(rules).toHaveLength(1);
+    expect(rules[0].unitPay).toBe(0);
+    expect(rules[0].activeFrom).toBe('2026-04-01');
+    expect(rules[0].activeTo).toBe('2026-04-20');
+  });
+
+  it('sanitizes manual entries for storage-safe payloads', () => {
+    const manualEntries = sanitizeSpiffManualEntriesForStorage([
+      {
+        id: 'm1',
+        date: '2026-04-14',
+        label: '  Walk-in  ',
+        quantity: Number.NaN,
+        unitPay: Number.POSITIVE_INFINITY,
+      },
+      {
+        id: 'm2',
+        date: '04/14/2026',
+        label: 'Bad date',
+        quantity: 1,
+      },
+    ]);
+
+    expect(manualEntries).toHaveLength(1);
+    expect(manualEntries[0].label).toBe('Walk-in');
+    expect(manualEntries[0].quantity).toBe(1);
+    expect(manualEntries[0].unitPay).toBe(0);
   });
 });
