@@ -4,6 +4,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFlagContext } from '@/contexts/FlagContext';
+import { SpiffsPanel } from '@/components/summary/SpiffsPanel';
 import { ProofPack } from '@/components/reports/ProofPack';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
@@ -38,7 +39,7 @@ import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 // ── Main SummaryTab ───────────────────────────────────────
 export function SummaryTab() {
   const isMobile = useIsMobile();
-  const { userSettings, clearFlagsForPeriod } = useFlagContext();
+  const { userSettings, clearFlagsForPeriod, updateUserSetting } = useFlagContext();
   const { isPro } = useSubscription();
   const hideTotals = userSettings.hideTotals ?? false;
   const weekStartDay = userSettings.weekStartDay ?? 0;
@@ -434,6 +435,7 @@ export function SummaryTab() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full rounded-none bg-transparent h-10 gap-0 p-0">
             <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Summary</TabsTrigger>
+            <TabsTrigger value="spiffs" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Spiffs</TabsTrigger>
             {isPro ? (
               <TabsTrigger value="compare" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Compare</TabsTrigger>
             ) : (
@@ -455,6 +457,34 @@ export function SummaryTab() {
       <div className={cn('flex-1 overflow-y-auto', isMobile && 'pb-32')}>
         {activeTab === 'summary' && (
           isDesktop ? renderDesktopSummary() : renderMobileSummary()
+        )}
+
+
+
+        {activeTab === 'spiffs' && (
+          <div className={isDesktop ? 'desktop-sections p-4' : 'p-4 pb-32'}>
+            <SpiffsPanel
+              rosInRange={report.rosInRange}
+              startDate={dateRange.start}
+              endDate={dateRange.end}
+              rules={userSettings.spiffRules || []}
+              manualEntries={userSettings.spiffManualEntries || []}
+              onUpdateRules={async (rules) => {
+                const result = await updateUserSetting('spiffRules', rules);
+                if (result.status === 'success') toast.success('Spiff rules saved');
+                else if (result.status === 'local_only') toast.warning(result.message || 'Saved locally only');
+                else toast.error(result.message || 'Failed to save spiff rules');
+                return result;
+              }}
+              onUpdateManualEntries={async (entries) => {
+                const result = await updateUserSetting('spiffManualEntries', entries);
+                if (result.status === 'success') toast.success('Manual spiffs saved');
+                else if (result.status === 'local_only') toast.warning(result.message || 'Saved locally only');
+                else toast.error(result.message || 'Failed to save manual spiffs');
+                return result;
+              }}
+            />
+          </div>
         )}
 
         {activeTab === 'compare' && isPro && (

@@ -482,6 +482,8 @@ export type Database = {
           plan: string | null
           pro_expires_at: string | null
           shop_name: string | null
+          spiff_manual_entries: Json
+          spiff_rules: Json
           show_scan_confidence: boolean | null
           show_vehicle_chips: boolean | null
           spreadsheet_density: string | null
@@ -513,6 +515,8 @@ export type Database = {
           plan?: string | null
           pro_expires_at?: string | null
           shop_name?: string | null
+          spiff_manual_entries?: Json
+          spiff_rules?: Json
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null
@@ -544,6 +548,8 @@ export type Database = {
           plan?: string | null
           pro_expires_at?: string | null
           shop_name?: string | null
+          spiff_manual_entries?: Json
+          spiff_rules?: Json
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null

@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { normalizeSpiffManualEntries, normalizeSpiffRules } from '@/lib/spiffUtils';
+import type { SpiffManualEntry, SpiffRule } from '@/types/spiff';
 
 export type SummaryRange = 'week' | 'two_weeks';
 export type PayPeriodType = 'week' | 'two_weeks' | 'custom';
 
-interface UserSettings {
+export interface UserSettings {
   theme: string;
   showScanConfidence: boolean;
   showVehicleChips: boolean;
@@ -26,6 +28,9 @@ interface UserSettings {
   hourlyRate: number;
   displayName: string;
   shopName: string;
+
+  spiffRules: SpiffRule[];
+  spiffManualEntries: SpiffManualEntry[];
 }
 
 type SaveStatus = 'success' | 'failed' | 'local_only';
@@ -55,6 +60,8 @@ const defaults: UserSettings = {
   hourlyRate: 0,
   displayName: '',
   shopName: '',
+  spiffRules: [],
+  spiffManualEntries: [],
 };
 
 const GOAL_LS_KEYS = {
@@ -101,6 +108,8 @@ const dbKeyMap: Record<keyof UserSettings, string> = {
   hourlyRate: 'hourly_rate',
   displayName: 'display_name',
   shopName: 'shop_name',
+  spiffRules: 'spiff_rules',
+  spiffManualEntries: 'spiff_manual_entries',
 };
 
 function isMissingColumnError(error: { message?: string; details?: string; hint?: string; code?: string }) {
@@ -177,6 +186,8 @@ export function useUserSettings() {
       hourlyRate: (row.hourly_rate as number | null | undefined) ?? getLocalGoal('hourlyRate'),
       displayName: (row.display_name as string | null | undefined) ?? getLocalProfileSetting('displayName'),
       shopName: (row.shop_name as string | null | undefined) ?? getLocalProfileSetting('shopName'),
+      spiffRules: normalizeSpiffRules(row.spiff_rules),
+      spiffManualEntries: normalizeSpiffManualEntries(row.spiff_manual_entries),
     });
     setLoaded(true);
   }, [getLocalGoal, getLocalProfileSetting, userId]);
