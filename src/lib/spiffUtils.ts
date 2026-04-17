@@ -128,6 +128,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function toFiniteNumber(value: unknown, fallback = 0) {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function isIsoDateString(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 export function normalizeSpiffRules(raw: unknown): SpiffRule[] {
   if (!Array.isArray(raw)) return [];
 
@@ -140,8 +149,11 @@ export function normalizeSpiffRules(raw: unknown): SpiffRule[] {
       if (!name || !matchText) return null;
 
       const scheduleType = row.scheduleType === 'weekly' ? 'weekly' : 'forever';
-      const activeFrom = typeof row.activeFrom === 'string' ? row.activeFrom : undefined;
-      const activeTo = typeof row.activeTo === 'string' ? row.activeTo : undefined;
+      let activeFrom = isIsoDateString(row.activeFrom) ? row.activeFrom : undefined;
+      let activeTo = isIsoDateString(row.activeTo) ? row.activeTo : undefined;
+      if (scheduleType === 'weekly' && activeFrom && activeTo && activeFrom > activeTo) {
+        [activeFrom, activeTo] = [activeTo, activeFrom];
+      }
       const createdAt = typeof row.createdAt === 'string' ? row.createdAt : new Date().toISOString();
       const updatedAt = typeof row.updatedAt === 'string' ? row.updatedAt : createdAt;
 
@@ -149,7 +161,7 @@ export function normalizeSpiffRules(raw: unknown): SpiffRule[] {
         id,
         name,
         matchText,
-        unitPay: Number(row.unitPay) || 0,
+        unitPay: toFiniteNumber(row.unitPay, 0),
         scheduleType,
         activeFrom,
         activeTo,
@@ -167,7 +179,7 @@ export function normalizeSpiffManualEntries(raw: unknown): SpiffManualEntry[] {
     .filter(isObject)
     .map((row) => {
       const id = typeof row.id === 'string' ? row.id : crypto.randomUUID();
-      const date = typeof row.date === 'string' ? row.date : '';
+      const date = isIsoDateString(row.date) ? row.date : '';
       const label = typeof row.label === 'string' ? row.label.trim() : '';
       if (!date || !label) return null;
 
@@ -179,11 +191,19 @@ export function normalizeSpiffManualEntries(raw: unknown): SpiffManualEntry[] {
         date,
         label,
         ruleId: typeof row.ruleId === 'string' ? row.ruleId : undefined,
-        quantity: Math.max(1, Number(row.quantity) || 1),
-        unitPay: typeof row.unitPay === 'number' ? row.unitPay : Number(row.unitPay) || 0,
+        quantity: Math.max(1, Math.round(toFiniteNumber(row.quantity, 1))),
+        unitPay: toFiniteNumber(row.unitPay, 0),
         createdAt,
         updatedAt,
       } as SpiffManualEntry;
     })
     .filter((row): row is SpiffManualEntry => !!row);
+}
+
+export function sanitizeSpiffRulesForStorage(rules: unknown): SpiffRule[] {
+  return normalizeSpiffRules(rules);
+}
+
+export function sanitizeSpiffManualEntriesForStorage(entries: unknown): SpiffManualEntry[] {
+  return normalizeSpiffManualEntries(entries);
 }

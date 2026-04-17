@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { normalizeSpiffManualEntries, normalizeSpiffRules } from '@/lib/spiffUtils';
+import {
+  normalizeSpiffManualEntries,
+  normalizeSpiffRules,
+  sanitizeSpiffManualEntriesForStorage,
+  sanitizeSpiffRulesForStorage,
+} from '@/lib/spiffUtils';
 import type { SpiffManualEntry, SpiffRule } from '@/types/spiff';
 
 export type SummaryRange = 'week' | 'two_weeks';
@@ -77,7 +82,12 @@ const PROFILE_LS_KEYS = {
 } as const;
 
 type ProfileKey = keyof typeof PROFILE_LS_KEYS;
-type FallbackKey = GoalKey | ProfileKey;
+const SPIFF_LS_KEYS = {
+  spiffRules: 'ro-tracker-spiff-rules',
+  spiffManualEntries: 'ro-tracker-spiff-manual-entries',
+} as const;
+type SpiffLocalKey = keyof typeof SPIFF_LS_KEYS;
+type FallbackKey = GoalKey | ProfileKey | SpiffLocalKey;
 
 const fallbackDbColumns: Record<FallbackKey, string> = {
   hoursGoalDaily: 'hours_goal_daily',
@@ -85,6 +95,8 @@ const fallbackDbColumns: Record<FallbackKey, string> = {
   hourlyRate: 'hourly_rate',
   displayName: 'display_name',
   shopName: 'shop_name',
+  spiffRules: 'spiff_rules',
+  spiffManualEntries: 'spiff_manual_entries',
 };
 
 const dbKeyMap: Record<keyof UserSettings, string> = {
@@ -144,6 +156,30 @@ export function useUserSettings() {
     return localStorage.getItem(PROFILE_LS_KEYS[key]) || '';
   }, []);
 
+  const persistSpiffSettingLocally = useCallback((key: SpiffLocalKey, value: SpiffRule[] | SpiffManualEntry[]) => {
+    localStorage.setItem(SPIFF_LS_KEYS[key], JSON.stringify(value));
+  }, []);
+
+  const getLocalSpiffRules = useCallback((): SpiffRule[] => {
+    const raw = localStorage.getItem(SPIFF_LS_KEYS.spiffRules);
+    if (!raw) return [];
+    try {
+      return normalizeSpiffRules(JSON.parse(raw));
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const getLocalSpiffManualEntries = useCallback((): SpiffManualEntry[] => {
+    const raw = localStorage.getItem(SPIFF_LS_KEYS.spiffManualEntries);
+    if (!raw) return [];
+    try {
+      return normalizeSpiffManualEntries(JSON.parse(raw));
+    } catch {
+      return [];
+    }
+  }, []);
+
   const fetchSettings = useCallback(async () => {
     const { data } = await supabase
       .from('user_settings')
@@ -159,6 +195,8 @@ export function useUserSettings() {
         hoursGoalDaily: getLocalGoal('hoursGoalDaily'),
         hoursGoalWeekly: getLocalGoal('hoursGoalWeekly'),
         hourlyRate: getLocalGoal('hourlyRate'),
+        spiffRules: getLocalSpiffRules(),
+        spiffManualEntries: getLocalSpiffManualEntries(),
       }));
       setLoaded(true);
       return;
@@ -186,11 +224,11 @@ export function useUserSettings() {
       hourlyRate: (row.hourly_rate as number | null | undefined) ?? getLocalGoal('hourlyRate'),
       displayName: (row.display_name as string | null | undefined) ?? getLocalProfileSetting('displayName'),
       shopName: (row.shop_name as string | null | undefined) ?? getLocalProfileSetting('shopName'),
-      spiffRules: normalizeSpiffRules(row.spiff_rules),
-      spiffManualEntries: normalizeSpiffManualEntries(row.spiff_manual_entries),
+      spiffRules: normalizeSpiffRules(row.spiff_rules ?? getLocalSpiffRules()),
+      spiffManualEntries: normalizeSpiffManualEntries(row.spiff_manual_entries ?? getLocalSpiffManualEntries()),
     });
     setLoaded(true);
-  }, [getLocalGoal, getLocalProfileSetting, userId]);
+  }, [getLocalGoal, getLocalProfileSetting, getLocalSpiffManualEntries, getLocalSpiffRules, userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -212,11 +250,22 @@ export function useUserSettings() {
       return { status: 'success' };
     }
 
+    let normalizedValue = value;
+    if (key === 'spiffRules') {
+      normalizedValue = sanitizeSpiffRulesForStorage(value) as UserSettings[keyof UserSettings];
+    }
+    if (key === 'spiffManualEntries') {
+      normalizedValue = sanitizeSpiffManualEntriesForStorage(value) as UserSettings[keyof UserSettings];
+    }
+
     if (key in GOAL_LS_KEYS) {
       persistLocalGoal(key as GoalKey, Number(value) || 0);
     }
     if (key in PROFILE_LS_KEYS) {
       persistProfileSettingLocally(key as ProfileKey, String(value ?? ''));
+    }
+    if (key in SPIFF_LS_KEYS) {
+      persistSpiffSettingLocally(key as SpiffLocalKey, normalizedValue as SpiffRule[] | SpiffManualEntry[]);
     }
 
     const dbKey = dbKeyMap[key];
@@ -224,7 +273,7 @@ export function useUserSettings() {
       .from('user_settings')
       .upsert({
         user_id: userId,
-        [dbKey]: value,
+        [dbKey]: normalizedValue,
       }, { onConflict: 'user_id' });
 
     if (error) {
@@ -245,13 +294,16 @@ export function useUserSettings() {
       if (key in PROFILE_LS_KEYS) {
         persistProfileSettingLocally(key as ProfileKey, String(previousValue ?? ''));
       }
+      if (key in SPIFF_LS_KEYS) {
+        persistSpiffSettingLocally(key as SpiffLocalKey, previousValue as SpiffRule[] | SpiffManualEntry[]);
+      }
 
       return { status: 'failed', message: 'Failed to save setting. Please try again.' };
     }
 
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings(prev => ({ ...prev, [key]: normalizedValue }));
     return { status: 'success' };
-  }, [persistLocalGoal, persistProfileSettingLocally, userId]);
+  }, [persistLocalGoal, persistProfileSettingLocally, persistSpiffSettingLocally, userId]);
 
   return { settings, loaded, updateSetting };
 }
