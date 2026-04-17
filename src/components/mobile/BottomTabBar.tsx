@@ -1,14 +1,15 @@
-import { ClipboardList, BarChart3, Settings } from 'lucide-react';
+import { ClipboardList, BarChart3, Settings, BadgeDollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomTabBarProps {
-  activeTab: 'ros' | 'summary' | 'settings';
-  onTabChange: (tab: 'ros' | 'summary' | 'settings') => void;
+  activeTab: 'ros' | 'summary' | 'spiffs' | 'settings';
+  onTabChange: (tab: 'ros' | 'summary' | 'spiffs' | 'settings') => void;
 }
 
 const tabs = [
   { id: 'ros' as const, label: 'ROs', icon: ClipboardList },
   { id: 'summary' as const, label: 'Summary', icon: BarChart3 },
+  { id: 'spiffs' as const, label: 'Spiffs', icon: BadgeDollarSign },
   { id: 'settings' as const, label: 'Settings', icon: Settings },
 ];
 

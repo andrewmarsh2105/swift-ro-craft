@@ -26,6 +26,9 @@ import type { RepairOrder } from "@/types/ro";
 const SummaryTab = lazy(() =>
   import("@/components/tabs/SummaryTab").then((m) => ({ default: m.SummaryTab })),
 );
+const SpiffsTab = lazy(() =>
+  import("@/components/tabs/SummaryTab").then((m) => ({ default: () => <m.SummaryTab initialTab="spiffs" /> })),
+);
 const SettingsTab = lazy(() =>
   import("@/components/tabs/SettingsTab").then((m) => ({ default: m.SettingsTab })),
 );
@@ -52,7 +55,7 @@ function MobileApp() {
   const isPullTracking = useRef(false);
   const mainRef = useRef<HTMLElement | null>(null);
 
-  const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "settings">(
+  const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "spiffs" | "settings">(
     "ui.mobile.activeTab.v1",
     "ros",
   );
@@ -169,6 +172,11 @@ function MobileApp() {
             {activeTab === "summary" && (
               <PanelErrorBoundary label="Summary">
                 <SummaryTab />
+              </PanelErrorBoundary>
+            )}
+            {activeTab === "spiffs" && (
+              <PanelErrorBoundary label="Spiffs">
+                <SpiffsTab />
               </PanelErrorBoundary>
             )}
             {activeTab === "settings" && (
