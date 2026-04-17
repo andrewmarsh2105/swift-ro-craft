@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Calendar, FileText, Loader2, AlertCircle, Flag, StickyNote } from 'lucide-react';
+import { Camera, Save, Calendar, FileText, Loader2, AlertCircle, Flag, StickyNote, Split } from 'lucide-react';
 import type { FlagType } from '@/types/flags';
 import { FLAG_TYPE_LABELS, FLAG_TYPE_COLORS, FLAG_TYPE_BG } from '@/types/flags';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -27,6 +27,8 @@ import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { useROCap } from '@/hooks/useROCap';
 import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
+import { SplitRODialog } from '@/components/shared/SplitRODialog';
+import { buildSplitRONumber, splitLinesBySelection } from '@/lib/roSplit';
 
 interface ROEditorProps {
   ro?: RepairOrder | null;
@@ -90,6 +92,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [showFlagPicker, setShowFlagPicker] = useState(false);
   const [confirmClearFlag, setConfirmClearFlag] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
   const flagPickerRef = useRef<HTMLDivElement | null>(null);
   const linesContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -175,6 +178,10 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   }, [focusLineId]);
 
   const totalHours = calcLineHours(lines);
+  const splittableLines = useMemo(
+    () => lines.filter((line) => line.description.trim() !== '' || line.hoursPaid > 0),
+    [lines],
+  );
   const isValid = roNumber.trim() !== '';
 
   const handleScanApply = (data: ScanApplyData) => {
@@ -271,6 +278,82 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     }
   };
 
+  const handleSplitConfirm = async ({ selectedLineIds, statusChoice }: { selectedLineIds: string[]; statusChoice: 'open' | 'paid' }) => {
+    if (!ro) return;
+    if (isSaving || postSaveStatusPrompt.isSavingChoice) return;
+
+    const { version2Lines, remainingLines } = splitLinesBySelection(splittableLines, selectedLineIds);
+    if (!version2Lines.length || !remainingLines.length) {
+      toast.error('Select at least one line for version 2 and keep at least one on the current RO.');
+      return;
+    }
+
+    const nextRONumber = buildSplitRONumber(roNumber, ros.map((item) => item.roNumber));
+    const nowIso = new Date().toISOString();
+    const normalizedRemainingLines = remainingLines.map((line, index) => ({
+      ...line,
+      lineNo: index + 1,
+      updatedAt: nowIso,
+    }));
+    const normalizedVersion2Lines = version2Lines.map((line, index) => ({
+      ...line,
+      id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+      lineNo: index + 1,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    }));
+
+    setIsSaving(true);
+    try {
+      const updatedOriginal = {
+        roNumber,
+        advisor,
+        customerName: customerName.trim() || undefined,
+        vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
+        mileage: mileage.trim() || undefined,
+        paidDate: paidDate.trim() || '',
+        paidHours: calcLineHours(normalizedRemainingLines),
+        laborType,
+        workPerformed: normalizedRemainingLines.map((line) => line.description).filter(Boolean).join('\n'),
+        notes,
+        date,
+        photos: ro.photos,
+        lines: normalizedRemainingLines,
+        isSimpleMode: false,
+      };
+
+      const updated = await updateRO(ro.id, updatedOriginal);
+      if (!updated) return;
+
+      const newVersion = await addRO({
+        roNumber: nextRONumber,
+        advisor,
+        customerName: customerName.trim() || undefined,
+        vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
+        mileage: mileage.trim() || undefined,
+        paidDate: statusChoice === 'paid' ? localDateStr() : '',
+        paidHours: calcLineHours(normalizedVersion2Lines),
+        laborType,
+        workPerformed: normalizedVersion2Lines.map((line) => line.description).filter(Boolean).join('\n'),
+        notes: notes?.trim() ? `${notes.trim()}\n\nSplit from RO #${roNumber}.` : `Split from RO #${roNumber}.`,
+        date,
+        photos: ro.photos,
+        lines: normalizedVersion2Lines,
+        isSimpleMode: false,
+      });
+      if (!newVersion || !('id' in newVersion)) return;
+
+      setLines(normalizedRemainingLines);
+      setShowSplitDialog(false);
+      toast.success(`Split saved: created RO #${nextRONumber}`);
+      onSave?.(newVersion.id);
+    } catch (err: any) {
+      toast.error(`Split failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-full flex flex-col bg-muted/20">
       <div className="px-4 py-3 space-y-3 bg-card/95 border-b border-border/50">
@@ -359,6 +442,22 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
                   title="Upload RO Photo"
                 >
                   <Camera className="h-4 w-4" />
+                </button>
+              )}
+              {ro?.id && (
+                <button
+                  onClick={() => setShowSplitDialog(true)}
+                  disabled={splittableLines.length < 2 || isSaving}
+                  className={cn(
+                    'h-8 px-2.5 rounded-md border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors',
+                    splittableLines.length >= 2 && !isSaving
+                      ? 'bg-secondary border-border hover:bg-accent text-foreground'
+                      : 'bg-muted border-muted text-muted-foreground cursor-not-allowed',
+                  )}
+                  title={splittableLines.length >= 2 ? 'Split this RO into version 2' : 'Add more lines to split this RO'}
+                >
+                  <Split className="h-3.5 w-3.5" />
+                  Split RO
                 </button>
               )}
               {ro?.id && (
@@ -530,6 +629,14 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         roNumber={postSaveStatusPrompt.statusPromptRONumber}
         isSaving={postSaveStatusPrompt.isSavingChoice}
         onChoose={postSaveStatusPrompt.resolveChoice}
+      />
+      <SplitRODialog
+        open={showSplitDialog}
+        roNumber={roNumber}
+        lines={splittableLines}
+        isSaving={isSaving}
+        onOpenChange={setShowSplitDialog}
+        onConfirm={handleSplitConfirm}
       />
     </div>
   );

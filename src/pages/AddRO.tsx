@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { goBackOrFallback } from '@/lib/navigation';
-import { Camera, Plus, Loader2, User, FileText, Crown, Search } from 'lucide-react';
+import { Camera, Plus, Loader2, User, FileText, Crown, Search, Split } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -27,6 +27,8 @@ import { PostSavePaidStatusPrompt } from '@/components/shared/PostSavePaidStatus
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
+import { SplitRODialog } from '@/components/shared/SplitRODialog';
+import { buildSplitRONumber, splitLinesBySelection } from '@/lib/roSplit';
 
 // Desktop workspace – lazy so mobile never pays for desktop code
 import { lazy, Suspense } from 'react';
@@ -55,6 +57,7 @@ export default function AddRO() {
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [showProUpgrade, setShowProUpgrade] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
 
   useEffect(() => {
     if (openScanOnMount) {
@@ -232,6 +235,10 @@ export default function AddRO() {
   }, [focusLineId]);
 
   const totalHours = calcLineHours(lines);
+  const splittableLines = useMemo(
+    () => lines.filter((line) => line.description.trim() !== '' || line.hoursPaid > 0),
+    [lines],
+  );
 
   const quickPresets = useMemo(() => {
     const favorites = settings.presets.filter(p => p.isFavorite);
@@ -397,6 +404,82 @@ export default function AddRO() {
       initialSnapshotRef.current = currentSnapshot;
     } catch (err: any) {
       toast.error(`Save failed: ${err?.message || 'Unknown error'}. Try again.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSplitConfirm = async ({ selectedLineIds, statusChoice }: { selectedLineIds: string[]; statusChoice: 'open' | 'paid' }) => {
+    if (!editingRO) return;
+    if (isSaving || postSaveStatusPrompt.isSavingChoice) return;
+
+    const { version2Lines, remainingLines } = splitLinesBySelection(splittableLines, selectedLineIds);
+    if (!version2Lines.length || !remainingLines.length) {
+      toast.error('Select at least one line for version 2 and keep at least one on the current RO.');
+      return;
+    }
+
+    const nextRONumber = buildSplitRONumber(roNumber, ros.map((item) => item.roNumber));
+    const nowIso = new Date().toISOString();
+    const normalizedRemainingLines = remainingLines.map((line, index) => ({
+      ...line,
+      lineNo: index + 1,
+      updatedAt: nowIso,
+    }));
+    const normalizedVersion2Lines = version2Lines.map((line, index) => ({
+      ...line,
+      id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+      lineNo: index + 1,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    }));
+
+    setIsSaving(true);
+    try {
+      const updatedOriginal = {
+        roNumber,
+        advisor,
+        customerName: customerName.trim() || undefined,
+        vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
+        mileage: mileage.trim() || undefined,
+        paidDate: paidDate.trim() || '',
+        paidHours: calcLineHours(normalizedRemainingLines),
+        laborType,
+        workPerformed: normalizedRemainingLines.map((line) => line.description).filter(Boolean).join('\n'),
+        notes,
+        date,
+        photos: editingRO.photos,
+        lines: normalizedRemainingLines,
+        isSimpleMode: false,
+      };
+
+      const updated = await updateRO(editingRO.id, updatedOriginal);
+      if (!updated) return;
+
+      const newVersion = await addRO({
+        roNumber: nextRONumber,
+        advisor,
+        customerName: customerName.trim() || undefined,
+        vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
+        mileage: mileage.trim() || undefined,
+        paidDate: statusChoice === 'paid' ? localDateStr() : '',
+        paidHours: calcLineHours(normalizedVersion2Lines),
+        laborType,
+        workPerformed: normalizedVersion2Lines.map((line) => line.description).filter(Boolean).join('\n'),
+        notes: notes?.trim() ? `${notes.trim()}\n\nSplit from RO #${roNumber}.` : `Split from RO #${roNumber}.`,
+        date,
+        photos: editingRO.photos,
+        lines: normalizedVersion2Lines,
+        isSimpleMode: false,
+      });
+      if (!newVersion || !('id' in newVersion)) return;
+
+      setLines(normalizedRemainingLines);
+      setShowSplitDialog(false);
+      toast.success(`Split saved: created RO #${nextRONumber}`);
+      returnToDashboard();
+    } catch (err: any) {
+      toast.error(`Split failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -656,6 +739,22 @@ export default function AddRO() {
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
             {editingRO ? 'Update' : 'Save'}
           </button>
+          {editingRO && (
+            <button
+              type="button"
+              onClick={() => setShowSplitDialog(true)}
+              disabled={splittableLines.length < 2 || isSaving}
+              className={cn(
+                'h-11 px-4 rounded-full font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center gap-2 border',
+                splittableLines.length >= 2 && !isSaving
+                  ? 'border-border text-foreground hover:bg-muted'
+                  : 'border-muted text-muted-foreground'
+              )}
+            >
+              <Split className="h-4 w-4" />
+              Split
+            </button>
+          )}
         </div>
       </footer>
 
@@ -777,6 +876,14 @@ export default function AddRO() {
         roNumber={postSaveStatusPrompt.statusPromptRONumber}
         isSaving={postSaveStatusPrompt.isSavingChoice}
         onChoose={postSaveStatusPrompt.resolveChoice}
+      />
+      <SplitRODialog
+        open={showSplitDialog}
+        roNumber={roNumber}
+        lines={splittableLines}
+        isSaving={isSaving}
+        onOpenChange={setShowSplitDialog}
+        onConfirm={handleSplitConfirm}
       />
     </div>
   );
