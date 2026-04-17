@@ -40,10 +40,11 @@ type SummaryTabView = 'summary' | 'spiffs' | 'compare';
 
 interface SummaryTabProps {
   initialTab?: SummaryTabView;
+  tabMode?: 'summary' | 'spiffs';
 }
 
 // ── Main SummaryTab ───────────────────────────────────────
-export function SummaryTab({ initialTab = 'summary' }: SummaryTabProps) {
+export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: SummaryTabProps) {
   const isMobile = useIsMobile();
   const { userSettings, clearFlagsForPeriod, updateUserSetting } = useFlagContext();
   const { isPro } = useSubscription();
@@ -69,7 +70,7 @@ export function SummaryTab({ initialTab = 'summary' }: SummaryTabProps) {
   const [customStart, setCustomStart] = useState<Date | undefined>(sharedCustomStart ? new Date(`${sharedCustomStart}T12:00:00`) : undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);
   const [showProofPack, setShowProofPack] = useState(false);
-  const [activeTab, setActiveTab] = useState<SummaryTabView>(initialTab);
+  const [activeTab, setActiveTab] = useState<SummaryTabView>(tabMode === 'spiffs' ? 'spiffs' : initialTab);
   const [upgradeTrigger, setUpgradeTrigger] = useState<import('@/lib/proFeatures').UpgradeTrigger>('generic');
   const [showUpgrade, setShowUpgrade] = useState(false);
   const openUpgrade = (trigger: import('@/lib/proFeatures').UpgradeTrigger) => {
@@ -104,8 +105,8 @@ export function SummaryTab({ initialTab = 'summary' }: SummaryTabProps) {
     if (rangeMode !== 'day') setRangeMode(sharedDateFilter);
   }, [sharedDateFilter, rangeMode]);
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
+    setActiveTab(tabMode === 'spiffs' ? 'spiffs' : initialTab);
+  }, [initialTab, tabMode]);
   useEffect(() => {
     setCustomStart(sharedCustomStart ? new Date(`${sharedCustomStart}T12:00:00`) : undefined);
     setCustomEnd(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);
@@ -440,31 +441,32 @@ export function SummaryTab({ initialTab = 'summary' }: SummaryTabProps) {
   return (
     <div className="flex flex-col h-full">
       {/* ══ Sticky Header: Tabs + Range ══ */}
-      <div className="panel-header">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full rounded-none bg-transparent h-10 gap-0 p-0">
-            <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Summary</TabsTrigger>
-            <TabsTrigger value="spiffs" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Spiffs</TabsTrigger>
-            {isPro ? (
-              <TabsTrigger value="compare" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Compare</TabsTrigger>
-            ) : (
-              <button
-                onClick={() => openUpgrade('compare')}
-                className="flex-1 flex items-center justify-center gap-1.5 h-10 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent"
-              >
-                Compare
-                <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                  <Crown className="h-2.5 w-2.5" />PRO
-                </span>
-              </button>
-            )}
-          </TabsList>
-        </Tabs>
-      </div>
+      {tabMode === 'summary' && (
+        <div className="panel-header">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full rounded-none bg-transparent h-10 gap-0 p-0">
+              <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Summary</TabsTrigger>
+              {isPro ? (
+                <TabsTrigger value="compare" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Compare</TabsTrigger>
+              ) : (
+                <button
+                  onClick={() => openUpgrade('compare')}
+                  className="flex-1 flex items-center justify-center gap-1.5 h-10 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent"
+                >
+                  Compare
+                  <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                    <Crown className="h-2.5 w-2.5" />PRO
+                  </span>
+                </button>
+              )}
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
 
       {/* ══ Content ══ */}
       <div className={cn('flex-1 overflow-y-auto', isMobile && 'pb-32')}>
-        {activeTab === 'summary' && (
+        {activeTab === 'summary' && tabMode === 'summary' && (
           isDesktop ? renderDesktopSummary() : renderMobileSummary()
         )}
 

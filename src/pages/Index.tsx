@@ -27,7 +27,7 @@ const SummaryTab = lazy(() =>
   import("@/components/tabs/SummaryTab").then((m) => ({ default: m.SummaryTab })),
 );
 const SpiffsTab = lazy(() =>
-  import("@/components/tabs/SummaryTab").then((m) => ({ default: () => <m.SummaryTab initialTab="spiffs" /> })),
+  import("@/components/tabs/SummaryTab").then((m) => ({ default: () => <m.SummaryTab tabMode="spiffs" /> })),
 );
 const SettingsTab = lazy(() =>
   import("@/components/tabs/SettingsTab").then((m) => ({ default: m.SettingsTab })),

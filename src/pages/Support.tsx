@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/brand';
@@ -15,9 +15,15 @@ export default function Support() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const submitInFlightRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent rapid double-submit (double-tap, repeated Enter, etc.) from
+    // creating duplicate support requests before the loading state disables UI.
+    if (submitInFlightRef.current) return;
+
     if (!name.trim() || !email.trim() || !message.trim()) {
       toast.error('Please fill in all fields');
       return;
@@ -27,6 +33,7 @@ export default function Support() {
       return;
     }
 
+    submitInFlightRef.current = true;
     setLoading(true);
     try {
       // Get current user if logged in
@@ -50,6 +57,7 @@ export default function Support() {
     } catch (err: any) {
       toast.error(err.message || 'Failed to send message. Please try again.');
     } finally {
+      submitInFlightRef.current = false;
       setLoading(false);
     }
   };
