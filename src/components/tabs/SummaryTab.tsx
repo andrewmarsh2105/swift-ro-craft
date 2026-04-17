@@ -36,8 +36,14 @@ import { computeDateRangeBounds, type DateFilterKey } from '@/lib/dateRangeFilte
 import { getDateFilterLabel, getDefaultPeriodFilter, getPeriodFilterLabels, normalizeDateFilterForPayPeriod } from '@/lib/payPeriodRange';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 
+type SummaryTabView = 'summary' | 'spiffs' | 'compare';
+
+interface SummaryTabProps {
+  initialTab?: SummaryTabView;
+}
+
 // ── Main SummaryTab ───────────────────────────────────────
-export function SummaryTab() {
+export function SummaryTab({ initialTab = 'summary' }: SummaryTabProps) {
   const isMobile = useIsMobile();
   const { userSettings, clearFlagsForPeriod, updateUserSetting } = useFlagContext();
   const { isPro } = useSubscription();
@@ -63,7 +69,7 @@ export function SummaryTab() {
   const [customStart, setCustomStart] = useState<Date | undefined>(sharedCustomStart ? new Date(`${sharedCustomStart}T12:00:00`) : undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);
   const [showProofPack, setShowProofPack] = useState(false);
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeTab, setActiveTab] = useState<SummaryTabView>(initialTab);
   const [upgradeTrigger, setUpgradeTrigger] = useState<import('@/lib/proFeatures').UpgradeTrigger>('generic');
   const [showUpgrade, setShowUpgrade] = useState(false);
   const openUpgrade = (trigger: import('@/lib/proFeatures').UpgradeTrigger) => {
@@ -97,6 +103,9 @@ export function SummaryTab() {
   useEffect(() => {
     if (rangeMode !== 'day') setRangeMode(sharedDateFilter);
   }, [sharedDateFilter, rangeMode]);
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
   useEffect(() => {
     setCustomStart(sharedCustomStart ? new Date(`${sharedCustomStart}T12:00:00`) : undefined);
     setCustomEnd(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);

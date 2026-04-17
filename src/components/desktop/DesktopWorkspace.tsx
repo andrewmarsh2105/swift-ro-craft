@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, BarChart3, Table2, Crown, LayoutDashboard } from "lucide-react";
+import { Settings, BarChart3, Table2, Crown, LayoutDashboard, BadgeDollarSign } from "lucide-react";
 import { PanelErrorBoundary } from "@/components/states/PanelErrorBoundary";
 import { DashboardKPIBar } from "@/components/shared/DashboardKPIBar";
 import { ROListPanel } from "./ROListPanel";
@@ -26,6 +26,9 @@ const SettingsTab = lazy(() =>
 );
 const SummaryTab = lazy(() =>
   import("@/components/tabs/SummaryTab").then((m) => ({ default: m.SummaryTab })),
+);
+const SpiffsTab = lazy(() =>
+  import("@/components/tabs/SummaryTab").then((m) => ({ default: () => <m.SummaryTab initialTab="spiffs" /> })),
 );
 const SpreadsheetView = lazy(() =>
   import("@/components/shared/SpreadsheetView").then((m) => ({ default: m.SpreadsheetView })),
@@ -54,7 +57,7 @@ const panelVariants = {
   },
 };
 
-type RightPanel = "details" | "editor" | "settings" | "summary" | "none";
+type RightPanel = "details" | "editor" | "settings" | "summary" | "spiffs" | "none";
 type ViewMode = "split" | "spreadsheet";
 
 /* ── Primary nav tab bar (Xtime-inspired) ───────── */
@@ -65,6 +68,7 @@ function NavTabBar({
   onDashboard,
   onSpreadsheet,
   onSummary,
+  onSpiffs,
   onSettings,
 }: {
   viewMode: ViewMode;
@@ -73,11 +77,13 @@ function NavTabBar({
   onDashboard: () => void;
   onSpreadsheet: () => void;
   onSummary: () => void;
+  onSpiffs: () => void;
   onSettings: () => void;
 }) {
-  const isDashboard = viewMode !== "spreadsheet" && rightPanel !== "settings" && rightPanel !== "summary";
+  const isDashboard = viewMode !== "spreadsheet" && rightPanel !== "settings" && rightPanel !== "summary" && rightPanel !== "spiffs";
   const isSpreadsheet = viewMode === "spreadsheet";
   const isSummary = rightPanel === "summary";
+  const isSpiffs = rightPanel === "spiffs";
   const isSettings = rightPanel === "settings";
 
   return (
@@ -112,6 +118,16 @@ function NavTabBar({
       >
         <BarChart3 className="h-[15px] w-[15px]" />
         <span>Summary</span>
+      </button>
+
+      <button
+        type="button"
+        className={cn("nav-tab", isSpiffs && "nav-tab-active")}
+        onClick={onSpiffs}
+        aria-current={isSpiffs ? "page" : undefined}
+      >
+        <BadgeDollarSign className="h-[15px] w-[15px]" />
+        <span>Spiffs</span>
       </button>
 
       <button
@@ -312,7 +328,7 @@ export function DesktopWorkspace() {
     setRightPanel("none");
   };
 
-  const togglePanel = (panel: "settings" | "summary") => {
+  const togglePanel = (panel: "settings" | "summary" | "spiffs") => {
     if (rightPanel === panel) {
       // Clicking active tab is a no-op — don't toggle-close to empty state
       return;
@@ -378,7 +394,7 @@ export function DesktopWorkspace() {
         isPro={isPro}
         onDashboard={() => {
           setViewMode("split");
-          if (rightPanel === "settings" || rightPanel === "summary") {
+          if (rightPanel === "settings" || rightPanel === "summary" || rightPanel === "spiffs") {
             setRightPanel("none");
             setSelectedRO(null);
             setIsAddingNew(false);
@@ -395,6 +411,7 @@ export function DesktopWorkspace() {
           setIsAddingNew(false);
         }}
         onSummary={() => togglePanel("summary")}
+        onSpiffs={() => togglePanel("spiffs")}
         onSettings={() => togglePanel("settings")}
       />
 
@@ -434,6 +451,22 @@ export function DesktopWorkspace() {
             <PanelErrorBoundary label="Summary">
               <Suspense fallback={<PanelFallback />}>
                 <SummaryTab />
+              </Suspense>
+            </PanelErrorBoundary>
+          </motion.div>
+
+        ) : rightPanel === "spiffs" ? (
+          <motion.div
+            key="spiffs"
+            variants={panelVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex-1 min-h-0 overflow-y-auto"
+          >
+            <PanelErrorBoundary label="Spiffs">
+              <Suspense fallback={<PanelFallback />}>
+                <SpiffsTab />
               </Suspense>
             </PanelErrorBoundary>
           </motion.div>
