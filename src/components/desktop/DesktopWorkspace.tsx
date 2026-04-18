@@ -378,10 +378,10 @@ export function DesktopWorkspace() {
             <button
               onClick={() => setShowUpgradeDialog(true)}
               className="ml-1 h-6 px-2 rounded border border-primary/25 bg-primary/[0.06] text-[10px] font-bold text-primary hover:bg-primary/12 quiet-transition flex items-center gap-1"
-              title="Upgrade to Pro"
+              title="Unlock full access"
             >
               <Crown className="h-2.5 w-2.5" />
-              Pro
+              Access
             </button>
           )}
 

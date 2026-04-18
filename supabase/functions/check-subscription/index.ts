@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
 
 const BASE_ALLOWED_ORIGINS = [
   "https://ronavigator.com",
@@ -96,14 +97,15 @@ serve(async (req) => {
     const now = new Date();
 
     if (overrideRow) {
-      await supabaseAdmin
-        .from("user_settings")
-        .upsert({
-          user_id: user.id,
-          is_pro: true,
-          plan: "override",
-          pro_expires_at: null,
-        }, { onConflict: "user_id" });
+      const { error: overrideWriteError } = await writeUserSettingsByUserId(supabaseAdmin, user.id, {
+        is_pro: true,
+        plan: "override",
+        pro_expires_at: null,
+      });
+
+      if (overrideWriteError) {
+        throw new Error(`Failed to persist override access state: ${overrideWriteError.message}`);
+      }
 
       return new Response(JSON.stringify({
         subscribed: true,
@@ -139,22 +141,23 @@ serve(async (req) => {
       subscribed = false;
     }
 
-    await supabaseAdmin
-      .from("user_settings")
-      .upsert({
-        user_id: user.id,
-        is_pro: subscribed,
-        plan: status === "trialing"
-          ? "trial"
-          : status === "eligible"
-            ? "free"
+    const { error: statusWriteError } = await writeUserSettingsByUserId(supabaseAdmin, user.id, {
+      is_pro: subscribed,
+      plan: status === "trialing"
+        ? "trial"
+        : status === "eligible"
+          ? "free"
           : status === "lifetime"
             ? "lifetime"
             : status === "override"
               ? "override"
               : "expired",
-        pro_expires_at: status === "trialing" ? trialEndsAt : null,
-      }, { onConflict: "user_id" });
+      pro_expires_at: status === "trialing" ? trialEndsAt : null,
+    });
+
+    if (statusWriteError) {
+      throw new Error(`Failed to persist subscription status: ${statusWriteError.message}`);
+    }
 
     return new Response(JSON.stringify({
       subscribed,

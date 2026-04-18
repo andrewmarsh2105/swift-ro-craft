@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
 
 const BASE_ALLOWED_ORIGINS = [
   "https://ronavigator.com",
@@ -136,16 +137,17 @@ serve(async (req) => {
     endAtDate.setDate(endAtDate.getDate() + 14);
     const endsAt = endAtDate.toISOString();
 
-    await supabaseAdmin
-      .from("user_settings")
-      .upsert({
-        user_id: user.id,
-        trial_started_at: startedAt,
-        trial_ends_at: endsAt,
-        is_pro: true,
-        plan: "trial",
-        pro_expires_at: endsAt,
-      }, { onConflict: "user_id" });
+    const { error: trialWriteError } = await writeUserSettingsByUserId(supabaseAdmin, user.id, {
+      trial_started_at: startedAt,
+      trial_ends_at: endsAt,
+      is_pro: true,
+      plan: "trial",
+      pro_expires_at: endsAt,
+    });
+
+    if (trialWriteError) {
+      throw new Error(`Failed to persist trial status: ${trialWriteError.message}`);
+    }
 
     return new Response(JSON.stringify({
       subscribed: true,

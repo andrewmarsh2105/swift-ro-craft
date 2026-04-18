@@ -1,17 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-const { mockUpsert, mockMaybeSingle } = vi.hoisted(() => {
+const { mockUpdate, mockInsert, mockMaybeSingle } = vi.hoisted(() => {
   const mockMaybeSingle = vi.fn();
-  const mockUpsert = vi.fn();
-  return { mockUpsert, mockMaybeSingle };
+  const mockUpdate = vi.fn();
+  const mockInsert = vi.fn();
+  return { mockUpdate, mockInsert, mockMaybeSingle };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: () => ({
       select: () => ({ eq: () => ({ maybeSingle: mockMaybeSingle }) }),
-      upsert: mockUpsert,
+      update: (payload: Record<string, unknown>) => ({
+        eq: () => ({
+          select: () => ({
+            limit: () => mockUpdate(payload),
+          }),
+        }),
+      }),
+      insert: mockInsert,
     }),
   },
 }));
@@ -61,10 +69,17 @@ describe('useUserSettings unified persistence flow', () => {
     dbRow = makeDbRow();
 
     mockMaybeSingle.mockReset();
-    mockUpsert.mockReset();
+    mockUpdate.mockReset();
+    mockInsert.mockReset();
 
     mockMaybeSingle.mockImplementation(async () => ({ data: dbRow }));
-    mockUpsert.mockImplementation(async (payload: Record<string, unknown>) => {
+    mockUpdate.mockImplementation(async (payload: Record<string, unknown>) => {
+      if (!dbRow) return { data: [], error: null };
+      dbRow = { ...dbRow, ...payload } as ReturnType<typeof makeDbRow>;
+      return { data: [{ user_id: dbRow.user_id }], error: null };
+    });
+
+    mockInsert.mockImplementation(async (payload: Record<string, unknown>) => {
       dbRow = { ...(dbRow || makeDbRow()), ...payload } as ReturnType<typeof makeDbRow>;
       return { error: null };
     });
@@ -178,7 +193,8 @@ describe('useUserSettings unified persistence flow', () => {
     const { result } = renderHook(() => useUserSettings());
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
-    mockUpsert.mockResolvedValueOnce({
+    mockUpdate.mockResolvedValueOnce({
+      data: null,
       error: { message: 'network error', code: '500', details: '', hint: '' },
     });
 
@@ -208,7 +224,8 @@ describe('useUserSettings unified persistence flow', () => {
     const { result } = renderHook(() => useUserSettings());
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
-    mockUpsert.mockResolvedValueOnce({
+    mockUpdate.mockResolvedValueOnce({
+      data: null,
       error: { message: 'column "display_name" does not exist', code: '42703', details: '', hint: '' },
     });
 
