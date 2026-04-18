@@ -43,12 +43,12 @@ export const UPGRADE_CONTEXT: Record<UpgradeTrigger, UpgradeContext> = {
   'spreadsheet': {
     headline: 'See every line at once',
     pitch: 'Spreadsheet view shows all your ROs in one scrollable table — the fastest way to catch missing hours before payday.',
-    highlightFeature: 'Full exports',
+    highlightFeature: 'Export reports',
   },
   'export': {
     headline: 'Your pay period is done — lock it in',
-    pitch: 'Download the full XLSX for your records. One file with every RO, every line, and your total hours — proof you can keep.',
-    highlightFeature: 'Full exports',
+    pitch: 'Export a complete period report for your records — every RO, every line, and total hours in one clean file.',
+    highlightFeature: 'Export reports',
   },
   'closeout': {
     headline: 'Lock in your pay period',

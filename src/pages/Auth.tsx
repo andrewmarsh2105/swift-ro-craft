@@ -225,7 +225,7 @@ export default function Auth() {
               <p className="text-sm text-muted-foreground">
                 {isLogin
                   ? 'Sign in to continue tracking ROs, hours, and pay-period totals.'
-                  : 'Create your account, then choose a 14-day trial or unlock full access for $15.99.'}
+                  : 'Create your account, then start a 14-day free trial or unlock lifetime access for a one-time $15.99.'}
               </p>
             </div>
 
