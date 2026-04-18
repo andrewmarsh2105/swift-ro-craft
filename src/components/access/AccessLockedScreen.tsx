@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowRight, Lock, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
+import { ArrowRight, Lock, RefreshCw, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
 
 export function AccessLockedScreen() {
-  const { startCheckout, checkoutLoading, checkoutFallbackUrl } = useSubscription();
+  const { startCheckout, checkoutLoading, checkoutFallbackUrl, checkAccess } = useSubscription();
   const { signOut } = useAuth();
 
   return (
@@ -25,7 +25,7 @@ export function AccessLockedScreen() {
             Your free trial has ended
           </h1>
           <p className="mt-2 text-sm md:text-base" style={{ color: '#475569' }}>
-            Unlock full RO Navigator access with one one-time payment.
+            Unlock full RO Navigator access with a one-time payment.
           </p>
         </div>
 
@@ -68,12 +68,21 @@ export function AccessLockedScreen() {
                 className="w-full h-12 text-sm font-semibold text-white"
                 style={{ background: 'linear-gradient(90deg, #0B5FFF 0%, #1D4ED8 100%)' }}
               >
-                {checkoutLoading ? 'Opening checkout…' : 'Unlock Lifetime Access'}
+                {checkoutLoading ? 'Opening checkout…' : 'Buy Full Access — $15.99'}
               </Button>
             )}
             <p className="text-center text-xs" style={{ color: '#64748B' }}>
               Your saved ROs stay available after you unlock.
             </p>
+            <Button
+              variant="ghost"
+              onClick={() => void checkAccess()}
+              className="w-full h-10 text-sm"
+              style={{ color: '#334155' }}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Already paid? Refresh access
+            </Button>
             <Button
               variant="outline"
               onClick={signOut}

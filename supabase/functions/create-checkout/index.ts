@@ -98,6 +98,25 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
+    const { data: overrideRow } = await supabaseAdmin
+      .from("pro_overrides")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const { data: accessRow } = await supabaseAdmin
+      .from("user_settings")
+      .select("lifetime_access")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (overrideRow || accessRow?.lifetime_access === true) {
+      return new Response(JSON.stringify({
+        already_unlocked: true,
+        status: overrideRow ? "override" : "lifetime",
+      }), { headers, status: 200 });
+    }
+
     let requestId = "";
     try {
       const body = await req.json();

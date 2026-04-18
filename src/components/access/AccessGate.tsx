@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AccessLockedScreen } from './AccessLockedScreen';
@@ -12,8 +12,20 @@ export function AccessGate({ children }: { children: ReactNode }) {
 
   if (accessState === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div
+        className="min-h-screen flex items-center justify-center px-4"
+        style={{
+          background:
+            'radial-gradient(900px 500px at -5% -20%, rgba(59,130,246,0.22), transparent 62%), radial-gradient(860px 460px at 110% 110%, rgba(191,219,254,0.18), transparent 60%), linear-gradient(160deg, #F8FBFF 0%, #EFF6FF 100%)',
+        }}
+      >
+        <div className="w-full max-w-md rounded-2xl border bg-white/95 p-6 text-center shadow-sm" style={{ borderColor: '#DBEAFE' }}>
+          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: '#EFF6FF', color: '#0B5FFF' }}>
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+          <h1 className="text-base font-semibold text-slate-900">Checking your RO Navigator access</h1>
+          <p className="mt-2 text-sm text-slate-600">This usually takes just a moment.</p>
+        </div>
       </div>
     );
   }
@@ -21,17 +33,21 @@ export function AccessGate({ children }: { children: ReactNode }) {
   if (accessState === 'error') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="w-full max-w-md rounded-2xl border bg-card p-6 text-center shadow-sm">
-          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="w-full max-w-md rounded-2xl border bg-white p-6 text-center shadow-sm" style={{ borderColor: '#DBEAFE' }}>
+          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: '#EFF6FF', color: '#0B5FFF' }}>
             <AlertCircle className="h-5 w-5" />
           </div>
-          <h1 className="text-lg font-semibold">We couldn&apos;t verify access right now</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {accessError ?? 'This looks like a temporary connection issue. Your access has not changed.'}
+          <h1 className="text-lg font-semibold text-slate-900">Temporary connection issue</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            {accessError ?? 'We could not refresh access right now. Your account state has not changed.'}
           </p>
-          <Button className="mt-5 w-full" onClick={() => void checkAccess()}>
+          <div className="mt-3 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium text-slate-600" style={{ borderColor: '#DBEAFE' }}>
+            <ShieldCheck className="h-3.5 w-3.5 text-[#0B5FFF]" />
+            This is not a paywall state
+          </div>
+          <Button className="mt-5 w-full" onClick={() => void checkAccess()} style={{ background: 'linear-gradient(90deg, #0B5FFF 0%, #1D4ED8 100%)' }}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            Retry
+            Retry access check
           </Button>
           <Button variant="ghost" className="mt-2 w-full" onClick={signOut}>
             Sign out

@@ -33,7 +33,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
   } = useSubscription();
 
   const ctx = UPGRADE_CONTEXT[trigger];
-  const ctaLabel = subscriptionStatus === 'expired' ? 'Unlock Full Access' : 'Buy Full Access — $15.99';
+  const ctaLabel = subscriptionStatus === 'expired' ? 'Buy Full Access — $15.99' : 'Unlock Lifetime Access — $15.99';
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) clearCheckoutFallback();
@@ -56,8 +56,8 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
 
           <div className="mt-5 rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(191,219,254,0.35)', background: 'rgba(7,17,44,0.28)' }}>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-100">Offer</p>
-            <p className="mt-1 text-xl font-bold">14-day free trial → $15.99 once</p>
-            <p className="mt-1 text-xs text-blue-100">No monthly or yearly plans. Lifetime access after payment.</p>
+            <p className="mt-1 text-xl font-bold">$15.99 one-time payment</p>
+            <p className="mt-1 text-xs text-blue-100">No monthly or yearly plans. Lifetime access after purchase.</p>
           </div>
         </div>
 

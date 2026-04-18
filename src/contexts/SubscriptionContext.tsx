@@ -61,6 +61,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscriptionStatus, setSubscriptionStatus] = useState<BillingStatus>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutFallbackUrl, setCheckoutFallbackUrl] = useState<string | null>(null);
+  const awaitingCheckoutSyncRef = useRef(false);
 
   const clearCheckoutFallback = useCallback(() => setCheckoutFallbackUrl(null), []);
 
@@ -97,9 +98,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (
         status === 'lifetime' &&
         previousStatusRef.current !== 'lifetime' &&
-        sessionData.session?.user?.id
+        sessionData.session?.user?.id &&
+        awaitingCheckoutSyncRef.current
       ) {
         trackPurchaseCompleted(sessionData.session.user.id);
+        awaitingCheckoutSyncRef.current = false;
       }
 
       previousStatusRef.current = status;
@@ -154,6 +157,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
+      awaitingCheckoutSyncRef.current = true;
       window.history.replaceState({}, '', window.location.pathname);
       let attempt = 0;
       const maxAttempts = 5;
@@ -170,11 +174,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           setTimeout(tryCheck, delays[attempt]);
           return;
         }
+        awaitingCheckoutSyncRef.current = false;
         toast.dismiss(syncToast);
         toast('Payment received. Access may take a moment to sync. Please refresh shortly.', { duration: 5000 });
       };
       setTimeout(tryCheck, delays[0]);
     } else if (params.get('checkout') === 'cancel') {
+      awaitingCheckoutSyncRef.current = false;
       window.history.replaceState({}, '', window.location.pathname);
       toast.info('Checkout was canceled. No charges were made.');
     }
@@ -193,6 +199,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) throw error;
+      if (data?.already_unlocked) {
+        await checkSubscription();
+        toast.success('Lifetime access already unlocked.');
+        setCheckoutLoading(false);
+        return;
+      }
       if (data?.url) {
         if (user) trackCheckoutStarted(user.id, 'lifetime');
         window.location.href = data.url;
@@ -210,7 +222,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     setCheckoutLoading(false);
-  }, [user]);
+  }, [checkSubscription, user]);
 
   const startTrial = useCallback(async () => {
     try {
