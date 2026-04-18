@@ -478,7 +478,7 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
 
 
         {activeTab === 'spiffs' && (
-          <div className={isDesktop ? 'desktop-sections p-4' : 'p-4 pb-32'}>
+          <div className={isDesktop ? 'desktop-sections p-4' : 'px-3 py-3 pb-32 sm:p-4'}>
             <SpiffsPanel
               rosInRange={report.rosInRange}
               startDate={dateRange.start}
