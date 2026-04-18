@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, CheckCircle2 } from 'lucide-react';
+import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { type UpgradeTrigger, UPGRADE_CONTEXT } from '@/lib/proFeatures';
 
@@ -33,7 +33,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
   } = useSubscription();
 
   const ctx = UPGRADE_CONTEXT[trigger];
-  const ctaLabel = subscriptionStatus === 'expired' ? 'Unlock Full Access' : 'Buy Lifetime Access';
+  const ctaLabel = subscriptionStatus === 'expired' ? 'Unlock Full Access' : 'Start 14-Day Free Trial';
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) clearCheckoutFallback();
@@ -42,32 +42,38 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl p-0 gap-0 overflow-hidden border" style={{ borderColor: '#DBEAFE', background: '#F8FBFF' }}>
-        <div className="p-6 text-white" style={{ background: 'linear-gradient(135deg, #081C45 0%, #083EA7 58%, #0B5FFF 100%)' }}>
+      <DialogContent className="max-w-md overflow-hidden rounded-3xl border p-0 gap-0" style={{ borderColor: '#BFDBFE', background: '#F8FBFF' }}>
+        <div className="p-6 text-white" style={{ background: 'linear-gradient(150deg, #07173F 0%, #083EA7 58%, #0B5FFF 100%)' }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
-              <Crown className="h-5 w-5 text-[#93C5FD]" />
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'rgba(147,197,253,0.2)' }}>
+                <Crown className="h-4 w-4 text-[#BFDBFE]" />
+              </span>
               Unlock RO Navigator
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm mt-2 text-blue-100">{ctx.pitch}</p>
-          <div className="mt-4 rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(219,234,254,0.28)', background: 'rgba(7,17,44,0.24)' }}>
-            <p className="text-sm font-semibold">14-day free trial, then one-time $15.99</p>
-            <p className="text-xs text-blue-100 mt-1">No recurring fees. Lifetime access after payment.</p>
+          <p className="mt-2 text-sm text-blue-100">{ctx.pitch}</p>
+
+          <div className="mt-5 rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(191,219,254,0.35)', background: 'rgba(7,17,44,0.28)' }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-100">Offer</p>
+            <p className="mt-1 text-xl font-bold">14-day free trial → $15.99 once</p>
+            <p className="mt-1 text-xs text-blue-100">No monthly or yearly plans. Lifetime access after payment.</p>
           </div>
         </div>
 
-        <div className="p-6 space-y-5">
-          <div className="grid grid-cols-3 gap-2">
+        <div className="space-y-5 p-6">
+          <div className="grid grid-cols-3 gap-2.5">
             {featureCards.map((item) => (
-              <div key={item.label} className="rounded-lg border px-2 py-3 text-center" style={{ borderColor: '#DBEAFE', background: '#FFFFFF' }}>
-                <item.icon className="h-4 w-4 mx-auto" style={{ color: '#0B5FFF' }} />
+              <div key={item.label} className="rounded-xl border px-2 py-3 text-center" style={{ borderColor: '#DBEAFE', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)' }}>
+                <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: '#EFF6FF' }}>
+                  <item.icon className="h-4 w-4" style={{ color: '#0B5FFF' }} />
+                </div>
                 <p className="mt-1.5 text-[11px] leading-tight" style={{ color: '#0F172A' }}>{item.label}</p>
               </div>
             ))}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {featureBullets.map((line) => (
               <div key={line} className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 flex-shrink-0" style={{ color: '#0B5FFF' }} />
@@ -79,26 +85,29 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
           {checkoutFallbackUrl ? (
             <a
               href={checkoutFallbackUrl}
-              className="flex items-center justify-center w-full py-3 text-sm font-semibold rounded-lg text-white"
-              style={{ background: '#0B5FFF' }}
+              className="flex w-full items-center justify-center rounded-lg py-3 text-sm font-semibold text-white"
+              style={{ background: 'linear-gradient(90deg, #0B5FFF 0%, #1D4ED8 100%)' }}
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
+              <ExternalLink className="mr-2 h-4 w-4" />
               Continue to checkout
             </a>
           ) : (
             <Button
               onClick={startCheckout}
               disabled={checkoutLoading}
-              className="w-full h-12 text-sm font-semibold text-white"
-              style={{ background: '#0B5FFF' }}
+              className="h-12 w-full text-sm font-semibold text-white"
+              style={{ background: 'linear-gradient(90deg, #0B5FFF 0%, #1D4ED8 100%)' }}
             >
               {checkoutLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Opening checkout…
                 </>
               ) : (
-                ctaLabel
+                <>
+                  {ctaLabel}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
               )}
             </Button>
           )}

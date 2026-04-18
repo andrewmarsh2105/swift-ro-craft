@@ -38,11 +38,11 @@ const steps = [
   },
 ];
 
-const outcomeBullets = [
-  'Built for dealership and independent-shop technicians',
-  'Reliable for hourly and flat-rate pay verification',
-  'Shared records across mobile and desktop workflows',
-  'Offline-friendly entry with sync recovery',
+const outcomes = [
+  'Spot missing labor before payday, not after.',
+  'Keep proof-ready records for disputes and corrections.',
+  'Use one workflow across mobile + desktop.',
+  'Stay reliable on shop floors with offline-friendly entry.',
 ];
 
 const faqs = [
@@ -83,22 +83,23 @@ export default function Landing() {
             ))}
             <Link to="/auth" className="hidden sm:inline px-3 py-2 text-sm" style={{ color: 'rgba(239,246,255,0.86)' }}>Sign in</Link>
             <Link to="/auth" className="inline-flex items-center h-10 px-4 rounded-md text-sm font-semibold text-white" style={{ background: COLORS.brand }}>
-              Start Free Trial
+              Start 14-Day Free Trial
             </Link>
           </nav>
         </div>
       </header>
 
-      <section className="relative overflow-hidden px-4 md:px-8 pt-14 pb-16 md:pt-20 md:pb-24" style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, ${COLORS.brandDark} 52%, ${COLORS.brand} 100%)` }}>
-        <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full blur-3xl" style={{ background: 'rgba(59,130,246,0.34)' }} />
-        <div className="absolute top-10 right-0 h-[360px] w-[360px] rounded-full blur-3xl" style={{ background: 'rgba(255,255,255,0.14)' }} />
+      <section className="relative overflow-hidden px-4 md:px-8 pt-14 pb-18 md:pt-20 md:pb-24" style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, ${COLORS.brandDark} 52%, ${COLORS.brand} 100%)` }}>
+        <div className="absolute -top-24 -left-20 h-80 w-80 rounded-full blur-3xl" style={{ background: 'rgba(59,130,246,0.36)' }} />
+        <div className="absolute top-8 right-0 h-[430px] w-[430px] rounded-full blur-3xl" style={{ background: 'rgba(255,255,255,0.12)' }} />
+        <div className="absolute bottom-[-120px] left-[30%] h-72 w-72 rounded-full blur-3xl" style={{ background: 'rgba(125,211,252,0.16)' }} />
 
-        <div className="relative max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-10 lg:gap-12 items-center">
+        <div className="relative max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_1.12fr] gap-10 lg:gap-12 items-center">
           <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
             <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide" style={{ background: 'rgba(239,246,255,0.16)', color: '#DBEAFE' }}>
               Technician-first workflow
             </div>
-            <h1 className="mt-5 text-white text-[2.25rem] sm:text-[2.9rem] md:text-[3.35rem] leading-[1.03] font-bold tracking-tight">
+            <h1 className="mt-5 text-white text-[2.25rem] sm:text-[2.95rem] md:text-[3.45rem] leading-[1.01] font-bold tracking-tight">
               Track every RO.<br />
               Verify your pay.<br />
               Stop missing hours.
@@ -111,26 +112,33 @@ export default function Landing() {
                 Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
               </Link>
               <a href="#pricing" className="inline-flex items-center gap-1.5 h-12 px-4 rounded-md text-sm font-medium border" style={{ color: '#EFF6FF', borderColor: 'rgba(219,234,254,0.38)' }}>
-                See pricing <ChevronDown className="h-3.5 w-3.5" />
+                View offer <ChevronDown className="h-3.5 w-3.5" />
               </a>
             </div>
             <p className="mt-4 text-sm" style={{ color: 'rgba(219,234,254,0.95)' }}>
-              14-day free trial, then one-time $15.99 for lifetime access.
+              14-day free trial, then one-time $15.99 lifetime unlock.
             </p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55, delay: 0.12 }}>
             <div className="relative">
               <div className="absolute inset-0 translate-x-5 translate-y-6 rounded-3xl" style={{ background: 'rgba(7,15,39,0.35)' }} />
-              <div className="relative rounded-3xl p-3 md:p-4 border shadow-2xl" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(219,234,254,0.42)' }}>
-                <img src={heroMockup} alt="RO Navigator product preview" className="w-full rounded-2xl" loading="eager" />
-              </div>
-              <div className="hidden md:flex absolute -bottom-6 -left-6 rounded-xl border px-4 py-3 gap-3 items-center" style={{ background: 'rgba(255,255,255,0.95)', borderColor: COLORS.border }}>
+              <div className="absolute -top-7 right-6 hidden md:flex items-center gap-2 rounded-xl border px-3 py-2" style={{ background: 'rgba(255,255,255,0.96)', borderColor: COLORS.border }}>
                 <Sparkles className="h-4 w-4" style={{ color: COLORS.brand }} />
                 <div>
-                  <p className="text-xs font-semibold" style={{ color: COLORS.text }}>Payday-ready clarity</p>
-                  <p className="text-[11px]" style={{ color: COLORS.muted }}>Fast logging + proof-first closeouts</p>
+                  <p className="text-[11px] font-semibold" style={{ color: COLORS.text }}>Built for pay accuracy</p>
+                  <p className="text-[10px]" style={{ color: COLORS.muted }}>Track • Review • Close out</p>
                 </div>
+              </div>
+              <div className="absolute -bottom-7 -left-5 hidden md:flex items-center gap-2 rounded-xl border px-3 py-2" style={{ background: 'rgba(8,28,69,0.9)', borderColor: 'rgba(219,234,254,0.35)' }}>
+                <ShieldCheck className="h-4 w-4" style={{ color: '#93C5FD' }} />
+                <div>
+                  <p className="text-[11px] font-semibold text-white">Proof-ready reports</p>
+                  <p className="text-[10px]" style={{ color: '#BFDBFE' }}>Before payroll is finalized</p>
+                </div>
+              </div>
+              <div className="relative rounded-3xl border p-3 md:p-4 shadow-2xl" style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(219,234,254,0.42)' }}>
+                <img src={heroMockup} alt="RO Navigator product preview" className="w-full rounded-2xl" loading="eager" />
               </div>
             </div>
           </motion.div>
@@ -140,26 +148,26 @@ export default function Landing() {
       <section className="px-4 md:px-8 py-6 border-y" style={{ background: '#EAF2FF', borderColor: COLORS.border }}>
         <div className="max-w-[1100px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
-            ['< 10 sec', 'for most RO entries'],
-            ['Offline-ready', 'for shop floors'],
-            ['OCR scan/import', 'from photos'],
-            ['Desktop + mobile', 'same records'],
+            ['Built for techs', 'dealership + independent shops'],
+            ['Proof-first closeouts', 'before payroll finalizes'],
+            ['OCR scan/import', 'from phone photos'],
+            ['Desktop + mobile', 'same synced records'],
           ].map(([a, b]) => (
             <div key={a}><p className="text-sm font-bold">{a}</p><p className="text-xs" style={{ color: COLORS.muted }}>{b}</p></div>
           ))}
         </div>
       </section>
 
-      <section id="how-it-works" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20">
-        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-12 items-start">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How it works in the real shop day</h2>
-            <p className="mt-3 text-sm md:text-base max-w-lg" style={{ color: COLORS.muted }}>
-              One flow from first RO touch to final closeout. No extra busywork and no guesswork at payroll time.
-            </p>
-            <div className="mt-7 space-y-4">
+      <section id="how-it-works" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20" style={{ background: '#F7FAFF' }}>
+        <div className="max-w-[1120px] mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How it works in the real shop day</h2>
+          <p className="mt-3 text-sm md:text-base max-w-2xl" style={{ color: COLORS.muted }}>
+            One connected flow from first RO touch to final closeout. No extra busywork and no guesswork at payroll time.
+          </p>
+          <div className="mt-8 rounded-3xl border px-4 py-7 md:px-8" style={{ borderColor: COLORS.border, background: COLORS.white }}>
+            <div className="grid md:grid-cols-3 gap-7 md:gap-5">
               {steps.map((step, i) => (
-                <div key={step.title} className="rounded-xl border p-4 md:p-5" style={{ background: COLORS.white, borderColor: COLORS.border }}>
+                <div key={step.title} className="relative">
                   <div className="flex items-start gap-3">
                     <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: '#DBEAFE', color: COLORS.brand }}>
                       <step.icon className="h-5 w-5" />
@@ -170,28 +178,39 @@ export default function Landing() {
                       <p className="mt-1.5 text-sm" style={{ color: COLORS.muted }}>{step.desc}</p>
                     </div>
                   </div>
+                  {i < steps.length - 1 && (
+                    <div className="hidden md:block absolute top-5 left-[calc(100%-12px)] w-[calc(100%-30px)] h-px" style={{ background: 'linear-gradient(90deg, #BFDBFE 0%, #DBEAFE 100%)' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="results" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20">
+        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[1.08fr_1fr] gap-7 lg:gap-10 items-center">
+          <div className="space-y-4">
+            <h3 className="text-3xl md:text-4xl font-bold tracking-tight">Why techs keep using it</h3>
+            <p className="text-sm md:text-base" style={{ color: COLORS.muted }}>
+              Outcome-driven tools that make paycheck verification faster, clearer, and less stressful.
+            </p>
+            <div className="space-y-2.5">
+              {outcomes.map((line) => (
+                <div key={line} className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5" style={{ color: COLORS.brand }} />
+                  <p className="text-sm md:text-[15px]">{line}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div id="results" className="rounded-2xl border p-4 md:p-5" style={{ background: COLORS.white, borderColor: COLORS.border }}>
-            <h3 className="text-xl font-bold">Why techs keep using it</h3>
-            <p className="mt-2 text-sm" style={{ color: COLORS.muted }}>RO Navigator is built to reduce missed labor and increase confidence before payday.</p>
-            <div className="mt-5 space-y-2.5">
-              {outcomeBullets.map((b) => (
-                <div key={b} className="flex items-start gap-2.5">
-                  <ShieldCheck className="h-4 w-4 mt-0.5" style={{ color: COLORS.brand }} />
-                  <p className="text-sm">{b}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-5 grid gap-3">
-              <div className="rounded-xl border p-2.5" style={{ borderColor: COLORS.border, background: '#F8FBFF' }}>
-                <img src={multiperiodPreview} alt="Multi-period reporting in RO Navigator" className="w-full rounded-lg" loading="lazy" />
-              </div>
-              <div className="rounded-xl border p-2.5" style={{ borderColor: COLORS.border, background: '#F8FBFF' }}>
-                <img src={spreadsheetPreview} alt="Spreadsheet view in RO Navigator" className="w-full rounded-lg" loading="lazy" />
+          <div className="relative">
+            <div className="absolute -inset-3 rounded-3xl blur-2xl" style={{ background: 'rgba(59,130,246,0.18)' }} />
+            <div className="relative grid gap-3 rounded-3xl border p-3 md:p-4" style={{ borderColor: COLORS.border, background: COLORS.white }}>
+              <img src={multiperiodPreview} alt="Multi-period reporting in RO Navigator" className="w-full rounded-xl border" style={{ borderColor: COLORS.border }} loading="lazy" />
+              <div className="md:w-[80%] md:ml-auto">
+                <img src={spreadsheetPreview} alt="Spreadsheet view in RO Navigator" className="w-full rounded-xl border shadow-sm" style={{ borderColor: COLORS.border }} loading="lazy" />
               </div>
             </div>
           </div>
@@ -200,11 +219,11 @@ export default function Landing() {
 
       <section id="pricing" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20" style={{ background: '#EAF2FF' }}>
         <div className="max-w-[980px] mx-auto">
-          <div className="rounded-3xl border p-7 md:p-10 lg:p-12" style={{ borderColor: COLORS.border, background: COLORS.white }}>
-            <div className="grid md:grid-cols-[1fr_auto] gap-7 md:gap-8 items-center">
+          <div className="rounded-3xl border p-7 md:p-10 lg:p-12 shadow-sm" style={{ borderColor: '#BFDBFE', background: COLORS.white }}>
+            <p className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide" style={{ background: '#DBEAFE', color: COLORS.brandDark }}>Simple one-time offer</p>
+            <div className="mt-5 grid md:grid-cols-[1fr_auto] gap-7 md:gap-8 items-start">
               <div>
-                <p className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide" style={{ background: '#DBEAFE', color: COLORS.brandDark }}>Simple pricing</p>
-                <h2 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight">One payment. Lifetime access.</h2>
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Start free, then unlock for life.</h2>
                 <p className="mt-3 text-sm md:text-base" style={{ color: COLORS.muted }}>
                   Start with a 14-day free trial. After trial, unlock full RO Navigator access with a one-time $15.99 purchase.
                 </p>
@@ -218,12 +237,12 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border px-6 py-6 text-center min-w-[210px]" style={{ borderColor: COLORS.border, background: '#F8FBFF' }}>
+              <div className="rounded-2xl border px-6 py-6 text-center min-w-[220px]" style={{ borderColor: '#BFDBFE', background: 'linear-gradient(180deg, #EFF6FF 0%, #F8FBFF 100%)' }}>
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.brandDark }}>Lifetime unlock</p>
-                <p className="mt-2 text-4xl font-bold">$15.99</p>
+                <p className="mt-2 text-5xl font-bold">$15.99</p>
                 <p className="text-xs mt-1" style={{ color: COLORS.muted }}>one-time after trial</p>
                 <Link to="/auth" className="mt-5 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-md text-white text-sm font-semibold w-full" style={{ background: COLORS.brand }}>
-                  Start Free Trial <ArrowRight className="h-4 w-4" />
+                  Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>
@@ -234,11 +253,11 @@ export default function Landing() {
       <section id="faq" className="px-4 md:px-8 py-14 md:py-18 scroll-mt-20" style={{ background: COLORS.white }}>
         <div className="max-w-[860px] mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">FAQ</h2>
-          <div className="mt-6 rounded-2xl border px-4 md:px-6" style={{ borderColor: COLORS.border, background: '#FCFDFF' }}>
+          <div className="mt-6 space-y-2">
             {faqs.map((item, i) => {
               const isOpen = openFaq === i;
               return (
-                <div key={item.q} className="border-b last:border-0" style={{ borderColor: COLORS.border }}>
+                <div key={item.q} className="rounded-xl border px-4 md:px-5" style={{ borderColor: '#E2E8F0', background: '#FCFDFF' }}>
                   <button className="w-full py-4 text-left flex items-center justify-between gap-4" onClick={() => setOpenFaq(isOpen ? null : i)}>
                     <span className="font-semibold text-sm md:text-base">{item.q}</span>
                     {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -261,7 +280,7 @@ export default function Landing() {
         <div className="max-w-[1000px] mx-auto rounded-3xl border p-8 md:p-10 text-center" style={{ borderColor: 'rgba(219,234,254,0.3)', background: 'rgba(255,255,255,0.04)' }}>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white">Ready to stop missing hours?</h2>
           <p className="mt-3 text-sm md:text-base" style={{ color: 'rgba(239,246,255,0.9)' }}>
-            Start your 14-day free trial today. Then unlock lifetime access for a one-time $15.99.
+            Start now and run your full RO process with clear records from day one.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link to="/auth" className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-md font-semibold text-white" style={{ background: COLORS.brand }}>
