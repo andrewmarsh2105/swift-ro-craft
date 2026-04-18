@@ -43,32 +43,32 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md overflow-hidden rounded-3xl border p-0 gap-0" style={{ borderColor: '#BFDBFE', background: '#F8FBFF' }}>
-        <div className="p-6 text-white" style={{ background: 'linear-gradient(150deg, #07173F 0%, #083EA7 58%, #0B5FFF 100%)' }}>
+        <div className="px-5 py-5 sm:p-6 text-white" style={{ background: 'linear-gradient(150deg, #07173F 0%, #083EA7 58%, #0B5FFF 100%)' }}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
+            <DialogTitle className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'rgba(147,197,253,0.2)' }}>
                 <Crown className="h-4 w-4 text-[#BFDBFE]" />
               </span>
               Unlock RO Navigator
             </DialogTitle>
           </DialogHeader>
-          <p className="mt-2 text-sm text-blue-100">{ctx.pitch}</p>
+          <p className="mt-2 text-sm leading-snug text-blue-100">{ctx.pitch}</p>
 
-          <div className="mt-5 rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(191,219,254,0.35)', background: 'rgba(7,17,44,0.28)' }}>
+          <div className="mt-4 rounded-xl border px-4 py-3.5" style={{ borderColor: 'rgba(191,219,254,0.35)', background: 'rgba(7,17,44,0.28)' }}>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-100">Offer</p>
-            <p className="mt-1 text-xl font-bold">$15.99 one-time payment</p>
-            <p className="mt-1 text-xs text-blue-100">No monthly or yearly plans. Lifetime access after purchase.</p>
+            <p className="mt-1 text-2xl font-bold leading-none">$15.99 <span className="text-base font-semibold">one-time</span></p>
+            <p className="mt-1.5 text-xs text-blue-100">No monthly or yearly plans. Lifetime access after purchase.</p>
           </div>
         </div>
 
-        <div className="space-y-5 p-6">
-          <div className="grid grid-cols-3 gap-2.5">
+        <div className="space-y-4 px-5 py-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5">
             {featureCards.map((item) => (
-              <div key={item.label} className="rounded-xl border px-2 py-3 text-center" style={{ borderColor: '#DBEAFE', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)' }}>
-                <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: '#EFF6FF' }}>
+              <div key={item.label} className="rounded-xl border px-3 py-2.5 sm:px-2 sm:py-3 text-left sm:text-center" style={{ borderColor: '#DBEAFE', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)' }}>
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg sm:mx-auto" style={{ background: '#EFF6FF' }}>
                   <item.icon className="h-4 w-4" style={{ color: '#0B5FFF' }} />
                 </div>
-                <p className="mt-1.5 text-[11px] leading-tight" style={{ color: '#0F172A' }}>{item.label}</p>
+                <p className="mt-1.5 text-[11px] leading-tight font-medium" style={{ color: '#0F172A' }}>{item.label}</p>
               </div>
             ))}
           </div>
@@ -85,7 +85,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
           {checkoutFallbackUrl ? (
             <a
               href={checkoutFallbackUrl}
-              className="flex w-full items-center justify-center rounded-lg py-3 text-sm font-semibold text-white"
+              className="flex h-12 w-full items-center justify-center rounded-xl py-3 text-sm font-semibold text-white shadow-[0_6px_18px_-10px_rgba(11,95,255,0.7)]"
               style={{ background: 'linear-gradient(90deg, #0B5FFF 0%, #1D4ED8 100%)' }}
             >
               <ExternalLink className="mr-2 h-4 w-4" />
@@ -95,7 +95,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
             <Button
               onClick={startCheckout}
               disabled={checkoutLoading}
-              className="h-12 w-full text-sm font-semibold text-white"
+              className="h-12 w-full rounded-xl text-sm font-semibold text-white shadow-[0_6px_18px_-10px_rgba(11,95,255,0.7)]"
               style={{ background: 'linear-gradient(90deg, #0B5FFF 0%, #1D4ED8 100%)' }}
             >
               {checkoutLoading ? (

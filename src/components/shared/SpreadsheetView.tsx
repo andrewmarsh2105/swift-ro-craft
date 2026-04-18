@@ -148,19 +148,25 @@ const MobileLineCard = memo(function MobileLineCard({
       : 'text-[hsl(var(--status-internal))]';
 
   const isPaid = !!line.ro?.paidDate;
+  const toneSurface = rowTone === 'alt'
+    ? 'bg-primary/[0.12] border-primary/30'
+    : 'bg-white border-border/55 dark:bg-card';
+  const toneCarryover = rowTone === 'alt'
+    ? 'bg-primary/[0.09] border-primary/25 opacity-75'
+    : 'bg-white/95 border-border/45 opacity-75 dark:bg-card/80';
 
   return (
     <div
       className={cn(
-        'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b border-border/40',
+        'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b',
         'cursor-pointer active:bg-primary/[0.14] transition-colors',
         borderColorClass,
-        isGroupStart && 'mt-2 rounded-t-md border-t border-border/45 shadow-[0_1px_3px_-2px_hsl(var(--foreground)/0.2)]',
+        isGroupStart && 'mt-2 rounded-t-lg border-t shadow-[0_1px_4px_-2px_hsl(var(--foreground)/0.22)]',
         line.isCarryover
-          ? 'opacity-60 bg-muted/[0.14]'
+          ? toneCarryover
           : (isSelected
-            ? 'bg-primary/[0.18]'
-            : (rowTone === 'alt' ? 'bg-primary/[0.14]' : 'bg-white dark:bg-card')),
+            ? 'bg-amber-100/90 border-amber-400/65 dark:bg-amber-950/25'
+            : toneSurface),
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
@@ -835,6 +841,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     groupIndex % 2 === 1
       ? 'bg-primary/[0.14]'
       : 'bg-white dark:bg-card shadow-[inset_0_0_0_1px_hsl(var(--border)/0.32)]';
+  const getTone = (groupIndex: number) => (groupIndex % 2 === 1 ? 'alt' : 'base');
 
   const showCheckbox = selectionMode || selectedROIds.size > 0;
 
@@ -1092,12 +1099,20 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             }
             if (row.rowType === 'roSubtotal') {
               const sub = row as SpreadsheetSubtotalRow;
-              const tone = sub.groupIndex % 2 === 1 ? 'alt' : 'base';
+              const tone = getTone(sub.groupIndex);
               if (sub.isCarryover) {
                 return (
-                  <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-2.5 bg-muted/[0.16] border-x border-b border-dashed border-border/35 opacity-70 rounded-b-md mb-3">
+                  <div
+                    key={`rosub-${i}`}
+                    className={cn(
+                      'flex items-center justify-between px-3 py-2.5 border-x border-b border-dashed rounded-b-lg mb-3 opacity-75',
+                      tone === 'alt'
+                        ? 'bg-primary/[0.09] border-primary/25'
+                        : 'bg-white/95 border-border/45 dark:bg-card/80',
+                    )}
+                  >
                     <span className="text-[10px] italic text-muted-foreground/70">{sub.label}</span>
-                    <span className="text-[10px] tabular-nums text-muted-foreground/50">{sub.hours.toFixed(1)}h unpaid</span>
+                    <span className="text-[10px] tabular-nums text-muted-foreground/60">{sub.hours.toFixed(1)}h unpaid</span>
                   </div>
                 );
               }
@@ -1105,8 +1120,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 <div
                   key={`rosub-${i}`}
                   className={cn(
-                    'flex items-center justify-between px-3 py-2.5 border-x border-b border-border/45 border-t border-border/40 rounded-b-md mb-3 shadow-[0_2px_8px_-6px_hsl(var(--foreground)/0.35)]',
-                    tone === 'alt' ? 'bg-muted/[0.34]' : 'bg-accent/25',
+                    'flex items-center justify-between px-3 py-2.5 border-x border-b border-t rounded-b-lg mb-3 shadow-[0_2px_8px_-6px_hsl(var(--foreground)/0.32)]',
+                    tone === 'alt'
+                      ? 'bg-primary/[0.12] border-primary/30'
+                      : 'bg-white border-border/55 dark:bg-card',
                   )}
                 >
                   <div className="flex items-center gap-1.5">
@@ -1143,7 +1160,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             const line = row as SpreadsheetLineRow;
             const roId = line.ro?.id ?? '';
             const isGroupStart = !prevRow || prevRow.rowType !== 'line' || (prevRow as SpreadsheetLineRow).groupIndex !== line.groupIndex;
-            const rowTone = line.groupIndex % 2 === 0 ? 'base' : 'alt';
+            const rowTone = getTone(line.groupIndex);
             return (
               <MobileLineCard
                 key={`line-${i}`}
