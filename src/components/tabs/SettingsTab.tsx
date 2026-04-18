@@ -884,7 +884,7 @@ export function SettingsTab() {
   );
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto brand-shell-bg">
+    <div className="flex h-full w-full max-w-full min-w-0 flex-col overflow-y-auto overflow-x-hidden brand-shell-bg">
       <div className={cn('panel-header brand-topbar', isMobile ? 'px-4 pt-4 pb-3' : 'px-5 pt-4 pb-3')}>
         <div className="max-w-5xl mx-auto w-full flex items-center justify-between gap-4">
           <div className="space-y-1">

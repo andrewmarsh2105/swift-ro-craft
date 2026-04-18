@@ -127,7 +127,7 @@ function MobileApp() {
   };
 
   return (
-    <div className="min-h-screen brand-shell-bg flex flex-col">
+    <div className="brand-shell-bg flex min-h-screen min-h-[100dvh] w-full max-w-full flex-col overflow-x-hidden">
       <TrialCountdownBanner />
       <OfflineStatusBar />
       {/* Mobile app header */}
@@ -151,7 +151,7 @@ function MobileApp() {
       </header>
       <main
         ref={mainRef}
-        className="flex-1 overflow-auto"
+        className="flex-1 overflow-auto overflow-x-hidden w-full max-w-full"
         style={{ paddingBottom: 'calc(var(--tab-bar-height) + var(--safe-area-inset-bottom))' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

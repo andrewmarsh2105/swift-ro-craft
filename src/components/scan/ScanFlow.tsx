@@ -8,6 +8,7 @@ import { useROSafe } from '@/contexts/ROContext';
 import { useTemplates } from '@/hooks/useTemplates';
 import { ScanReviewScreen } from './ScanReviewScreen';
 import { cn } from '@/lib/utils';
+import { withTemporaryViewportMaximumScale } from '@/lib/viewport';
 import type { ROLine, VehicleInfo } from '@/types/ro';
 
 interface ScanFlowProps {
@@ -44,12 +45,7 @@ const restoreViewportState = () => {
 };
 
 const resetViewportZoom = () => {
-  const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-  if (vp) {
-    const original = vp.content;
-    vp.content = `${original}, maximum-scale=1`;
-    requestAnimationFrame(() => { vp.content = original; });
-  }
+  withTemporaryViewportMaximumScale(1);
 };
 
 export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, existingLineDescriptions = [] }: ScanFlowProps) {
