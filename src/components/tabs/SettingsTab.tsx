@@ -354,6 +354,74 @@ export function SettingsTab() {
   const [presetHours, setPresetHours] = useState('');
   const [presetTemplate, setPresetTemplate] = useState('');
   const [advisorName, setAdvisorName] = useState('');
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const [isRefreshingApp, setIsRefreshingApp] = useState(false);
+
+  const appBuildLabel = `v${__APP_VERSION__} · ${new Date(__APP_BUILD_TIME__).toLocaleString()}`;
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    let cancelled = false;
+    let activeRegistration: ServiceWorkerRegistration | null = null;
+    let activeInstallingWorker: ServiceWorker | null = null;
+
+    const updateFromRegistration = (registration: ServiceWorkerRegistration | null) => {
+      if (cancelled || !registration) return;
+      setIsUpdateAvailable(Boolean(registration.waiting));
+    };
+
+    const onInstallingStateChange = () => {
+      if (cancelled || !activeRegistration || !activeInstallingWorker) return;
+      if (activeInstallingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        updateFromRegistration(activeRegistration);
+      }
+    };
+
+    const onUpdateFound = () => {
+      if (!activeRegistration) return;
+      activeInstallingWorker?.removeEventListener('statechange', onInstallingStateChange);
+      activeInstallingWorker = activeRegistration.installing;
+      activeInstallingWorker?.addEventListener('statechange', onInstallingStateChange);
+      updateFromRegistration(activeRegistration);
+    };
+
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (cancelled || !registration) return;
+      activeRegistration = registration;
+      updateFromRegistration(registration);
+      registration.addEventListener('updatefound', onUpdateFound);
+    });
+
+    return () => {
+      cancelled = true;
+      activeRegistration?.removeEventListener('updatefound', onUpdateFound);
+      activeInstallingWorker?.removeEventListener('statechange', onInstallingStateChange);
+    };
+  }, []);
+
+  const refreshApp = async (options?: { preferUpdate?: boolean }) => {
+    if (isRefreshingApp) return;
+    setIsRefreshingApp(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration?.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          toast.success(options?.preferUpdate ? 'Updating to the newest version…' : 'Refreshing app…');
+          window.setTimeout(() => window.location.reload(), 350);
+          return;
+        }
+        await registration?.update().catch(() => undefined);
+      }
+
+      toast.success('Refreshing app…');
+      window.location.reload();
+    } catch {
+      toast.error('Could not refresh automatically. Please reload this page.');
+      setIsRefreshingApp(false);
+    }
+  };
 
   const renderManagement = () => (
     <SettingsSection
@@ -620,6 +688,31 @@ export function SettingsTab() {
               <p className="text-xs text-muted-foreground">support@ronavigator.com</p>
             </div>
           </button>
+          <SettingsRow
+            label="Refresh App"
+            description="Reload this app to pull in the latest available build."
+            onClick={() => {
+              void refreshApp();
+            }}
+          />
+          {isUpdateAvailable && (
+            <div className="px-4 py-3 border-t border-border/40 bg-primary/[0.05]">
+              <p className="text-xs font-medium text-foreground">A new version is available.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs mt-2"
+                onClick={() => {
+                  void refreshApp({ preferUpdate: true });
+                }}
+              >
+                Update now
+              </Button>
+            </div>
+          )}
+          <div className="px-4 py-2.5 border-t border-border/40 text-[11px] text-muted-foreground">
+            App build: {appBuildLabel}
+          </div>
         </SettingsGroup>
       </SettingsSection>
     </div>

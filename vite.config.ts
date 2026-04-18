@@ -3,8 +3,15 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
+const appVersion = process.env.npm_package_version || "dev";
+const appBuildTime = new Date().toISOString();
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __APP_BUILD_TIME__: JSON.stringify(appBuildTime),
+  },
   server: {
     host: "::",
     port: 8080,
