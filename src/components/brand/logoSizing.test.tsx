@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  DASHBOARD_MOBILE_LOGO_HEIGHT,
   DASHBOARD_DESKTOP_LOGO_HEIGHT,
   MAIN_DESKTOP_APP_BAR_HEIGHT,
   MAIN_MOBILE_HEADER_HEIGHT,
@@ -125,7 +126,7 @@ describe('logo sizing', () => {
     expect(appBar).toHaveStyle({ minHeight: `${MAIN_DESKTOP_APP_BAR_HEIGHT}px` });
   });
 
-  it('keeps dashboard mobile header height pinned and does not render a logo', () => {
+  it('keeps dashboard mobile header height pinned and renders the dashboard logo', () => {
     render(
       <MemoryRouter>
         <Index />
@@ -133,7 +134,9 @@ describe('logo sizing', () => {
     );
 
     const header = document.querySelector('header');
-    expect(screen.queryByAltText('RO Navigator')).not.toBeInTheDocument();
+    const mobileLogo = screen.getByAltText('RO Navigator');
+    expect(getVisibleHeight(mobileLogo)).toBe((DASHBOARD_MOBILE_LOGO_HEIGHT - 4).toString());
+    expect(mobileLogo).toHaveAttribute('src', '/brand/logo-dark.webp');
     expect(header).toHaveStyle({
       minHeight: `${MAIN_MOBILE_HEADER_HEIGHT}px`,
     });

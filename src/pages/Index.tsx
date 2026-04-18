@@ -4,7 +4,8 @@ import { Plus } from "lucide-react";
 
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
-import { MAIN_MOBILE_HEADER_HEIGHT } from "@/components/brand/logoSizing";
+import { HeaderLogo } from "@/components/brand";
+import { MAIN_MOBILE_HEADER_HEIGHT, MAIN_MOBILE_LOGO_HEIGHT } from "@/components/brand/logoSizing";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
@@ -130,12 +131,18 @@ function MobileApp() {
       <OfflineStatusBar />
       {/* Mobile app header */}
       <header
-        className="flex-shrink-0 flex items-center justify-end px-3 py-1 border-b border-border/40 bg-background"
+        className="flex-shrink-0 flex items-center justify-between px-3.5 py-1.5 border-b border-border/60 bg-background/95 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.35)]"
         style={{ minHeight: MAIN_MOBILE_HEADER_HEIGHT }}
       >
+        <HeaderLogo
+          priority
+          height={Math.max(40, MAIN_MOBILE_LOGO_HEIGHT - 4)}
+          scheme="light"
+          className="translate-y-[1px]"
+        />
         <button
           onClick={handleOpenProfile}
-          className="h-8 w-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none tap-target active:opacity-80 transition-opacity"
+          className="h-8 w-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none tap-target active:opacity-80 transition-opacity border border-primary/65 shadow-sm"
           aria-label="Open profile settings"
         >
           {avatarInitial}

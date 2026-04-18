@@ -175,14 +175,28 @@ export default function Auth() {
         {/* Form area */}
         <div className="flex-1 flex items-center justify-center p-6">
           <motion.div
-            className="w-full max-w-sm space-y-6 rounded-2xl border border-border/70 bg-background/95 p-6 shadow-sm backdrop-blur-[1px]"
+            className="w-full max-w-sm space-y-5 rounded-2xl border border-border/70 bg-background/95 p-5 shadow-sm backdrop-blur-[1px] md:space-y-6 md:p-6"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* Mobile-only branding */}
-            <div className="flex items-center justify-center md:hidden">
-              <HeaderLogo priority height={SIGN_IN_MOBILE_LOGO_HEIGHT} />
+            <div className="md:hidden space-y-3 text-center">
+              <div className="flex items-center justify-center">
+                <HeaderLogo priority height={SIGN_IN_MOBILE_LOGO_HEIGHT} />
+              </div>
+              <div className="space-y-1.5">
+                <h1 className="text-[1.15rem] font-semibold tracking-tight text-foreground">
+                  Track every RO. Verify every hour.
+                </h1>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  Log work fast, catch missing pay before payroll, and keep proof-ready records in one place.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                <Shield className="h-3.5 w-3.5 text-primary" />
+                Built for technician pay accuracy
+              </div>
             </div>
 
             {/* Desktop heading */}
@@ -263,7 +277,7 @@ export default function Auth() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
