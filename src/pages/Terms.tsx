@@ -28,7 +28,7 @@ export default function Terms() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">2. Description of Service</h2>
-            <p>RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. New accounts include a 14-day free trial, followed by an optional one-time lifetime unlock.</p>
+            <p>RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. New accounts include a 14-day free trial. After the trial ends, continued access requires a one-time lifetime unlock.</p>
           </section>
 
           <section className="space-y-3">

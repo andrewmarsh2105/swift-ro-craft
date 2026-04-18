@@ -10,7 +10,13 @@ export type BillingStatus = AccessStatus;
 interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
+  /** Preferred access-oriented name. */
+  accessEndsAt: string | null;
+  /** Legacy name retained for compatibility across existing consumers. */
   subscriptionEnd: string | null;
+  /** Preferred access-oriented name. */
+  accessStatus: BillingStatus;
+  /** Legacy name retained for compatibility across existing consumers. */
   subscriptionStatus: BillingStatus;
   /** Days until trial ends. null when no active trial. */
   daysUntilEnd: number | null;
@@ -21,6 +27,9 @@ interface SubscriptionContextType {
   checkoutLoading: boolean;
   checkoutFallbackUrl: string | null;
   clearCheckoutFallback: () => void;
+  /** Preferred access-oriented method name. */
+  checkAccess: () => Promise<BillingStatus>;
+  /** Legacy method retained for compatibility across existing consumers. */
   checkSubscription: () => Promise<BillingStatus>;
   startCheckout: () => Promise<void>;
 }
@@ -185,7 +194,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     <SubscriptionContext.Provider value={{
       isPro,
       loading,
+      accessEndsAt: subscriptionEnd,
       subscriptionEnd,
+      accessStatus: subscriptionStatus,
       subscriptionStatus,
       daysUntilEnd,
       isNearExpiry,
@@ -193,6 +204,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       checkoutLoading,
       checkoutFallbackUrl,
       clearCheckoutFallback,
+      checkAccess: checkSubscription,
       checkSubscription,
       startCheckout,
     }}>
