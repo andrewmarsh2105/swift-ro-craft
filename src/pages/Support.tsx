@@ -9,6 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PublicPageFooter, PublicPageHeader } from '@/components/public/PublicPageChrome';
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 export default function Support() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,8 +55,8 @@ export default function Support() {
       }).catch(console.error);
 
       setSubmitted(true);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send message. Please try again.');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to send message. Please try again.'));
     } finally {
       submitInFlightRef.current = false;
       setLoading(false);

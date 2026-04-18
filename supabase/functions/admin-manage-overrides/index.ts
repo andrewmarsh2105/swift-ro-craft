@@ -43,6 +43,12 @@ function corsHeaders(origin: string) {
   };
 }
 
+type AdminListUser = {
+  id: string;
+  email?: string | null;
+  created_at?: string | null;
+};
+
 serve(async (req) => {
   const safeOrigin = getSafeOrigin(req);
 
@@ -107,13 +113,13 @@ serve(async (req) => {
 
       // Filter users whose email contains the search string (case-insensitive)
       const query = email.toLowerCase();
-      const matchedUsers = (listData.users || []).filter(
-        (u: any) => u.email && u.email.toLowerCase().includes(query)
+      const matchedUsers = ((listData.users || []) as AdminListUser[]).filter(
+        (u) => u.email && u.email.toLowerCase().includes(query)
       );
 
       // Check override status for each matched user
       const results = await Promise.all(
-        matchedUsers.slice(0, 20).map(async (u: any) => {
+        matchedUsers.slice(0, 20).map(async (u) => {
           const { data: override } = await supabase
             .from("pro_overrides")
             .select("id")

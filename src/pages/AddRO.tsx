@@ -35,6 +35,11 @@ const DesktopWorkspace = lazy(() =>
   import('@/components/desktop/DesktopWorkspace').then((m) => ({ default: m.DesktopWorkspace })),
 );
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 
 export default function AddRO() {
   const navigate = useNavigate();
@@ -387,8 +392,8 @@ export default function AddRO() {
       resetViewportZoom();
       // Reset snapshot so guard doesn't block
       initialSnapshotRef.current = currentSnapshot;
-    } catch (err: any) {
-      toast.error(`Save failed: ${err?.message || 'Unknown error'}. Try again.`);
+    } catch (err: unknown) {
+      toast.error(`Save failed: ${getErrorMessage(err, 'Unknown error')}. Try again.`);
     } finally {
       setIsSaving(false);
     }
@@ -463,8 +468,8 @@ export default function AddRO() {
       setShowSplitDialog(false);
       toast.success(`Split saved: created RO #${nextRONumber}`);
       returnToDashboard();
-    } catch (err: any) {
-      toast.error(`Split failed: ${err?.message || 'Unknown error'}`);
+    } catch (err: unknown) {
+      toast.error(`Split failed: ${getErrorMessage(err, 'Unknown error')}`);
     } finally {
       setIsSaving(false);
     }

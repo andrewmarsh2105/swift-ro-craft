@@ -23,6 +23,11 @@ const trustSignals = [
   { icon: CircleCheck, label: 'One-time lifetime unlock' },
 ];
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 export default function Auth() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
@@ -64,8 +69,8 @@ export default function Auth() {
         }
         toast.success('Check your email to confirm your account');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Authentication failed');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Authentication failed'));
     } finally {
       setLoading(false);
     }
@@ -80,8 +85,8 @@ export default function Auth() {
         },
       });
       if (error) throw error;
-    } catch (err: any) {
-      toast.error(err.message || `Could not sign in with ${provider === 'google' ? 'Google' : 'Apple'}`);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, `Could not sign in with ${provider === 'google' ? 'Google' : 'Apple'}`));
     }
   };
 
@@ -96,8 +101,8 @@ export default function Auth() {
       });
       if (error) throw error;
       toast.success('Password reset email sent — check your inbox');
-    } catch (err: any) {
-      toast.error(err.message || 'Could not send reset email');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Could not send reset email'));
     }
   };
 

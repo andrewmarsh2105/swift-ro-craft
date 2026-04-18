@@ -14,6 +14,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+function toStringRecord(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entries = Object.entries(value);
+  if (entries.length === 0) return undefined;
+  return entries.reduce<Record<string, string>>((acc, [key, entryValue]) => {
+    acc[key] = typeof entryValue === 'string' ? entryValue : String(entryValue);
+    return acc;
+  }, {});
+}
+
 export function TemplatesSection() {
   const { templates, loading, addTemplate, updateTemplate, deleteTemplate } = useTemplates();
   const { userSettings, updateUserSetting } = useFlagContext();
@@ -27,10 +37,10 @@ export function TemplatesSection() {
 
   const handleSave = async () => {
     if (!templateName.trim()) return;
-    let fieldMap: Record<string, unknown> | undefined;
+    let fieldMap: Record<string, string> | undefined;
     if (templateHints.trim()) {
       try {
-        fieldMap = JSON.parse(templateHints.trim());
+        fieldMap = toStringRecord(JSON.parse(templateHints.trim()));
       } catch {
         fieldMap = { extractionHints: templateHints.trim() };
       }
@@ -47,7 +57,7 @@ export function TemplatesSection() {
     setTemplateHints('');
   };
 
-  const handleEdit = (t: { id: string; name: string; fieldMapJson?: Record<string, unknown> | null }) => {
+  const handleEdit = (t: { id: string; name: string; fieldMapJson?: Record<string, string> | null }) => {
     setEditingId(t.id);
     setTemplateName(t.name);
     setTemplateHints(

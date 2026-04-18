@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
@@ -74,7 +75,6 @@ async function fetchAllPages<T>(
 ): Promise<T[]> {
   const all: T[] = [];
   let offset = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const { data, error } = await queryFn(offset, offset + PAGE_SIZE - 1);
     if (error) throw error;
@@ -414,11 +414,12 @@ export function useROStore() {
       }
     })();
 
+    const currentPhaseGeneration = phase2Generation.current;
     return () => {
       cancelled = true;
       // Increment generation so any in-flight Phase 2 background load aborts
       // cleanly and doesn't write stale data into the new user's state.
-      phase2Generation.current++;
+      phase2Generation.current = currentPhaseGeneration + 1;
     };
   }, [userId, fetchROs]);
 
@@ -629,7 +630,7 @@ export function useROStore() {
       );
       const { error: rpcErr } = await supabase.rpc('replace_ro_lines', {
         _ro_id: id,
-        _lines: linesJsonb as any,
+        _lines: linesJsonb as Json,
       });
       if (rpcErr) {
         console.error('replace_ro_lines RPC failed', rpcErr);

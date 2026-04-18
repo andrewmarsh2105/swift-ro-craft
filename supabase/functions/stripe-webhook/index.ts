@@ -1,15 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient, type PostgrestError, type SupabaseClient } from "npm:@supabase/supabase-js@2.57.2";
 import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
 import { pickBestUserSettingsRow } from "../_shared/user-settings-read.ts";
 
-const logStep = (step: string, details?: any) => {
+type StripeEventClaimError = Pick<PostgrestError, "code" | "message">;
+
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
-async function findUserIdByCustomerId(supabaseAdmin: any, customerId: string | null | undefined): Promise<string | null> {
+async function findUserIdByCustomerId(supabaseAdmin: SupabaseClient, customerId: string | null | undefined): Promise<string | null> {
   if (!customerId) return null;
 
   const { data: settingsRows, error } = await supabaseAdmin
@@ -73,7 +75,7 @@ serve(async (req) => {
     .insert({ stripe_event_id: event.id, stripe_event_type: event.type });
 
   if (claimError) {
-    const code = (claimError as any)?.code || "";
+    const code = (claimError as StripeEventClaimError).code || "";
     if (code === "23505") {
       logStep("Duplicate event skipped", { id: event.id, type: event.type });
       return new Response(JSON.stringify({ received: true, duplicate: true }), {
@@ -162,11 +164,12 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    logStep("ERROR", { message: String(error) });
+    const message = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message });
 
     await supabaseAdmin
       .from("stripe_webhook_events")
-      .update({ processing_error: String(error) })
+      .update({ processing_error: message })
       .eq("stripe_event_id", event.id);
 
     await supabaseAdmin
@@ -175,7 +178,7 @@ serve(async (req) => {
       .eq("stripe_event_id", event.id)
       .is("processed_at", null);
 
-    return new Response(JSON.stringify({ error: String(error) }), {
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

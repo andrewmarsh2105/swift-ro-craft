@@ -6,7 +6,7 @@ import type { Json } from '@/integrations/supabase/types';
 export interface ROTemplate {
   id: string;
   name: string;
-  fieldMapJson: Record<string, any> | null;
+  fieldMapJson: Record<string, string> | null;
   samplePhotoPath: string | null;
   createdAt: string;
   updatedAt: string;
@@ -31,7 +31,7 @@ export function useTemplates() {
       setTemplates((data || []).map(t => ({
         id: t.id,
         name: t.name,
-        fieldMapJson: t.field_map_json as Record<string, any> | null,
+        fieldMapJson: t.field_map_json as Record<string, string> | null,
         samplePhotoPath: t.sample_photo_path,
         createdAt: t.created_at,
         updatedAt: t.updated_at,
@@ -42,7 +42,7 @@ export function useTemplates() {
 
   useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
 
-  const addTemplate = useCallback(async (name: string, fieldMap?: Record<string, any>) => {
+  const addTemplate = useCallback(async (name: string, fieldMap?: Record<string, string>) => {
     if (!user) return null;
     const { data, error } = await supabase
       .from('ro_templates')
@@ -62,9 +62,9 @@ export function useTemplates() {
     return data?.id || null;
   }, [user, fetchTemplates]);
 
-  const updateTemplate = useCallback(async (id: string, updates: { name?: string; fieldMap?: Record<string, any> }) => {
+  const updateTemplate = useCallback(async (id: string, updates: { name?: string; fieldMap?: Record<string, string> }) => {
     if (!user) return;
-    const payload: Record<string, any> = {};
+    const payload: { name?: string; field_map_json?: Json } = {};
     if (updates.name !== undefined) payload.name = updates.name;
     if (updates.fieldMap !== undefined) payload.field_map_json = updates.fieldMap as Json;
 
