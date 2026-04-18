@@ -439,7 +439,7 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
   );
 
   return (
-    <div className="flex flex-col h-full brand-shell-bg">
+    <div className="flex h-full w-full max-w-full min-w-0 flex-col overflow-x-hidden brand-shell-bg">
       {/* ══ Sticky Header: Tabs + Range ══ */}
       {tabMode === 'summary' && (
         <div className="panel-header brand-topbar">

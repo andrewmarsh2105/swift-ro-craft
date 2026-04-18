@@ -513,7 +513,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full brand-shell-bg">
+    <div className="flex h-full w-full max-w-full min-w-0 flex-col overflow-x-hidden brand-shell-bg">
       {/* ── Sticky header ───────────────────────────── */}
       <div className="sticky top-0 z-30 brand-topbar border-b border-border/50">
 

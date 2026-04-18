@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 import { SplitRODialog } from '@/components/shared/SplitRODialog';
 import { buildSplitRONumber, splitLinesBySelection } from '@/lib/roSplit';
+import { withTemporaryViewportMaximumScale } from '@/lib/viewport';
 
 // Desktop workspace – lazy so mobile never pays for desktop code
 import { lazy, Suspense } from 'react';
@@ -239,12 +240,7 @@ export default function AddRO() {
   const presetsVisible = lines.length > 1 || lines.some(l => l.description.trim() || l.hoursPaid > 0);
 
   const resetViewportZoom = () => {
-    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (vp) {
-      const original = vp.content;
-      vp.content = `${original}, maximum-scale=1`;
-      requestAnimationFrame(() => { vp.content = original; });
-    }
+    withTemporaryViewportMaximumScale(1);
   };
 
   const handleScanApply = (data: ScanApplyData) => {

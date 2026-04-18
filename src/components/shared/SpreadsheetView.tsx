@@ -787,7 +787,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }
 
   return (
-    <div className="h-full flex flex-col brand-shell-bg">
+    <div className="flex h-full w-full max-w-full min-w-0 flex-col overflow-x-hidden brand-shell-bg">
       <PrintHeader periodLabel={computedRangeLabel} />
       {/* ─── Toolbar ─── */}
       <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border/50 bg-gradient-to-r from-card via-accent/35 to-card backdrop-blur-sm flex-wrap">
