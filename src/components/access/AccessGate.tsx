@@ -6,6 +6,11 @@ import { AccessLockedScreen } from './AccessLockedScreen';
 import { AccessIntroScreen } from './AccessIntroScreen';
 import { useAuth } from '@/contexts/AuthContext';
 
+const gateBackground = {
+  background:
+    'radial-gradient(900px 500px at -5% -20%, rgba(59,130,246,0.3), transparent 62%), radial-gradient(860px 460px at 110% 110%, rgba(191,219,254,0.22), transparent 60%), linear-gradient(150deg, #07173F 0%, #072867 56%, #0B5FFF 100%)',
+};
+
 export function AccessGate({ children }: { children: ReactNode }) {
   const { accessState, accessError, checkAccess, accessStatus } = useSubscription();
   const { signOut } = useAuth();
@@ -14,10 +19,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
     return (
       <div
         className="min-h-screen flex items-center justify-center px-4"
-        style={{
-          background:
-            'radial-gradient(900px 500px at -5% -20%, rgba(59,130,246,0.22), transparent 62%), radial-gradient(860px 460px at 110% 110%, rgba(191,219,254,0.18), transparent 60%), linear-gradient(160deg, #F8FBFF 0%, #EFF6FF 100%)',
-        }}
+        style={gateBackground}
       >
         <div className="w-full max-w-md rounded-2xl border bg-white/95 p-6 text-center shadow-sm" style={{ borderColor: '#DBEAFE' }}>
           <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: '#EFF6FF', color: '#0B5FFF' }}>
@@ -32,14 +34,14 @@ export function AccessGate({ children }: { children: ReactNode }) {
 
   if (accessState === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="min-h-screen flex items-center justify-center px-4" style={gateBackground}>
         <div className="w-full max-w-md rounded-2xl border bg-white p-6 text-center shadow-sm" style={{ borderColor: '#DBEAFE' }}>
           <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: '#EFF6FF', color: '#0B5FFF' }}>
             <AlertCircle className="h-5 w-5" />
           </div>
           <h1 className="text-lg font-semibold text-slate-900">Temporary connection issue</h1>
           <p className="mt-2 text-sm text-slate-600">
-            {accessError ?? 'We could not refresh access right now. Your account state has not changed.'}
+            {accessError ?? 'We could not refresh your access status right now. Your account state has not changed.'}
           </p>
           <div className="mt-3 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium text-slate-600" style={{ borderColor: '#DBEAFE' }}>
             <ShieldCheck className="h-3.5 w-3.5 text-[#0B5FFF]" />

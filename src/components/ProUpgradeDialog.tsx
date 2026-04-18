@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { type UpgradeTrigger, UPGRADE_CONTEXT } from '@/lib/proFeatures';
 
@@ -62,9 +62,9 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
         </div>
 
         <div className="space-y-4 px-5 py-5 sm:p-6">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-2.5">
             {featureCards.map((item) => (
-              <div key={item.label} className="rounded-xl border px-3 py-2.5 sm:px-2 sm:py-3 text-left sm:text-center" style={{ borderColor: '#DBEAFE', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)' }}>
+              <div key={item.label} className="rounded-xl border px-3 py-2.5 sm:px-2 sm:py-3 text-left sm:text-center shadow-[0_8px_18px_-18px_rgba(15,23,42,0.45)]" style={{ borderColor: '#DBEAFE', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)' }}>
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg sm:mx-auto" style={{ background: '#EFF6FF' }}>
                   <item.icon className="h-4 w-4" style={{ color: '#0B5FFF' }} />
                 </div>
@@ -73,7 +73,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
             ))}
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 rounded-xl border px-3.5 py-3" style={{ borderColor: '#DBEAFE', background: 'rgba(255,255,255,0.78)' }}>
             {featureBullets.map((line) => (
               <div key={line} className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 flex-shrink-0" style={{ color: '#0B5FFF' }} />
@@ -111,6 +111,12 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
               )}
             </Button>
           )}
+          <p className="text-center text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#0B5FFF]" />
+              Secure Stripe checkout. No recurring subscription.
+            </span>
+          </p>
         </div>
       </DialogContent>
     </Dialog>

@@ -23,7 +23,7 @@ export function SettingsRow({ label, description, currentValue, value, onClick, 
       disabled={disabled && !toggle}
       className={cn(
         'w-full px-4 py-3 flex items-center gap-3 tap-target',
-        'active:bg-muted/40 transition-colors',
+        'hover:bg-accent/55 active:bg-muted/40 transition-colors',
         disabled && 'opacity-40 pointer-events-none'
       )}
     >

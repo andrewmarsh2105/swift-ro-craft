@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowRight, Lock, RefreshCw, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
+import { ArrowRight, Lock, RefreshCw, ShieldCheck, Sparkles, Wallet, CreditCard } from 'lucide-react';
 
 export function AccessLockedScreen() {
   const { startCheckout, checkoutLoading, checkoutFallbackUrl, checkAccess } = useSubscription();
@@ -25,12 +25,12 @@ export function AccessLockedScreen() {
             Your free trial has ended
           </h1>
           <p className="mt-2 text-sm md:text-base leading-snug" style={{ color: '#475569' }}>
-            Unlock full RO Navigator access with a one-time payment.
+            Unlock full RO Navigator access with one quick, one-time payment.
           </p>
         </div>
 
         <div className="px-5 py-5 sm:px-8 sm:py-7 md:px-10">
-          <div className="rounded-2xl border p-4 sm:p-5 md:p-6" style={{ borderColor: '#BFDBFE', background: '#FFFFFF' }}>
+          <div className="rounded-2xl border p-4 sm:p-5 md:p-6 shadow-[0_12px_24px_-18px_rgba(11,95,255,0.75)]" style={{ borderColor: '#BFDBFE', background: '#FFFFFF' }}>
             <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#1D4ED8' }}>Lifetime access</p>
             <div className="mt-2 flex items-end gap-2">
               <p className="text-3xl sm:text-4xl font-bold leading-none" style={{ color: '#0F172A' }}>$15.99</p>
@@ -71,9 +71,15 @@ export function AccessLockedScreen() {
                 {checkoutLoading ? 'Opening checkout…' : 'Buy Full Access — $15.99'}
               </Button>
             )}
-            <p className="text-center text-xs" style={{ color: '#64748B' }}>
-              Your saved ROs stay available after you unlock.
+            <p className="text-center text-xs leading-relaxed" style={{ color: '#64748B' }}>
+              Your saved ROs stay available after you unlock. Secure checkout is handled by Stripe.
             </p>
+            <div className="rounded-lg border px-3 py-2 text-center text-[11px]" style={{ borderColor: '#DBEAFE', background: '#FFFFFF', color: '#475569' }}>
+              <span className="inline-flex items-center gap-1">
+                <CreditCard className="h-3.5 w-3.5" style={{ color: '#0B5FFF' }} />
+                Already unlocked accounts are never charged again.
+              </span>
+            </div>
             <Button
               variant="ghost"
               onClick={() => void checkAccess()}

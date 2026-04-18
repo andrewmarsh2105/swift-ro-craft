@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { trackSignupCompleted } from '@/lib/analytics';
-import { Loader2, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, Shield, Wifi } from 'lucide-react';
+import { Loader2, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, Shield, Wifi, CreditCard, CircleCheck } from 'lucide-react';
 import { HeaderLogo } from '@/components/brand';
 import { SIGN_IN_DESKTOP_LOGO_HEIGHT, SIGN_IN_MOBILE_LOGO_HEIGHT } from '@/components/brand/logoSizing';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,12 @@ const brandFeatures = [
   'Log ROs and line items in seconds',
   'Catch missing hours before payroll',
   'Close out pay periods with confidence',
+];
+
+const trustSignals = [
+  { icon: Shield, label: 'Secure sign-in' },
+  { icon: CreditCard, label: 'Stripe checkout' },
+  { icon: CircleCheck, label: 'One-time lifetime unlock' },
 ];
 
 export default function Auth() {
@@ -119,9 +125,12 @@ export default function Auth() {
 
           {/* Middle content */}
           <div className="flex-1 flex flex-col justify-center space-y-8">
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/90">
+                Trusted by working technicians
+              </div>
               <h2 className="text-3xl font-extrabold text-white leading-tight tracking-tight">
-                Track Your Hours.<br />Get Paid Right.
+                Track Every RO.<br />Protect Every Hour.
               </h2>
               <p className="text-white/70 text-sm leading-relaxed">
                 Built for flat-rate technicians who know every hour matters.
@@ -138,6 +147,15 @@ export default function Auth() {
                 </li>
               ))}
             </ul>
+
+            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-white/85">
+                Access model
+              </p>
+              <p className="mt-1 text-sm text-white/90">
+                14-day free trial, then $15.99 one-time for lifetime access. No monthly subscription.
+              </p>
+            </div>
           </div>
 
           {/* Bottom */}
@@ -175,7 +193,7 @@ export default function Auth() {
         {/* Form area */}
         <div className="flex-1 flex items-center justify-center p-6">
           <motion.div
-            className="w-full max-w-sm space-y-5 rounded-2xl border border-border/70 bg-background/95 p-5 shadow-sm backdrop-blur-[1px] md:space-y-6 md:p-6"
+            className="w-full max-w-sm space-y-5 rounded-2xl border border-border/70 bg-background/95 p-5 shadow-md backdrop-blur-[1px] md:space-y-6 md:p-6"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -187,10 +205,10 @@ export default function Auth() {
               </div>
               <div className="space-y-1.5">
                 <h1 className="text-[1.15rem] font-semibold tracking-tight text-foreground">
-                  Track every RO. Verify every hour.
+                  Welcome to RO Navigator
                 </h1>
                 <p className="text-[13px] leading-relaxed text-muted-foreground">
-                  Log work fast, catch missing pay before payroll, and keep proof-ready records in one place.
+                  Sign in to your technician workspace for RO tracking, pay-period totals, and secure lifetime access unlock.
                 </p>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
@@ -209,6 +227,20 @@ export default function Auth() {
                   ? 'Sign in to continue tracking ROs, hours, and pay-period totals.'
                   : 'Create your account, then choose a 14-day trial or unlock full access for $15.99.'}
               </p>
+            </div>
+
+            <div className="rounded-lg border border-border/70 bg-muted/25 px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Secure account + payment
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                {trustSignals.map(({ icon: Icon, label }) => (
+                  <span key={label} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Icon className="h-3 w-3 text-primary" />
+                    {label}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Tab switcher */}
