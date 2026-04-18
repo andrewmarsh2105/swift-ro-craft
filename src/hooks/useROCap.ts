@@ -1,15 +1,15 @@
 import { useMemo } from 'react';
 import { useRO } from '@/contexts/ROContext';
-import { useSubscription } from '@/contexts/SubscriptionContext';
-import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 
 /**
- * Shared hook for monthly RO cap logic.
- * Returns the current month's RO count and whether the user is at cap.
+ * Legacy compatibility hook.
+ *
+ * Free-tier RO caps were removed with the trial + lifetime model, but some
+ * components still consume this shape. We keep stable return keys and always
+ * report cap checks as disabled.
  */
 export function useROCap() {
   const { ros } = useRO();
-  const { isPro } = useSubscription();
 
   const monthlyROCount = useMemo(() => {
     const now = new Date();
@@ -17,11 +17,8 @@ export function useROCap() {
     return ros.filter((r) => r.date && r.date >= monthStart).length;
   }, [ros]);
 
-  /** True when a free user would exceed the cap by adding a new RO */
-  const isAtCap = !isPro && monthlyROCount >= RO_MONTHLY_CAP;
+  const isAtCap = false;
+  const isNearCap = false;
 
-  /** True when nearing the cap (within 5 of limit) */
-  const isNearCap = !isPro && monthlyROCount >= RO_MONTHLY_CAP - 5;
-
-  return { monthlyROCount, isAtCap, isNearCap, cap: RO_MONTHLY_CAP, isPro } as const;
+  return { monthlyROCount, isAtCap, isNearCap, cap: null, isPro: true } as const;
 }

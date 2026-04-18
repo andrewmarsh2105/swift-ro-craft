@@ -2,32 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { hasBillingIssue, hasProAccess, type StripeSubscriptionStatus } from './subscriptionAccess';
 
 describe('subscriptionAccess', () => {
-  it('grants Pro access only for active/trialing/override states', () => {
+  it('grants app access only for trialing/lifetime/override states', () => {
     const statuses: StripeSubscriptionStatus[] = [
-      'active',
       'trialing',
+      'lifetime',
       'override',
-      'past_due',
-      'unpaid',
-      'incomplete',
-      'incomplete_expired',
-      'canceled',
+      'expired',
       null,
     ];
 
     const granted = statuses.filter((status) => hasProAccess(status));
-    expect(granted).toEqual(['active', 'trialing', 'override']);
+    expect(granted).toEqual(['trialing', 'lifetime', 'override']);
   });
 
-  it('flags billing issues only for recoverable payment states', () => {
-    expect(hasBillingIssue('past_due')).toBe(true);
-    expect(hasBillingIssue('unpaid')).toBe(true);
-    expect(hasBillingIssue('incomplete')).toBe(true);
-
-    expect(hasBillingIssue('active')).toBe(false);
+  it('never reports billing issues in one-time lifetime model', () => {
     expect(hasBillingIssue('trialing')).toBe(false);
-    expect(hasBillingIssue('canceled')).toBe(false);
-    expect(hasBillingIssue('incomplete_expired')).toBe(false);
+    expect(hasBillingIssue('lifetime')).toBe(false);
+    expect(hasBillingIssue('override')).toBe(false);
+    expect(hasBillingIssue('expired')).toBe(false);
     expect(hasBillingIssue(null)).toBe(false);
   });
 });

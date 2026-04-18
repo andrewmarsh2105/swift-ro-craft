@@ -30,7 +30,6 @@ import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { dateDisplayContext, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
 import { compareAdvisorNames, normalizeAdvisorName, sortROs } from '@/lib/roFilters';
 import { getStatusSummary } from '@/lib/roStatus';
-import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { getDateFilterLabel, getPeriodFilterLabels } from '@/lib/payPeriodRange';
 
 const SpreadsheetView = lazy(() =>
@@ -457,13 +456,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const openCount = useMemo(() => filteredROs.filter(ro => !ro.paidDate).length, [filteredROs]);
   const activeFlagsCount = useMemo(() => flags.filter(f => !f.clearedAt).length, [flags]);
 
-  // Monthly RO usage for free-tier cap indicator
-  const monthlyROCount = useMemo(() => {
-    if (isPro) return 0;
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.date && r.date >= monthStart).length;
-  }, [ros, isPro]);
   const goalSettings = userSettings;
   const hoursGoalDaily = goalSettings.hoursGoalDaily;
 
@@ -603,25 +595,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         {/* Search/filter/date controls */}
         <div className="px-3 pb-1.5 space-y-1.5">
           <div className="flex items-center gap-1.5">
-          {/* Monthly cap indicator — compact, left of search */}
-            {!isPro && !loadingROs && (
-              <button
-                onClick={() => setShowUpgrade(true)}
-                className={cn(
-                  'flex-shrink-0 h-8 px-2 rounded-lg border text-[9px] font-semibold flex items-center gap-1 quiet-transition',
-                  monthlyROCount >= RO_MONTHLY_CAP
-                    ? 'bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400'
-                    : monthlyROCount >= RO_MONTHLY_CAP - 5
-                    ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
-                    : 'bg-muted text-muted-foreground border-border/60'
-                )}
-                title="Monthly RO usage — upgrade for unlimited"
-              >
-                <Crown className="h-2.5 w-2.5" />
-                {monthlyROCount}/{RO_MONTHLY_CAP}
-              </button>
-            )}
-
             {/* Search bar */}
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/45" />

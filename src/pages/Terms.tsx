@@ -18,7 +18,7 @@ export default function Terms() {
 
       <main className="max-w-3xl mx-auto px-4 py-16 space-y-8">
         <h1 className="text-3xl font-bold tracking-tight">Terms of Service</h1>
-        <p className="text-sm text-muted-foreground">Last updated: March 1, 2026</p>
+        <p className="text-sm text-muted-foreground">Last updated: April 18, 2026</p>
 
         <div className="prose prose-sm dark:prose-invert max-w-none space-y-6 text-muted-foreground">
           <section className="space-y-3">
@@ -28,7 +28,7 @@ export default function Terms() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">2. Description of Service</h2>
-            <p>RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. The Service is provided on a free tier with optional paid Pro features.</p>
+            <p>RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. New accounts include a 14-day free trial, followed by an optional one-time lifetime unlock.</p>
           </section>
 
           <section className="space-y-3">
@@ -37,8 +37,8 @@ export default function Terms() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-foreground">4. Free & Pro Plans</h2>
-            <p>Pro subscriptions are billed monthly ($8.99/mo) or yearly ($79.99/yr) and include a 7-day free trial. You may cancel at any time through the billing portal. Refunds are handled on a case-by-case basis.</p>
+            <h2 className="text-lg font-semibold text-foreground">4. Trial & Lifetime Access</h2>
+            <p>New accounts receive a 14-day free trial with full app functionality. After trial expiration, continued use requires a one-time $15.99 payment that unlocks lifetime access. There are no recurring monthly or yearly subscription fees.</p>
           </section>
 
           <section className="space-y-3">

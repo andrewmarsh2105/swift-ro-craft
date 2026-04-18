@@ -18,7 +18,7 @@ export default function Privacy() {
 
       <main className="max-w-3xl mx-auto px-4 py-16 space-y-8">
         <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground">Last updated: March 1, 2026</p>
+        <p className="text-sm text-muted-foreground">Last updated: April 18, 2026</p>
 
         <div className="prose prose-sm dark:prose-invert max-w-none space-y-6 text-muted-foreground">
           <section className="space-y-3">
@@ -28,7 +28,7 @@ export default function Privacy() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">2. How We Use Your Information</h2>
-            <p>Your data is used to provide and improve the RO Navigator service. Specifically, we use it to: display your repair orders and pay summaries, process payments through Stripe, send transactional emails (password resets, account confirmations), and analyze usage patterns to improve the product.</p>
+            <p>Your data is used to provide and improve the RO Navigator service. Specifically, we use it to: display your repair orders and pay summaries, process one-time lifetime unlock payments through Stripe, send transactional emails (password resets, account confirmations), and analyze usage patterns to improve the product.</p>
           </section>
 
           <section className="space-y-3">

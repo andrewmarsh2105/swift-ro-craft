@@ -6,6 +6,7 @@ import { OfflineProvider } from "@/contexts/OfflineContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { PanelErrorBoundary } from "@/components/states/PanelErrorBoundary";
 import { Loader2 } from "lucide-react";
+import { AccessGate } from "@/components/access/AccessGate";
 
 const Index = lazy(() => import("@/pages/Index"));
 const AddRO = lazy(() => import("@/pages/AddRO"));
@@ -32,22 +33,24 @@ function ShellFallback() {
 export default function AuthenticatedShell() {
   return (
     <SubscriptionProvider>
-      <OfflineProvider>
-        <ROProvider>
-          <FlagProvider>
-            <PanelErrorBoundary label="App">
-              <Suspense fallback={<ShellFallback />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/add-ro" element={<AddRO />} />
-                  <Route path="/flag-inbox" element={<FlagInboxPage />} />
-                  <Route path="/admin" element={<Admin />} />
-                </Routes>
-              </Suspense>
-            </PanelErrorBoundary>
-          </FlagProvider>
-        </ROProvider>
-      </OfflineProvider>
+      <AccessGate>
+        <OfflineProvider>
+          <ROProvider>
+            <FlagProvider>
+              <PanelErrorBoundary label="App">
+                <Suspense fallback={<ShellFallback />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/add-ro" element={<AddRO />} />
+                    <Route path="/flag-inbox" element={<FlagInboxPage />} />
+                    <Route path="/admin" element={<Admin />} />
+                  </Routes>
+                </Suspense>
+              </PanelErrorBoundary>
+            </FlagProvider>
+          </ROProvider>
+        </OfflineProvider>
+      </AccessGate>
     </SubscriptionProvider>
   );
 }

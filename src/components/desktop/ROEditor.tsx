@@ -16,7 +16,6 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
-import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { haptics } from '@/lib/haptics';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
@@ -24,7 +23,6 @@ import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
 import { toast } from 'sonner';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
-import { useROCap } from '@/hooks/useROCap';
 import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 import { SplitRODialog } from '@/components/shared/SplitRODialog';
@@ -46,8 +44,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const { userSettings, getFlagsForRO, addFlag, clearFlag } = useFlagContext();
   const { isPro } = useSubscription();
   const postSaveStatusPrompt = usePostSavePaidStatusPrompt({ updateRO });
-  const { isAtCap: _isAtCap } = useROCap();
-  const isAtCap = _isAtCap && isNew;
 
   // Date range for filtering advisors to match the current list view filter
   const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'desktop-list', userSettings);
@@ -86,7 +82,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   });
   const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.mileage || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model || ro?.paidDate));
   const [showScanFlow, setShowScanFlow] = useState(false);
-  const [showProUpgrade, setShowProUpgrade] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState(false);
@@ -226,10 +221,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     if (!roNumber.trim()) { toast.error('RO number is required'); return; }
     if (!advisor.trim()) { toast.error('Advisor is required'); return; }
 
-    if (isAtCap) {
-      setShowProUpgrade(true);
-      return;
-    }
 
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
     const roData = {
@@ -623,7 +614,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         existingLineDescriptions={lines.map(l => l.description)}
       />
 
-      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
       <PostSavePaidStatusPrompt
         open={postSaveStatusPrompt.statusPromptOpen}
         roNumber={postSaveStatusPrompt.statusPromptRONumber}

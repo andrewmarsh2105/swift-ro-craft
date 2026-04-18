@@ -19,7 +19,6 @@ import {
 } from '@/features/ro/data/roMapper';
 import { calcLineHours } from '@/lib/roDisplay';
 import { saveROsToCache, loadROsFromCache } from '@/lib/roLocalCache';
-import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 
 type AdvisorRow = Database["public"]["Tables"]["advisors"]["Row"];
 type LaborReferenceRow = Database["public"]["Tables"]["labor_references"]["Row"];
@@ -751,16 +750,6 @@ export function useROStore() {
   const duplicateRO = useCallback(async (id: string, newRONumber?: string, isPro?: boolean) => {
     const ro = ros.find(r => r.id === id);
     if (!ro) return;
-    // Cap check: free users are limited to RO_MONTHLY_CAP ROs per month.
-    if (!isPro) {
-      const now = new Date();
-      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      const monthlyCount = ros.filter(r => r.date && r.date >= monthStart).length;
-      if (monthlyCount >= RO_MONTHLY_CAP) {
-        toast.error(`Free plan limit: ${RO_MONTHLY_CAP} ROs/month. Upgrade to Pro to duplicate.`);
-        return null;
-      }
-    }
     return addRO({ ...ro, roNumber: newRONumber || '' });
   }, [ros, addRO]);
 

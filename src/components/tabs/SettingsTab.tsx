@@ -47,7 +47,7 @@ export function SettingsTab() {
   const navigate = useNavigate();
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
-  const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, hasBillingIssue, openPortal } = useSubscription();
+  const { isPro, subscriptionStatus, subscriptionEnd, daysUntilEnd, isNearExpiry } = useSubscription();
   const { permissionState: notifPermission, notificationsEnabled, toggleNotifications } = useGoalNotifications();
 
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
@@ -629,7 +629,7 @@ export function SettingsTab() {
     <div className="space-y-8">
       <SettingsSection
         title="Profile"
-        description="Manage your identity, subscription status, and account access."
+        description="Manage your identity, trial/lifetime access status, and account controls."
       >
         <SettingsGroup title="Account overview">
           <div className="px-4 py-4 flex items-start gap-3">
@@ -679,22 +679,26 @@ export function SettingsTab() {
               'px-2.5 py-1 rounded-md text-[10px] font-bold',
               isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground/60'
             )}>
-              {isPro ? 'PRO' : 'FREE'}
+              {subscriptionStatus === 'lifetime' ? 'LIFETIME' : subscriptionStatus === 'trialing' ? 'TRIAL ACTIVE' : subscriptionStatus === 'expired' ? 'TRIAL EXPIRED' : isPro ? 'ACCESS' : 'LOCKED'}
             </span>
           </div>
 
+          {subscriptionStatus === 'lifetime' && (
+            <div className="mt-2 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Lifetime unlocked</p>
+            </div>
+          )}
+          {subscriptionStatus === 'expired' && (
+            <div className="mt-2 rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2">
+              <p className="text-[11px] text-destructive">Trial expired — unlock full access to continue.</p>
+            </div>
+          )}
           {(isNearExpiry && daysUntilEnd !== null) && (
             <div className="mx-4 mb-3 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-md px-3 py-2">
               <Star className="h-3 w-3 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
-                Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>
+                Trial expires in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>
               </p>
-            </div>
-          )}
-
-          {hasBillingIssue && (
-            <div className="mx-4 mb-3 text-xs text-destructive bg-destructive/10 border border-destructive/25 rounded-md px-3 py-2">
-              Billing issue detected. Please review your subscription details.
             </div>
           )}
 
@@ -750,13 +754,15 @@ export function SettingsTab() {
                 variant={isPro ? 'outline' : 'default'}
                 size="sm"
                 className="h-8 text-xs"
+                disabled={isPro && subscriptionStatus !== 'expired'}
                 onClick={() => {
-                  if (isPro) openPortal();
-                  else setShowUpgradeDialog(true);
+                  if (!isPro || subscriptionStatus === 'expired') {
+                    setShowUpgradeDialog(true);
+                  }
                 }}
               >
                 <Crown className="h-3.5 w-3.5 mr-1" />
-                {isPro ? 'Manage subscription' : 'Upgrade to Pro'}
+                {isPro && subscriptionStatus !== 'expired' ? 'Lifetime unlocked' : 'Unlock full access'}
               </Button>
               {isAdmin && (
                 <Button

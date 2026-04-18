@@ -22,8 +22,8 @@ const steps = [
   },
   {
     icon: Zap,
-    title: 'Try Pro free for 7 days',
-    description: 'Unlock OCR scanning, pay period exports, closeouts, and more. No credit card needed to start your trial.',
+    title: 'Start your 14-day free trial',
+    description: 'You get full access for 14 days, then unlock RO Navigator for a one-time $15.99. No subscription.'
   },
 ];
 

@@ -1,18 +1,14 @@
 export type StripeSubscriptionStatus =
-  | 'active'
   | 'trialing'
-  | 'past_due'
-  | 'unpaid'
-  | 'incomplete'
-  | 'incomplete_expired'
-  | 'canceled'
+  | 'lifetime'
+  | 'expired'
   | 'override'
   | null;
 
 export function hasProAccess(status: StripeSubscriptionStatus): boolean {
-  return status === 'active' || status === 'trialing' || status === 'override';
+  return status === 'trialing' || status === 'lifetime' || status === 'override';
 }
 
-export function hasBillingIssue(status: StripeSubscriptionStatus): boolean {
-  return status === 'past_due' || status === 'unpaid' || status === 'incomplete';
+export function hasBillingIssue(_status: StripeSubscriptionStatus): boolean {
+  return false;
 }
