@@ -107,41 +107,99 @@ export function SpiffsPanel({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-4">
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Total Spiff Pay</p><p className="text-2xl font-bold">${report.totalPay.toFixed(2)}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Auto Spiffs</p><p className="text-2xl font-bold">{report.totalAutoCount}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Manual Spiffs</p><p className="text-2xl font-bold">{report.totalManualCount}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Total Items</p><p className="text-2xl font-bold">{report.totalCount}</p></CardContent></Card>
+    <div className="space-y-4 sm:space-y-5">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
+        <Card className="border-primary/15 bg-gradient-to-b from-primary/5 to-card">
+          <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-primary/80">Total Spiff Pay</p>
+            <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">${report.totalPay.toFixed(2)}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/10 bg-card">
+          <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Auto Spiffs</p>
+            <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{report.totalAutoCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/10 bg-card">
+          <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Manual Spiffs</p>
+            <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{report.totalManualCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/10 bg-card">
+          <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total Items</p>
+            <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{report.totalCount}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
-        <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-base">Spiff Rules (Automatic)</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-2 md:grid-cols-2">
-              <div><Label>Name</Label><Input value={ruleName} onChange={(e) => setRuleName(e.target.value)} placeholder="Ex: Cabin Filter" /></div>
-              <div><Label>Match text on RO line</Label><Input value={matchText} onChange={(e) => setMatchText(e.target.value)} placeholder="Ex: cabin filter" /></div>
-              <div><Label>Pay per spiff ($)</Label><Input type="number" step="0.01" min="0" value={ruleUnitPay} onChange={(e) => setRuleUnitPay(e.target.value)} /></div>
-              <div><Label>Schedule</Label><Select value={scheduleType} onValueChange={(v) => setScheduleType(v as 'forever' | 'weekly')}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="forever">Forever</SelectItem><SelectItem value="weekly">Weekly / Date Range</SelectItem></SelectContent></Select></div>
+        <Card className="border-primary/15">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-base">Spiff Rules (Automatic)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3.5">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Name</Label>
+                <Input value={ruleName} onChange={(e) => setRuleName(e.target.value)} placeholder="Ex: Cabin Filter" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Match text on RO line</Label>
+                <Input value={matchText} onChange={(e) => setMatchText(e.target.value)} placeholder="Ex: cabin filter" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Pay per spiff ($)</Label>
+                <Input type="number" step="0.01" min="0" value={ruleUnitPay} onChange={(e) => setRuleUnitPay(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Schedule</Label>
+                <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as 'forever' | 'weekly')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="forever">Forever</SelectItem>
+                    <SelectItem value="weekly">Weekly / Date Range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               {scheduleType === 'weekly' && (
                 <>
-                  <div><Label>Active from</Label><Input type="date" value={activeFrom} onChange={(e) => setActiveFrom(e.target.value)} /></div>
-                  <div><Label>Active to</Label><Input type="date" value={activeTo} onChange={(e) => setActiveTo(e.target.value)} /></div>
+                  <div className="space-y-1.5">
+                    <Label>Active from</Label>
+                    <Input type="date" value={activeFrom} onChange={(e) => setActiveFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Active to</Label>
+                    <Input type="date" value={activeTo} onChange={(e) => setActiveTo(e.target.value)} />
+                  </div>
                 </>
               )}
             </div>
-            <Button onClick={addRule} className="gap-2"><PlusCircle className="h-4 w-4" />Add Rule</Button>
+            <Button onClick={addRule} className="w-full gap-2 sm:w-auto">
+              <PlusCircle className="h-4 w-4" />
+              Add Rule
+            </Button>
             <div className="max-h-72 overflow-auto space-y-2 pr-1">
               {rules.length === 0 && <p className="text-sm text-muted-foreground">No spiff rules yet.</p>}
               {rules.map((rule) => (
-                <div key={rule.id} className="rounded-lg border p-3 flex items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2"><p className="font-medium">{rule.name}</p><Badge variant="secondary">${Number(rule.unitPay).toFixed(2)}</Badge></div>
-                    <p className="text-xs text-muted-foreground">Matches: "{rule.matchText}"</p>
-                    <p className="text-xs text-muted-foreground">{rule.scheduleType === 'forever' ? 'Always active' : `${rule.activeFrom || '?'} → ${rule.activeTo || '?'}`}</p>
+                <div key={rule.id} className="rounded-xl border border-border/80 bg-card/80 p-3 sm:p-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium leading-snug break-words">{rule.name}</p>
+                        <Badge variant="secondary" className="shrink-0">${Number(rule.unitPay).toFixed(2)}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground break-words">Matches: "{rule.matchText}"</p>
+                      <p className="text-xs text-muted-foreground">{rule.scheduleType === 'forever' ? 'Always active' : `${rule.activeFrom || '?'} → ${rule.activeTo || '?'}`}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 self-start" onClick={() => removeRule(rule.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeRule(rule.id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               ))}
             </div>
@@ -149,37 +207,101 @@ export function SpiffsPanel({
         </Card>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base">Manual Spiff Entries</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid gap-2 md:grid-cols-2">
-                <div><Label>Label</Label><Input value={manualLabel} onChange={(e) => setManualLabel(e.target.value)} placeholder="Ex: Walk-in coolant flush upsell" /></div>
-                <div><Label>Date</Label><Input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} /></div>
-                <div><Label>Linked rule (optional)</Label><Select value={manualRuleId} onValueChange={setManualRuleId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unlinked">None</SelectItem>{rules.map((rule) => <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>)}</SelectContent></Select></div>
-                <div><Label>Quantity</Label><Input type="number" min="1" step="1" value={manualQty} onChange={(e) => setManualQty(e.target.value)} /></div>
-                <div><Label>Pay per item ($)</Label><Input type="number" min="0" step="0.01" value={manualUnitPay} onChange={(e) => setManualUnitPay(e.target.value)} /></div>
+          <Card className="border-primary/15">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-base">Manual Spiff Entries</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3.5">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Label</Label>
+                  <Input value={manualLabel} onChange={(e) => setManualLabel(e.target.value)} placeholder="Ex: Walk-in coolant flush upsell" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Date</Label>
+                  <Input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Linked rule (optional)</Label>
+                  <Select value={manualRuleId} onValueChange={setManualRuleId}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unlinked">None</SelectItem>
+                      {rules.map((rule) => <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Quantity</Label>
+                  <Input type="number" min="1" step="1" value={manualQty} onChange={(e) => setManualQty(e.target.value)} />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label>Pay per item ($)</Label>
+                  <Input type="number" min="0" step="0.01" value={manualUnitPay} onChange={(e) => setManualUnitPay(e.target.value)} />
+                </div>
               </div>
-              <Button onClick={addManual} className="gap-2"><PlusCircle className="h-4 w-4" />Add Manual Spiff</Button>
+              <Button onClick={addManual} className="w-full gap-2 sm:w-auto">
+                <PlusCircle className="h-4 w-4" />
+                Add Manual Spiff
+              </Button>
 
               <div className="max-h-72 overflow-auto space-y-2 pr-1">
                 {manualEntries.length === 0 && <p className="text-sm text-muted-foreground">No manual entries yet.</p>}
                 {manualEntries.map((entry) => (
-                  <div key={entry.id} className="rounded-lg border p-3 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{entry.label}</p>
-                      <p className="text-xs text-muted-foreground">{entry.date} · Qty {entry.quantity} · ${Number(entry.unitPay || 0).toFixed(2)} each</p>
+                  <div key={entry.id} className="rounded-xl border border-border/80 bg-card/80 p-3 sm:p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-1">
+                        <p className="font-medium leading-snug break-words">{entry.label}</p>
+                        <p className="text-xs text-muted-foreground break-words">{entry.date} · Qty {entry.quantity} · ${Number(entry.unitPay || 0).toFixed(2)} each</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 self-start" onClick={() => removeManual(entry.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeManual(entry.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base">Spiff Breakdown ({startDate} → {endDate})</CardTitle></CardHeader>
+          <Card className="border-primary/15">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-base">Spiff Breakdown ({startDate} → {endDate})</CardTitle>
+            </CardHeader>
             <CardContent>
-              <div className="max-h-72 overflow-auto">
+              <div className="space-y-2.5 sm:hidden">
+                {report.byRule.map((row) => (
+                  <div key={row.ruleId} className="rounded-xl border border-border/80 bg-card/80 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-medium leading-snug break-words">{row.ruleName}</p>
+                      <p className="text-sm font-semibold shrink-0">${row.totalPay.toFixed(2)}</p>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <p>Auto: <span className="font-semibold text-foreground">{row.autoCount}</span></p>
+                      <p className="text-right">Manual: <span className="font-semibold text-foreground">{row.manualCount}</span></p>
+                    </div>
+                  </div>
+                ))}
+                {report.uncategorizedManual.length > 0 && (
+                  <div className="rounded-xl border border-border/80 bg-card/80 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-medium leading-snug">Manual only</p>
+                      <p className="text-sm font-semibold shrink-0">${report.manualOnlyPay.toFixed(2)}</p>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <p>Auto: <span className="font-semibold text-foreground">—</span></p>
+                      <p className="text-right">Manual: <span className="font-semibold text-foreground">{report.uncategorizedManual.reduce((sum, item) => sum + item.quantity, 0)}</span></p>
+                    </div>
+                  </div>
+                )}
+                {report.byRule.length === 0 && report.uncategorizedManual.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No spiffs in this range.</p>
+                )}
+              </div>
+
+              <div className="hidden max-h-72 overflow-auto sm:block">
                 <table className="w-full text-sm">
                   <thead className="text-xs text-muted-foreground">
                     <tr><th className="text-left py-2">Spiff</th><th className="text-right py-2">Auto</th><th className="text-right py-2">Manual</th><th className="text-right py-2">Pay</th></tr>
