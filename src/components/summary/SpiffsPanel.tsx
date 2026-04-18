@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { AlertTriangle, PlusCircle, ShieldCheck, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { buildSpiffReport } from '@/lib/spiffUtils';
+import { buildSpiffReport, buildSpiffRulePreview, findLikelySpiffRuleOverlaps } from '@/lib/spiffUtils';
 import type { RepairOrder } from '@/types/ro';
 import type { SaveSettingResult } from '@/hooks/useUserSettings';
 import type { SpiffManualEntry, SpiffRule } from '@/types/spiff';
@@ -50,6 +50,31 @@ export function SpiffsPanel({
     rules,
     manualEntries,
   }), [rosInRange, startDate, endDate, rules, manualEntries]);
+
+  const previewRule = useMemo<SpiffRule>(() => ({
+    id: 'preview',
+    name: ruleName.trim() || 'Preview',
+    matchText,
+    unitPay: Number(ruleUnitPay) || 0,
+    scheduleType,
+    activeFrom: scheduleType === 'weekly' ? activeFrom : undefined,
+    activeTo: scheduleType === 'weekly' ? activeTo : undefined,
+    createdAt: '',
+    updatedAt: '',
+  }), [ruleName, matchText, ruleUnitPay, scheduleType, activeFrom, activeTo]);
+
+  const previewStats = useMemo(
+    () => buildSpiffRulePreview({ rule: previewRule, ros: rosInRange, startDate, endDate }),
+    [previewRule, rosInRange, startDate, endDate],
+  );
+
+  const overlapMap = useMemo(() => findLikelySpiffRuleOverlaps(rules), [rules]);
+  const previewOverlapCount = useMemo(() => {
+    if (!previewRule.matchText.trim()) return 0;
+    const virtualRule: SpiffRule = { ...previewRule, id: '__preview__' };
+    const overlaps = findLikelySpiffRuleOverlaps([...rules, virtualRule]);
+    return overlaps.get('__preview__')?.size || 0;
+  }, [previewRule, rules]);
 
   const addRule = async () => {
     const trimmedName = ruleName.trim();
@@ -108,7 +133,7 @@ export function SpiffsPanel({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 sm:gap-3">
         <Card className="brand-panel border-primary/20 bg-gradient-to-b from-primary/8 to-card">
           <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
             <p className="text-[11px] font-medium uppercase tracking-wide text-primary/80">Total Spiff Pay</p>
@@ -135,20 +160,21 @@ export function SpiffsPanel({
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
+      <div className="grid gap-4 xl:grid-cols-[1fr_1.05fr]">
         <Card className="brand-panel border-primary/15">
           <CardHeader className="pb-2 sm:pb-3">
             <CardTitle className="text-base">Spiff Rules (Automatic)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3.5">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Name</Label>
                 <Input value={ruleName} onChange={(e) => setRuleName(e.target.value)} placeholder="Ex: Cabin Filter" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Match text on RO line</Label>
-                <Input value={matchText} onChange={(e) => setMatchText(e.target.value)} placeholder="Ex: cabin filter" />
+                <Input value={matchText} onChange={(e) => setMatchText(e.target.value)} placeholder="Ex: cabin filter, cabin air filter" />
+                <p className="text-xs text-muted-foreground">Use commas for aliases/keywords. Rule matches any alias.</p>
               </div>
               <div className="space-y-1.5">
                 <Label>Pay per spiff ($)</Label>
@@ -179,6 +205,29 @@ export function SpiffsPanel({
                 </>
               )}
             </div>
+            <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">Rule preview</p>
+                <Badge variant="outline" className="ml-auto">{previewStats.lineCount} matching lines</Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Matches {previewStats.roCount} ROs in {startDate} → {endDate}.
+              </p>
+              {previewStats.sampleDescriptions.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {previewStats.sampleDescriptions.map((sample) => (
+                    <li key={sample} className="truncate">• {sample}</li>
+                  ))}
+                </ul>
+              )}
+              {previewOverlapCount > 0 && (
+                <p className="mt-2 flex items-center gap-1 text-xs font-medium text-amber-700">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  This rule may overlap with {previewOverlapCount} existing {previewOverlapCount === 1 ? 'rule' : 'rules'}.
+                </p>
+              )}
+            </div>
             <Button onClick={addRule} className="w-full gap-2 sm:w-auto">
               <PlusCircle className="h-4 w-4" />
               Add Rule
@@ -195,6 +244,11 @@ export function SpiffsPanel({
                       </div>
                       <p className="text-xs text-muted-foreground break-words">Matches: "{rule.matchText}"</p>
                       <p className="text-xs text-muted-foreground">{rule.scheduleType === 'forever' ? 'Always active' : `${rule.activeFrom || '?'} → ${rule.activeTo || '?'}`}</p>
+                      {(overlapMap.get(rule.id)?.size || 0) > 0 && (
+                        <p className="text-xs font-medium text-amber-700">
+                          May overlap with {overlapMap.get(rule.id)?.size} other {(overlapMap.get(rule.id)?.size || 0) === 1 ? 'rule' : 'rules'}.
+                        </p>
+                      )}
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 self-start" onClick={() => removeRule(rule.id)}>
                       <Trash2 className="h-4 w-4" />
@@ -212,8 +266,8 @@ export function SpiffsPanel({
               <CardTitle className="text-base">Manual Spiff Entries</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3.5">
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-1.5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>Label</Label>
                   <Input value={manualLabel} onChange={(e) => setManualLabel(e.target.value)} placeholder="Ex: Walk-in coolant flush upsell" />
                 </div>
@@ -237,7 +291,7 @@ export function SpiffsPanel({
                   <Label>Quantity</Label>
                   <Input type="number" min="1" step="1" value={manualQty} onChange={(e) => setManualQty(e.target.value)} />
                 </div>
-                <div className="space-y-1.5 md:col-span-2">
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>Pay per item ($)</Label>
                   <Input type="number" min="0" step="0.01" value={manualUnitPay} onChange={(e) => setManualUnitPay(e.target.value)} />
                 </div>
@@ -301,22 +355,22 @@ export function SpiffsPanel({
                 )}
               </div>
 
-              <div className="hidden max-h-72 overflow-auto sm:block">
+              <div className="hidden max-h-80 overflow-auto sm:block">
                 <table className="w-full text-sm">
                   <thead className="text-xs text-muted-foreground">
-                    <tr><th className="text-left py-2">Spiff</th><th className="text-right py-2">Auto</th><th className="text-right py-2">Manual</th><th className="text-right py-2">Pay</th></tr>
+                    <tr><th className="text-left py-2.5">Spiff</th><th className="text-right py-2.5">Auto</th><th className="text-right py-2.5">Manual</th><th className="text-right py-2.5">Pay</th></tr>
                   </thead>
                   <tbody>
                     {report.byRule.map((row) => (
-                      <tr key={row.ruleId} className="border-t">
-                        <td className="py-2">{row.ruleName}</td>
-                        <td className="text-right py-2">{row.autoCount}</td>
-                        <td className="text-right py-2">{row.manualCount}</td>
-                        <td className="text-right py-2 font-semibold">${row.totalPay.toFixed(2)}</td>
+                      <tr key={row.ruleId} className="border-t border-border/60">
+                        <td className="py-2.5 pr-2">{row.ruleName}</td>
+                        <td className="text-right py-2.5 tabular-nums">{row.autoCount}</td>
+                        <td className="text-right py-2.5 tabular-nums">{row.manualCount}</td>
+                        <td className="text-right py-2.5 font-semibold tabular-nums">${row.totalPay.toFixed(2)}</td>
                       </tr>
                     ))}
                     {report.uncategorizedManual.length > 0 && (
-                      <tr className="border-t"><td className="py-2">Manual only</td><td className="text-right py-2">—</td><td className="text-right py-2">{report.uncategorizedManual.reduce((sum, item) => sum + item.quantity, 0)}</td><td className="text-right py-2 font-semibold">${report.manualOnlyPay.toFixed(2)}</td></tr>
+                      <tr className="border-t border-border/60"><td className="py-2.5">Manual only</td><td className="text-right py-2.5">—</td><td className="text-right py-2.5 tabular-nums">{report.uncategorizedManual.reduce((sum, item) => sum + item.quantity, 0)}</td><td className="text-right py-2.5 font-semibold tabular-nums">${report.manualOnlyPay.toFixed(2)}</td></tr>
                     )}
                   </tbody>
                 </table>

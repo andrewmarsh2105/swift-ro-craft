@@ -1,23 +1,16 @@
-import { ClipboardList, BarChart3, Settings, BadgeDollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { mobileTabs, type MobileTabId } from '@/components/mobile/mobileTabs';
 
 interface BottomTabBarProps {
-  activeTab: 'ros' | 'summary' | 'spiffs' | 'settings';
-  onTabChange: (tab: 'ros' | 'summary' | 'spiffs' | 'settings') => void;
+  activeTab: MobileTabId;
+  onTabChange: (tab: MobileTabId) => void;
 }
-
-const tabs = [
-  { id: 'ros' as const, label: 'ROs', icon: ClipboardList },
-  { id: 'summary' as const, label: 'Summary', icon: BarChart3 },
-  { id: 'spiffs' as const, label: 'Spiffs', icon: BadgeDollarSign },
-  { id: 'settings' as const, label: 'Settings', icon: Settings },
-];
 
 export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
   return (
     <nav className="tab-bar-pwa">
       <div className="flex h-full items-stretch px-1.5">
-        {tabs.map(({ id, label, icon: Icon }) => {
+        {mobileTabs.map(({ id, label, icon: Icon }) => {
           const isActive = activeTab === id;
           return (
             <button

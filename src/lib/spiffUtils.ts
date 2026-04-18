@@ -1,5 +1,6 @@
 import type { RepairOrder } from '@/types/ro';
 import type { SpiffManualEntry, SpiffReport, SpiffRule } from '@/types/spiff';
+const SPIFF_PUNCTUATION_NOISE = /[.,/#!$%^&*;:{}=\-_`~()"'?[\]\\|@+<>]/g;
 
 function sameOrAfter(a: string, b: string) {
   return a >= b;
@@ -19,9 +20,100 @@ export function isRuleActiveOnDate(rule: SpiffRule, date: string) {
 }
 
 export function lineMatchesSpiffRule(rule: SpiffRule, lineDescription: string) {
-  const needle = rule.matchText.trim().toLowerCase();
-  if (!needle) return false;
-  return lineDescription.toLowerCase().includes(needle);
+  const aliases = parseSpiffRuleAliases(rule.matchText);
+  if (aliases.length === 0) return false;
+  const haystack = normalizeSpiffMatchText(lineDescription);
+  if (!haystack) return false;
+  return aliases.some((needle) => haystack.includes(needle));
+}
+
+export function normalizeSpiffMatchText(value: string) {
+  if (!value) return '';
+  return value
+    .toLowerCase()
+    .replace(SPIFF_PUNCTUATION_NOISE, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function parseSpiffRuleAliases(matchText: string) {
+  if (!matchText) return [];
+  return matchText
+    .split(',')
+    .map((alias) => normalizeSpiffMatchText(alias))
+    .filter(Boolean);
+}
+
+export function buildSpiffRulePreview({
+  rule,
+  ros,
+  startDate,
+  endDate,
+}: {
+  rule: Pick<SpiffRule, 'matchText' | 'scheduleType' | 'activeFrom' | 'activeTo'>;
+  ros: RepairOrder[];
+  startDate: string;
+  endDate: string;
+}) {
+  const descriptions = new Set<string>();
+  const roIds = new Set<string>();
+  let lineCount = 0;
+
+  ros.forEach((ro) => {
+    const effectiveDate = ro.paidDate || ro.date;
+    if (effectiveDate < startDate || effectiveDate > endDate) return;
+    if (!isRuleActiveOnDate(rule as SpiffRule, effectiveDate)) return;
+
+    (ro.lines || []).forEach((line) => {
+      const description = line.description || '';
+      if (!lineMatchesSpiffRule(rule as SpiffRule, description)) return;
+      lineCount += 1;
+      roIds.add(ro.id);
+      if (descriptions.size < 3) descriptions.add(description);
+    });
+  });
+
+  return {
+    lineCount,
+    roCount: roIds.size,
+    sampleDescriptions: Array.from(descriptions),
+  };
+}
+
+export function findLikelySpiffRuleOverlaps(rules: SpiffRule[]) {
+  const overlaps = new Map<string, Set<string>>();
+  const normalized = rules.map((rule) => ({
+    id: rule.id,
+    aliases: new Set(parseSpiffRuleAliases(rule.matchText)),
+  }));
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    for (let j = i + 1; j < normalized.length; j += 1) {
+      const left = normalized[i];
+      const right = normalized[j];
+
+      const hasDirectAliasOverlap = [...left.aliases].some((alias) => right.aliases.has(alias));
+      const hasContainmentOverlap = [...left.aliases].some((alias) =>
+        alias.length >= 3 && [...right.aliases].some((other) => other.includes(alias) || alias.includes(other)),
+      );
+      const hasKeywordOverlap = [...left.aliases].some((alias) => {
+        const leftTokens = alias.split(' ').filter((token) => token.length >= 3);
+        return [...right.aliases].some((other) => {
+          const rightTokens = new Set(other.split(' ').filter((token) => token.length >= 3));
+          return leftTokens.filter((token) => rightTokens.has(token)).length >= 2;
+        });
+      });
+
+      if (!hasDirectAliasOverlap && !hasContainmentOverlap && !hasKeywordOverlap) continue;
+
+      if (!overlaps.has(left.id)) overlaps.set(left.id, new Set());
+      if (!overlaps.has(right.id)) overlaps.set(right.id, new Set());
+      overlaps.get(left.id)?.add(right.id);
+      overlaps.get(right.id)?.add(left.id);
+    }
+  }
+
+  return overlaps;
 }
 
 export function buildSpiffReport({
