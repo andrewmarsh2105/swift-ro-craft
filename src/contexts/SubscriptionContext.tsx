@@ -35,6 +35,7 @@ interface SubscriptionContextType {
   checkAccess: () => Promise<BillingStatus>;
   /** Legacy method retained for compatibility across existing consumers. */
   checkSubscription: () => Promise<BillingStatus>;
+  startTrial: () => Promise<void>;
   startCheckout: () => Promise<void>;
 }
 
@@ -211,6 +212,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setCheckoutLoading(false);
   }, [user]);
 
+  const startTrial = useCallback(async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const { error } = await supabase.functions.invoke('start-trial', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (error) throw error;
+      await checkSubscription();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Please try again.';
+      toast.error(`Could not start trial: ${message}`);
+      throw err;
+    }
+  }, [checkSubscription]);
+
   const daysUntilEnd = subscriptionStatus === 'trialing' && subscriptionEnd
     ? Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
@@ -235,6 +252,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       clearCheckoutFallback,
       checkAccess: checkSubscription,
       checkSubscription,
+      startTrial,
       startCheckout,
     }}>
       {children}

@@ -4,6 +4,7 @@ import { hasProAccess, type AccessStatus } from './subscriptionAccess';
 describe('subscriptionAccess', () => {
   it('grants app access only for trialing/lifetime/override states', () => {
     const statuses: AccessStatus[] = [
+      'eligible',
       'trialing',
       'lifetime',
       'override',

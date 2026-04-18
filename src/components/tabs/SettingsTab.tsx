@@ -679,10 +679,15 @@ export function SettingsTab() {
               'px-2.5 py-1 rounded-md text-[10px] font-bold',
               isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground/60'
             )}>
-              {subscriptionStatus === 'lifetime' ? 'LIFETIME' : subscriptionStatus === 'trialing' ? 'TRIAL ACTIVE' : subscriptionStatus === 'expired' ? 'TRIAL EXPIRED' : isPro ? 'ACCESS' : 'LOCKED'}
+              {subscriptionStatus === 'lifetime' ? 'LIFETIME' : subscriptionStatus === 'trialing' ? 'TRIAL ACTIVE' : subscriptionStatus === 'expired' ? 'TRIAL EXPIRED' : subscriptionStatus === 'eligible' ? 'READY' : isPro ? 'ACCESS' : 'LOCKED'}
             </span>
           </div>
 
+          {subscriptionStatus === 'eligible' && (
+            <div className="mt-2 rounded-md border border-primary/25 bg-primary/10 px-3 py-2">
+              <p className="text-[11px] text-primary">Choose your access path: start your 14-day trial or unlock lifetime access.</p>
+            </div>
+          )}
           {subscriptionStatus === 'lifetime' && (
             <div className="mt-2 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
               <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Lifetime unlocked</p>
@@ -762,7 +767,7 @@ export function SettingsTab() {
                 }}
               >
                 <Crown className="h-3.5 w-3.5 mr-1" />
-                {isPro && subscriptionStatus !== 'expired' ? 'Lifetime unlocked' : 'Unlock full access'}
+                {isPro && subscriptionStatus !== 'expired' ? 'Lifetime unlocked' : subscriptionStatus === 'eligible' ? 'Choose access' : 'Unlock full access'}
               </Button>
               {isAdmin && (
                 <Button

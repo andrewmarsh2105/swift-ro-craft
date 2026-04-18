@@ -6,6 +6,7 @@
  * represents access states rather than monthly/yearly billing plans.
  */
 export type AccessStatus =
+  | 'eligible'
   | 'trialing'
   | 'lifetime'
   | 'expired'

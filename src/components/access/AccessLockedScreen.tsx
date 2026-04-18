@@ -22,10 +22,10 @@ export function AccessLockedScreen() {
             Access locked
           </div>
           <h1 className="mt-4 text-2xl md:text-3xl font-bold tracking-tight" style={{ color: '#0F172A' }}>
-            Your 14-day free trial has ended
+            Your free trial has ended
           </h1>
           <p className="mt-2 text-sm md:text-base" style={{ color: '#475569' }}>
-            Keep your RO history and workflows unlocked with one simple upgrade.
+            Unlock full RO Navigator access with one one-time payment.
           </p>
         </div>
 
@@ -36,14 +36,14 @@ export function AccessLockedScreen() {
               <p className="text-4xl font-bold leading-none" style={{ color: '#0F172A' }}>$15.99</p>
               <p className="pb-1 text-sm" style={{ color: '#64748B' }}>one-time payment</p>
             </div>
-            <p className="mt-2 text-sm" style={{ color: '#1E3A8A' }}>No recurring fees. Access stays unlocked permanently.</p>
+            <p className="mt-2 text-sm" style={{ color: '#1E3A8A' }}>No subscription. Lifetime access stays unlocked permanently.</p>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 text-xs">
             {[
               { icon: ShieldCheck, text: 'Keep all saved records' },
               { icon: Wallet, text: 'No monthly billing' },
-              { icon: Sparkles, text: 'Checkout sync included' },
+              { icon: Sparkles, text: 'Unlock in minutes' },
             ].map((item) => (
               <div key={item.text} className="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2" style={{ borderColor: '#DBEAFE', color: '#0F172A', background: '#FFFFFF' }}>
                 <item.icon className="h-3.5 w-3.5" style={{ color: '#0B5FFF' }} />
@@ -71,6 +71,9 @@ export function AccessLockedScreen() {
                 {checkoutLoading ? 'Opening checkout…' : 'Unlock Lifetime Access'}
               </Button>
             )}
+            <p className="text-center text-xs" style={{ color: '#64748B' }}>
+              Your saved ROs stay available after you unlock.
+            </p>
             <Button
               variant="outline"
               onClick={signOut}

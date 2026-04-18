@@ -48,7 +48,7 @@ const outcomes = [
 const faqs = [
   {
     q: 'How does pricing work?',
-    a: 'You get full access for 14 days free. After trial, continued access requires a one-time $15.99 payment for lifetime access.',
+    a: 'You choose when to start your 14-day free trial. After trial, continued access requires a one-time $15.99 payment for lifetime access.',
   },
   {
     q: 'Is there a monthly or yearly plan?',

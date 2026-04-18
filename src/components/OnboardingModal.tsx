@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ClipboardList, BarChart2, Zap, ChevronRight, Loader2 } from 'lucide-react';
 import { useROSafe } from '@/contexts/ROContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,17 +23,22 @@ const steps = [
   },
   {
     icon: Zap,
-    title: 'Start your 14-day free trial',
-    description: 'You get full access for 14 days, then unlock RO Navigator for a one-time $15.99. No subscription.'
+    title: 'Review pay-period totals',
+    description: 'Use the Summary tab to verify totals, catch missed labor, and close out each pay period with confidence.',
   },
 ];
 
 export function OnboardingModal() {
+  const { accessStatus } = useSubscription();
   const [open, setOpen] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const [step, setStep] = useState(0);
   const [seeding, setSeeding] = useState(false);
   const navigate = useNavigate();
   const store = useROSafe();
+
+  if (!(accessStatus === 'trialing' || accessStatus === 'lifetime' || accessStatus === 'override')) {
+    return null;
+  }
 
   const dismiss = () => {
     localStorage.setItem(ONBOARDING_KEY, '1');
