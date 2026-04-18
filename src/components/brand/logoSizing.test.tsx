@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  DASHBOARD_DESKTOP_LOGO_HEIGHT,
   MAIN_DESKTOP_APP_BAR_HEIGHT,
   MAIN_MOBILE_HEADER_HEIGHT,
   SIGN_IN_DESKTOP_LOGO_HEIGHT,
@@ -113,10 +114,12 @@ describe('logo sizing', () => {
     expect(LANDING_NAV_LOGO_HEIGHT).toBe(52);
   });
 
-  it('keeps dashboard desktop app bar height pinned and does not render a logo', () => {
+  it('keeps dashboard desktop app bar height pinned and renders the dashboard logo', () => {
     render(<DesktopWorkspace />);
 
-    expect(screen.queryByAltText('RO Navigator')).not.toBeInTheDocument();
+    const dashboardLogo = screen.getByAltText('RO Navigator');
+    expect(getVisibleHeight(dashboardLogo)).toBe(DASHBOARD_DESKTOP_LOGO_HEIGHT.toString());
+    expect(dashboardLogo).toHaveAttribute('src', '/brand/logo-dark.webp');
 
     const appBar = document.querySelector('.app-bar');
     expect(appBar).toHaveStyle({ minHeight: `${MAIN_DESKTOP_APP_BAR_HEIGHT}px` });
