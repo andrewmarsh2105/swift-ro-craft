@@ -28,7 +28,7 @@ export default function Terms() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">2. Description of Service</h2>
-            <p>RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. New accounts include a 14-day free trial. After the trial ends, continued access requires a one-time lifetime unlock.</p>
+            <p>RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. New accounts can choose to start a 14-day free trial. After the trial ends, continued access requires a one-time lifetime unlock.</p>
           </section>
 
           <section className="space-y-3">
@@ -38,7 +38,7 @@ export default function Terms() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">4. Trial & Lifetime Access</h2>
-            <p>New accounts receive a 14-day free trial with full app functionality. After trial expiration, continued use requires a one-time $15.99 payment that unlocks lifetime access. There are no recurring monthly or yearly subscription fees.</p>
+            <p>New accounts can start a 14-day free trial with full app functionality. After trial expiration, continued use requires a one-time $15.99 payment that unlocks lifetime access. There are no recurring monthly or yearly subscription fees.</p>
           </section>
 
           <section className="space-y-3">

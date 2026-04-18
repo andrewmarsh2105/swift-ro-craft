@@ -191,7 +191,7 @@ export default function Auth() {
                 {isLogin ? 'Welcome back' : 'Create your account'}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {isLogin ? 'Sign in to your account to continue.' : 'Free to start — no credit card needed.'}
+                {isLogin ? 'Sign in to your account to continue.' : 'Start with a 14-day free trial or unlock full access for $15.99.'}
               </p>
             </div>
 

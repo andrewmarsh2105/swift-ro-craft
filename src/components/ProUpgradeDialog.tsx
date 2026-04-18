@@ -33,7 +33,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger = 'generic' }: Pr
   } = useSubscription();
 
   const ctx = UPGRADE_CONTEXT[trigger];
-  const ctaLabel = subscriptionStatus === 'expired' ? 'Unlock Full Access' : 'Start 14-Day Free Trial';
+  const ctaLabel = subscriptionStatus === 'expired' ? 'Unlock Full Access' : 'Buy Full Access — $15.99';
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) clearCheckoutFallback();

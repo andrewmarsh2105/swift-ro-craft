@@ -40,6 +40,8 @@ export function AccountSheet({
       ? 'Lifetime unlocked'
       : subscriptionStatus === 'trialing'
         ? 'Trial active'
+        : subscriptionStatus === 'eligible'
+          ? 'Choose trial or unlock'
         : subscriptionStatus === 'expired'
           ? 'Trial expired'
           : isPro

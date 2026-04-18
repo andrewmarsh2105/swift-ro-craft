@@ -44,11 +44,6 @@ function corsHeaders(origin: string) {
   };
 }
 
-const logStep = (step: string, details?: unknown) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
-};
-
 serve(async (req) => {
   const safeOrigin = getSafeOrigin(req);
 
@@ -93,21 +88,10 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const now = new Date();
-
     if (overrideRow) {
-      await supabaseAdmin
-        .from("user_settings")
-        .upsert({
-          user_id: user.id,
-          is_pro: true,
-          plan: "override",
-          pro_expires_at: null,
-        }, { onConflict: "user_id" });
-
       return new Response(JSON.stringify({
         subscribed: true,
-        status: "override",
+        status: "override" as AccessStatus,
         subscription_end: null,
       }), { headers, status: 200 });
     }
@@ -118,52 +102,58 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
+    const now = new Date();
+    const lifetimeAccess = existingSettings?.lifetime_access === true;
     const trialStartedAt = existingSettings?.trial_started_at ?? null;
     const trialEndsAt = existingSettings?.trial_ends_at ?? null;
-    const lifetimeAccess = existingSettings?.lifetime_access === true;
-
-    let status: AccessStatus = null;
-    let subscribed = false;
 
     if (lifetimeAccess) {
-      status = "lifetime";
-      subscribed = true;
-    } else if (!trialStartedAt && !trialEndsAt) {
-      status = "eligible";
-      subscribed = false;
-    } else if (trialEndsAt && new Date(trialEndsAt).getTime() > now.getTime()) {
-      status = "trialing";
-      subscribed = true;
-    } else {
-      status = "expired";
-      subscribed = false;
+      return new Response(JSON.stringify({
+        subscribed: true,
+        status: "lifetime" as AccessStatus,
+        subscription_end: null,
+      }), { headers, status: 200 });
     }
+
+    if (trialEndsAt && new Date(trialEndsAt).getTime() > now.getTime()) {
+      return new Response(JSON.stringify({
+        subscribed: true,
+        status: "trialing" as AccessStatus,
+        subscription_end: trialEndsAt,
+      }), { headers, status: 200 });
+    }
+
+    if (trialStartedAt || trialEndsAt) {
+      return new Response(JSON.stringify({
+        subscribed: false,
+        status: "expired" as AccessStatus,
+        subscription_end: trialEndsAt,
+      }), { headers, status: 200 });
+    }
+
+    const startedAt = now.toISOString();
+    const endAtDate = new Date(now);
+    endAtDate.setDate(endAtDate.getDate() + 14);
+    const endsAt = endAtDate.toISOString();
 
     await supabaseAdmin
       .from("user_settings")
       .upsert({
         user_id: user.id,
-        is_pro: subscribed,
-        plan: status === "trialing"
-          ? "trial"
-          : status === "eligible"
-            ? "free"
-          : status === "lifetime"
-            ? "lifetime"
-            : status === "override"
-              ? "override"
-              : "expired",
-        pro_expires_at: status === "trialing" ? trialEndsAt : null,
+        trial_started_at: startedAt,
+        trial_ends_at: endsAt,
+        is_pro: true,
+        plan: "trial",
+        pro_expires_at: endsAt,
       }, { onConflict: "user_id" });
 
     return new Response(JSON.stringify({
-      subscribed,
-      status,
-      subscription_end: status === "trialing" || status === "expired" ? trialEndsAt : null,
+      subscribed: true,
+      status: "trialing" as AccessStatus,
+      subscription_end: endsAt,
     }), { headers, status: 200 });
-  } catch (error) {
-    logStep("ERROR", { message: String(error) });
-    return new Response(JSON.stringify({ error: "Subscription check failed" }), {
+  } catch {
+    return new Response(JSON.stringify({ error: "Trial start failed" }), {
       headers,
       status: 500,
     });
