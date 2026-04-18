@@ -461,7 +461,7 @@ export function SettingsTab() {
           />
           <SettingsRow
             label="Scan confidence"
-            description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
+            description={isPro ? 'Show match % on scanned ROs' : 'Full access only'}
             toggle
             toggleValue={userSettings.showScanConfidence}
             onToggle={(v) => updateUserSetting('showScanConfidence', v)}

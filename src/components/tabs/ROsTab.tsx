@@ -579,7 +579,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
               )}
-              title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
+              title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Full access'}
             >
               {viewMode === 'spreadsheet' && isPro ? <LayoutList className="h-3 w-3" /> : <Table2 className="h-3 w-3" />}
               {!isPro && (

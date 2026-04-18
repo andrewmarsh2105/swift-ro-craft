@@ -26,9 +26,9 @@
     --muted: 214 18% 93%;
     --muted-foreground: 218 16% 42%;
 
-    --accent: 186 47% 89%;
-    --accent-foreground: 194 45% 20%;
-    --accent-soft: 186 58% 95%;
+    --accent: 214 100% 97%;
+    --accent-foreground: 219 91% 34%;
+    --accent-soft: 214 100% 95%;
 
     --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
@@ -74,15 +74,15 @@
     --sidebar-foreground: 222 28% 10%;
     --sidebar-primary: 214 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 186 47% 89%;
-    --sidebar-accent-foreground: 194 45% 20%;
+    --sidebar-accent: 214 100% 95%;
+    --sidebar-accent-foreground: 219 91% 34%;
     --sidebar-border: 220 14% 88%;
     --sidebar-ring: 214 95% 53%;
 
     /* Brand identity tokens */
-    --brand-navy:        220 61% 10%;
-    --brand-amber:       37  86% 44%;
-    --brand-amber-light: 38  90% 54%;
+    --brand-navy:        220 80% 15%;
+    --brand-amber:       38  92% 50%;
+    --brand-amber-light: 38  92% 56%;
     --brand-slate:       213 52% 24%;
   }
 
@@ -107,9 +107,9 @@
     --muted: 222 12% 18%;
     --muted-foreground: 220 8% 58%;
 
-    --accent: 190 25% 25%;
+    --accent: 221 56% 22%;
     --accent-foreground: 220 15% 95%;
-    --accent-soft: 190 22% 18%;
+    --accent-soft: 222 52% 16%;
 
     --destructive: 0 70% 52%;
     --destructive-foreground: 220 15% 95%;
@@ -142,7 +142,7 @@
     --sidebar-foreground: 220 15% 95%;
     --sidebar-primary: 214 90% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 190 25% 25%;
+    --sidebar-accent: 221 56% 22%;
     --sidebar-accent-foreground: 220 15% 95%;
     --sidebar-border: 222 10% 22%;
     --sidebar-ring: 214 90% 65%;

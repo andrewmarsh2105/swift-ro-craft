@@ -269,12 +269,35 @@ export function useUserSettings() {
     }
 
     const dbKey = dbKeyMap[key];
-    const { error } = await supabase
+    const updatePayload = { [dbKey]: normalizedValue };
+
+    const { error: updateError, data: updatedRows } = await supabase
       .from('user_settings')
-      .upsert({
-        user_id: userId,
-        [dbKey]: normalizedValue,
-      }, { onConflict: 'user_id' });
+      .update(updatePayload)
+      .eq('user_id', userId)
+      .select('user_id')
+      .limit(1);
+
+    let error = updateError;
+
+    if (!error && (updatedRows?.length ?? 0) === 0) {
+      const { error: insertError } = await supabase
+        .from('user_settings')
+        .insert({
+          user_id: userId,
+          ...updatePayload,
+        });
+
+      if (insertError?.code === '23505') {
+        const { error: retryError } = await supabase
+          .from('user_settings')
+          .update(updatePayload)
+          .eq('user_id', userId);
+        error = retryError;
+      } else {
+        error = insertError;
+      }
+    }
 
     if (error) {
       const fallbackKeys = Object.keys(fallbackDbColumns) as FallbackKey[];

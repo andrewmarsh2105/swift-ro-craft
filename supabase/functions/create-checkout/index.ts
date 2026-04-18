@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
 
 const BASE_ALLOWED_ORIGINS = [
   "https://ronavigator.com",
@@ -167,9 +168,13 @@ serve(async (req) => {
       console.log("[CREATE-CHECKOUT] Created new Stripe customer", { customerId, email: user.email });
     }
 
-    await supabaseAdmin
-      .from("user_settings")
-      .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" });
+    const { error: customerWriteError } = await writeUserSettingsByUserId(supabaseAdmin, user.id, {
+      stripe_customer_id: customerId,
+    });
+
+    if (customerWriteError) {
+      throw new Error(`Failed to persist Stripe customer: ${customerWriteError.message}`);
+    }
 
     const idempotencyKey = requestId
       ? `checkout_${user.id}_${requestId}`

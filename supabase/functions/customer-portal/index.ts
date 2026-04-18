@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
 
 // Production origins + local dev. Add extra origins (e.g. a staging domain) via the
 // EXTRA_ALLOWED_ORIGINS Supabase secret — comma-separated, no trailing slashes.
@@ -121,9 +122,13 @@ serve(async (req) => {
       }
       customerId = matched.id;
       // Persist for next time
-      await supabaseAdmin
-        .from("user_settings")
-        .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" });
+      const { error: customerWriteError } = await writeUserSettingsByUserId(supabaseAdmin, user.id, {
+        stripe_customer_id: customerId,
+      });
+
+      if (customerWriteError) {
+        throw new Error(`Failed to persist Stripe customer: ${customerWriteError.message}`);
+      }
     }
 
     // Keep metadata linked for webhook fallback consistency

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -100,19 +101,20 @@ serve(async (req) => {
           break;
         }
 
-        await supabaseAdmin
-          .from("user_settings")
-          .upsert({
-            user_id: supabaseUserId,
-            stripe_customer_id: session.customer ? String(session.customer) : null,
-            stripe_checkout_session_id: session.id,
-            stripe_payment_intent_id: session.payment_intent ? String(session.payment_intent) : null,
-            lifetime_access: true,
-            lifetime_unlocked_at: new Date().toISOString(),
-            is_pro: true,
-            plan: "lifetime",
-            pro_expires_at: null,
-          }, { onConflict: "user_id" });
+        const { error: webhookWriteError } = await writeUserSettingsByUserId(supabaseAdmin, supabaseUserId, {
+          stripe_customer_id: session.customer ? String(session.customer) : null,
+          stripe_checkout_session_id: session.id,
+          stripe_payment_intent_id: session.payment_intent ? String(session.payment_intent) : null,
+          lifetime_access: true,
+          lifetime_unlocked_at: new Date().toISOString(),
+          is_pro: true,
+          plan: "lifetime",
+          pro_expires_at: null,
+        });
+
+        if (webhookWriteError) {
+          throw new Error(`Failed to persist webhook access state: ${webhookWriteError.message}`);
+        }
 
         logStep("Lifetime access unlocked", {
           supabaseUserId,
