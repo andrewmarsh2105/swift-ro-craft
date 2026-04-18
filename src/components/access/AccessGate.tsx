@@ -71,5 +71,24 @@ export function AccessGate({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4" style={gateBackground}>
+      <div className="w-full max-w-md rounded-2xl border bg-white p-6 text-center shadow-sm" style={{ borderColor: '#DBEAFE' }}>
+        <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: '#EFF6FF', color: '#0B5FFF' }}>
+          <AlertCircle className="h-5 w-5" />
+        </div>
+        <h1 className="text-lg font-semibold text-slate-900">Unable to verify access state</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          We received an unexpected access response. Please retry your access check.
+        </p>
+        <Button className="mt-5 w-full" onClick={() => void checkAccess()} style={{ background: 'linear-gradient(90deg, #0B5FFF 0%, #1D4ED8 100%)' }}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry access check
+        </Button>
+        <Button variant="ghost" className="mt-2 w-full" onClick={signOut}>
+          Sign out
+        </Button>
+      </div>
+    </div>
+  );
 }

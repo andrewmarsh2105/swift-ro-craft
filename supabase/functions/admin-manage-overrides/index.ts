@@ -1,16 +1,64 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const BASE_ALLOWED_ORIGINS = [
+  "https://ronavigator.com",
+  "https://www.ronavigator.com",
+  "https://app.ronavigator.com",
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "http://127.0.0.1:8080",
+  "http://127.0.0.1:5173",
+];
+
+const ALLOWED_ORIGINS = [
+  ...BASE_ALLOWED_ORIGINS,
+  ...(Deno.env.get("EXTRA_ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+];
+
+function getSafeOrigin(req: Request): string | null {
+  const origin = req.headers.get("origin");
+  if (origin && ALLOWED_ORIGINS.includes(origin)) return origin;
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try {
+      const refOrigin = new URL(referer).origin;
+      if (ALLOWED_ORIGINS.includes(refOrigin)) return refOrigin;
+    } catch {
+      // invalid referer
+    }
+  }
+  return null;
+}
+
+function corsHeaders(origin: string) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
+  };
+}
 
 serve(async (req) => {
+  const safeOrigin = getSafeOrigin(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    if (!safeOrigin) return new Response(null, { status: 403 });
+    return new Response(null, { headers: corsHeaders(safeOrigin) });
   }
+
+  if (!safeOrigin) {
+    return new Response(JSON.stringify({ error: "Forbidden origin" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const headers = { ...corsHeaders(safeOrigin), "Content-Type": "application/json" };
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -39,7 +87,7 @@ serve(async (req) => {
 
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
         status: 403,
       });
     }
@@ -82,7 +130,7 @@ serve(async (req) => {
       );
 
       return new Response(JSON.stringify({ users: results }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
         status: 200,
       });
     }
@@ -93,12 +141,31 @@ serve(async (req) => {
       }
 
       if (enabled) {
-        // Insert override (upsert to avoid duplicates)
-        const { error: insertError } = await supabase
+        const { data: updatedRows, error: updateError } = await supabase
           .from("pro_overrides")
-          .upsert({ user_id: userId, reason: "admin_override" }, { onConflict: "user_id" });
+          .update({ reason: "admin_override" })
+          .eq("user_id", userId)
+          .select("id")
+          .limit(1);
 
-        if (insertError) throw new Error(`Failed to enable override: ${insertError.message}`);
+        if (updateError) throw new Error(`Failed to enable override: ${updateError.message}`);
+
+        if ((updatedRows?.length ?? 0) === 0) {
+          const { error: insertError } = await supabase
+            .from("pro_overrides")
+            .insert({ user_id: userId, reason: "admin_override" });
+
+          if (insertError?.code === "23505") {
+            const { error: retryError } = await supabase
+              .from("pro_overrides")
+              .update({ reason: "admin_override" })
+              .eq("user_id", userId);
+
+            if (retryError) throw new Error(`Failed to enable override: ${retryError.message}`);
+          } else if (insertError) {
+            throw new Error(`Failed to enable override: ${insertError.message}`);
+          }
+        }
       } else {
         // Delete override
         const { error: deleteError } = await supabase
@@ -110,14 +177,14 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
         status: 200,
       });
     }
 
     if (action === "check-admin") {
       return new Response(JSON.stringify({ isAdmin: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers,
         status: 200,
       });
     }
@@ -126,7 +193,7 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ error: message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers,
       status: 500,
     });
   }

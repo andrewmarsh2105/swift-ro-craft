@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
+import { pickBestUserSettingsRow } from "../_shared/user-settings-read.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -11,14 +12,25 @@ const logStep = (step: string, details?: any) => {
 async function findUserIdByCustomerId(supabaseAdmin: any, customerId: string | null | undefined): Promise<string | null> {
   if (!customerId) return null;
 
-  const { data: settingsRows } = await supabaseAdmin
+  const { data: settingsRows, error } = await supabaseAdmin
     .from("user_settings")
-    .select("user_id")
+    .select("user_id, updated_at, created_at")
     .eq("stripe_customer_id", customerId)
-    .limit(1);
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    logStep("Failed to find user by customer id", { customerId, error: error.message });
+    return null;
+  }
 
   if (!settingsRows || settingsRows.length === 0) return null;
-  return settingsRows[0].user_id;
+  const bestRow = pickBestUserSettingsRow(settingsRows, ["user_id"]);
+  if (settingsRows.length > 1) {
+    logStep("Duplicate user_settings rows found for stripe customer id", { customerId, duplicateCount: settingsRows.length - 1 });
+  }
+  return typeof bestRow.user_id === "string" ? bestRow.user_id : null;
 }
 
 serve(async (req) => {
