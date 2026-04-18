@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, ChevronDown, ChevronUp, Camera, FileSpreadsheet, ShieldCheck, Smartphone, Clock3, ClipboardCheck, CalendarCheck2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, Clock3, CalendarCheck2, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
@@ -9,61 +9,58 @@ import { HeaderLogo } from '@/components/brand';
 import { LANDING_FOOTER_LOGO_HEIGHT, LANDING_NAV_LOGO_HEIGHT } from '@/components/brand/logoSizing';
 
 const COLORS = {
-  dark: '#062F2C',
-  brand: '#0F766E',
-  accent: '#2DD4BF',
-  surface: '#F5FBFA',
+  navy: '#081C45',
+  brand: '#0B5FFF',
+  brandDark: '#083EA7',
+  accent: '#3B82F6',
+  surface: '#EFF6FF',
+  white: '#FFFFFF',
   text: '#0F172A',
-  muted: '#4B5563',
-  border: '#D7ECE8',
-  warm: '#F59E0B',
+  muted: '#475569',
+  border: '#DBEAFE',
 };
 
 const steps = [
   {
-    title: 'Log ROs as you work',
-    desc: 'Capture RO number, advisor, line items, and labor in seconds on phone or desktop.',
+    title: 'Log ROs while you work',
+    desc: 'Capture RO number, advisor, line items, and labor quickly from phone or desktop.',
     icon: ClipboardCheck,
   },
   {
-    title: 'Review before payday',
-    desc: 'Spot missing hours, unresolved flags, and open tickets before checks are cut.',
+    title: 'Review before payroll closes',
+    desc: 'Catch missing hours, unresolved flags, and open tickets before checks are cut.',
     icon: Clock3,
   },
   {
     title: 'Close out with proof',
-    desc: 'Export period-ready records and keep evidence when pay doesn’t match your work.',
+    desc: 'Export clean period records so you can verify every hour with confidence.',
     icon: CalendarCheck2,
   },
 ];
 
-const benefits = [
+const outcomeBullets = [
   'Built for dealership and independent-shop technicians',
-  'Designed for hourly + flat-rate pay verification',
-  'Works on mobile and desktop with shared records',
-  'Offline-friendly entry and reliable sync recovery',
+  'Reliable for hourly and flat-rate pay verification',
+  'Shared records across mobile and desktop workflows',
+  'Offline-friendly entry with sync recovery',
 ];
 
 const faqs = [
   {
     q: 'How does pricing work?',
-    a: 'Every account starts with a 14-day free trial. After trial, unlock RO Navigator with a one-time $15.99 payment for lifetime access.',
+    a: 'You get full access for 14 days free. After trial, continued access requires a one-time $15.99 payment for lifetime access.',
   },
   {
-    q: 'Is there a monthly fee?',
-    a: 'No. There is no monthly or yearly subscription.',
+    q: 'Is there a monthly or yearly plan?',
+    a: 'No. RO Navigator does not use recurring subscriptions.',
   },
   {
-    q: 'What happens when the trial ends?',
-    a: 'If lifetime access is not unlocked, the app is locked until you complete the one-time purchase.',
+    q: 'What happens if I do not unlock after trial?',
+    a: 'The app is locked when the 14-day trial ends until lifetime access is unlocked.',
   },
   {
-    q: 'What do I get with lifetime access?',
-    a: 'Full RO logging, OCR scan/import workflows, summary and closeout reporting, exports, and the full technician workflow.',
-  },
-  {
-    q: 'Can I still use it in the shop with bad signal?',
-    a: 'Yes. RO Navigator supports offline-first workflows and sync recovery.',
+    q: 'What is included with lifetime access?',
+    a: 'RO logging, OCR scan/import workflows, summary and closeout reporting, exports, and full technician workflows.',
   },
 ];
 
@@ -72,68 +69,80 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen" style={{ background: COLORS.surface, color: COLORS.text }}>
-      <header className="sticky top-0 z-40 backdrop-blur border-b" style={{ background: 'rgba(6,47,44,0.92)', borderColor: 'rgba(215,236,232,0.2)' }}>
+      <header className="sticky top-0 z-40 border-b backdrop-blur" style={{ background: 'rgba(8,28,69,0.9)', borderColor: 'rgba(219,234,254,0.25)' }}>
         <div className="max-w-[1200px] mx-auto px-4 md:px-8 h-[72px] flex items-center justify-between">
           <Link to="/" aria-label="RO Navigator home"><HeaderLogo scheme="dark" priority height={LANDING_NAV_LOGO_HEIGHT} /></Link>
           <nav className="flex items-center gap-2">
             {[
               ['#how-it-works', 'How it works'],
+              ['#results', 'Why techs use it'],
               ['#pricing', 'Pricing'],
               ['#faq', 'FAQ'],
             ].map(([href, label]) => (
-              <a key={href} href={href} className="hidden md:inline px-3 py-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.78)' }}>{label}</a>
+              <a key={href} href={href} className="hidden md:inline px-3 py-1.5 text-sm" style={{ color: 'rgba(239,246,255,0.86)' }}>{label}</a>
             ))}
-            <Link to="/auth" className="hidden sm:inline px-3 py-2 text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>Sign in</Link>
+            <Link to="/auth" className="hidden sm:inline px-3 py-2 text-sm" style={{ color: 'rgba(239,246,255,0.86)' }}>Sign in</Link>
             <Link to="/auth" className="inline-flex items-center h-10 px-4 rounded-md text-sm font-semibold text-white" style={{ background: COLORS.brand }}>
-              Start 14-Day Free Trial
+              Start Free Trial
             </Link>
           </nav>
         </div>
       </header>
 
-      <section className="px-4 md:px-8 pt-14 pb-16 md:pt-20 md:pb-24" style={{ background: `linear-gradient(165deg, ${COLORS.dark} 0%, #08433D 60%, #0A5550 100%)` }}>
-        <div className="max-w-[1200px] mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide" style={{ background: 'rgba(45,212,191,0.14)', color: COLORS.accent }}>
+      <section className="relative overflow-hidden px-4 md:px-8 pt-14 pb-16 md:pt-20 md:pb-24" style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, ${COLORS.brandDark} 52%, ${COLORS.brand} 100%)` }}>
+        <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full blur-3xl" style={{ background: 'rgba(59,130,246,0.34)' }} />
+        <div className="absolute top-10 right-0 h-[360px] w-[360px] rounded-full blur-3xl" style={{ background: 'rgba(255,255,255,0.14)' }} />
+
+        <div className="relative max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-10 lg:gap-12 items-center">
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide" style={{ background: 'rgba(239,246,255,0.16)', color: '#DBEAFE' }}>
               Technician-first workflow
             </div>
-            <h1 className="mt-5 text-white text-[2.25rem] sm:text-[2.9rem] md:text-[3.35rem] leading-[1.05] font-bold tracking-tight">
+            <h1 className="mt-5 text-white text-[2.25rem] sm:text-[2.9rem] md:text-[3.35rem] leading-[1.03] font-bold tracking-tight">
               Track every RO.<br />
               Verify your pay.<br />
               Stop missing hours.
             </h1>
-            <p className="mt-5 text-[15px] md:text-lg max-w-xl leading-relaxed" style={{ color: 'rgba(240,253,250,0.86)' }}>
-              RO Navigator gives technicians a clean daily system to log work, catch missing labor, and walk into payday with proof.
+            <p className="mt-5 text-[15px] md:text-lg max-w-xl leading-relaxed" style={{ color: 'rgba(239,246,255,0.9)' }}>
+              RO Navigator gives technicians a clear daily system to log work, catch pay gaps before payday, and keep proof when numbers do not match.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/auth" className="inline-flex items-center gap-2 h-12 px-6 rounded-md font-semibold text-sm text-white" style={{ background: COLORS.brand }}>
-                Try RO Navigator Free <ArrowRight className="h-4 w-4" />
+              <Link to="/auth" className="inline-flex items-center gap-2 h-12 px-6 rounded-md font-semibold text-sm text-white shadow-lg" style={{ background: COLORS.brand }}>
+                Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
               </Link>
-              <a href="#pricing" className="inline-flex items-center gap-1.5 h-12 px-4 rounded-md text-sm font-medium border" style={{ color: '#E8FFFB', borderColor: 'rgba(215,236,232,0.35)' }}>
+              <a href="#pricing" className="inline-flex items-center gap-1.5 h-12 px-4 rounded-md text-sm font-medium border" style={{ color: '#EFF6FF', borderColor: 'rgba(219,234,254,0.38)' }}>
                 See pricing <ChevronDown className="h-3.5 w-3.5" />
               </a>
             </div>
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs" style={{ color: 'rgba(226,252,246,0.85)' }}>
-              {['14-day free trial', '$15.99 one time', 'No subscription', 'Lifetime access'].map((chip) => (
-                <span key={chip} className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5" style={{ color: COLORS.accent }} />{chip}</span>
-              ))}
-            </div>
+            <p className="mt-4 text-sm" style={{ color: 'rgba(219,234,254,0.95)' }}>
+              14-day free trial, then one-time $15.99 for lifetime access.
+            </p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.15 }}>
-            <div className="rounded-2xl p-3 border shadow-2xl" style={{ background: 'rgba(245,251,250,0.08)', borderColor: 'rgba(215,236,232,0.35)' }}>
-              <img src={heroMockup} alt="RO Navigator on mobile" className="w-full rounded-xl" loading="eager" />
+          <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55, delay: 0.12 }}>
+            <div className="relative">
+              <div className="absolute inset-0 translate-x-5 translate-y-6 rounded-3xl" style={{ background: 'rgba(7,15,39,0.35)' }} />
+              <div className="relative rounded-3xl p-3 md:p-4 border shadow-2xl" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(219,234,254,0.42)' }}>
+                <img src={heroMockup} alt="RO Navigator product preview" className="w-full rounded-2xl" loading="eager" />
+              </div>
+              <div className="hidden md:flex absolute -bottom-6 -left-6 rounded-xl border px-4 py-3 gap-3 items-center" style={{ background: 'rgba(255,255,255,0.95)', borderColor: COLORS.border }}>
+                <Sparkles className="h-4 w-4" style={{ color: COLORS.brand }} />
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: COLORS.text }}>Payday-ready clarity</p>
+                  <p className="text-[11px]" style={{ color: COLORS.muted }}>Fast logging + proof-first closeouts</p>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
       </section>
 
-      <section className="px-4 md:px-8 py-7 border-y" style={{ background: '#ECF9F6', borderColor: COLORS.border }}>
+      <section className="px-4 md:px-8 py-6 border-y" style={{ background: '#EAF2FF', borderColor: COLORS.border }}>
         <div className="max-w-[1100px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
-            ['< 10 sec', 'to log most ROs'],
+            ['< 10 sec', 'for most RO entries'],
             ['Offline-ready', 'for shop floors'],
-            ['OCR scan', 'photo to line items'],
+            ['OCR scan/import', 'from photos'],
             ['Desktop + mobile', 'same records'],
           ].map(([a, b]) => (
             <div key={a}><p className="text-sm font-bold">{a}</p><p className="text-xs" style={{ color: COLORS.muted }}>{b}</p></div>
@@ -142,90 +151,102 @@ export default function Landing() {
       </section>
 
       <section id="how-it-works" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20">
-        <div className="max-w-[1100px] mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How RO Navigator works</h2>
-          <p className="mt-3 text-sm md:text-base max-w-2xl" style={{ color: COLORS.muted }}>
-            Designed around real technician habits: fast intake, constant visibility, and clean closeout proof.
-          </p>
-          <div className="mt-9 grid md:grid-cols-3 gap-4">
-            {steps.map((step, i) => (
-              <div key={step.title} className="rounded-xl border p-5" style={{ background: '#fff', borderColor: COLORS.border }}>
-                <div className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: '#E2F5F2', color: COLORS.brand }}>
-                  <step.icon className="h-5 w-5" />
-                </div>
-                <p className="mt-3 text-xs font-semibold" style={{ color: COLORS.brand }}>Step {i + 1}</p>
-                <h3 className="mt-1 text-base font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm" style={{ color: COLORS.muted }}>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="px-4 md:px-8 py-14 md:py-20" style={{ background: '#FFFFFF' }}>
-        <div className="max-w-[1100px] mx-auto grid lg:grid-cols-2 gap-8 items-start">
+        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-12 items-start">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Why techs use it</h2>
-            <p className="mt-3 text-sm md:text-base" style={{ color: COLORS.muted }}>Built for confidence before payday, not just data entry.</p>
-            <div className="mt-6 space-y-2.5">
-              {benefits.map((b) => (
-                <div key={b} className="flex items-start gap-2.5"><ShieldCheck className="h-4 w-4 mt-0.5" style={{ color: COLORS.brand }} /><p className="text-sm">{b}</p></div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="rounded-xl border p-3" style={{ borderColor: COLORS.border, background: '#F8FCFB' }}>
-              <img src={multiperiodPreview} alt="Multi-period reporting" className="w-full rounded-lg" loading="lazy" />
-            </div>
-            <div className="rounded-xl border p-3" style={{ borderColor: COLORS.border, background: '#F8FCFB' }}>
-              <img src={spreadsheetPreview} alt="Spreadsheet view" className="w-full rounded-lg" loading="lazy" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20" style={{ background: '#ECF9F6' }}>
-        <div className="max-w-[860px] mx-auto">
-          <div className="rounded-2xl border p-7 md:p-10 text-center" style={{ borderColor: COLORS.border, background: '#FFFFFF' }}>
-            <p className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase" style={{ background: '#FFF7E8', color: COLORS.warm }}>Simple pricing</p>
-            <h2 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight">One plan. Full access.</h2>
-            <p className="mt-3 text-sm md:text-base" style={{ color: COLORS.muted }}>Start with the full product, then unlock it once.</p>
-            <div className="mt-7 grid sm:grid-cols-4 gap-3 text-left">
-              {[
-                ['14-day free trial', 'Use the complete app first'],
-                ['$15.99 one time', 'Single payment to unlock'],
-                ['Lifetime access', 'No recurring billing'],
-                ['No monthly fee', 'No subscription plan'],
-              ].map(([title, sub]) => (
-                <div key={title} className="rounded-lg border px-3 py-3" style={{ borderColor: COLORS.border, background: '#F9FDFC' }}>
-                  <p className="text-sm font-semibold">{title}</p>
-                  <p className="text-xs mt-1" style={{ color: COLORS.muted }}>{sub}</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How it works in the real shop day</h2>
+            <p className="mt-3 text-sm md:text-base max-w-lg" style={{ color: COLORS.muted }}>
+              One flow from first RO touch to final closeout. No extra busywork and no guesswork at payroll time.
+            </p>
+            <div className="mt-7 space-y-4">
+              {steps.map((step, i) => (
+                <div key={step.title} className="rounded-xl border p-4 md:p-5" style={{ background: COLORS.white, borderColor: COLORS.border }}>
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: '#DBEAFE', color: COLORS.brand }}>
+                      <step.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.brand }}>Step {i + 1}</p>
+                      <h3 className="mt-0.5 text-base font-semibold">{step.title}</h3>
+                      <p className="mt-1.5 text-sm" style={{ color: COLORS.muted }}>{step.desc}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-            <Link to="/auth" className="mt-8 inline-flex items-center justify-center gap-2 h-12 px-7 rounded-md text-white font-semibold" style={{ background: COLORS.brand }}>
-              Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
-            </Link>
+          </div>
+
+          <div id="results" className="rounded-2xl border p-4 md:p-5" style={{ background: COLORS.white, borderColor: COLORS.border }}>
+            <h3 className="text-xl font-bold">Why techs keep using it</h3>
+            <p className="mt-2 text-sm" style={{ color: COLORS.muted }}>RO Navigator is built to reduce missed labor and increase confidence before payday.</p>
+            <div className="mt-5 space-y-2.5">
+              {outcomeBullets.map((b) => (
+                <div key={b} className="flex items-start gap-2.5">
+                  <ShieldCheck className="h-4 w-4 mt-0.5" style={{ color: COLORS.brand }} />
+                  <p className="text-sm">{b}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-xl border p-2.5" style={{ borderColor: COLORS.border, background: '#F8FBFF' }}>
+                <img src={multiperiodPreview} alt="Multi-period reporting in RO Navigator" className="w-full rounded-lg" loading="lazy" />
+              </div>
+              <div className="rounded-xl border p-2.5" style={{ borderColor: COLORS.border, background: '#F8FBFF' }}>
+                <img src={spreadsheetPreview} alt="Spreadsheet view in RO Navigator" className="w-full rounded-lg" loading="lazy" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="faq" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20">
+      <section id="pricing" className="px-4 md:px-8 py-14 md:py-20 scroll-mt-20" style={{ background: '#EAF2FF' }}>
+        <div className="max-w-[980px] mx-auto">
+          <div className="rounded-3xl border p-7 md:p-10 lg:p-12" style={{ borderColor: COLORS.border, background: COLORS.white }}>
+            <div className="grid md:grid-cols-[1fr_auto] gap-7 md:gap-8 items-center">
+              <div>
+                <p className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide" style={{ background: '#DBEAFE', color: COLORS.brandDark }}>Simple pricing</p>
+                <h2 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight">One payment. Lifetime access.</h2>
+                <p className="mt-3 text-sm md:text-base" style={{ color: COLORS.muted }}>
+                  Start with a 14-day free trial. After trial, unlock full RO Navigator access with a one-time $15.99 purchase.
+                </p>
+                <div className="mt-5 grid sm:grid-cols-2 gap-2.5">
+                  {['14-day free trial', 'One-time $15.99 payment', 'Lifetime access after purchase', 'No monthly or yearly fees'].map((line) => (
+                    <div key={line} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4" style={{ color: COLORS.brand }} />
+                      <span>{line}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border px-6 py-6 text-center min-w-[210px]" style={{ borderColor: COLORS.border, background: '#F8FBFF' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.brandDark }}>Lifetime unlock</p>
+                <p className="mt-2 text-4xl font-bold">$15.99</p>
+                <p className="text-xs mt-1" style={{ color: COLORS.muted }}>one-time after trial</p>
+                <Link to="/auth" className="mt-5 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-md text-white text-sm font-semibold w-full" style={{ background: COLORS.brand }}>
+                  Start Free Trial <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="px-4 md:px-8 py-14 md:py-18 scroll-mt-20" style={{ background: COLORS.white }}>
         <div className="max-w-[860px] mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">FAQ</h2>
-          <div className="mt-7 space-y-3">
+          <div className="mt-6 rounded-2xl border px-4 md:px-6" style={{ borderColor: COLORS.border, background: '#FCFDFF' }}>
             {faqs.map((item, i) => {
               const isOpen = openFaq === i;
               return (
-                <div key={item.q} className="rounded-xl border overflow-hidden" style={{ borderColor: COLORS.border, background: '#fff' }}>
-                  <button className="w-full px-4 py-4 text-left flex items-center justify-between" onClick={() => setOpenFaq(isOpen ? null : i)}>
+                <div key={item.q} className="border-b last:border-0" style={{ borderColor: COLORS.border }}>
+                  <button className="w-full py-4 text-left flex items-center justify-between gap-4" onClick={() => setOpenFaq(isOpen ? null : i)}>
                     <span className="font-semibold text-sm md:text-base">{item.q}</span>
                     {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </button>
                   <AnimatePresence>
                     {isOpen && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                        <p className="px-4 pb-4 text-sm" style={{ color: COLORS.muted }}>{item.a}</p>
+                        <p className="pb-4 text-sm" style={{ color: COLORS.muted }}>{item.a}</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -236,24 +257,21 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="px-4 md:px-8 py-14" style={{ background: COLORS.dark }}>
-        <div className="max-w-[1000px] mx-auto rounded-2xl border p-8 md:p-10 text-center" style={{ borderColor: 'rgba(215,236,232,0.24)', background: 'rgba(245,251,250,0.03)' }}>
+      <section className="px-4 md:px-8 py-14" style={{ background: COLORS.navy }}>
+        <div className="max-w-[1000px] mx-auto rounded-3xl border p-8 md:p-10 text-center" style={{ borderColor: 'rgba(219,234,254,0.3)', background: 'rgba(255,255,255,0.04)' }}>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white">Ready to stop missing hours?</h2>
-          <p className="mt-3 text-sm md:text-base" style={{ color: 'rgba(230,252,248,0.83)' }}>
-            Start your 14-day free trial today. Unlock lifetime access for $15.99 when you’re ready.
+          <p className="mt-3 text-sm md:text-base" style={{ color: 'rgba(239,246,255,0.9)' }}>
+            Start your 14-day free trial today. Then unlock lifetime access for a one-time $15.99.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link to="/auth" className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-md font-semibold text-white" style={{ background: COLORS.brand }}>
               Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/auth" className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-md border text-sm font-medium" style={{ color: '#E6FCF8', borderColor: 'rgba(215,236,232,0.34)' }}>
-              Unlock Lifetime Access
-            </Link>
           </div>
         </div>
       </section>
 
-      <footer className="px-4 md:px-8 py-10" style={{ background: '#052825', color: 'rgba(227,252,247,0.84)' }}>
+      <footer className="px-4 md:px-8 py-10" style={{ background: '#061739', color: 'rgba(239,246,255,0.82)' }}>
         <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <HeaderLogo scheme="dark" height={LANDING_FOOTER_LOGO_HEIGHT} />
