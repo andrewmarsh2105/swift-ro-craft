@@ -1,20 +1,18 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-import { typeCode } from '@/lib/csvUtils';
 import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
+import type { SpiffManualEntry, SpiffRule } from '@/types/spiff';
+import { buildSpiffReport } from '@/lib/spiffUtils';
 import {
   type SpreadsheetRow,
-  type SpreadsheetLineRow,
   type SpreadsheetSubtotalRow,
   PAYROLL_EXPORT_HEADERS,
-  AUDIT_EXPORT_HEADERS,
   rowToExportCells,
   buildSpreadsheetRows,
   buildSpreadsheetRowsFromSnapshot,
 } from '@/lib/buildSpreadsheetRows';
 import type { RepairOrder } from '@/types/ro';
-import type { ColumnId } from '@/components/shared/spreadsheet/types';
 
 /* ─── Shared helpers ─── */
 
@@ -57,16 +55,34 @@ function applyTypeColors(data: any, typeColIdx: number) {
   }
 }
 
+interface PDFSpiffSummaryContext {
+  startDate: string;
+  endDate: string;
+  rosInRange: RepairOrder[];
+  spiffRules: SpiffRule[];
+  spiffManualEntries: SpiffManualEntry[];
+}
+
+export interface PDFSpiffSummaryData {
+  totalPay: number;
+  totalAutoCount: number;
+  totalManualCount: number;
+  totalCount: number;
+  manualOnlyPay: number;
+  byRule: Array<{ ruleName: string; totalCount: number; totalPay: number }>;
+  hasSpiffs: boolean;
+}
+
 /* ─── Export PDF from SpreadsheetRow[] ─── */
 
 export function exportPDFFromRows(
   rows: SpreadsheetRow[],
-  mode: 'payroll' | 'audit',
   filename: string,
   title: string,
+  spiffContext?: PDFSpiffSummaryContext,
 ) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const headers = mode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
+  const headers = PAYROLL_EXPORT_HEADERS;
 
   doc.setFontSize(14);
   doc.text(title, 14, 15);
@@ -79,7 +95,6 @@ export function exportPDFFromRows(
 
   for (const row of rows) {
     if (row.rowType === 'line') {
-      const line = row as SpreadsheetLineRow;
       body.push(rowToExportCells(row, headers));
     } else {
       const sub = row as SpreadsheetSubtotalRow;
@@ -129,42 +144,133 @@ export function exportPDFFromRows(
     tableWidth: 'auto',
   });
 
+  const lastTableY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 25;
+  const spiffStartY = Math.max(35, lastTableY + 10);
+  renderSpiffSummarySection(doc, spiffContext, spiffStartY);
+
   addPageNumbers(doc);
   doc.save(filename);
+}
+
+function renderSpiffSummarySection(
+  doc: jsPDF,
+  context: PDFSpiffSummaryContext | undefined,
+  startY: number,
+) {
+  doc.setFontSize(11);
+  doc.setTextColor(40);
+  doc.text('Spiff Summary', 14, startY);
+
+  if (!context) {
+    doc.setFontSize(9);
+    doc.setTextColor(110);
+    doc.text('No spiff data available for this export.', 14, startY + 6);
+    doc.setTextColor(0);
+    return;
+  }
+
+  const report = buildSpiffSummaryData(context);
+
+  const hasSpiffs = report.totalCount > 0;
+  if (!hasSpiffs) {
+    doc.setFontSize(9);
+    doc.setTextColor(110);
+    doc.text('No spiffs in selected range.', 14, startY + 6);
+    doc.setTextColor(0);
+    return;
+  }
+
+  autoTable(doc, {
+    startY: startY + 3,
+    head: [['Metric', 'Value']],
+    body: [
+      ['Total spiff pay', `$${report.totalPay.toFixed(2)}`],
+      ['Auto spiffs count', String(report.totalAutoCount)],
+      ['Manual spiffs count', String(report.totalManualCount)],
+      ['Total spiff items', String(report.totalCount)],
+      ...(report.manualOnlyPay > 0 ? [['Manual-only pay', `$${report.manualOnlyPay.toFixed(2)}`]] : []),
+    ],
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { halign: 'right', cellWidth: 24 },
+    },
+    margin: { left: 14 },
+    tableWidth: 69,
+  });
+
+  const rulesStartY = ((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? startY + 10) + 4;
+  if (report.byRule.length === 0) return;
+
+  autoTable(doc, {
+    startY: rulesStartY,
+    head: [['Rule', 'Count', 'Pay']],
+    body: report.byRule.map((rule) => [rule.ruleName, String(rule.totalCount), `$${rule.totalPay.toFixed(2)}`]),
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [55, 55, 55], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+    columnStyles: {
+      0: { cellWidth: 50 },
+      1: { halign: 'right', cellWidth: 16 },
+      2: { halign: 'right', cellWidth: 18 },
+    },
+    margin: { left: 14 },
+    tableWidth: 84,
+  });
+}
+
+export function buildSpiffSummaryData(context: PDFSpiffSummaryContext): PDFSpiffSummaryData {
+  const report = buildSpiffReport({
+    ros: context.rosInRange,
+    startDate: context.startDate,
+    endDate: context.endDate,
+    rules: context.spiffRules,
+    manualEntries: context.spiffManualEntries,
+  });
+
+  return {
+    totalPay: report.totalPay,
+    totalAutoCount: report.totalAutoCount,
+    totalManualCount: report.totalManualCount,
+    totalCount: report.totalCount,
+    manualOnlyPay: report.manualOnlyPay,
+    byRule: report.byRule.map((rule) => ({
+      ruleName: rule.ruleName,
+      totalCount: rule.totalCount,
+      totalPay: rule.totalPay,
+    })),
+    hasSpiffs: report.totalCount > 0,
+  };
 }
 
 /* ─── Legacy: Export PDF from RepairOrder[] (used by SpreadsheetView) ─── */
 
 export function exportPDF(
   ros: RepairOrder[],
-  columns: ColumnId[],
   filename: string,
   title: string,
 ) {
-  const mode = columns.includes('lineNo') ? 'audit' : 'payroll';
   const rows = buildSpreadsheetRows({ ros });
-  exportPDFFromRows(rows, mode, filename, title);
+  exportPDFFromRows(rows, filename, title);
 }
 
 /* ─── Closeout PDF ─── */
 
 export function exportCloseoutPDF(
   closeout: CloseoutSnapshot,
-  mode: 'payroll' | 'audit',
 ) {
   const rangeLabels: Record<string, string> = {
     day: 'Day', week: 'Week', two_weeks: '2 Weeks',
     pay_period: 'Pay Period', month: 'Month', custom: 'Custom',
   };
   const rangeLabel = rangeLabels[closeout.rangeType] || closeout.rangeType;
-  const title = `${rangeLabel} Closeout — ${mode === 'payroll' ? 'Payroll' : 'Audit'}`;
+  const title = `${rangeLabel} Closeout — Payroll`;
   const periodLabel = `${fmtDate(closeout.periodStart)} – ${fmtDate(closeout.periodEnd)}`;
 
   const rows = buildSpreadsheetRowsFromSnapshot(closeout.roSnapshot || [], periodLabel);
   exportPDFFromRows(
     rows,
-    mode,
-    `closeout-${mode}-${closeout.periodStart}-to-${closeout.periodEnd}.pdf`,
+    `closeout-payroll-${closeout.periodStart}-to-${closeout.periodEnd}.pdf`,
     title,
   );
 }

@@ -7,7 +7,7 @@ import { useFlagContext } from '@/contexts/FlagContext';
 import { SpiffsPanel } from '@/components/summary/SpiffsPanel';
 import { ProofPack } from '@/components/reports/ProofPack';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
-import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
+import { generateSummaryText } from '@/lib/exportUtils';
 import { cn, localDateStr } from '@/lib/utils';
 import { maskHours } from '@/lib/maskHours';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -207,14 +207,7 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
     toast.success('Summary copied');
   };
 
-  const handleExportCSV = () => {
-    const csv = generateLineCSV(report);
-    downloadCSV(csv, `ro-lines-${dateRange.start}-to-${dateRange.end}.csv`);
-    toast.success('CSV downloaded');
-  };
-
   const handleShowProofPack = () => { setSnapshotProofPack(null); setShowProofPack(true); };
-  const handleOpenExportUpgrade = () => openUpgrade('export');
 
   // ── Alerts inline (small, tightly coupled to state) ────
   const alertsBlock = (
@@ -383,9 +376,7 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
                 isDesktop
                 isPro={isPro}
                 onCopySummary={handleCopySummary}
-                onExportCSV={handleExportCSV}
                 onShowProofPack={handleShowProofPack}
-                onOpenUpgrade={handleOpenExportUpgrade}
               />
             </div>
           </div>
@@ -437,9 +428,7 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
             isDesktop={false}
             isPro={isPro}
             onCopySummary={handleCopySummary}
-            onExportCSV={handleExportCSV}
             onShowProofPack={handleShowProofPack}
-            onOpenUpgrade={handleOpenExportUpgrade}
           />
         </div>
         {isPro && (

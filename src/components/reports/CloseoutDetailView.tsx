@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Flag, Download, Copy, Share2, FileSpreadsheet, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, Flag, Copy } from 'lucide-react';
 import { maskHours } from '@/lib/maskHours';
-import { downloadCSVFile } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { CloseoutSnapshot, ROSnapshot } from '@/hooks/useCloseouts';
-import { buildCloseoutCSV } from '@/lib/closeoutExport';
 
 interface CloseoutDetailViewProps {
   open: boolean;
@@ -105,23 +103,6 @@ function CloseoutContent({ closeout }: { closeout: CloseoutSnapshot }) {
     toast.success('Summary copied');
   };
 
-  const handleExportCSV = (mode: 'payroll' | 'full' = 'payroll') => {
-    const csv = buildCloseoutCSV(closeout, mode);
-    const label = mode === 'full' ? 'audit' : 'payroll';
-    downloadCSVFile(csv, `closeout-${label}-${closeout.periodStart}-to-${closeout.periodEnd}.csv`);
-    toast.success(`${mode === 'full' ? 'Full' : 'Payroll'} CSV downloaded`);
-  };
-
-  const handleExportPDF = async (mode: 'payroll' | 'audit') => {
-    try {
-      const { exportCloseoutPDF } = await import('@/lib/pdfExport');
-      exportCloseoutPDF(closeout, mode);
-      toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} PDF downloaded`);
-    } catch {
-      toast.error('PDF export failed');
-    }
-  };
-
   return (
     <div className="space-y-4 p-4">
       {/* Header */}
@@ -172,32 +153,17 @@ function CloseoutContent({ closeout }: { closeout: CloseoutSnapshot }) {
         )}
       </div>
 
-      {/* Export */}
+      {/* Actions */}
       <div className="space-y-2 pt-2 pb-4">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <Button variant="secondary" onClick={handleCopyText} className="h-11">
             <Copy className="h-4 w-4" />
             Copy
           </Button>
-          <Button variant="secondary" onClick={() => handleExportCSV('payroll')} className="h-11">
-            <Download className="h-4 w-4" />
-            CSV
-          </Button>
-          <Button variant="secondary" onClick={() => handleExportCSV('full')} className="h-11">
-            <FileSpreadsheet className="h-4 w-4" />
-            Audit CSV
-          </Button>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={() => handleExportPDF('payroll')} className="h-11">
-            <FileText className="h-4 w-4" />
-            Payroll PDF
-          </Button>
-          <Button variant="secondary" onClick={() => handleExportPDF('audit')} className="h-11">
-            <FileText className="h-4 w-4" />
-            Audit PDF
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Use Spreadsheet Export for downloadable payroll PDFs.
+        </p>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Download, Copy, Share2, Flag, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileText, Copy, Share2, Flag, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
 import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
-import { generateLineCSV, generateSummaryText, downloadCSV, shareSummary } from '@/lib/exportUtils';
+import { generateSummaryText, shareSummary } from '@/lib/exportUtils';
 
 function asLaborType(value: string | undefined): 'customer-pay' | 'warranty' | 'internal' {
   if (value === 'warranty' || value === 'internal') return value;
@@ -98,16 +98,6 @@ function ProofPackContent({ report }: { report: PayPeriodReport }) {
   const [showROs, setShowROs] = useState(false);
   const { userSettings } = useFlagContext();
   const hide = userSettings.hideTotals ?? false;
-
-  const handleExportCSV = () => {
-    try {
-      const csv = generateLineCSV(report);
-      downloadCSV(csv, `proof-pack-${report.startDate}-to-${report.endDate}.csv`);
-      toast.success('CSV downloaded');
-    } catch {
-      toast.error('CSV export failed');
-    }
-  };
 
   const handleCopy = async () => {
     try {
@@ -255,10 +245,9 @@ function ProofPackContent({ report }: { report: PayPeriodReport }) {
             <Copy className="h-4 w-4" />
             Copy
           </Button>
-          <Button variant="secondary" onClick={handleExportCSV} className="h-11 gap-2">
-            <Download className="h-4 w-4" />
-            CSV
-          </Button>
+          <div className="rounded-md border border-dashed border-border/70 px-3 py-2.5 text-center text-xs text-muted-foreground">
+            Export PDFs in Spreadsheet
+          </div>
         </div>
         <Button variant="outline" onClick={handleShare} className="w-full h-11 gap-2">
           <Share2 className="h-4 w-4" />

@@ -1,46 +1,4 @@
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
-import type { RepairOrder, ROLine } from '@/types/ro';
-import { formatVehicleChip } from '@/types/ro';
-import { normalizePaidDate } from '@/lib/paidDate';
-
-/** Wrap a CSV cell value in double-quotes, escaping any embedded quotes. */
-function csvCell(val: string | number | null | undefined): string {
-  const s = String(val ?? '');
-  return `"${s.replace(/"/g, '""').replace(/\r?\n|\r/g, ' ')}"`;
-}
-
-export function generateLineCSV(report: PayPeriodReport): string {
-  const headers = [
-    'RO Number', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Line #', 'Description',
-    'Labor Type', 'Hours Paid', 'Matched Reference',
-  ];
-
-  // Group lines by RO so we only print RO-level info on the first line
-  const filtered = report.linesInRange.filter(({ line }) => line.description.trim() !== '');
-  let lastRoId = '';
-  const rows = filtered.map(({ ro, line }) => {
-    const isFirstLine = ro.id !== lastRoId;
-    lastRoId = ro.id;
-    const vehicleLabel =
-      formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) ||
-      ((ro as { vehicleLabel?: string }).vehicleLabel || '');
-    return [
-      csvCell(isFirstLine ? ro.roNumber : ''),
-      csvCell(isFirstLine ? (normalizePaidDate(ro.paidDate) ?? ro.date) : ''),
-      csvCell(isFirstLine ? (ro.advisor || '—') : ''),
-      csvCell(isFirstLine ? (ro.customerName || '') : ''),
-      csvCell(isFirstLine ? vehicleLabel : ''),
-      csvCell(line.lineNo),
-      csvCell(line.description || ''),
-      csvCell(line.laborType || 'customer-pay'),
-      csvCell(line.hoursPaid.toFixed(2)),
-      csvCell(line.matchedReferenceId || ''),
-    ];
-  });
-
-  // UTF-8 BOM (\uFEFF) so Excel on Windows opens the file in the correct encoding
-  return '\uFEFF' + [headers.map(csvCell).join(','), ...rows.map(r => r.join(','))].join('\n');
-}
 
 export function generateSummaryText(report: PayPeriodReport): string {
   const lines: string[] = [];
@@ -79,16 +37,6 @@ export function generateSummaryText(report: PayPeriodReport): string {
   }
 
   return lines.join('\n');
-}
-
-export function downloadCSV(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 export async function shareSummary(text: string) {
