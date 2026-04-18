@@ -7,6 +7,7 @@ import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
 import { HeaderLogo } from "@/components/brand";
 import { MAIN_MOBILE_HEADER_HEIGHT, MAIN_MOBILE_LOGO_HEIGHT } from "@/components/brand/logoSizing";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
+import type { MobileTabId } from "@/components/mobile/mobileTabs";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
 import { ROsTab } from "@/components/tabs/ROsTab";
@@ -56,7 +57,7 @@ function MobileApp() {
   const isPullTracking = useRef(false);
   const mainRef = useRef<HTMLElement | null>(null);
 
-  const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "spiffs" | "settings">(
+  const [activeTab, setActiveTab] = useLocalStorageState<MobileTabId>(
     "ui.mobile.activeTab.v1",
     "ros",
   );
