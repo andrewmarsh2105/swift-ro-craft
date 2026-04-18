@@ -38,7 +38,7 @@ export function pickBestUserSettingsRow<T extends Record<string, unknown>>(rows:
 }
 
 export async function readUserSettingsByUserId(
-  supabaseAdmin: any,
+  supabaseAdmin: SupabaseAdminClient,
   userId: string,
   selectColumns = "*",
   preferredColumns: string[] = [],
@@ -68,3 +68,16 @@ export async function readUserSettingsByUserId(
     error: null,
   };
 }
+type SupabaseAdminClient = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        order: (column: string, options: { ascending: boolean }) => {
+          order: (column: string, options: { ascending: boolean }) => {
+            limit: (count: number) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
+          };
+        };
+      };
+    };
+  };
+};

@@ -42,6 +42,7 @@ type UserSettingsRow = {
   created_at?: string | null;
   updated_at?: string | null;
 } & Record<string, unknown>;
+type QueryError = { message?: string; details?: string; hint?: string; code?: string };
 
 type SaveStatus = 'success' | 'failed' | 'local_only';
 export interface SaveSettingResult {
@@ -129,7 +130,7 @@ const dbKeyMap: Record<keyof UserSettings, string> = {
   spiffManualEntries: 'spiff_manual_entries',
 };
 
-function isMissingColumnError(error: { message?: string; details?: string; hint?: string; code?: string }) {
+function isMissingColumnError(error: QueryError) {
   const errorText = [error.message, error.details, error.hint].filter(Boolean).join(' ');
   return /column .* does not exist/i.test(errorText)
     || /could not find the .* column/i.test(errorText)
@@ -169,24 +170,27 @@ function pickBestUserSettingsRow(rows: UserSettingsRow[]): UserSettingsRow {
 }
 
 async function fetchUserSettingsRows(userId: string | undefined) {
-  if (!userId) return { rows: [] as UserSettingsRow[], error: null as { message?: string } | null };
+  if (!userId) return { rows: [] as UserSettingsRow[], error: null as QueryError | null };
 
-  const baseQuery: any = supabase
+  const baseQuery = supabase
     .from('user_settings')
     .select('*')
     .eq('user_id', userId);
+  const maybeOrderedQuery = baseQuery as typeof baseQuery & {
+    order?: (column: string, options?: { ascending?: boolean }) => unknown;
+  };
 
-  if (typeof baseQuery.order === 'function') {
+  if (typeof maybeOrderedQuery.order === 'function') {
     const { data, error } = await baseQuery
       .order('updated_at', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(20);
 
-    return { rows: Array.isArray(data) ? (data as UserSettingsRow[]) : [], error };
+    return { rows: Array.isArray(data) ? (data as UserSettingsRow[]) : [], error: error as QueryError | null };
   }
 
   const { data, error } = await baseQuery.maybeSingle();
-  return { rows: data ? [data] : [], error };
+  return { rows: data ? [data] : [], error: error as QueryError | null };
 }
 
 export function useUserSettings() {
@@ -250,6 +254,8 @@ export function useUserSettings() {
     }
 
     if (rows.length > 1) {
+      // NOTE: This intentionally logs only. Duplicate user_settings rows remain
+      // a database-integrity issue and are not auto-merged/deleted in runtime code.
       console.warn('[useUserSettings] Duplicate user_settings rows detected; using best row', {
         userId,
         duplicateCount: rows.length - 1,

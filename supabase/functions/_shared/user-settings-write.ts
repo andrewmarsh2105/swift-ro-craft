@@ -1,5 +1,19 @@
+type SupabaseAdminClient = {
+  from: (table: string) => {
+    update: (patch: Record<string, unknown>) => {
+      eq: (column: string, value: string) => {
+        select: (columns: string) => {
+          limit: (count: number) => Promise<{ data: { user_id: string }[] | null; error: { code?: string; message: string } | null }>;
+        };
+        then?: never;
+      };
+    };
+    insert: (row: Record<string, unknown>) => Promise<{ error: { code?: string; message: string } | null }>;
+  };
+};
+
 export async function writeUserSettingsByUserId(
-  supabaseAdmin: any,
+  supabaseAdmin: SupabaseAdminClient,
   userId: string,
   patch: Record<string, unknown>,
 ) {

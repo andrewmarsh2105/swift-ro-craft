@@ -9,7 +9,6 @@ import { MAIN_MOBILE_HEADER_HEIGHT, MAIN_MOBILE_LOGO_HEIGHT } from "@/components
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import type { MobileTabId } from "@/components/mobile/mobileTabs";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
-import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
 import { ROsTab } from "@/components/tabs/ROsTab";
 import { lazy } from "react";
 
@@ -33,6 +32,9 @@ const SpiffsTab = lazy(() =>
 );
 const SettingsTab = lazy(() =>
   import("@/components/tabs/SettingsTab").then((m) => ({ default: m.SettingsTab })),
+);
+const QuickAddSheet = lazy(() =>
+  import("@/components/sheets/QuickAddSheet").then((m) => ({ default: m.QuickAddSheet })),
 );
 
 function TabFallback() {
@@ -205,11 +207,13 @@ function MobileApp() {
         />
       )}
 
-      <QuickAddSheet
-        isOpen={showQuickAdd}
-        onClose={() => setShowQuickAdd(false)}
-        onScanPhoto={handleScanPhoto}
-      />
+      <Suspense fallback={null}>
+        <QuickAddSheet
+          isOpen={showQuickAdd}
+          onClose={() => setShowQuickAdd(false)}
+          onScanPhoto={handleScanPhoto}
+        />
+      </Suspense>
 
       {!showQuickAdd && <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
     </div>
