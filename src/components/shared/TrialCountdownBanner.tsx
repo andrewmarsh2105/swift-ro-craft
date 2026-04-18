@@ -36,7 +36,7 @@ export function TrialCountdownBanner() {
             style={{ color: '#0B5FFF' }}
             onClick={() => setShowUpgrade(true)}
           >
-            unlock lifetime access for $15.99
+            unlock lifetime access for $15.99 one-time
           </button>
         </p>
         <button

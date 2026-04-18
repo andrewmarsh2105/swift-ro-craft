@@ -175,7 +175,7 @@ export default function Auth() {
         {/* Form area */}
         <div className="flex-1 flex items-center justify-center p-6">
           <motion.div
-            className="w-full max-w-sm space-y-6"
+            className="w-full max-w-sm space-y-6 rounded-2xl border border-border/70 bg-background/95 p-6 shadow-sm backdrop-blur-[1px]"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -191,7 +191,9 @@ export default function Auth() {
                 {isLogin ? 'Welcome back' : 'Create your account'}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {isLogin ? 'Sign in to your account to continue.' : 'Start with a 14-day free trial or unlock full access for $15.99.'}
+                {isLogin
+                  ? 'Sign in to continue tracking ROs, hours, and pay-period totals.'
+                  : 'Create your account, then choose a 14-day trial or unlock full access for $15.99.'}
               </p>
             </div>
 
@@ -322,7 +324,7 @@ export default function Auth() {
                 {loading ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> {isLogin ? 'Signing in…' : 'Creating account…'}</>
                 ) : (
-                  isLogin ? 'Sign In' : 'Create Free Account'
+                  isLogin ? 'Sign In' : 'Create Account'
                 )}
               </Button>
             </form>
@@ -342,7 +344,7 @@ export default function Auth() {
             <div className="flex items-center justify-center gap-4 pt-1">
               {[
                 { icon: Shield, label: 'Encrypted' },
-                { icon: Check, label: 'Free to start' },
+                { icon: Check, label: '14-day trial option' },
                 { icon: Wifi, label: 'Works offline' },
               ].map(({ icon: Icon, label }) => (
                 <div key={label} className="flex items-center gap-1 text-[11px] text-muted-foreground/70">
