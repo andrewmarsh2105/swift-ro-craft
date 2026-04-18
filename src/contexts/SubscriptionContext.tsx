@@ -162,12 +162,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       let attempt = 0;
       const maxAttempts = 5;
       const delays = [2000, 3000, 3000, 3500, 3500];
-      const syncToast = toast.loading('Syncing access…');
+      const syncToast = toast.loading('Confirming your payment and unlocking access…');
       const tryCheck = async () => {
         attempt++;
         const status = await checkSubscription();
         if (status === 'lifetime') {
-          toast.success('Lifetime access unlocked', { id: syncToast });
+          toast.success('Payment confirmed — lifetime access unlocked.', { id: syncToast });
           return;
         }
         if (attempt < maxAttempts) {
@@ -176,17 +176,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         }
         awaitingCheckoutSyncRef.current = false;
         toast.dismiss(syncToast);
-        toast('Payment received. Access may take a moment to sync. Please refresh shortly.', { duration: 5000 });
+        toast('Payment received. Access sync may take another moment. Please refresh shortly.', { duration: 5000 });
       };
       setTimeout(tryCheck, delays[0]);
     } else if (params.get('checkout') === 'cancel') {
       awaitingCheckoutSyncRef.current = false;
       window.history.replaceState({}, '', window.location.pathname);
-      toast.info('Checkout was canceled. No charges were made.');
+      toast.info('Checkout was canceled. No payment was completed.');
     }
   }, [checkSubscription]);
 
   const startCheckout = useCallback(async () => {
+    if (subscriptionStatus === 'lifetime' || subscriptionStatus === 'override') {
+      toast.success('Your account already has unlocked lifetime access.');
+      return;
+    }
+
     setCheckoutLoading(true);
     setCheckoutFallbackUrl(null);
     try {
@@ -201,7 +206,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       if (data?.already_unlocked) {
         await checkSubscription();
-        toast.success('Lifetime access already unlocked.');
+        toast.success('Lifetime access is already unlocked for this account.');
         setCheckoutLoading(false);
         return;
       }
@@ -215,14 +220,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      toast.error('Checkout URL not received. Please try again.');
+      toast.error('Could not open secure checkout. Please try again.');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Please try again.';
-      toast.error(`Checkout failed: ${message}`);
+      toast.error(`Secure checkout failed: ${message}`);
     }
 
     setCheckoutLoading(false);
-  }, [checkSubscription, user]);
+  }, [checkSubscription, subscriptionStatus, user]);
 
   const startTrial = useCallback(async () => {
     try {

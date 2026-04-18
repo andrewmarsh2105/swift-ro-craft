@@ -356,18 +356,22 @@ export function DesktopWorkspace() {
       : "Workspace";
 
   return (
-    <div className="h-full min-h-0 overflow-hidden flex flex-col bg-muted/20">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col brand-shell-bg">
       <TrialCountdownBanner />
       <OfflineStatusBar />
 
       {/* ── App Bar ──────────────────────────────────── */}
       <div className="app-bar" style={{ minHeight: MAIN_DESKTOP_APP_BAR_HEIGHT }}>
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
           <HeaderLogo
             priority
             height={DASHBOARD_DESKTOP_LOGO_HEIGHT}
             scheme="light"
           />
+          <div className="hidden lg:flex flex-col leading-tight">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Technician workspace</span>
+            <span className="text-xs font-medium text-foreground/90">RO tracking, totals, and closeout flow</span>
+          </div>
         </div>
 
         {/* Right-side toolbar — utility items only; nav moved to NavTabBar */}
@@ -514,7 +518,7 @@ export function DesktopWorkspace() {
             {/* Left Panel — Queue */}
             <div
               className={cn(
-                "min-w-0 flex-shrink-0 overflow-hidden workspace-queue border border-border/70 rounded-lg shadow-sm",
+                "min-w-0 flex-shrink-0 overflow-hidden workspace-queue brand-panel",
                 !isWideList && "bg-background",
               )}
               style={{
@@ -540,8 +544,8 @@ export function DesktopWorkspace() {
                   onPointerUp={handlePointerUp}
                 />
 
-                <div className="flex-1 min-w-0 overflow-hidden workspace-active border border-border/70 rounded-lg shadow-sm flex flex-col">
-                  <div className="px-4 py-2 border-b border-border/60 bg-card/95 backdrop-blur-sm flex-shrink-0">
+                <div className="flex-1 min-w-0 overflow-hidden workspace-active brand-panel flex flex-col">
+                  <div className="px-4 py-2 border-b border-border/60 bg-gradient-to-r from-accent/45 to-transparent backdrop-blur-sm flex-shrink-0">
                     <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground/70">
                         Active Workspace

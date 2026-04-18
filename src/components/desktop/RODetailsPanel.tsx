@@ -107,11 +107,11 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
   };
 
   return (
-    <div className="h-full flex flex-col bg-card">
+    <div className="h-full flex flex-col brand-shell-bg">
 
       {/* ═══ Header — identification strip ═══ */}
       <div
-        className="panel-header"
+        className="panel-header brand-topbar"
         style={{ borderLeft: `3px solid ${accentColor}` }}
       >
         <div className="px-4 pt-2.5 pb-2">
@@ -205,7 +205,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
         {/* ── Metadata strip — compact horizontal fields ── */}
         {hasMetadata && (
-          <div className="px-4 py-2 border-b border-border/30 bg-muted/10">
+          <div className="px-4 py-2 border-b border-border/30 bg-gradient-to-r from-accent/35 to-transparent">
             <div className="flex flex-wrap gap-x-4 gap-y-0.5">
               <MetaField label="Advisor" value={ro.advisor} />
               <MetaField label="Customer" value={ro.customerName} />
@@ -228,7 +228,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
           </div>
 
           {ro.lines?.length ? (
-            <div className="border border-border/50 rounded-md overflow-hidden divide-y divide-border/30">
+            <div className="brand-panel rounded-md overflow-hidden divide-y divide-border/30">
               {ro.lines.map((l, idx) => {
                 const lineAccent = laborBorderVar(l.laborType || ro.laborType);
                 const description = l.description || "—";
@@ -292,7 +292,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
         {ro.notes && (
           <div className="px-4 pb-2.5">
             <p className="data-header mb-1">Notes</p>
-            <p className="text-[11px] text-foreground/70 leading-relaxed bg-muted/10 border border-border/20 rounded px-3 py-1.5">
+            <p className="text-[11px] text-foreground/70 leading-relaxed bg-gradient-to-r from-accent/25 to-transparent border border-border/20 rounded px-3 py-1.5">
               {ro.notes}
             </p>
           </div>

@@ -18,13 +18,13 @@ export function SectionCard({
   contentClassName,
 }: SectionCardProps) {
   return (
-    <div className={cn("bg-card border border-border/50 overflow-hidden relative", className)} style={{ borderRadius: 'var(--radius)' }}>
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-muted/50" />
+    <div className={cn("brand-panel overflow-hidden relative", className)}>
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/40" />
       {(title || rightSlot) && (
-        <div className="flex items-center justify-between gap-2 pl-5 pr-4 py-2.5 border-b border-border/50 bg-muted/15">
+        <div className="flex items-center justify-between gap-2 pl-5 pr-4 py-2.5 border-b border-border/45 bg-gradient-to-r from-accent/45 to-transparent">
           <div>
             {title && (
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground/85">
                 {title}
               </h3>
             )}

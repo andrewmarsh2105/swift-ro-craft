@@ -30,7 +30,7 @@ const _adminCache = new Map<string, boolean>();
 function SettingsSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <div className="space-y-1.5">
+      <div className="brand-section-banner px-3.5 py-2.5 space-y-1.5">
         <h2 className="text-sm font-semibold tracking-tight text-foreground/95">{title}</h2>
         {description ? <p className="text-xs text-muted-foreground leading-relaxed">{description}</p> : null}
       </div>
@@ -715,7 +715,7 @@ export function SettingsTab() {
                 { label: 'Average day labor totals', value: formatHours(averageDailyLaborTotal) },
                 { label: 'Average week totals', value: formatHours(averageWeeklyTotal) },
               ].map((stat) => (
-                <div key={stat.label} className="rounded-md border border-border/50 px-3 py-2.5 bg-muted/[0.2]">
+                <div key={stat.label} className="rounded-md border border-border/45 px-3 py-2.5 bg-gradient-to-b from-card to-accent/25">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">{stat.label}</p>
                   <p className="text-sm font-semibold mt-1">{stat.value}</p>
                 </div>
@@ -747,7 +747,7 @@ export function SettingsTab() {
               />
             </div>
 
-            <div className="rounded-md border border-border/50 px-3 py-2.5 bg-muted/[0.25]">
+            <div className="rounded-md border border-border/45 px-3 py-2.5 bg-gradient-to-b from-card to-accent/25">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Email address</p>
               <p className="text-sm">{user?.email || 'No email available'}</p>
             </div>
@@ -798,12 +798,15 @@ export function SettingsTab() {
   );
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-gradient-to-b from-background via-background to-muted/20">
-      <div className={cn('panel-header border-b border-border/40 bg-background/90 backdrop-blur', isMobile ? 'px-4 pt-4 pb-3' : 'px-5 pt-4 pb-3')}>
+    <div className="flex flex-col h-full overflow-y-auto brand-shell-bg">
+      <div className={cn('panel-header brand-topbar', isMobile ? 'px-4 pt-4 pb-3' : 'px-5 pt-4 pb-3')}>
         <div className="max-w-5xl mx-auto w-full flex items-center justify-between gap-4">
-          <div>
+          <div className="space-y-1">
+            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+              RO Navigator settings
+            </div>
             <h1 className="text-[18px] font-bold tracking-tight">Settings</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Professional, organized controls for your workspace and account.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Professional controls for your workspace, identity, and access.</p>
           </div>
           <div className="flex items-center gap-2">
             {settingsView === 'profile' && (
@@ -819,7 +822,7 @@ export function SettingsTab() {
             )}
             <button
               onClick={() => setSettingsView('profile')}
-              className="h-10 w-10 rounded-full overflow-hidden border border-border/70 bg-muted/40 flex items-center justify-center text-xs font-bold"
+              className="h-10 w-10 rounded-full overflow-hidden border border-primary/30 bg-primary/[0.1] flex items-center justify-center text-xs font-bold"
               title="Open profile"
             >
               {profileImage ? (

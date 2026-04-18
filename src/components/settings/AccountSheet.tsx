@@ -51,7 +51,7 @@ export function AccountSheet({
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Account">
       <div className="p-4 space-y-5">
-        <div className="flex items-center gap-3">
+        <div className="brand-section-banner p-3 flex items-center gap-3">
           <div className="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-lg font-bold select-none bg-primary">
             {avatarInitial}
           </div>
@@ -63,7 +63,7 @@ export function AccountSheet({
 
         <div className="space-y-1">
           <h4 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wide px-0.5">Access</h4>
-          <div className="bg-card border border-border/60 overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+          <div className="brand-panel overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
             <button
               onClick={() => {
                 onClose();
@@ -95,7 +95,7 @@ export function AccountSheet({
           </div>
         </div>
 
-        <div className="bg-card border border-border/60 overflow-hidden divide-y divide-border/40" style={{ borderRadius: 'var(--radius)' }}>
+        <div className="brand-panel overflow-hidden divide-y divide-border/40" style={{ borderRadius: 'var(--radius)' }}>
           {isAdmin && (
             <button
               onClick={() => { onClose(); navigate('/admin'); }}

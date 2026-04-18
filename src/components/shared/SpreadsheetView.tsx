@@ -83,7 +83,7 @@ const LineRow = memo(function LineRow({
           ? 'bg-primary/[0.18] hover:bg-amber-200/70 border-l-[3px] border-l-primary'
           : cn(
               line.isCarryover ? 'bg-muted/20 hover:bg-muted/30' : rowBg,
-              'hover:bg-amber-100/80 border-l-[3px]',
+              'hover:bg-primary/[0.16] border-l-[3px]',
               line.isCarryover ? 'border-l-border border-l-dashed' : borderColorClass,
             ),
       )}
@@ -839,7 +839,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   /* ─── Helpers ─── */
   const getRowBg = (groupIndex: number) =>
     groupIndex % 2 === 1
-      ? 'bg-primary/[0.14]'
+      ? 'bg-primary/[0.12]'
       : 'bg-white dark:bg-card shadow-[inset_0_0_0_1px_hsl(var(--border)/0.32)]';
   const getTone = (groupIndex: number) => (groupIndex % 2 === 1 ? 'alt' : 'base');
 
@@ -875,10 +875,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }
 
   return (
-    <div className="h-full flex flex-col bg-muted/15">
+    <div className="h-full flex flex-col brand-shell-bg">
       <PrintHeader periodLabel={computedRangeLabel} />
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border/50 bg-card/85 backdrop-blur-sm flex-wrap">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border/50 bg-gradient-to-r from-card via-accent/35 to-card backdrop-blur-sm flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {!isCloseout && (
             <DateFilterBar
@@ -1188,7 +1188,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       ) : (
         /* ─── Desktop Table ─── */
         <div className="flex-1 overflow-auto p-2 pt-1" ref={tableRef}>
-          <table className={cn('min-w-[1080px] w-full border-collapse rounded-lg overflow-hidden border border-border/50 bg-card', textSize)} style={{ tableLayout: 'fixed' }}>
+          <table className={cn('min-w-[1080px] w-full border-collapse rounded-lg overflow-hidden border border-border/55 bg-card shadow-[var(--shadow-card)]', textSize)} style={{ tableLayout: 'fixed' }}>
             <colgroup>
               {showCheckbox && <col style={{ width: 32 }} />}
               {activeCols.map(col => (

@@ -21,7 +21,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex items-center justify-between px-3 h-12 border-b border-border/60 bg-card/97 backdrop-blur-sm",
+        "brand-topbar flex items-center justify-between px-3 h-12",
         sticky && "sticky top-0 z-30",
         className,
       )}

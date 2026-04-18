@@ -126,12 +126,12 @@ function MobileApp() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen brand-shell-bg flex flex-col">
       <TrialCountdownBanner />
       <OfflineStatusBar />
       {/* Mobile app header */}
       <header
-        className="flex-shrink-0 flex items-center justify-between px-3.5 py-1.5 border-b border-border/60 bg-background/95 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.35)]"
+        className="brand-topbar flex-shrink-0 flex items-center justify-between px-3.5 py-1.5"
         style={{ minHeight: MAIN_MOBILE_HEADER_HEIGHT }}
       >
         <HeaderLogo
@@ -142,7 +142,7 @@ function MobileApp() {
         />
         <button
           onClick={handleOpenProfile}
-          className="h-8 w-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none tap-target active:opacity-80 transition-opacity border border-primary/65 shadow-sm"
+          className="h-8 w-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none tap-target active:opacity-80 transition-opacity border border-primary/65 shadow-[0_4px_12px_-6px_hsl(var(--primary)/0.7)]"
           aria-label="Open profile settings"
         >
           {avatarInitial}
