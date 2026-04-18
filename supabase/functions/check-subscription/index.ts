@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
+import { readUserSettingsByUserId } from "../_shared/user-settings-read.ts";
 
 const BASE_ALLOWED_ORIGINS = [
   "https://ronavigator.com",
@@ -114,11 +115,18 @@ serve(async (req) => {
       }), { headers, status: 200 });
     }
 
-    const { data: existingSettings } = await supabaseAdmin
-      .from("user_settings")
-      .select("trial_started_at, trial_ends_at, lifetime_access")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { row: existingSettings, duplicateCount, error: settingsReadError } = await readUserSettingsByUserId(
+      supabaseAdmin,
+      user.id,
+      "trial_started_at, trial_ends_at, lifetime_access, updated_at, created_at",
+      ["trial_started_at", "trial_ends_at", "lifetime_access"],
+    );
+    if (settingsReadError) {
+      throw new Error(`Failed to read user settings: ${settingsReadError.message}`);
+    }
+    if (duplicateCount > 0) {
+      logStep("Duplicate user_settings rows detected; using best row", { userId: user.id, duplicateCount });
+    }
 
     const trialStartedAt = existingSettings?.trial_started_at ?? null;
     const trialEndsAt = existingSettings?.trial_ends_at ?? null;

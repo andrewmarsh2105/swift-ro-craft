@@ -38,6 +38,11 @@ export interface UserSettings {
   spiffManualEntries: SpiffManualEntry[];
 }
 
+type UserSettingsRow = {
+  created_at?: string | null;
+  updated_at?: string | null;
+} & Record<string, unknown>;
+
 type SaveStatus = 'success' | 'failed' | 'local_only';
 export interface SaveSettingResult {
   status: SaveStatus;
@@ -131,6 +136,59 @@ function isMissingColumnError(error: { message?: string; details?: string; hint?
     || error.code === 'PGRST204';
 }
 
+function valueCompletenessScore(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'string') return value.trim().length > 0 ? 1 : 0;
+  if (Array.isArray(value)) return value.length > 0 ? 1 : 0;
+  return 1;
+}
+
+function getRowTimestamp(row: UserSettingsRow, key: 'updated_at' | 'created_at'): number {
+  const raw = row[key];
+  if (typeof raw !== 'string') return Number.NEGATIVE_INFINITY;
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+}
+
+function pickBestUserSettingsRow(rows: UserSettingsRow[]): UserSettingsRow {
+  if (rows.length === 1) return rows[0];
+
+  const preferredColumns = Object.values(dbKeyMap);
+  const completenessScore = (row: UserSettingsRow) =>
+    preferredColumns.reduce((score, column) => score + valueCompletenessScore(row[column]), 0);
+
+  return [...rows].sort((a, b) => {
+    const scoreDiff = completenessScore(b) - completenessScore(a);
+    if (scoreDiff !== 0) return scoreDiff;
+
+    const updatedDiff = getRowTimestamp(b, 'updated_at') - getRowTimestamp(a, 'updated_at');
+    if (updatedDiff !== 0) return updatedDiff;
+
+    return getRowTimestamp(b, 'created_at') - getRowTimestamp(a, 'created_at');
+  })[0];
+}
+
+async function fetchUserSettingsRows(userId: string | undefined) {
+  if (!userId) return { rows: [] as UserSettingsRow[], error: null as { message?: string } | null };
+
+  const baseQuery: any = supabase
+    .from('user_settings')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (typeof baseQuery.order === 'function') {
+    const { data, error } = await baseQuery
+      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    return { rows: Array.isArray(data) ? (data as UserSettingsRow[]) : [], error };
+  }
+
+  const { data, error } = await baseQuery.maybeSingle();
+  return { rows: data ? [data] : [], error };
+}
+
 export function useUserSettings() {
   const { user } = useAuth();
   const userId = user?.id;
@@ -138,6 +196,7 @@ export function useUserSettings() {
   const settingsRef = useRef<UserSettings>(defaults);
   settingsRef.current = settings;
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const getLocalGoal = useCallback((key: GoalKey): number => {
     const raw = localStorage.getItem(GOAL_LS_KEYS[key]);
@@ -181,13 +240,26 @@ export function useUserSettings() {
   }, []);
 
   const fetchSettings = useCallback(async () => {
-    const { data } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const { rows, error } = await fetchUserSettingsRows(userId);
 
-    if (!data) {
+    if (error) {
+      console.error('[useUserSettings] Failed to fetch settings', { userId, error });
+      setLoadError('Failed to load user settings');
+      setLoaded(true);
+      return;
+    }
+
+    if (rows.length > 1) {
+      console.warn('[useUserSettings] Duplicate user_settings rows detected; using best row', {
+        userId,
+        duplicateCount: rows.length - 1,
+      });
+    }
+
+    const selectedRow = rows.length > 0 ? pickBestUserSettingsRow(rows) : null;
+
+    if (!selectedRow) {
+      setLoadError(null);
       setSettings(prev => ({
         ...prev,
         displayName: getLocalProfileSetting('displayName'),
@@ -202,15 +274,16 @@ export function useUserSettings() {
       return;
     }
 
-    const row = data as typeof data & Record<string, unknown>;
+    const row = selectedRow as UserSettingsRow;
+    setLoadError(null);
     setSettings({
-      theme: data.theme || 'light',
-      showScanConfidence: data.show_scan_confidence ?? false,
+      theme: (row.theme as string | null | undefined) || 'light',
+      showScanConfidence: (row.show_scan_confidence as boolean | null | undefined) ?? false,
       showVehicleChips: (row.show_vehicle_chips as boolean | undefined) ?? true,
       keywordAutofill: (row.keyword_autofill as boolean | undefined) ?? true,
-      flagInboxDateRange: data.flag_inbox_date_range || 'this_week',
-      flagInboxTypes: data.flag_inbox_types || [],
-      defaultSummaryRange: (data.default_summary_range as SummaryRange) || 'week',
+      flagInboxDateRange: (row.flag_inbox_date_range as string | null | undefined) || 'this_week',
+      flagInboxTypes: (row.flag_inbox_types as string[] | null | undefined) || [],
+      defaultSummaryRange: (row.default_summary_range as SummaryRange | null | undefined) || 'week',
       defaultTemplateId: (row.default_template_id as string | null | undefined) ?? null,
       weekStartDay: (row.week_start_day as number | undefined) ?? 0,
       payPeriodType: (row.pay_period_type as PayPeriodType | undefined) || 'week',
@@ -234,6 +307,7 @@ export function useUserSettings() {
     if (!userId) {
       setSettings(defaults);
       setLoaded(false);
+      setLoadError(null);
       return;
     }
     setLoaded(false);
@@ -328,5 +402,5 @@ export function useUserSettings() {
     return { status: 'success' };
   }, [persistLocalGoal, persistProfileSettingLocally, persistSpiffSettingLocally, userId]);
 
-  return { settings, loaded, updateSetting };
+  return { settings, loaded, loadError, updateSetting };
 }

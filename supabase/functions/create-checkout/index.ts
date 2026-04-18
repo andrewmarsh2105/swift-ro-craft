@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
+import { readUserSettingsByUserId } from "../_shared/user-settings-read.ts";
 
 const BASE_ALLOWED_ORIGINS = [
   "https://ronavigator.com",
@@ -105,11 +106,21 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const { data: accessRow } = await supabaseAdmin
-      .from("user_settings")
-      .select("lifetime_access")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { row: accessRow, duplicateCount: accessDuplicateCount, error: accessReadError } = await readUserSettingsByUserId(
+      supabaseAdmin,
+      user.id,
+      "lifetime_access, updated_at, created_at",
+      ["lifetime_access"],
+    );
+    if (accessReadError) {
+      throw new Error(`Failed to read user settings: ${accessReadError.message}`);
+    }
+    if (accessDuplicateCount > 0) {
+      console.warn("[CREATE-CHECKOUT] Duplicate user_settings rows detected during access read", {
+        userId: user.id,
+        duplicateCount: accessDuplicateCount,
+      });
+    }
 
     if (overrideRow || accessRow?.lifetime_access === true) {
       return new Response(JSON.stringify({
@@ -130,11 +141,21 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey);
 
-    const { data: settings } = await supabaseAdmin
-      .from("user_settings")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { row: settings, duplicateCount: customerDuplicateCount, error: customerReadError } = await readUserSettingsByUserId(
+      supabaseAdmin,
+      user.id,
+      "stripe_customer_id, updated_at, created_at",
+      ["stripe_customer_id"],
+    );
+    if (customerReadError) {
+      throw new Error(`Failed to read Stripe customer mapping: ${customerReadError.message}`);
+    }
+    if (customerDuplicateCount > 0) {
+      console.warn("[CREATE-CHECKOUT] Duplicate user_settings rows detected during customer read", {
+        userId: user.id,
+        duplicateCount: customerDuplicateCount,
+      });
+    }
 
     let customerId: string | undefined = settings?.stripe_customer_id || undefined;
 

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { writeUserSettingsByUserId } from "../_shared/user-settings-write.ts";
+import { readUserSettingsByUserId } from "../_shared/user-settings-read.ts";
 
 // Production origins + local dev. Add extra origins (e.g. a staging domain) via the
 // EXTRA_ALLOWED_ORIGINS Supabase secret — comma-separated, no trailing slashes.
@@ -95,11 +96,18 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey);
 
     // Try cached customer ID first
-    const { data: settings } = await supabaseAdmin
-      .from("user_settings")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { row: settings, duplicateCount, error: settingsReadError } = await readUserSettingsByUserId(
+      supabaseAdmin,
+      user.id,
+      "stripe_customer_id, updated_at, created_at",
+      ["stripe_customer_id"],
+    );
+    if (settingsReadError) {
+      throw new Error(`Failed to read user settings: ${settingsReadError.message}`);
+    }
+    if (duplicateCount > 0) {
+      console.warn("[CUSTOMER-PORTAL] Duplicate user_settings rows detected; using best row", { userId: user.id, duplicateCount });
+    }
 
     let customerId = settings?.stripe_customer_id;
 
