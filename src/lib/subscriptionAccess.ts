@@ -1,14 +1,10 @@
-export type StripeSubscriptionStatus =
+export type AccessStatus =
   | 'trialing'
   | 'lifetime'
   | 'expired'
   | 'override'
   | null;
 
-export function hasProAccess(status: StripeSubscriptionStatus): boolean {
+export function hasProAccess(status: AccessStatus): boolean {
   return status === 'trialing' || status === 'lifetime' || status === 'override';
-}
-
-export function hasBillingIssue(_status: StripeSubscriptionStatus): boolean {
-  return false;
 }

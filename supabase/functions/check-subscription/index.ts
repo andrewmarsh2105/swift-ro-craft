@@ -169,7 +169,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       subscribed,
       status,
-      subscription_end: status === "trialing" ? trialEndsAt : null,
+      subscription_end: status === "trialing" || status === "expired" ? trialEndsAt : null,
     }), { headers, status: 200 });
   } catch (error) {
     logStep("ERROR", { message: String(error) });

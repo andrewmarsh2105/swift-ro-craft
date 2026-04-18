@@ -147,7 +147,7 @@ export default function Support() {
             </form>
 
             <div className="text-center space-y-2 pt-4">
-              <p className="text-sm text-muted-foreground">Pro subscribers receive priority support.</p>
+              <p className="text-sm text-muted-foreground">Need help with your trial or lifetime access? We usually reply within 24 hours.</p>
             </div>
           </>
         )}

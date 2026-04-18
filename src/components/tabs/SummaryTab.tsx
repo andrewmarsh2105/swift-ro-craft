@@ -71,6 +71,11 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
   const [customEnd, setCustomEnd] = useState<Date | undefined>(sharedCustomEnd ? new Date(`${sharedCustomEnd}T12:00:00`) : undefined);
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState<SummaryTabView>(tabMode === 'spiffs' ? 'spiffs' : initialTab);
+  const handleTabChange = (value: string) => {
+    if (value === 'summary' || value === 'spiffs' || value === 'compare') {
+      setActiveTab(value);
+    }
+  };
   const [upgradeTrigger, setUpgradeTrigger] = useState<import('@/lib/proFeatures').UpgradeTrigger>('generic');
   const [showUpgrade, setShowUpgrade] = useState(false);
   const openUpgrade = (trigger: import('@/lib/proFeatures').UpgradeTrigger) => {
@@ -443,7 +448,7 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
       {/* ══ Sticky Header: Tabs + Range ══ */}
       {tabMode === 'summary' && (
         <div className="panel-header">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="w-full rounded-none bg-transparent h-10 gap-0 p-0">
               <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Summary</TabsTrigger>
               {isPro ? (
