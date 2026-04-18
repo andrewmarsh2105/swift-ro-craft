@@ -489,8 +489,14 @@ export type Database = {
           spreadsheet_density: string | null
           spreadsheet_group_by: string
           spreadsheet_view_mode: string | null
+          stripe_checkout_session_id: string | null
           stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
           stripe_subscription_id: string | null
+          trial_ends_at: string | null
+          trial_started_at: string | null
+          lifetime_access: boolean | null
+          lifetime_unlocked_at: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -522,8 +528,14 @@ export type Database = {
           spreadsheet_density?: string | null
           spreadsheet_group_by?: string
           spreadsheet_view_mode?: string | null
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          lifetime_access?: boolean | null
+          lifetime_unlocked_at?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -555,8 +567,14 @@ export type Database = {
           spreadsheet_density?: string | null
           spreadsheet_group_by?: string
           spreadsheet_view_mode?: string | null
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          lifetime_access?: boolean | null
+          lifetime_unlocked_at?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string

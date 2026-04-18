@@ -6,14 +6,12 @@ import { LineItemEditor } from '@/components/mobile/LineItemEditor';
 import { createEmptyLine } from '@/lib/roLine';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { PostSavePaidStatusPrompt } from '@/components/shared/PostSavePaidStatusPrompt';
-import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useRO } from '@/contexts/ROContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 import type { LaborType, RepairOrder, ROLine, VehicleInfo } from '@/types/ro';
 import { cn, localDateStr } from '@/lib/utils';
 import { normalizePaidDateValue } from '@/lib/paidDate';
-import { useROCap } from '@/hooks/useROCap';
 import { LABOR_TYPES as _LABOR_TYPES_RAW, laborColor } from '@/lib/laborTypes';
 import { toast } from 'sonner';
 
@@ -91,7 +89,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { isPro } = useSubscription();
   const [showAdvisorList, setShowAdvisorList] = useState(false);
-  const [showProUpgrade, setShowProUpgrade] = useState(false);
   const [advisorDraft, setAdvisorDraft] = useState('');
   const [showAdvisorCreate, setShowAdvisorCreate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -125,8 +122,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setShowDetailsOpen(state.showDetailsOpen);
   };
 
-  const { isAtCap: _isAtCap } = useROCap();
-  const isAtCap = _isAtCap && !editingRO;
 
   useEffect(() => {
     if (isOpen) {
@@ -142,10 +137,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
 
   const handleSave = async (addAnother: boolean = false) => {
     if (isSaving || postSaveStatusPrompt.isSavingChoice) return;
-    if (isAtCap) {
-      setShowProUpgrade(true);
-      return;
-    }
 
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
     const roData = {
@@ -602,7 +593,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         </div>
       </BottomSheet>
 
-      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
     </BottomSheet>
     <PostSavePaidStatusPrompt
       open={postSaveStatusPrompt.statusPromptOpen}

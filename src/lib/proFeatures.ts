@@ -34,8 +34,8 @@ export interface UpgradeContext {
  */
 export const UPGRADE_CONTEXT: Record<UpgradeTrigger, UpgradeContext> = {
   'ro-cap': {
-    headline: 'You hit your monthly limit',
-    pitch: `Free accounts are capped at ${RO_MONTHLY_CAP} ROs/month. Go Pro and log every RO, every day — no cap.`,
+    headline: 'Unlock full access',
+    pitch: 'Your trial ended. Unlock RO Navigator once and keep lifetime access.',
     highlightFeature: 'Unlimited ROs',
   },
   'scan': {
@@ -64,8 +64,8 @@ export const UPGRADE_CONTEXT: Record<UpgradeTrigger, UpgradeContext> = {
     highlightFeature: 'Pay period closeouts & comparison',
   },
   'generic': {
-    headline: 'Upgrade to Pro',
-    pitch: "Don't leave hours on the table. Get the full picture — every RO, every period, every export.",
+    headline: 'Unlock RO Navigator',
+    pitch: '14-day free trial, then one-time $15.99 for lifetime access.',
     highlightFeature: undefined,
   },
 };

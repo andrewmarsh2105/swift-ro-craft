@@ -12,25 +12,22 @@ interface SubscriptionContextType {
   loading: boolean;
   subscriptionEnd: string | null;
   subscriptionStatus: BillingStatus;
-  /** Days until subscription/trial ends. null when no active subscription. */
+  /** Days until trial ends. null when no active trial. */
   daysUntilEnd: number | null;
-  /** True when Pro is active and ends within 7 days (trial window). */
+  /** True only when an active trial is within 3 days of ending. */
   isNearExpiry: boolean;
   hasBillingIssue: boolean;
   checkoutLoading: boolean;
   checkoutFallbackUrl: string | null;
   clearCheckoutFallback: () => void;
   checkSubscription: () => Promise<void>;
-  startCheckout: (plan?: 'monthly' | 'yearly') => Promise<void>;
-  openPortal: () => Promise<void>;
+  startCheckout: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  // Use user.id (stable string) so token refreshes (which create a new user object)
-  // don't unnecessarily re-run subscription checks and cause isPro to flash false.
   const userId = user?.id ?? null;
   const [isPro, setIsPro] = useState(false);
   const prevIsPro = useRef(false);
@@ -42,36 +39,25 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const clearCheckoutFallback = useCallback(() => setCheckoutFallbackUrl(null), []);
 
-  // Maximum time to wait for getSession() + Edge Function before giving up.
-  // Without this, a hung getSession() (wrong project URL, DNS failure, network
-  // outage) left loading=true forever because getSession() was previously outside
-  // the try/finally block that calls setLoading(false).
   const SUBSCRIPTION_CHECK_TIMEOUT_MS = 10_000;
 
   const checkSubscription = useCallback(async () => {
-    // Safety timeout — mirrors AUTH_TIMEOUT_MS in AuthContext. If the whole
-    // check stalls (bad env vars, Supabase unreachable, Edge Function cold-start),
-    // loading clears within a bounded time so the app never hangs forever.
     const timeoutHandle = setTimeout(() => {
       console.warn(
         `[Subscription] checkSubscription did not resolve within ${SUBSCRIPTION_CHECK_TIMEOUT_MS}ms. ` +
-        'Defaulting to not-subscribed. Check Supabase connectivity and Edge Function health.'
+        'Defaulting to no access. Check Supabase connectivity and Edge Function health.'
       );
       setLoading(false);
     }, SUBSCRIPTION_CHECK_TIMEOUT_MS);
 
     try {
-      // getSession() is now inside try/finally so a hung call is covered by both
-      // the timeout above and the finally block — previously it was outside both,
-      // meaning a stall here left loading=true with no recovery path.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       if (!token) {
-        // If the user was previously pro, don't reset — this can happen briefly during
-        // a token refresh before the new token is available. Only reset if genuinely signed out.
         if (!prevIsPro.current) {
           setIsPro(false);
           setSubscriptionStatus(null);
+          setSubscriptionEnd(null);
         }
         return;
       }
@@ -80,13 +66,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (error) {
-        // On transient errors, keep current Pro state instead of resetting
         return;
       }
 
       const status = (data?.status || null) as BillingStatus;
       const subscribed = data?.subscribed === true || hasProAccess(status);
-      // Track purchase_completed when Pro becomes active
       if (subscribed && !prevIsPro.current && sessionData.session?.user?.id) {
         trackPurchaseCompleted(sessionData.session.user.id);
       }
@@ -95,7 +79,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setSubscriptionStatus(status);
       setSubscriptionEnd(data?.subscription_end || null);
     } catch {
-      // Don't reset isPro on transient errors — preserve current state
+      // Preserve existing state on transient errors.
     } finally {
       clearTimeout(timeoutHandle);
       setLoading(false);
@@ -103,18 +87,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Short-circuit immediately when Supabase is not configured. Any API calls
-    // would fail against placeholder.supabase.co (DNS error) and we'd waste the
-    // full SUBSCRIPTION_CHECK_TIMEOUT_MS before loading clears.
     if (!SUPABASE_CONFIGURED) {
       setLoading(false);
       return;
     }
+
     if (userId) {
       checkSubscription();
     } else {
       setIsPro(false);
       setSubscriptionStatus(null);
+      setSubscriptionEnd(null);
       prevIsPro.current = false;
       setLoading(false);
     }
@@ -130,22 +113,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
       window.history.replaceState({}, '', window.location.pathname);
-      // Retry up to 5 times over ~15s to wait for Stripe to propagate
       let attempt = 0;
       const maxAttempts = 5;
-      const delays = [2000, 3000, 3000, 3500, 3500]; // cumulative: 2s, 5s, 8s, 11.5s, 15s
-      const syncToast = toast.loading('Syncing subscription…');
+      const delays = [2000, 3000, 3000, 3500, 3500];
+      const syncToast = toast.loading('Syncing access…');
       const tryCheck = async () => {
         attempt++;
         await checkSubscription();
         setTimeout(() => {
           if (prevIsPro.current) {
-            toast.success('Pro unlocked! 🎉', { id: syncToast });
+            toast.success('Lifetime access unlocked', { id: syncToast });
           } else if (attempt < maxAttempts) {
             setTimeout(tryCheck, delays[attempt]);
           } else {
             toast.dismiss(syncToast);
-            toast('Subscription may take a moment to activate. Pull to refresh.', { duration: 5000 });
+            toast('Access may take a moment to unlock. Pull to refresh.', { duration: 5000 });
           }
         }, 500);
       };
@@ -156,63 +138,59 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [checkSubscription]);
 
-  const startCheckout = useCallback(async (plan?: 'monthly' | 'yearly') => {
+  const startCheckout = useCallback(async () => {
     setCheckoutLoading(true);
     setCheckoutFallbackUrl(null);
     try {
-      // Always get a fresh token — the closure's `session` may be stale after a
-      // token refresh, which would send an expired JWT and get a 401 from checkout.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       const requestId = crypto.randomUUID();
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: plan || 'monthly', request_id: requestId },
+        body: { request_id: requestId },
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
+
       if (error) throw error;
       if (data?.url) {
-        if (user) trackCheckoutStarted(user.id, plan || 'monthly');
+        if (user) trackCheckoutStarted(user.id, 'lifetime');
         window.location.href = data.url;
-        // If still here after 2s, Safari may have blocked — show fallback
         setTimeout(() => {
           setCheckoutFallbackUrl(data.url);
           setCheckoutLoading(false);
         }, 2000);
         return;
-      } else {
-        toast.error('Checkout URL not received. Please try again.');
       }
+
+      toast.error('Checkout URL not received. Please try again.');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Please try again.';
       toast.error(`Checkout failed: ${message}`);
     }
+
     setCheckoutLoading(false);
   }, [user]);
 
-  const openPortal = useCallback(async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      toast.error('Could not open billing portal. Please try again.');
-    }
-  }, []);
-
-  const daysUntilEnd = subscriptionEnd
+  const daysUntilEnd = subscriptionStatus === 'trialing' && subscriptionEnd
     ? Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
-  const isNearExpiry = isPro && daysUntilEnd !== null && daysUntilEnd <= 7;
-  const hasBillingIssueState = !isPro && hasBillingIssue(subscriptionStatus);
+  const isNearExpiry = subscriptionStatus === 'trialing' && daysUntilEnd !== null && daysUntilEnd <= 3;
+  const hasBillingIssueState = hasBillingIssue(subscriptionStatus);
 
   return (
-    <SubscriptionContext.Provider value={{ isPro, loading, subscriptionEnd, subscriptionStatus, daysUntilEnd, isNearExpiry, hasBillingIssue: hasBillingIssueState, checkoutLoading, checkoutFallbackUrl, clearCheckoutFallback, checkSubscription, startCheckout, openPortal }}>
+    <SubscriptionContext.Provider value={{
+      isPro,
+      loading,
+      subscriptionEnd,
+      subscriptionStatus,
+      daysUntilEnd,
+      isNearExpiry,
+      hasBillingIssue: hasBillingIssueState,
+      checkoutLoading,
+      checkoutFallbackUrl,
+      clearCheckoutFallback,
+      checkSubscription,
+      startCheckout,
+    }}>
       {children}
     </SubscriptionContext.Provider>
   );

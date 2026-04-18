@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, LogOut, Shield, Star } from 'lucide-react';
+import { ChevronRight, LogOut, Shield } from 'lucide-react';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { cn } from '@/lib/utils';
+import type { BillingStatus } from '@/contexts/SubscriptionContext';
 
 interface AccountSheetProps {
   isOpen: boolean;
@@ -12,9 +13,8 @@ interface AccountSheetProps {
   subscriptionEnd: string | null | undefined;
   daysUntilEnd: number | null;
   isNearExpiry: boolean;
-  hasBillingIssue: boolean;
+  subscriptionStatus: BillingStatus;
   isAdmin: boolean;
-  openPortal: () => void;
   setShowUpgradeDialog: (v: boolean) => void;
   signOut: () => void;
 }
@@ -28,13 +28,23 @@ export function AccountSheet({
   subscriptionEnd,
   daysUntilEnd,
   isNearExpiry,
-  hasBillingIssue,
+  subscriptionStatus,
   isAdmin,
-  openPortal,
   setShowUpgradeDialog,
   signOut,
 }: AccountSheetProps) {
   const navigate = useNavigate();
+
+  const statusLabel =
+    subscriptionStatus === 'lifetime'
+      ? 'Lifetime unlocked'
+      : subscriptionStatus === 'trialing'
+        ? 'Trial active'
+        : subscriptionStatus === 'expired'
+          ? 'Trial expired'
+          : isPro
+            ? 'Access active'
+            : 'Locked';
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Account">
@@ -50,61 +60,40 @@ export function AccountSheet({
         </div>
 
         <div className="space-y-1">
-          <h4 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wide px-0.5">Plan</h4>
-          <div
-            className="bg-card border border-border/60 overflow-hidden"
-            style={{ borderRadius: 'var(--radius)' }}
-          >
+          <h4 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wide px-0.5">Access</h4>
+          <div className="bg-card border border-border/60 overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
             <button
               onClick={() => {
                 onClose();
-                if (isPro) openPortal();
-                else setShowUpgradeDialog(true);
+                if (!isPro || subscriptionStatus === 'expired') setShowUpgradeDialog(true);
               }}
               className="w-full px-4 py-3 flex items-center justify-between tap-target active:bg-muted/40 transition-colors"
+              disabled={isPro && subscriptionStatus !== 'expired'}
             >
-              <span className="text-[13px] font-medium">Subscription</span>
+              <span className="text-[13px] font-medium">{isPro && subscriptionStatus !== 'expired' ? 'Access status' : 'Unlock full access'}</span>
               <div className="flex items-center gap-2">
-                <span className={cn(
-                  'text-[12px] font-semibold',
-                  isPro ? 'text-primary' : 'text-muted-foreground'
-                )}>
-                  {isPro ? 'Pro' : 'Free'}
+                <span className={cn('text-[12px] font-semibold', isPro ? 'text-primary' : 'text-muted-foreground')}>
+                  {statusLabel}
                 </span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
               </div>
             </button>
-            {subscriptionEnd && isPro && !isNearExpiry && (
+            {subscriptionStatus === 'trialing' && subscriptionEnd && (
               <div className="px-4 pb-3 -mt-1">
-                <p className="text-[11px] text-muted-foreground/60">Renews {new Date(subscriptionEnd).toLocaleDateString()}</p>
+                <p className="text-[11px] text-muted-foreground/60">Trial expires {new Date(subscriptionEnd).toLocaleDateString()}</p>
               </div>
             )}
             {isNearExpiry && daysUntilEnd !== null && (
-              <div className="mx-4 mb-3 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-md px-3 py-2">
-                <Star className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-[11px] text-amber-800 leading-snug">
-                  Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong> — add a payment method to keep Pro.
-                </p>
-              </div>
-            )}
-            {hasBillingIssue && (
-              <div className="mx-4 mb-3 flex items-start gap-2 bg-destructive/8 border border-destructive/20 rounded-md px-3 py-2">
-                <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0 mt-0.5" />
-                <p className="text-[11px] text-destructive leading-snug">
-                  We couldn't renew your subscription.{' '}
-                  <button onClick={() => { onClose(); openPortal(); }} className="font-semibold underline underline-offset-2">
-                    Fix payment
-                  </button>
+              <div className="mx-4 mb-3 rounded-md px-3 py-2 bg-amber-500/8 border border-amber-500/20">
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+                  Trial expires in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>.
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        <div
-          className="bg-card border border-border/60 overflow-hidden divide-y divide-border/40"
-          style={{ borderRadius: 'var(--radius)' }}
-        >
+        <div className="bg-card border border-border/60 overflow-hidden divide-y divide-border/40" style={{ borderRadius: 'var(--radius)' }}>
           {isAdmin && (
             <button
               onClick={() => { onClose(); navigate('/admin'); }}

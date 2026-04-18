@@ -2,13 +2,10 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-// Production origins + local dev. Add extra origins (e.g. a staging domain) via the
-// EXTRA_ALLOWED_ORIGINS Supabase secret — comma-separated, no trailing slashes.
 const BASE_ALLOWED_ORIGINS = [
   "https://ronavigator.com",
   "https://www.ronavigator.com",
   "https://app.ronavigator.com",
-  // Local dev
   "http://localhost:8080",
   "http://localhost:5173",
   "http://127.0.0.1:8080",
@@ -23,24 +20,20 @@ const ALLOWED_ORIGINS = [
     .filter(Boolean),
 ];
 
-const SUBSCRIPTION_BLOCKING_STATUSES = new Set([
-  "trialing",
-  "active",
-  "past_due",
-  "unpaid",
-  "incomplete",
-]);
-
 function getSafeOrigin(req: Request): string | null {
   const origin = req.headers.get("origin");
   if (origin && ALLOWED_ORIGINS.includes(origin)) return origin;
+
   const referer = req.headers.get("referer");
   if (referer) {
     try {
       const refOrigin = new URL(referer).origin;
       if (ALLOWED_ORIGINS.includes(refOrigin)) return refOrigin;
-    } catch { /* invalid referer */ }
+    } catch {
+      // invalid referer
+    }
   }
+
   return null;
 }
 
@@ -59,15 +52,10 @@ function isUserOwnedCustomer(customer: Stripe.Customer, userId: string, userEmai
   return (customer.email || "").toLowerCase() === userEmail.toLowerCase();
 }
 
-const monthlyPrice = Deno.env.get("STRIPE_PRICE_MONTHLY");
-const yearlyPrice = Deno.env.get("STRIPE_PRICE_YEARLY");
-if (!monthlyPrice || !yearlyPrice) {
-  throw new Error("STRIPE_PRICE_MONTHLY and STRIPE_PRICE_YEARLY env vars must be set");
+const lifetimePrice = Deno.env.get("STRIPE_PRICE_LIFETIME");
+if (!lifetimePrice) {
+  throw new Error("STRIPE_PRICE_LIFETIME env var must be set");
 }
-const PRICES: Record<string, string> = {
-  monthly: monthlyPrice,
-  yearly: yearlyPrice,
-};
 
 serve(async (req) => {
   const safeOrigin = getSafeOrigin(req);
@@ -88,12 +76,12 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
   );
 
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
   try {
@@ -110,20 +98,18 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    let plan: "monthly" | "yearly" = "monthly";
     let requestId = "";
     try {
       const body = await req.json();
-      if (body?.plan === "yearly") plan = "yearly";
       if (typeof body?.request_id === "string") {
         requestId = body.request_id.trim().slice(0, 80);
       }
-    } catch { /* default monthly */ }
+    } catch {
+      // optional request body
+    }
 
-    const priceId = PRICES[plan];
     const stripe = new Stripe(stripeKey);
 
-    // Try cached customer ID first
     const { data: settings } = await supabaseAdmin
       .from("user_settings")
       .select("stripe_customer_id")
@@ -132,7 +118,6 @@ serve(async (req) => {
 
     let customerId: string | undefined = settings?.stripe_customer_id || undefined;
 
-    // Validate cached ID or search by email
     if (customerId) {
       try {
         const customer = await stripe.customers.retrieve(customerId);
@@ -147,34 +132,14 @@ serve(async (req) => {
     if (!customerId) {
       const customers = await stripe.customers.list({ email: user.email, limit: 10 });
       const matched = customers.data.find((c) => isUserOwnedCustomer(c, user.id, user.email));
-      if (matched) {
-        customerId = matched.id;
-      }
+      if (matched) customerId = matched.id;
     }
 
     if (customerId) {
-      // Keep metadata in sync for downstream webhook mapping
       await stripe.customers.update(customerId, {
         metadata: { supabase_user_id: user.id },
       });
-
-      // Prevent duplicate / overlapping subscriptions
-      const existing = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
-      const blockingSub = existing.data.find((s: any) => SUBSCRIPTION_BLOCKING_STATUSES.has(String(s.status)));
-      if (blockingSub) {
-        console.log("[CREATE-CHECKOUT] Existing subscription found, redirecting to portal", {
-          customerId,
-          subId: blockingSub.id,
-          status: blockingSub.status,
-        });
-        const portalSession = await stripe.billingPortal.sessions.create({
-          customer: customerId,
-          return_url: `${safeOrigin}/`,
-        });
-        return new Response(JSON.stringify({ url: portalSession.url, already_subscribed: true, version: "2026-03-19a" }), { headers, status: 200 });
-      }
     } else {
-      // Create new Stripe customer
       const newCustomer = await stripe.customers.create({
         email: user.email,
         metadata: { supabase_user_id: user.id },
@@ -183,47 +148,38 @@ serve(async (req) => {
       console.log("[CREATE-CHECKOUT] Created new Stripe customer", { customerId, email: user.email });
     }
 
-    // Persist stripe_customer_id — upsert handles users who have no settings row yet
     await supabaseAdmin
       .from("user_settings")
       .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" });
 
     const idempotencyKey = requestId
       ? `checkout_${user.id}_${requestId}`
-      : `checkout_${user.id}_${plan}_${new Date().toISOString().slice(0, 16)}`;
+      : `checkout_${user.id}_${new Date().toISOString().slice(0, 16)}`;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       client_reference_id: user.id,
-      metadata: { supabase_user_id: user.id },
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: "subscription",
-      subscription_data: {
-        trial_period_days: 7,
-        trial_settings: {
-          end_behavior: { missing_payment_method: "cancel" },
-        },
-        metadata: { supabase_user_id: user.id },
+      metadata: {
+        supabase_user_id: user.id,
+        access_type: "lifetime",
       },
-      custom_text: {
-        submit: {
-          message: "Your 7-day free trial starts now — you won't be charged until the trial ends. Cancel anytime.",
-        },
-      },
+      line_items: [{ price: lifetimePrice, quantity: 1 }],
+      mode: "payment",
       success_url: `${safeOrigin}/?checkout=success`,
       cancel_url: `${safeOrigin}/?checkout=cancel`,
     }, {
       idempotencyKey,
     });
 
-    return new Response(JSON.stringify({ url: session.url, version: "2026-03-19a" }), { headers, status: 200 });
+    return new Response(JSON.stringify({ url: session.url, version: "2026-04-18-lifetime" }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const isAuthError = errorMessage.includes("not authenticated") ||
-                        errorMessage.includes("Authorization") ||
-                        errorMessage.includes("Auth session") ||
-                        errorMessage.includes("authentication error") ||
-                        errorMessage.includes("No authorization header");
+      errorMessage.includes("Authorization") ||
+      errorMessage.includes("Auth session") ||
+      errorMessage.includes("authentication error") ||
+      errorMessage.includes("No authorization header");
+
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers,
       status: isAuthError ? 401 : 500,

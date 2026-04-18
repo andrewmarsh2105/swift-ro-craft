@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { goBackOrFallback } from '@/lib/navigation';
-import { Camera, Plus, Loader2, User, FileText, Crown, Search, Split } from 'lucide-react';
+import { Camera, Plus, Loader2, User, FileText, Search, Split } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -18,14 +18,12 @@ import { haptics } from '@/lib/haptics';
 import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
-import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 import { DetailsCollapsible, PresetSearchRail } from '@/components/shared';
 import { PostSavePaidStatusPrompt } from '@/components/shared/PostSavePaidStatusPrompt';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { usePostSavePaidStatusPrompt } from '@/hooks/usePostSavePaidStatusPrompt';
 import { SplitRODialog } from '@/components/shared/SplitRODialog';
 import { buildSplitRONumber, splitLinesBySelection } from '@/lib/roSplit';
@@ -56,7 +54,6 @@ export default function AddRO() {
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
-  const [showProUpgrade, setShowProUpgrade] = useState(false);
   const [showSplitDialog, setShowSplitDialog] = useState(false);
 
   useEffect(() => {
@@ -78,13 +75,6 @@ export default function AddRO() {
   // Form state — advisor must be declared before the rangeFilteredAdvisors useMemo below
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
 
-  // RO cap — use ro.date (local YYYY-MM-DD) to avoid UTC createdAt timezone drift.
-  const monthlyROCount = useMemo(() => {
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.date && r.date >= monthStart).length;
-  }, [ros]);
-  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
 
   // Date range for filtering advisors to match the current list view filter
   const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'mobile-ro-tab', userSettings);
@@ -370,7 +360,6 @@ export default function AddRO() {
       photos: editingRO?.photos, lines, isSimpleMode: false,
     };
 
-    if (isAtCap) { setShowProUpgrade(true); return; }
 
     setIsSaving(true);
     try {
@@ -545,25 +534,6 @@ export default function AddRO() {
           </button>
         ) : undefined}
       />
-
-      {/* Monthly cap banner — shown when free user hits the RO_MONTHLY_CAP limit */}
-      {isAtCap && (
-        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-amber-50 border-b border-amber-200 dark:bg-amber-950/40 dark:border-amber-800">
-          <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-          <p className="flex-1 text-sm text-amber-800 dark:text-amber-300 leading-snug">
-            You've hit your {RO_MONTHLY_CAP} RO/month limit.{' '}
-            <button
-              type="button"
-              onClick={() => setShowProUpgrade(true)}
-              className="font-semibold underline underline-offset-2"
-            >
-              Upgrade to Pro
-            </button>{' '}
-            to keep logging.
-          </p>
-        </div>
-      )}
-
       {/* Core fields strip */}
       <div className="flex-shrink-0 border-b border-border/70 bg-card">
         <div className="px-3 pt-2 pb-1.5 grid grid-cols-2 gap-2">
@@ -870,7 +840,6 @@ export default function AddRO() {
         existingLineDescriptions={lines.map(l => l.description)}
       />
 
-      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
       <PostSavePaidStatusPrompt
         open={postSaveStatusPrompt.statusPromptOpen}
         roNumber={postSaveStatusPrompt.statusPromptRONumber}
