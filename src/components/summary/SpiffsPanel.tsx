@@ -109,25 +109,25 @@ export function SpiffsPanel({
   return (
     <div className="space-y-4 sm:space-y-5">
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
-        <Card className="border-primary/15 bg-gradient-to-b from-primary/5 to-card">
+        <Card className="brand-panel border-primary/20 bg-gradient-to-b from-primary/8 to-card">
           <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
             <p className="text-[11px] font-medium uppercase tracking-wide text-primary/80">Total Spiff Pay</p>
             <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">${report.totalPay.toFixed(2)}</p>
           </CardContent>
         </Card>
-        <Card className="border-primary/10 bg-card">
+        <Card className="brand-panel border-primary/10 bg-card">
           <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Auto Spiffs</p>
             <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{report.totalAutoCount}</p>
           </CardContent>
         </Card>
-        <Card className="border-primary/10 bg-card">
+        <Card className="brand-panel border-primary/10 bg-card">
           <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Manual Spiffs</p>
             <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{report.totalManualCount}</p>
           </CardContent>
         </Card>
-        <Card className="border-primary/10 bg-card">
+        <Card className="brand-panel border-primary/10 bg-card">
           <CardContent className="px-3.5 py-3.5 sm:px-4 sm:py-4">
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total Items</p>
             <p className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{report.totalCount}</p>
@@ -136,7 +136,7 @@ export function SpiffsPanel({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
-        <Card className="border-primary/15">
+        <Card className="brand-panel border-primary/15">
           <CardHeader className="pb-2 sm:pb-3">
             <CardTitle className="text-base">Spiff Rules (Automatic)</CardTitle>
           </CardHeader>
@@ -186,7 +186,7 @@ export function SpiffsPanel({
             <div className="max-h-72 overflow-auto space-y-2 pr-1">
               {rules.length === 0 && <p className="text-sm text-muted-foreground">No spiff rules yet.</p>}
               {rules.map((rule) => (
-                <div key={rule.id} className="rounded-xl border border-border/80 bg-card/80 p-3 sm:p-3.5">
+                <div key={rule.id} className="rounded-xl border border-border/75 bg-gradient-to-b from-card to-accent/25 p-3 sm:p-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -207,7 +207,7 @@ export function SpiffsPanel({
         </Card>
 
         <div className="space-y-4">
-          <Card className="border-primary/15">
+          <Card className="brand-panel border-primary/15">
             <CardHeader className="pb-2 sm:pb-3">
               <CardTitle className="text-base">Manual Spiff Entries</CardTitle>
             </CardHeader>
@@ -250,7 +250,7 @@ export function SpiffsPanel({
               <div className="max-h-72 overflow-auto space-y-2 pr-1">
                 {manualEntries.length === 0 && <p className="text-sm text-muted-foreground">No manual entries yet.</p>}
                 {manualEntries.map((entry) => (
-                  <div key={entry.id} className="rounded-xl border border-border/80 bg-card/80 p-3 sm:p-3.5">
+                  <div key={entry.id} className="rounded-xl border border-border/75 bg-gradient-to-b from-card to-accent/25 p-3 sm:p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 space-y-1">
                         <p className="font-medium leading-snug break-words">{entry.label}</p>

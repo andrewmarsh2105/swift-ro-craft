@@ -46,11 +46,11 @@ export function DashboardKPIBar({ className, filteredROs }: { className?: string
 
   return (
     <div className={cn(
-      'flex items-center gap-4 px-4 py-1.5 border-b border-border/40 bg-card/60 backdrop-blur-sm text-xs',
+      'flex items-center gap-4 px-4 py-2 border-b border-border/45 bg-gradient-to-r from-card via-accent/35 to-card backdrop-blur-sm text-xs',
       className,
     )}>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">Period</span>
+      <div className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/[0.06] px-2 py-1">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">Period</span>
         <span className="font-bold tabular-nums text-primary data-mono text-sm">
           {maskHours(stats.totalHours, hideTotals)}h
         </span>
@@ -71,6 +71,10 @@ export function DashboardKPIBar({ className, filteredROs }: { className?: string
           <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--status-internal))]" />
           <span className="tabular-nums data-mono">{maskHours(stats.internal, hideTotals)}</span>
         </span>
+      </div>
+
+      <div className="ml-auto rounded-md border border-border/50 bg-card/75 px-2 py-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
+        {stats.totalROs} ROs
       </div>
     </div>
   );

@@ -513,9 +513,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full brand-shell-bg">
       {/* ── Sticky header ───────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-b border-border/50">
+      <div className="sticky top-0 z-30 brand-topbar border-b border-border/50">
 
         {/* Status strip — the single quick-glance KPI bar */}
         {viewMode !== 'spreadsheet' && (

@@ -25,7 +25,7 @@ export function HoursByDay({ byDay, totalHours, totalROs, todayStr, hideTotals }
   const futureDaysInRange = byDay.filter((d) => d.date > todayStr).length;
 
   return (
-    <div className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+    <div className="brand-panel overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
       <div className="px-4 pt-2.5 pb-1.5 flex items-center justify-between">
         <span className="data-header">Hours by Day</span>
         <span className="text-[9px] text-muted-foreground/30">{byDay.length}d</span>

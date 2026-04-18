@@ -322,10 +322,10 @@ export const ROListPanel = memo(function ROListPanel({
 
   return (
     <>
-      <div className="flex flex-col h-full min-h-0 bg-background">
+      <div className="flex flex-col h-full min-h-0 brand-shell-bg">
 
         {/* ── Panel header ─────────────────────────── */}
-        <div className="flex-shrink-0 bg-gradient-to-b from-muted/20 to-background" style={{ borderBottom: '1px solid hsl(var(--border) / 0.45)' }}>
+        <div className="flex-shrink-0 bg-gradient-to-b from-card via-accent/40 to-card" style={{ borderBottom: '1px solid hsl(var(--border) / 0.45)' }}>
 
           {/* Top: queue identity + active record + Add button */}
           <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
@@ -377,7 +377,7 @@ export const ROListPanel = memo(function ROListPanel({
                   value={sharedFilters.searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search RO#, name, VIN, lines…"
-                  className="w-full h-6 pl-7 pr-3 rounded border border-border/50 bg-background text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring/50"
+                  className="w-full h-6 pl-7 pr-3 rounded border border-border/55 bg-background/95 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring/50"
                 />
               </div>
               <div className="h-6 px-2 rounded border border-border/60 bg-muted/30 inline-flex items-center gap-1 text-[9px] font-semibold text-muted-foreground tabular-nums whitespace-nowrap">
@@ -509,7 +509,7 @@ export const ROListPanel = memo(function ROListPanel({
               {/* Column headers */}
               <div
                 className={cn(
-                  "grid gap-x-2 items-center px-3 py-1.5 sticky top-0 z-10 bg-background/95 backdrop-blur-sm",
+                  "grid gap-x-2 items-center px-3 py-1.5 sticky top-0 z-10 bg-gradient-to-r from-card via-accent/35 to-card backdrop-blur-sm",
                   gridCols,
                 )}
                 style={{ borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
@@ -558,8 +558,8 @@ export const ROListPanel = memo(function ROListPanel({
                           ? "list-row-selected bg-amber-100/90 hover:bg-amber-200/90 border-amber-500/80 ring-2 ring-amber-400/65 shadow-[inset_0_0_0_1px_hsl(var(--brand-amber)/0.45),0_3px_12px_hsl(var(--brand-amber)/0.2)] dark:bg-amber-950/30 dark:hover:bg-amber-900/35 dark:border-amber-400/70 dark:ring-amber-500/50"
                           : cn(
                             index % 2 === 0
-                              ? "bg-white border-border/70 hover:bg-amber-100/80 hover:border-amber-300/60 dark:bg-card"
-                              : "bg-primary/[0.14] border-primary/35 hover:bg-amber-100/80 hover:border-amber-300/60",
+                              ? "bg-white border-border/70 hover:bg-primary/[0.1] hover:border-primary/30 dark:bg-card"
+                              : "bg-primary/[0.14] border-primary/35 hover:bg-primary/[0.2] hover:border-primary/40",
                           ),
                       )}
                       style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}

@@ -351,8 +351,10 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
     <HideTotalsContext.Provider value={hideTotals}>
       <div className="desktop-sections p-4">
         {alertsBlock}
-        {rangeSelectorBlock}
-        {customDatePickersBlock}
+        <div className="brand-section-banner p-3 space-y-2">
+          {rangeSelectorBlock}
+          {customDatePickersBlock}
+        </div>
 
         <div className="grid grid-cols-[1fr_1fr] gap-3 items-start">
           <div className="space-y-3">
@@ -406,8 +408,12 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
     <HideTotalsContext.Provider value={hideTotals}>
       <div className="space-y-4 pb-2">
         {alertsBlock}
-        <div className="px-4 pt-2.5">{rangeSelectorBlock}</div>
-        <div className="px-4">{customDatePickersBlock}</div>
+        <div className="px-4 pt-2.5">
+          <div className="brand-section-banner p-3 space-y-2">
+            {rangeSelectorBlock}
+            {customDatePickersBlock}
+          </div>
+        </div>
         <div className="px-4"><HeroKPI {...heroKPIProps} /></div>
         <div className="px-4">
           <GoalsAndEarnings
@@ -444,10 +450,10 @@ export function SummaryTab({ initialTab = 'summary', tabMode = 'summary' }: Summ
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full brand-shell-bg">
       {/* ══ Sticky Header: Tabs + Range ══ */}
       {tabMode === 'summary' && (
-        <div className="panel-header">
+        <div className="panel-header brand-topbar">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="w-full rounded-none bg-transparent h-10 gap-0 p-0">
               <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm">Summary</TabsTrigger>

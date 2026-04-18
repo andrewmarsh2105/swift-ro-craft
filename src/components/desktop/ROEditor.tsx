@@ -346,12 +346,12 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   };
 
   return (
-    <div className="min-h-full flex flex-col bg-muted/20">
-      <div className="px-4 py-3 space-y-3 bg-card/95 border-b border-border/50">
+    <div className="min-h-full flex flex-col brand-shell-bg">
+      <div className="px-4 py-3 space-y-3 bg-gradient-to-b from-card via-accent/35 to-card border-b border-border/50">
         <div className="grid grid-cols-1 gap-3 items-start">
           <div className="space-y-3 min-w-0">
             <div
-              className="grid gap-2 p-2.5 rounded-lg border border-border/70 bg-background/90"
+              className="grid gap-2 p-2.5 rounded-lg border border-border/70 bg-card/95 shadow-[var(--shadow-soft)]"
               style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
             >
               <div className="min-w-0">
@@ -414,7 +414,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
               </div>
             </div>
 
-            <div className="p-2.5 rounded-lg border border-border/60 bg-background/80">
+            <div className="p-2.5 rounded-lg border border-border/60 bg-card/92 shadow-[var(--shadow-soft)]">
               <DetailsCollapsible
                 vehicle={vehicle} onVehicleChange={setVehicle}
                 customerName={customerName} onCustomerNameChange={setCustomerName}
@@ -513,9 +513,9 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
 
       <div className="p-4">
         <div className="grid grid-cols-1 gap-4">
-          <div className="min-h-0 rounded-xl border border-border/70 bg-background shadow-sm overflow-hidden flex flex-col">
+          <div className="min-h-0 rounded-xl border border-border/70 bg-card shadow-[var(--shadow-card)] overflow-hidden flex flex-col">
             {settings.presets.length > 0 && (
-              <div className="flex-shrink-0 border-b border-border/50 bg-muted/20 px-3 py-2">
+              <div className="flex-shrink-0 border-b border-border/50 bg-gradient-to-r from-accent/45 to-transparent px-3 py-2">
                 <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-1">Quick Presets</p>
                 <PresetSearchRail
                   presets={settings.presets}
@@ -555,7 +555,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/70 bg-background shadow-sm p-3 flex flex-col gap-3">
+          <div className="rounded-xl border border-border/70 bg-card shadow-[var(--shadow-card)] p-3 flex flex-col gap-3">
             <div className="flex-1 flex flex-col min-h-0">
               <p className="text-[10px] uppercase tracking-[0.13em] font-semibold text-muted-foreground/75 mb-2 inline-flex items-center gap-1.5">
                 <StickyNote className="h-3.5 w-3.5" />
@@ -571,7 +571,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         </div>
       </div>
 
-      <div className="border-t border-border/50 px-4 py-2 bg-card/95">
+      <div className="border-t border-border/50 px-4 py-2 bg-gradient-to-t from-card via-accent/20 to-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Cancel

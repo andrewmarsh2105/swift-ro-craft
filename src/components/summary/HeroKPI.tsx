@@ -21,8 +21,8 @@ export function HeroKPI({ totalHours, totalROs, totalLines, avgPerRO, byLaborTyp
       className="overflow-hidden"
       style={{
         borderRadius: 'calc(var(--radius) + 2px)',
-        border: '1px solid hsl(var(--primary) / 0.22)',
-        background: 'linear-gradient(180deg, hsl(var(--card)), hsl(var(--primary) / 0.03))',
+        border: '1px solid hsl(var(--primary) / 0.24)',
+        background: 'linear-gradient(165deg, hsl(var(--card)) 0%, hsl(var(--accent) / 0.55) 40%, hsl(var(--primary) / 0.06) 100%)',
         boxShadow: 'var(--shadow-raised)',
       }}
     >
@@ -43,15 +43,15 @@ export function HeroKPI({ totalHours, totalROs, totalLines, avgPerRO, byLaborTyp
 
       {/* Secondary metrics */}
       <div className="px-4 pb-2 grid grid-cols-3 gap-1.5">
-        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
+        <div className="rounded-md border border-border/45 bg-card/80 px-2 py-1 text-center shadow-[0_2px_8px_-8px_hsl(var(--foreground)/0.25)]">
           <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">ROs</div>
           <div className="text-[12px] font-bold tabular-nums">{totalROs}</div>
         </div>
-        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
+        <div className="rounded-md border border-border/45 bg-card/80 px-2 py-1 text-center shadow-[0_2px_8px_-8px_hsl(var(--foreground)/0.25)]">
           <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">Lines</div>
           <div className="text-[12px] font-bold tabular-nums">{totalLines}</div>
         </div>
-        <div className="rounded-md border border-border/50 bg-card/70 px-2 py-1 text-center">
+        <div className="rounded-md border border-border/45 bg-card/80 px-2 py-1 text-center shadow-[0_2px_8px_-8px_hsl(var(--foreground)/0.25)]">
           <div className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/65">Avg / RO</div>
           <div className="text-[12px] font-bold tabular-nums">{maskHours(avgPerRO, hideTotals)}h</div>
         </div>
