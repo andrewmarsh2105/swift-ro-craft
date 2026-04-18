@@ -139,12 +139,12 @@ const ROCard = memo(function ROCard({
   return (
     <div
       className={cn(
-        "ro-row-card relative overflow-hidden group rounded-lg border shadow-[0_1px_0_hsl(var(--foreground)/0.03)]",
+        "ro-row-card relative overflow-hidden group rounded-xl border shadow-[0_1px_0_hsl(var(--foreground)/0.03)]",
         isSelected
           ? 'list-row-selected bg-amber-100/90 border-amber-500/80 ring-2 ring-amber-400/70 shadow-[inset_0_0_0_1px_hsl(var(--brand-amber)/0.45),0_3px_14px_hsl(var(--brand-amber)/0.2)] dark:bg-amber-950/30 dark:border-amber-400/70 dark:ring-amber-500/55'
           : rowTone === 'alt'
-            ? 'bg-primary/[0.14] border-primary/35 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]'
-            : 'bg-white border-border/80 shadow-[inset_0_0_0_1px_hsl(var(--border)/0.45)] dark:bg-card',
+            ? 'bg-[linear-gradient(180deg,hsl(var(--primary)/0.11),hsl(var(--primary)/0.075))] border-primary/30 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.15)]'
+            : 'bg-[linear-gradient(180deg,hsl(var(--card)),hsl(var(--card)))] border-border/75 shadow-[inset_0_0_0_1px_hsl(var(--border)/0.42)] dark:bg-card',
       )}
       style={{ borderLeftColor: accentColor, borderLeftWidth: '3px' }}
     >
@@ -153,7 +153,9 @@ const ROCard = memo(function ROCard({
           "flex items-stretch gap-0 cursor-pointer transition-colors duration-100",
           isSelected
             ? "hover:bg-amber-200/90 active:bg-amber-300/90 dark:hover:bg-amber-900/35 dark:active:bg-amber-900/50"
-            : "hover:bg-amber-100/80 active:bg-amber-200/75",
+            : rowTone === 'alt'
+              ? "hover:bg-primary/[0.2] active:bg-primary/[0.26]"
+              : "hover:bg-primary/[0.09] active:bg-primary/[0.15]",
         )}
         onClick={() => onViewDetails(ro)}
       >
