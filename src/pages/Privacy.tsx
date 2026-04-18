@@ -7,7 +7,7 @@ const sections = [
   },
   {
     title: '2. How We Use Your Information',
-    body: 'Your data is used to provide and improve the RO Navigator service. Specifically, we use it to: display your repair orders and pay summaries, process one-time lifetime unlock payments through Stripe, send transactional emails (password resets, account confirmations), and analyze usage patterns to improve the product.',
+    body: 'Your data is used to provide and improve the RO Navigator service. Specifically, we use it to: display your repair orders and pay summaries, process one-time lifetime unlock payments through Stripe (no recurring subscription billing), send transactional emails (password resets, account confirmations), and analyze usage patterns to improve the product.',
   },
   {
     title: '3. Data Storage & Security',

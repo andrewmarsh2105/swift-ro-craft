@@ -92,24 +92,14 @@ export default defineConfig({
         // imported module" errors and the infinite loading screen.
         cleanupOutdatedCaches: true,
 
-        // Network-first for Supabase API calls (so live data is always fresh)
+        // Never cache Supabase traffic in the service worker.
+        // Supabase responses can include authenticated user/session state and
+        // rapidly changing RO data; serving them from SW runtime cache can
+        // create stale or cross-version behavior after deploys.
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-api",
-              // 5 min TTL (was 24 h). A stale Supabase auth response served from
-              // the SW cache after a redeploy is the most dangerous kind — it can
-              // make the app appear to boot successfully while actually running
-              // against the wrong session or project state.
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
-              networkTimeoutSeconds: 10,
-              // Only cache successful responses. Without this, a 5xx or network
-              // error response could be cached and replayed on the next load,
-              // making a transient Supabase failure look like a permanent one.
-              cacheableResponse: { statuses: [0, 200] },
-            },
+            handler: "NetworkOnly",
           },
           // Cache-first for Google Fonts and other CDN assets
           {

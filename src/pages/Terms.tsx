@@ -7,7 +7,7 @@ const sections = [
   },
   {
     title: '2. Description of Service',
-    body: 'RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. New accounts can choose to start a 14-day free trial. After the trial ends, continued access requires a one-time lifetime unlock.',
+    body: 'RO Navigator is a web application that helps automotive technicians track repair orders, labor hours, and pay periods. New accounts can choose to start a 14-day free trial. After the trial ends, continued access requires a one-time $15.99 lifetime unlock.',
   },
   {
     title: '3. Accounts',
