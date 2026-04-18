@@ -6,10 +6,14 @@ import { trackCheckoutStarted, trackPurchaseCompleted } from '@/lib/analytics';
 import { hasProAccess, type AccessStatus } from '@/lib/subscriptionAccess';
 
 export type BillingStatus = AccessStatus;
+export type AccessCheckState = 'loading' | 'ready' | 'error';
 
 interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
+  accessState: AccessCheckState;
+  accessResolved: boolean;
+  accessError: string | null;
   /** Preferred access-oriented name. */
   accessEndsAt: string | null;
   /** Legacy name retained for compatibility across existing consumers. */
@@ -36,12 +40,22 @@ interface SubscriptionContextType {
 
 const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 
+function messageFromError(error: unknown): string {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes('timed out')) return 'Access check timed out. Please retry.';
+    if (msg.includes('network')) return 'Network issue while checking access. Please retry.';
+  }
+  return 'Could not verify access right now. Please retry.';
+}
+
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [isPro, setIsPro] = useState(false);
   const previousStatusRef = useRef<BillingStatus>(null);
-  const [loading, setLoading] = useState(true);
+  const [accessState, setAccessState] = useState<AccessCheckState>('loading');
+  const [accessError, setAccessError] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<BillingStatus>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -52,14 +66,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const SUBSCRIPTION_CHECK_TIMEOUT_MS = 10_000;
 
   const checkSubscription = useCallback(async (): Promise<BillingStatus> => {
-    const timeoutHandle = setTimeout(() => {
-      console.warn(
-        `[Subscription] checkSubscription did not resolve within ${SUBSCRIPTION_CHECK_TIMEOUT_MS}ms. ` +
-        'Defaulting to no access. Check Supabase connectivity and Edge Function health.'
-      );
-      setLoading(false);
-    }, SUBSCRIPTION_CHECK_TIMEOUT_MS);
-
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -68,15 +74,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setSubscriptionStatus(null);
         setSubscriptionEnd(null);
         previousStatusRef.current = null;
+        setAccessError(null);
+        setAccessState('ready');
         return null;
       }
 
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (error) {
-        return previousStatusRef.current;
-      }
+      const invokeResult = await Promise.race([
+        supabase.functions.invoke('check-subscription', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Access check timed out')), SUBSCRIPTION_CHECK_TIMEOUT_MS);
+        }),
+      ]);
+
+      const { data, error } = invokeResult;
+      if (error) throw error;
 
       const status = (data?.status || null) as BillingStatus;
       const subscribed = data?.subscribed === true || hasProAccess(status);
@@ -87,34 +100,47 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       ) {
         trackPurchaseCompleted(sessionData.session.user.id);
       }
+
       previousStatusRef.current = status;
       setIsPro(subscribed);
       setSubscriptionStatus(status);
       setSubscriptionEnd(data?.subscription_end || null);
+      setAccessError(null);
+      setAccessState('ready');
+
       return status;
-    } catch {
-      // Preserve existing state on transient errors.
-      return previousStatusRef.current;
-    } finally {
-      clearTimeout(timeoutHandle);
-      setLoading(false);
+    } catch (error: unknown) {
+      const fallbackStatus = previousStatusRef.current;
+      if (fallbackStatus !== null) {
+        setIsPro(hasProAccess(fallbackStatus));
+        setSubscriptionStatus(fallbackStatus);
+        setAccessState('ready');
+      } else {
+        setAccessState('error');
+      }
+      setAccessError(messageFromError(error));
+      return fallbackStatus;
     }
   }, []);
 
   useEffect(() => {
     if (!SUPABASE_CONFIGURED) {
-      setLoading(false);
+      setAccessState('ready');
+      setAccessError(null);
       return;
     }
 
     if (userId) {
+      setAccessState('loading');
+      setAccessError(null);
       checkSubscription();
     } else {
       setIsPro(false);
       setSubscriptionStatus(null);
       setSubscriptionEnd(null);
       previousStatusRef.current = null;
-      setLoading(false);
+      setAccessError(null);
+      setAccessState('ready');
     }
   }, [userId, checkSubscription]);
 
@@ -193,7 +219,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   return (
     <SubscriptionContext.Provider value={{
       isPro,
-      loading,
+      loading: accessState === 'loading',
+      accessState,
+      accessResolved: accessState === 'ready',
+      accessError,
       accessEndsAt: subscriptionEnd,
       subscriptionEnd,
       accessStatus: subscriptionStatus,

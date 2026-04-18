@@ -18,19 +18,29 @@ export function TrialCountdownBanner() {
 
   return (
     <>
-      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ background: '#EAF8F5', borderColor: '#BFE8DF', color: '#0F766E' }}>
-        <Crown className="h-3.5 w-3.5 flex-shrink-0" />
+      <div
+        className="flex items-center gap-2 border-b px-3 py-2"
+        style={{
+          background: 'linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%)',
+          borderColor: '#BFDBFE',
+          color: '#1E3A8A',
+        }}
+      >
+        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full" style={{ background: '#BFDBFE' }}>
+          <Crown className="h-3.5 w-3.5" style={{ color: '#0B5FFF' }} />
+        </div>
         <p className="flex-1 text-xs font-medium leading-tight">
           {dayLabel} —{' '}
           <button
-            className="underline underline-offset-2 font-semibold transition-colors"
+            className="font-semibold underline underline-offset-2 transition-colors"
+            style={{ color: '#0B5FFF' }}
             onClick={() => setShowUpgrade(true)}
           >
             unlock lifetime access for $15.99
           </button>
         </p>
         <button
-          className="p-0.5 rounded transition-colors"
+          className="rounded p-0.5 transition-colors hover:bg-white/70"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss trial warning"
         >
