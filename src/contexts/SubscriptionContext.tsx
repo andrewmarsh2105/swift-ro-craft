@@ -3,9 +3,9 @@ import { supabase, SUPABASE_CONFIGURED } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { trackCheckoutStarted, trackPurchaseCompleted } from '@/lib/analytics';
-import { hasBillingIssue, hasProAccess, type StripeSubscriptionStatus } from '@/lib/subscriptionAccess';
+import { hasProAccess, type AccessStatus } from '@/lib/subscriptionAccess';
 
-export type BillingStatus = StripeSubscriptionStatus;
+export type BillingStatus = AccessStatus;
 
 interface SubscriptionContextType {
   isPro: boolean;
@@ -16,11 +16,12 @@ interface SubscriptionContextType {
   daysUntilEnd: number | null;
   /** True only when an active trial is within 3 days of ending. */
   isNearExpiry: boolean;
+  /** Legacy key retained for API compatibility; always false in trial + lifetime billing model. */
   hasBillingIssue: boolean;
   checkoutLoading: boolean;
   checkoutFallbackUrl: string | null;
   clearCheckoutFallback: () => void;
-  checkSubscription: () => Promise<void>;
+  checkSubscription: () => Promise<BillingStatus>;
   startCheckout: () => Promise<void>;
 }
 
@@ -30,7 +31,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [isPro, setIsPro] = useState(false);
-  const prevIsPro = useRef(false);
+  const previousStatusRef = useRef<BillingStatus>(null);
   const [loading, setLoading] = useState(true);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<BillingStatus>(null);
@@ -41,7 +42,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const SUBSCRIPTION_CHECK_TIMEOUT_MS = 10_000;
 
-  const checkSubscription = useCallback(async () => {
+  const checkSubscription = useCallback(async (): Promise<BillingStatus> => {
     const timeoutHandle = setTimeout(() => {
       console.warn(
         `[Subscription] checkSubscription did not resolve within ${SUBSCRIPTION_CHECK_TIMEOUT_MS}ms. ` +
@@ -54,32 +55,37 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       if (!token) {
-        if (!prevIsPro.current) {
-          setIsPro(false);
-          setSubscriptionStatus(null);
-          setSubscriptionEnd(null);
-        }
-        return;
+        setIsPro(false);
+        setSubscriptionStatus(null);
+        setSubscriptionEnd(null);
+        previousStatusRef.current = null;
+        return null;
       }
 
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (error) {
-        return;
+        return previousStatusRef.current;
       }
 
       const status = (data?.status || null) as BillingStatus;
       const subscribed = data?.subscribed === true || hasProAccess(status);
-      if (subscribed && !prevIsPro.current && sessionData.session?.user?.id) {
+      if (
+        status === 'lifetime' &&
+        previousStatusRef.current !== 'lifetime' &&
+        sessionData.session?.user?.id
+      ) {
         trackPurchaseCompleted(sessionData.session.user.id);
       }
-      prevIsPro.current = subscribed;
+      previousStatusRef.current = status;
       setIsPro(subscribed);
       setSubscriptionStatus(status);
       setSubscriptionEnd(data?.subscription_end || null);
+      return status;
     } catch {
       // Preserve existing state on transient errors.
+      return previousStatusRef.current;
     } finally {
       clearTimeout(timeoutHandle);
       setLoading(false);
@@ -98,7 +104,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setIsPro(false);
       setSubscriptionStatus(null);
       setSubscriptionEnd(null);
-      prevIsPro.current = false;
+      previousStatusRef.current = null;
       setLoading(false);
     }
   }, [userId, checkSubscription]);
@@ -119,17 +125,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const syncToast = toast.loading('Syncing access…');
       const tryCheck = async () => {
         attempt++;
-        await checkSubscription();
-        setTimeout(() => {
-          if (prevIsPro.current) {
-            toast.success('Lifetime access unlocked', { id: syncToast });
-          } else if (attempt < maxAttempts) {
-            setTimeout(tryCheck, delays[attempt]);
-          } else {
-            toast.dismiss(syncToast);
-            toast('Access may take a moment to unlock. Pull to refresh.', { duration: 5000 });
-          }
-        }, 500);
+        const status = await checkSubscription();
+        if (status === 'lifetime') {
+          toast.success('Lifetime access unlocked', { id: syncToast });
+          return;
+        }
+        if (attempt < maxAttempts) {
+          setTimeout(tryCheck, delays[attempt]);
+          return;
+        }
+        toast.dismiss(syncToast);
+        toast('Payment received. Access may take a moment to sync. Please refresh shortly.', { duration: 5000 });
       };
       setTimeout(tryCheck, delays[0]);
     } else if (params.get('checkout') === 'cancel') {
@@ -174,7 +180,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     ? Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
   const isNearExpiry = subscriptionStatus === 'trialing' && daysUntilEnd !== null && daysUntilEnd <= 3;
-  const hasBillingIssueState = hasBillingIssue(subscriptionStatus);
 
   return (
     <SubscriptionContext.Provider value={{
@@ -184,7 +189,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       subscriptionStatus,
       daysUntilEnd,
       isNearExpiry,
-      hasBillingIssue: hasBillingIssueState,
+      hasBillingIssue: false,
       checkoutLoading,
       checkoutFallbackUrl,
       clearCheckoutFallback,

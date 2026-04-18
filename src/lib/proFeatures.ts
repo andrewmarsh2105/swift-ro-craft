@@ -1,13 +1,10 @@
 /**
  * src/lib/proFeatures.ts
  *
- * Single source of truth for Pro tier constants, feature definitions,
+ * Single source of truth for upgrade feature definitions,
  * and contextual upgrade messaging. Import from here instead of hardcoding
  * values across components.
  */
-
-/** Free-tier monthly RO cap. */
-export const RO_MONTHLY_CAP = 25;
 
 /** Every defined upgrade trigger context in the app. */
 export type UpgradeTrigger =
@@ -40,7 +37,7 @@ export const UPGRADE_CONTEXT: Record<UpgradeTrigger, UpgradeContext> = {
   },
   'scan': {
     headline: 'Scan ROs with your camera',
-    pitch: 'Take a photo of your RO — Pro reads the lines and fills them in automatically. No more typing every job.',
+    pitch: 'Take a photo of your RO — RO Navigator reads the lines and fills them in automatically. No more typing every job.',
     highlightFeature: 'Scan ROs with your phone',
   },
   'spreadsheet': {

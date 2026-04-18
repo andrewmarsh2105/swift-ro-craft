@@ -58,8 +58,8 @@ serve(async (req) => {
             </div>
 
             <div style="border-left: 3px solid #2B82F0; padding-left: 16px; margin-bottom: 32px;">
-              <p style="font-size: 14px; font-weight: 600; margin: 0 0 4px;">3. Try Pro free for 7 days</p>
-              <p style="font-size: 14px; color: #555; margin: 0;">Unlock OCR scanning, pay period exports, and more. No card needed until you decide.</p>
+              <p style="font-size: 14px; font-weight: 600; margin: 0 0 4px;">3. Use your 14-day free trial</p>
+              <p style="font-size: 14px; color: #555; margin: 0;">You get full access for 14 days. After that, unlock RO Navigator with a one-time $15.99 payment for lifetime access.</p>
             </div>
 
             <a href="https://ronavigator.com" style="display: inline-block; background: #2B82F0; color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin-bottom: 40px;">

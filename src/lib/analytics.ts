@@ -66,7 +66,7 @@ export function trackCheckoutStarted(userId: string, plan: string) {
 }
 
 /**
- * purchase_completed — fire once per session when Pro becomes active
+ * purchase_completed — fire once per session when lifetime access is detected
  */
 export function trackPurchaseCompleted(userId: string) {
   if (alreadySent('purchase_completed', userId)) return;

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { hasBillingIssue, hasProAccess, type StripeSubscriptionStatus } from './subscriptionAccess';
+import { hasProAccess, type AccessStatus } from './subscriptionAccess';
 
 describe('subscriptionAccess', () => {
   it('grants app access only for trialing/lifetime/override states', () => {
-    const statuses: StripeSubscriptionStatus[] = [
+    const statuses: AccessStatus[] = [
       'trialing',
       'lifetime',
       'override',
@@ -13,13 +13,5 @@ describe('subscriptionAccess', () => {
 
     const granted = statuses.filter((status) => hasProAccess(status));
     expect(granted).toEqual(['trialing', 'lifetime', 'override']);
-  });
-
-  it('never reports billing issues in one-time lifetime model', () => {
-    expect(hasBillingIssue('trialing')).toBe(false);
-    expect(hasBillingIssue('lifetime')).toBe(false);
-    expect(hasBillingIssue('override')).toBe(false);
-    expect(hasBillingIssue('expired')).toBe(false);
-    expect(hasBillingIssue(null)).toBe(false);
   });
 });
