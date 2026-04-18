@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { Preset, LaborType, Advisor } from '@/types/ro';
 import { cn } from '@/lib/utils';
+import { buildROBackupData } from '@/lib/backupExport';
 import { SettingsGroup } from '@/components/settings/SettingsGroup';
 import { SettingsRow } from '@/components/settings/SettingsRow';
 import { PresetItem } from '@/components/settings/PresetItem';
@@ -559,27 +560,19 @@ export function SettingsTab() {
       >
         <SettingsGroup title="Backup">
           <SettingsRow
-            label="Download backup"
-            description="Export all repair orders as a JSON backup file"
+            label="Download RO Backup"
+            description="Export all repair orders as a JSON archive backup"
             onClick={() => {
               if (ros.length === 0) { toast.info('No ROs to export'); return; }
-              const exportData = ros.map(ro => ({
-                roNumber: ro.roNumber, date: ro.date, advisor: ro.advisor,
-                customerName: ro.customerName, vehicle: ro.vehicle, mileage: ro.mileage,
-                notes: ro.notes, paidDate: ro.paidDate,
-                lines: ro.lines.map(l => ({
-                  lineNo: l.lineNo, description: l.description,
-                  laborType: l.laborType, hoursPaid: l.hoursPaid,
-                })),
-              }));
+              const exportData = buildROBackupData(ros);
               const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = `ro-navigator-export-${new Date().toISOString().split('T')[0]}.json`;
+              a.download = `ro-navigator-backup-${new Date().toISOString().split('T')[0]}.json`;
               a.click();
               URL.revokeObjectURL(url);
-              toast.success(`Exported ${ros.length} ROs`);
+              toast.success(`Backed up ${ros.length} ROs`);
             }}
           />
         </SettingsGroup>

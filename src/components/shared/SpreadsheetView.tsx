@@ -3,8 +3,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
-  Printer, Download, ChevronDown, MoreVertical,
-  Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarRange, CalendarDays,
+  ChevronDown, MoreVertical,
+  Rows3, Rows4, FileText, Group, CalendarRange, CalendarDays,
   CheckSquare, Square, Flag, CircleDot, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +17,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { maskHours } from '@/lib/maskHours';
-import { csvCell, typeCode, downloadCSVFile, buildCSV } from '@/lib/csvUtils';
+import { typeCode } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { LineTextModal } from '@/components/shared/LineTextModal';
@@ -39,10 +39,6 @@ import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog
 import { PrintHeader } from '@/components/shared/PrintHeader';
 import {
   buildSpreadsheetRows,
-  PAYROLL_EXPORT_HEADERS,
-  AUDIT_EXPORT_HEADERS,
-  rowToExportCells,
-  type SpreadsheetRow,
   type SpreadsheetLineRow,
   type SpreadsheetSubtotalRow,
   type SpreadsheetSectionDividerRow,
@@ -373,14 +369,12 @@ function DateFilterBar({
 interface BatchBarProps {
   selectedCount: number;
   onMarkPaid: () => void;
-  onExportSelected: () => void;
   onClearFlags: () => void;
   onDeselectAll: () => void;
   hasFlagsInSelection: boolean;
-  isPro: boolean;
 }
 
-function BatchActionBar({ selectedCount, onMarkPaid, onExportSelected, onClearFlags, onDeselectAll, hasFlagsInSelection, isPro }: BatchBarProps) {
+function BatchActionBar({ selectedCount, onMarkPaid, onClearFlags, onDeselectAll, hasFlagsInSelection }: BatchBarProps) {
   return (
     <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-primary/8 border-b border-primary/15 animate-in slide-in-from-top-1 duration-200">
       <div className="flex items-center gap-1.5">
@@ -400,13 +394,6 @@ function BatchActionBar({ selectedCount, onMarkPaid, onExportSelected, onClearFl
           <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={onClearFlags}>
             <Flag className="h-3 w-3" />
             Clear Flags
-          </Button>
-        )}
-
-        {isPro && (
-          <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={onExportSelected}>
-            <Download className="h-3 w-3" />
-            Export
           </Button>
         )}
 
@@ -530,9 +517,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   );
 
   /* ─── Filter ROs by selected date range ─── */
-  const { filteredROs, computedRangeLabel, viewStart } = useMemo(() => {
+  const { filteredROs, computedRangeLabel, viewStart, viewEnd } = useMemo(() => {
     if (isCloseout) {
-      return { filteredROs: applySharedROFilters(ros, sharedFilters), computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
+      return {
+        filteredROs: applySharedROFilters(ros, sharedFilters),
+        computedRangeLabel: rangeLabel || 'All ROs',
+        viewStart: undefined as string | undefined,
+        viewEnd: undefined as string | undefined,
+      };
     }
 
     const bounds = computeDateRangeBounds({
@@ -546,13 +538,19 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     });
 
     if (!bounds) {
-      return { filteredROs: applySharedROFilters(ros, sharedFilters), computedRangeLabel: rangeLabel || 'All ROs', viewStart: undefined as string | undefined };
+      return {
+        filteredROs: applySharedROFilters(ros, sharedFilters),
+        computedRangeLabel: rangeLabel || 'All ROs',
+        viewStart: undefined as string | undefined,
+        viewEnd: undefined as string | undefined,
+      };
     }
 
     return {
       filteredROs: filterROsByDateRangeWithCarryover(applySharedROFilters(ros, sharedFilters), bounds),
       computedRangeLabel: bounds.label,
       viewStart: bounds.start,
+      viewEnd: bounds.end,
     };
   }, [ros, sharedFilters, dateRange, isCloseout, rangeLabel, userSettings.payPeriodType, userSettings.payPeriodEndDates, userSettings.weekStartDay, hasCustomPayPeriod, customStart, customEnd]);
 
@@ -613,21 +611,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     toast.success(`Cleared ${flagIds.length} flag(s) from ${selectedROIds.size} RO(s)`);
     deselectAll();
   }, [selectedROIds, getFlagsForRO, clearFlagsBulk, deselectAll]);
-
-  const handleBatchExport = useCallback(() => {
-    // Only export paid ROs from the selection — open ROs are never included in exports.
-    const selectedROs = filteredROs.filter(ro => selectedROIds.has(ro.id) && hasPaidDate(ro));
-    const rows = buildSpreadsheetRows({ ros: selectedROs, periodLabel: 'Selected', groupBy: 'none' });
-    const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-    const exportRows = rows
-      .filter(r => r.rowType !== 'sectionDivider')
-      .map(r => rowToExportCells(r, headers).map(c => csvCell(c)))
-      .filter(r => r.length > 0);
-    const csv = buildCSV(headers, exportRows);
-    downloadCSVFile(csv, `selected-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast.success(`Exported ${selectedROs.length} paid RO(s)`);
-    deselectAll();
-  }, [selectedROIds, filteredROs, viewMode, deselectAll, viewStart]);
 
   const handleSelectAll = useCallback(() => {
     const allIds = new Set(filteredROs.map(ro => ro.id));
@@ -729,107 +712,36 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Export helpers ─── */
 
-  // Payroll exports never include open/unpaid rows; audit exports include everything.
-  const getExportRows = useCallback((mode: 'payroll' | 'audit') => {
-    if (mode === 'payroll') {
-      return allRows.filter(r =>
-        r.rowType === 'sectionDivider' ? false
-        : r.rowType === 'line' ? !(r as SpreadsheetLineRow).isCarryover
-        : r.rowType === 'roSubtotal' ? !(r as SpreadsheetSubtotalRow).isCarryover
-        : true,
-      );
-    }
-    return allRows.filter(r => r.rowType !== 'sectionDivider');
-  }, [allRows]);
+  // Main export only includes paid payroll rows plus subtotal rows.
+  const payrollExportRows = useMemo(() => (
+    allRows.filter(r =>
+      r.rowType === 'sectionDivider' ? false
+      : r.rowType === 'line' ? !(r as SpreadsheetLineRow).isCarryover
+      : r.rowType === 'roSubtotal' ? !(r as SpreadsheetSubtotalRow).isCarryover
+      : true,
+    )
+  ), [allRows]);
 
-  const handleExportCSV = useCallback((mode: 'payroll' | 'audit') => {
-    const headers = mode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-    const rows = getExportRows(mode);
-    const exportRows = rows.map(r => rowToExportCells(r, headers).map(c => csvCell(c))).filter(r => r.length > 0);
-    const csv = buildCSV(headers, exportRows);
-    downloadCSVFile(csv, `${mode}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} CSV downloaded`);
-  }, [allRows, getExportRows]);
-
-  const handleExportXLSX = useCallback(async () => {
-    try {
-      const XLSX = await import('xlsx');
-      const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-      const rows = getExportRows(viewMode);
-      const exportRows = rows.map(r => rowToExportCells(r, headers)).filter(r => r.length > 0);
-      const data = [headers, ...exportRows];
-
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      ws['!cols'] = headers.map((h) => {
-        if (h === 'Work Performed') return { wch: 40 };
-        if (h === 'VIN') return { wch: 20 };
-        if (h === 'Notes') return { wch: 24 };
-        return { wch: Math.max(h.length + 2, 12) };
-      });
-      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Spreadsheet');
-      XLSX.writeFile(wb, `spreadsheet-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-      toast.success('XLSX downloaded');
-    } catch {
-      toast.error('XLSX export failed');
-    }
-  }, [allRows, viewMode]);
-
-  const handleExportPDF = useCallback(async (mode: 'payroll' | 'audit') => {
+  const handleExportPDF = useCallback(async () => {
     try {
       const { exportPDFFromRows } = await import('@/lib/pdfExport');
       exportPDFFromRows(
-        getExportRows(mode),
-        mode,
-        `${mode}-${format(new Date(), 'yyyy-MM-dd')}.pdf`,
-        `${mode === 'payroll' ? 'Payroll' : 'Audit'} Report${rangeLabel ? ' — ' + rangeLabel : ''}`,
+        payrollExportRows,
+        `${format(new Date(), 'yyyy-MM-dd')}-payroll.pdf`,
+        `Payroll Report${rangeLabel ? ' — ' + rangeLabel : ''}`,
+        {
+          startDate: viewStart || filteredROs[0]?.paidDate || filteredROs[0]?.date || format(new Date(), 'yyyy-MM-dd'),
+          endDate: viewEnd || filteredROs[0]?.paidDate || filteredROs[0]?.date || format(new Date(), 'yyyy-MM-dd'),
+          spiffRules: userSettings.spiffRules || [],
+          spiffManualEntries: userSettings.spiffManualEntries || [],
+          rosInRange: filteredROs.filter(hasPaidDate),
+        },
       );
-      toast.success(`${mode === 'payroll' ? 'Payroll' : 'Audit'} PDF downloaded`);
+      toast.success('Payroll PDF downloaded');
     } catch {
       toast.error('PDF export failed');
     }
-  }, [getExportRows, rangeLabel]);
-
-  const handlePrint = useCallback(() => {
-    const headers = viewMode === 'payroll' ? PAYROLL_EXPORT_HEADERS : AUDIT_EXPORT_HEADERS;
-    const rows = getExportRows(viewMode).map((row) => rowToExportCells(row, headers));
-    const w = window.open('', '_blank');
-    if (!w) return;
-    const tableRowsHtml = rows
-      .map((cells) => `<tr>${cells.map((cell) => `<td>${String(cell ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`).join('')}</tr>`)
-      .join('');
-
-    w.document.write(`<html><head><title>Spreadsheet</title>
-      <style>
-        *{box-sizing:border-box}
-        body{font-family:Inter,system-ui,sans-serif;margin:0;padding:16px;background:white;color:#0f172a;font-size:11px}
-        .meta{margin-bottom:12px}
-        .meta h1{font-size:16px;margin:0 0 4px 0}
-        .meta p{margin:0;font-size:11px;color:#475569}
-        table{width:100%;border-collapse:collapse;font-size:11px;table-layout:auto}
-        thead{display:table-header-group}
-        tr{page-break-inside:avoid}
-        th,td{padding:5px 8px;border:1px solid #cbd5e1;text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere}
-        th{background:#f0f0f0;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.04em}
-        td:last-child{text-align:right}
-        @page{margin:10mm 8mm;size:landscape}
-        @media print{body{padding:0}}
-      </style></head><body>
-      <div class="meta">
-        <h1>${viewMode === 'payroll' ? 'Payroll' : 'Audit'} Spreadsheet Export</h1>
-        <p>Generated ${format(new Date(), 'MMM d, yyyy h:mm a')}</p>
-      </div>
-      <table>
-        <thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
-        <tbody>${tableRowsHtml}</tbody>
-      </table>
-      </body></html>`);
-    w.document.close();
-    w.focus();
-    w.print();
-  }, [getExportRows, viewMode]);
+  }, [filteredROs, payrollExportRows, rangeLabel, userSettings.spiffManualEntries, userSettings.spiffRules, viewEnd, viewStart]);
 
   /* ─── Density classes ─── */
   const cellPy = density === 'compact' ? 'py-[5px]' : 'py-2';
@@ -967,36 +879,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               <ColumnChooser activeColumns={activeColIds} onToggle={handleToggleCol} />
 
               {isPro && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs">
-                      <Download className="h-3.5 w-3.5" />
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => handleExportCSV('payroll')}>
-                      <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportCSV('audit')}>
-                      <Download className="h-3.5 w-3.5 mr-2" /> Audit CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportPDF('payroll')}>
-                      <FileText className="h-3.5 w-3.5 mr-2" /> Payroll PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportPDF('audit')}>
-                      <FileText className="h-3.5 w-3.5 mr-2" /> Audit PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportXLSX}>
-                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> XLSX
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              {isPro && (
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
-                  <Printer className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleExportPDF}>
+                  <FileText className="h-3.5 w-3.5" />
+                  Export PDF
                 </Button>
               )}
             </>
@@ -1034,20 +919,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     <div className="px-2 py-1.5">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Export</p>
                     </div>
-                    <DropdownMenuItem onClick={() => handleExportCSV('payroll')}>
-                      <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportCSV('audit')}>
-                      <Download className="h-3.5 w-3.5 mr-2" /> Audit CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportPDF('payroll')}>
-                      <FileText className="h-3.5 w-3.5 mr-2" /> Payroll PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportPDF('audit')}>
-                      <FileText className="h-3.5 w-3.5 mr-2" /> Audit PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportXLSX}>
-                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> XLSX
+                    <DropdownMenuItem onClick={handleExportPDF}>
+                      <FileText className="h-3.5 w-3.5 mr-2" /> Export PDF
                     </DropdownMenuItem>
                   </>
                 )}
@@ -1062,11 +935,9 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         <BatchActionBar
           selectedCount={selectedROIds.size}
           onMarkPaid={handleBatchMarkPaid}
-          onExportSelected={handleBatchExport}
           onClearFlags={handleBatchClearFlags}
           onDeselectAll={deselectAll}
           hasFlagsInSelection={hasFlagsInSelection}
-          isPro={isPro}
         />
       )}
 
