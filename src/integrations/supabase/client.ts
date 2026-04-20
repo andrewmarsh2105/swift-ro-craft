@@ -2,22 +2,18 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // ---------------------------------------------------------------------------
-// Supabase project: lgoymdnoziqnykxbfspw  ← active project with all user data
-//
-// NOTE: a migration to spqjhfipdvvlmtalkjaz was attempted but data was never
-// transferred. Reverted here to restore user data and Pro access.
-// Do not change the project again without exporting data from the old one first.
+// Supabase project: spqjhfipdvvlmtalkjaz  ← active project for this codebase
 //
 // These three constants MUST all reference the same Supabase project.
 // If you change the project, update ALL THREE fallbacks AND supabase/config.toml
-// in the same commit — a partial update is what caused the original mismatch.
+// in the same commit — a partial update can cause auth/data mismatches.
 //
 // The fallback values (anon/public keys) are safe to embed in client-side code.
 // RLS policies on the server enforce all access control.
 // ---------------------------------------------------------------------------
-const FALLBACK_PROJECT_ID = 'lgoymdnoziqnykxbfspw';
-const FALLBACK_URL       = `https://${FALLBACK_PROJECT_ID}.supabase.co`;
-const FALLBACK_KEY       = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnb3ltZG5vemlxbnlreGJmc3B3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTgzNDQsImV4cCI6MjA4NjQzNDM0NH0.lxlMyJQEX4WqHXCqKcnt8zugKfsAIGvJcyrtpT5-kaU';
+const FALLBACK_PROJECT_ID = 'spqjhfipdvvlmtalkjaz';
+const FALLBACK_URL       = 'https://spqjhfipdvvlmtalkjaz.supabase.co';
+const FALLBACK_KEY       = 'sb_publishable_fQ3pL-WCTrRSx4WHoRoK8A_3DHej6km';
 
 const SUPABASE_URL =
   (import.meta.env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_URL;
@@ -42,16 +38,35 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
  */
 export const SUPABASE_CONFIGURED = !!(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
-// Catch the "right format, wrong project" misconfiguration: the URL is present
-// but points at a different project than the one this build was compiled for.
-// This surfaces immediately in DevTools and hosting-platform logs instead of
-// manifesting as a cryptic infinite loading screen.
-if (SUPABASE_CONFIGURED && SUPABASE_PROJECT_ID && !SUPABASE_URL?.includes(SUPABASE_PROJECT_ID)) {
-  console.error(
-    `[Supabase] VITE_SUPABASE_URL ("${SUPABASE_URL}") does not contain the expected ` +
-    `project ref "${SUPABASE_PROJECT_ID}" from VITE_SUPABASE_PROJECT_ID. ` +
-    'Environment variables are likely misconfigured for this deployment — ' +
-    'auth and all data calls will fail.'
+function extractProjectRefFromUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+
+  try {
+    const host = new URL(url).hostname;
+    const [subdomain] = host.split('.');
+    return subdomain || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Catch misconfiguration early: URL/project-id/fallback should align to one
+// project ref to avoid auth/data errors caused by mixed project settings.
+const urlProjectRef = extractProjectRefFromUrl(SUPABASE_URL);
+if (
+  SUPABASE_CONFIGURED &&
+  (
+    (urlProjectRef && SUPABASE_PROJECT_ID && urlProjectRef !== SUPABASE_PROJECT_ID) ||
+    (urlProjectRef && urlProjectRef !== FALLBACK_PROJECT_ID) ||
+    (SUPABASE_PROJECT_ID && SUPABASE_PROJECT_ID !== FALLBACK_PROJECT_ID)
+  )
+) {
+  console.warn(
+    '[Supabase] Project mismatch detected. ' +
+      `URL ref="${urlProjectRef ?? 'unparsed'}", ` +
+      `VITE_SUPABASE_PROJECT_ID="${SUPABASE_PROJECT_ID ?? 'unset'}", ` +
+      `fallback ref="${FALLBACK_PROJECT_ID}". ` +
+      'Align env vars and fallback config to the same project ref.',
   );
 }
 

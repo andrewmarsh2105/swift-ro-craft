@@ -1,8 +1,7 @@
 # Source of truth for the Supabase CLI (supabase link, function deploys, migrations).
 # MUST match the project ref in src/integrations/supabase/client.ts and
 # the VITE_SUPABASE_PROJECT_ID env var used at build time.
-# Reverted to lgoymdnoziqnykxbfspw — this is where all user data lives.
-project_id = "lgoymdnoziqnykxbfspw"
+project_id = "spqjhfipdvvlmtalkjaz"
 
 [functions.admin-manage-overrides]
 verify_jwt = false
