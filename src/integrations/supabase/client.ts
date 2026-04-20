@@ -12,10 +12,8 @@ import type { Database } from './types';
 // RLS policies on the server enforce all access control.
 // ---------------------------------------------------------------------------
 const FALLBACK_PROJECT_ID = 'spqjhfipdvvlmtalkjaz';
-const FALLBACK_URL       = `https://${FALLBACK_PROJECT_ID}.supabase.co`;
-// TODO(project-alignment): Replace this fallback key with the spqjhfipdvvlmtalkjaz
-// anon/publishable key when it is available in a verified secret source.
-const FALLBACK_KEY       = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnb3ltZG5vemlxbnlreGJmc3B3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTgzNDQsImV4cCI6MjA4NjQzNDM0NH0.lxlMyJQEX4WqHXCqKcnt8zugKfsAIGvJcyrtpT5-kaU';
+const FALLBACK_URL       = 'https://spqjhfipdvvlmtalkjaz.supabase.co';
+const FALLBACK_KEY       = 'sb_publishable_fQ3pL-WCTrRSx4WHoRoK8A_3DHej6km';
 
 const SUPABASE_URL =
   (import.meta.env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_URL;
